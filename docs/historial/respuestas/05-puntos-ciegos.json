@@ -1,0 +1,60 @@
+{
+  "actualizado": "2026-10-14T18:23:55.296Z",
+  "respuestas": {
+    "backup_db": {
+      "c": "Me gustaria que estos datos queraran recuperables, preferiria que quedara en git, mas que nada por que tema de costos, en un repo especifico para almacenar partidas guardadas y base de informacion. Pero puede ser otro provedor si git no lo soporta."
+    },
+    "carga_inicial": {
+      "c": "",
+      "v": "todo"
+    },
+    "credenciales": {
+      "c": "Aun que considera que yo uso bitwarden igual.",
+      "v": "cifrado_so"
+    },
+    "estilo": {
+      "v": "oscuro_portadas"
+    },
+    "idioma_textos": {
+      "c": "",
+      "v": "traducir"
+    },
+    "instalar_contenido": {
+      "c": "si no lo logra me avisa que hay que instalarlos",
+      "v": "auto"
+    },
+    "lanzar": {
+      "c": "La idea es que se pueda conectar con steam u otras tiendas.",
+      "v": "ambos"
+    },
+    "linux_emus": {
+      "v": "despues"
+    },
+    "mandos": {
+      "v": "steam_input"
+    },
+    "multi_pc": {
+      "c": "es posible que migre, el sistema o quiera formatear a linux o bien puede que en futuro tenga otro equipo"
+    },
+    "pantallas": {
+      "v": [
+        "inicio",
+        "sagas",
+        "coleccion",
+        "descubrir"
+      ]
+    },
+    "retroach": {
+      "v": "si"
+    },
+    "srm": {
+      "v": "app"
+    },
+    "tope": {
+      "v": "tope"
+    },
+    "vigilar": {
+      "v": "manual"
+    }
+  }
+}

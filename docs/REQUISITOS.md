@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-14, después de la encuesta 4, "Temas abiertos (2)", y sus aclaraciones.
+> **Última actualización:** 2026-10-14, después de la encuesta 5, "Puntos ciegos".
 
 ## Cómo se mantiene
 
@@ -14,7 +14,8 @@
 | Estado | Significado |
 |---|---|
 | ✅ | Decidido |
-| 🔬 | Decidido, pero falta comprobar que se puede hacer técnicamente (ver §12) |
+| 🔬 | Decidido, pero falta comprobar que se puede hacer técnicamente (ver §13) |
+| 🟡 | Decidido en lo general, con detalles abiertos (ver §13) |
 
 ---
 
@@ -42,6 +43,7 @@ Otteretro es una app **personal y portable** para:
 | P7 | **No se pierden datos.** Nunca se borran versiones viejas de emuladores ni actualizaciones de juegos. Mover siempre es copiar, verificar y recién entonces borrar. |
 | P8 | **Solo enlaces tuyos.** La app nunca busca de dónde descargar juegos. Emuladores, ports y complementos sí los descarga de su fuente oficial. |
 | P9 | **La app evoluciona.** Cuando detecta tareas que conviene automatizar, crea issues. Claude Code las implementa en el repositorio y la app se actualiza sola (§11.5). |
+| P10 | **Se puede migrar.** Formatear, pasar a Linux o cambiar de PC no hace perder nada (§7.6). |
 
 ## 3. Stack y repositorio ✅
 
@@ -117,6 +119,10 @@ E:\Consolas\  ·  D:\Juegos\…    ← bibliotecas de JUEGOS (las que quieras, e
 - `_Herramientas\Catalogo` se integra al repositorio (§11.6).
 - Carpetas sobrantes: `E:\Roms`, `E:\Emuladores` y `D:\Roms` están aprobadas para borrar, pero lo tienes que hacer tú, porque Claude Code bloquea los borrados en la raíz de un disco.
 
+### 5.6 Credenciales 🟡
+- Las claves de Steam Web API, IGDB, MyJDownloader, ScreenScraper, SteamGridDB y RetroAchievements se guardan en `data\`, **cifradas con el almacén seguro del sistema operativo**: DPAPI en Windows, libsecret en Linux.
+- Usas **Bitwarden**. Falta decidir cómo se integra (§13).
+
 ## 6. Catálogo
 
 ### 6.1 Alcance ✅
@@ -190,9 +196,22 @@ Si dos fuentes no coinciden, se usa una **prioridad fija por campo**. Lo que cor
 ### 7.3 Actualizaciones y DLC ✅
 Se detectan y se muestran BASE, UPD y DLC. **Nunca se borran las versiones viejas.**
 
-### 7.4 Tiempo de juego y partidas ✅
-- El tiempo de juego no lo registra la app: **muestra el de Steam**.
-- Las partidas no tienen copia de seguridad general. Solo se hace una copia puntual antes de actualizar un emulador o port (§8.4).
+### 7.4 Tiempo de juego ✅
+El tiempo de juego no lo registra la app: **muestra el de Steam**.
+
+### 7.5 Respaldo de datos y partidas 🟡
+- **Esto reemplaza lo que se había dicho antes** ("las partidas no tienen copia de seguridad").
+- La información de la app y las **partidas guardadas** tienen que poder recuperarse. Se guardan en un **repositorio git privado aparte**, solo para datos, porque sale barato. Si git no sirve para algo concreto, se usa otro proveedor.
+- La base de datos se exporta **como texto** (JSON por tabla) para que git pueda guardar solo los cambios entre una copia y otra.
+- Antes de actualizar un emulador o port se sigue haciendo una copia puntual (§8.4).
+- Falta decidir qué se respalda exactamente, cada cuánto y el nombre del repositorio (§13).
+
+### 7.6 Migración entre equipos ✅
+- Es probable que formatees, que pases a Linux o que tengas otro PC. **Todo tiene que poder moverse de un equipo a otro**:
+  - La app es portable (P1).
+  - Los datos y las partidas se recuperan desde el repositorio de respaldo (§7.5).
+  - Las credenciales se recuperan según §5.6.
+- Lo que depende de cada equipo, como la exportación a Steam o las rutas de Steam, se guarda **por equipo**. La app reconoce en qué PC está.
 
 ## 8. Emuladores, ports y complementos
 
@@ -228,6 +247,20 @@ Todo va en `Otteretro\Herramientas\` (§5.1). Los **complementos** (packs de tex
 - Las BIOS, keys y firmware **los subes desde la interfaz**. La app no los descarga.
 - Quedan en `Herramientas\Sistema\`, compartidos por todos los emuladores, **con versiones**.
 - La app indica dónde va cada uno, comprueba que estén y avisa si falta alguno.
+
+### 8.6 Contenido instalado dentro del emulador ✅
+- Actualizaciones y DLC de Switch, juegos de Wii U (Cemu), paquetes `.pkg` de PS3 y `.cia` de 3DS: **la app los instala sola** en el emulador, según la receta. Los archivos originales siguen en la biblioteca.
+- Si no lo consigue, **avisa de qué hay que instalar a mano**.
+
+### 8.7 Herramientas que gestiona la app ✅
+- **Steam ROM Manager** es una herramienta más: tiene su receta y vive en `Herramientas\`.
+- **RetroAchievements**: inicias sesión y la app muestra los logros de cada juego y los activa en los emuladores compatibles.
+
+### 8.8 Mandos ✅
+Los mandos los gestiona **Steam Input**; la app no los configura.
+
+### 8.9 Linux ✅
+El formato de los emuladores en Linux (AppImage o Flatpak) **se decide cuando migres**. Las recetas ya prevén tener una variante por sistema operativo.
 
 ## 9. Ingesta (descargas y megapacks)
 
@@ -298,6 +331,10 @@ Se prueba en este orden:
 - **Actualizaciones** de emuladores, ports y complementos: las lanzas tú, porque pueden implicar migrar partidas. Una vez lanzadas, todo es automático.
 - **Resultados que requieren criterio** (icónico, rutas, mejor versión, Descubrir): se recalculan **cuando cambian los datos de los que dependen**, algo que detecta un script, y **cuando lo pides**.
 - **Información de tiendas y versión de PC**: se refresca periódicamente; el intervalo es configurable.
+- **Bibliotecas**: se escanean **solo cuando pulsas "Escanear"**. La app no vigila las carpetas.
+- **Carga inicial del catálogo**: **completa**, todas las sagas y juegos. Los datos que vienen de APIs se bajan con scripts.
+- **Tope de Claude**: cada ejecución tiene un tope configurable de tareas. Al llegar al tope, la app se pausa y avisa. 🟡 Cómo encaja esto con una carga inicial completa está pendiente (§13).
+- **Descripciones**: se **traducen al español con Claude una sola vez** y quedan guardadas.
 
 ### 11.3 Claude Code ✅
 Otteretro ejecuta `claude -p` con prompts guardados en el repositorio. Cada prompt fija qué puede tocar Claude, cuántos cambios puede hacer como máximo y que debe citar fuentes.
@@ -317,21 +354,29 @@ Así, cada tarea que Claude resolvía pasa a un script y la app depende cada vez
 ### 11.6 Generador actual ✅
 `E:\Consolas\_Herramientas\Catalogo` (Node, unas 350 líneas) se integra **portándolo a C#**, como scripts de la app.
 
-## 12. Pendientes
+## 12. Interfaz 🟡
 
-### 12.1 Decisiones del usuario (encuesta 5)
-Una revisión de punta a punta encontró temas que no se habían tratado. Se cierran con la encuesta **[Puntos ciegos](https://claude.ai/artifact/BeCk8zFmS6kmVgmchL5n2N)** (doc `cuestionario/temas3`):
+- **Primero se diseña y después se programa.** Las vistas se diseñan antes de escribir el front y forman parte del plan por fases. La especificación de cada pantalla (qué muestra y qué acciones tiene) se cierra antes de diseñar.
+- **Estilo:** oscuro, con **portadas grandes**, como una biblioteca de juegos (Steam, Playnite). El arte sale de SteamGridDB.
+- **Pantallas principales:** **Inicio**, **Sagas**, **Colección** y **Descubrir**. Descargas, Herramientas y Exportar a Steam van en un nivel secundario.
+- **Botón "Jugar"**: la app lanza juegos por su cuenta, además de lo que exporta a Steam. Se conecta con Steam (y quizás con otras tiendas, 🟡 ver §13) para lanzar los juegos de PC.
 
-| Bloque | Pendiente |
+## 13. Pendientes
+
+### 13.1 Decisiones del usuario (encuesta 6)
+Salen de las notas de la encuesta 5 y de cómo se va a ver la app. Encuesta: **[Interfaz y cierre](https://claude.ai/artifact/GHKEE7GuPTgWjKGopbKHwN)** (doc `cuestionario/temas4`).
+
+| Tema | Pendiente |
 |---|---|
-| A · Uso diario | Botón "Jugar" en la app, pantallas principales, estilo visual, mandos |
-| B · Datos y seguridad | Dónde se guardan las credenciales, copias de la base de datos, uso en varios PCs |
-| C · Emuladores | Instalar contenido dentro del emulador (UPD/DLC, Cemu, pkg, cia), quién instala Steam ROM Manager, RetroAchievements |
-| D · Tokens | Carga inicial por etapas, tope de uso de Claude, idioma de las descripciones |
-| E · Escaneo | Vigilar las carpetas o escanear a mano |
-| F · Linux | AppImage, Flatpak o decidirlo más adelante |
+| Respaldo en git | Qué se respalda, cada cuánto y el nombre del repositorio |
+| Bitwarden | Si es la fuente principal de las credenciales o solo un respaldo manual |
+| Otras tiendas | "Conectar con Steam u otras tiendas": ¿solo para lanzar, o también cuentan como "lo tengo"? |
+| Carga completa con tope | Cómo se combinan la carga completa y el tope por ejecución |
+| Interfaz | Navegación, contenido de cada pantalla, ficha de juego, referencias visuales, identidad y herramienta de diseño |
+| Tareas largas | Cómo se muestra el progreso y cómo se avisa |
+| Investigación técnica | Si T1 a T5 se investigan ahora o durante el desarrollo |
 
-### 12.2 Pendientes técnicos 🔬
+### 13.2 Pendientes técnicos 🔬
 Se comprueban durante el desarrollo:
 
 | # | Qué hay que comprobar |
