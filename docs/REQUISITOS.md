@@ -386,3 +386,21 @@ Se comprueban durante el desarrollo:
 | T3 | **Cómo guarda sus partidas cada port**, para su receta de migración. |
 | T4 | **Qué formato exige cada port**, por ejemplo si Dusklight acepta RVZ o solo ISO. |
 | T5 | **Autoactualización en Linux:** reemplazar el ejecutable mientras la app está abierta. |
+
+### 13.3 Acciones tuyas fuera de la app
+No son requisitos, pero siguen pendientes:
+
+| # | Acción |
+|---|---|
+| A1 | Borrar `E:\Roms`, `E:\Emuladores` y `D:\Roms`. Están aprobadas, pero Claude Code no puede borrarlas. |
+| A2 | Poner `prod.keys` y el firmware en Ryujinx SS4K. Hoy no arranca ningún juego de Switch. Cuando exista, la app lo hará desde `Herramientas\Sistema\` (§8.5). |
+| A3 | Crear las cuentas y claves cuando toque: Steam Web API, IGDB (Twitch), MyJDownloader, ScreenScraper, SteamGridDB y RetroAchievements. |
+
+### 13.4 Supuestos que tomé sin preguntarte
+Si alguno no te sirve, dímelo:
+
+| # | Supuesto |
+|---|---|
+| S1 | El generador `_Herramientas\Catalogo` se porta a C#. Lo deduje de que elegiste scripts en C# dentro de la app (#36). |
+| S2 | En 1G1R solo dijiste "español primero". El resto del orden por defecto es Europa > USA > Japón, y se puede cambiar en Ajustes. |
+| S3 | La base de datos se respalda como JSON por tabla, para que git guarde solo los cambios entre copias. |
