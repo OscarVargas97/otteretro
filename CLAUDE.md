@@ -11,6 +11,11 @@ App personal y portable (C# ASP.NET Core + SQLite, interfaz Next.js estática en
   3. Actualizar `docs/REQUISITOS.md` y su fecha de "Última actualización".
 - Las encuestas largas se hacen como artifact para completar (capability `db`), no con el selector de opciones.
 
+## Ramas y publicación
+
+- Se trabaja en `dev`. `main` es lo publicado: al fusionar en `main`, GitHub Actions publica una release y la app se autoactualiza.
+- Las tareas de automatización llegan como GitHub Issues con la etiqueta `automatizar`.
+
 ## Reglas del proyecto
 
 - Claude se usa a través del Claude Code del usuario (`claude -p`), **nunca con la API de Anthropic**.

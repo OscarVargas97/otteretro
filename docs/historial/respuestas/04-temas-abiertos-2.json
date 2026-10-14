@@ -1,0 +1,98 @@
+{
+  "actualizado": "2026-10-14T18:10:14.096Z",
+  "respuestas": {
+    "aprendizaje": {
+      "v": "auto"
+    },
+    "confianza": {
+      "v": "asignar_revisar"
+    },
+    "copiar_mover": {
+      "v": "mover"
+    },
+    "cuantas_herr": {
+      "c": "Esta debe ir en la misma carpeta donde se tiene el port o programa instalado.",
+      "v": "una"
+    },
+    "cuentas_steam": {
+      "c": "Pero igual me sirve los juegos de prestamo de familia",
+      "v": "detectada"
+    },
+    "donde_scripts": {
+      "c": "La idea es que se actualice la app, de manera que claude, hace la tarea de seguir construyendo la app, si hay algo, una tare o una aejecuccion que claude pueda automatizar, la idea es que se vuelva menos dependiente de consumir tockens.",
+      "v": "csharp"
+    },
+    "duplicados": {
+      "v": "saltar"
+    },
+    "extras": {
+      "v": [
+        "traducciones"
+      ]
+    },
+    "formato_port": {
+      "c": "Por ejemplo si el emulador pide iso y nosotros tenemos el rvz, entonces tenemos que generar el iso, pero sin reducciones de formato, aqui lo que manda, es lo que solicite el port sobre el emulador.",
+      "v": "original"
+    },
+    "lectura": {
+      "v": "webapi"
+    },
+    "orden": {
+      "v": "script_primero"
+    },
+    "pc_no_tengo": {
+      "c": "Igual la idea es que esto se actualice cada cierto tiempo.",
+      "v": "indicar"
+    },
+    "ports_herr": {
+      "v": "si"
+    },
+    "prioridad_pc": {
+      "v": "primero"
+    },
+    "progreso": {
+      "v": "si"
+    },
+    "que_genera": {
+      "c": "Lo ideal es que se creen tareas o isus para realizar en el repo, bien documentadas, de manera que luego yo ejecute esto y se actualice la aplicacion con el script que se genera, ojala que el sistema tenga un identificacor de actualizaciones automatico. asi modifico el repo y luego se actualiza, en vez de tener que reinstalar. obviamente necesitamos rama, dev y main.",
+      "v": "scripts"
+    },
+    "que_importar": {
+      "v": "vista_previa"
+    },
+    "quien_ruta": {
+      "v": "claude"
+    },
+    "recalcular": {
+      "c": "tambien cuando lo solicito",
+      "v": "cambios"
+    },
+    "regiones": {
+      "c": "De preferencia español primero.",
+      "v": "1g1r"
+    },
+    "registro_claude": {
+      "v": "si_sugerir"
+    },
+    "temas_emu": {
+      "v": "texturas"
+    },
+    "texturas_donde": {
+      "v": "herr"
+    },
+    "tiendas": {
+      "c": "Eso si, si me sirve si me dice si el gamepass lo tiene o si esta gratis en epic en algun momento o si esta en alguna de las otras tiendas, pero para mi, la que tiene peso es stema.",
+      "v": [
+        "solo_steam"
+      ]
+    },
+    "tipos_ruta": {
+      "c": "La idea es que uno pueda seleccionar la ruta que quiere seguir,, ademas tambien puedo marcar juegos como completo y esto me sirve para saber que juego jugar para seguir la ruta.",
+      "v": [
+        "lanzamiento",
+        "historia",
+        "comunidad"
+      ]
+    }
+  }
+}

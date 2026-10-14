@@ -1,20 +1,20 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-14, tras la encuesta "Temas abiertos (1)" y los requisitos de Steam, megapacks y automatización.
+> **Última actualización:** 2026-10-14, después de la encuesta 4, "Temas abiertos (2)", y sus aclaraciones.
 
 ## Cómo se mantiene
 
 - Después de cada encuesta o decisión:
   1. Se guardan las respuestas originales en [historial/respuestas/](historial/respuestas/).
-  2. Se añade una entrada en [historial/decisiones.md](historial/decisiones.md), que es el registro cronológico de qué cambió y cuándo.
+  2. Se añade una entrada en [historial/decisiones.md](historial/decisiones.md), el registro cronológico de qué cambió y cuándo.
   3. Se **actualiza este documento** para que refleje siempre el estado actual.
-- [historial/v1-por-tema/](historial/v1-por-tema/) guarda la primera versión de los requisitos, dividida por tema, tal como estaba antes de consolidarla.
+- [historial/v1-por-tema/](historial/v1-por-tema/) guarda la primera versión de los requisitos, separada por tema, antes de consolidarla.
 
 | Estado | Significado |
 |---|---|
 | ✅ | Decidido |
-| 🟡 | Decidido en lo general, con detalles abiertos (ver §12) |
+| 🔬 | Decidido, pero falta comprobar que se puede hacer técnicamente (ver §12) |
 
 ---
 
@@ -22,33 +22,34 @@
 
 Otteretro es una app **personal y portable** para:
 
-1. **Catalogar** las sagas icónicas y los juegos interesantes de las consolas elegidas, de lo retro a la generación de PS5 y Switch, incluida la versión de PC.
-2. **Saber qué tienes**, ya sea en archivos de tus bibliotecas o en tu cuenta de Steam.
+1. **Catalogar** las sagas icónicas y los juegos interesantes de las consolas elegidas, desde lo retro hasta la generación de PS5 y Switch, incluida la versión de PC.
+2. **Saber qué tienes**: archivos en tus bibliotecas y juegos en tu cuenta de Steam.
 3. **Elegir cómo jugar** cada juego: versión de PC, port o emulador, y cuál es la mejor versión.
-4. **Conseguir y organizar** juegos con el mínimo de intervención: descargas y megapacks.
+4. **Conseguir y organizar** juegos con la mínima intervención, ya sea con descargas o con megapacks.
 5. **Llevarlo todo a Steam**, organizado por saga.
-6. **Descubrir** sagas que no conoces y recorrerlas en el orden que convenga.
+6. **Descubrir** sagas que no conoces y **recorrerlas** siguiendo la ruta que elijas.
 
-## 2. Principios
+## 2. Principios ✅
 
 | # | Principio |
 |---|---|
-| P1 | **Portable.** La app vive en su propia carpeta, con su base de datos dentro, y no escribe nada en AppData. ✅ |
-| P2 | **El sistema va separado de las bibliotecas.** Las bibliotecas pueden estar en cualquier disco y la app las encuentra. ✅ |
-| P3 | **Multiplataforma.** Windows hoy y Linux en el futuro. ✅ |
-| P4 | **Claude decide, los scripts repiten.** Claude solo se usa cuando hay que juzgar o la primera vez que aparece un caso. Lo repetitivo queda en scripts y no gasta tokens. Ver §11. 🟡 |
-| P5 | **Claude se usa a través de tu Claude Code** (`claude -p`), **nunca con la API** de Anthropic. ✅ |
-| P6 | **Intervención mínima.** Solo se pregunta cuando la app no puede decidir. ✅ |
-| P7 | **No se pierden datos.** Las versiones viejas de emuladores y las actualizaciones de juegos nunca se borran. Mover siempre es copiar, verificar y recién entonces borrar. ✅ |
-| P8 | **Solo enlaces tuyos.** La app nunca busca de dónde descargar juegos. Emuladores y ports sí puede descargarlos de su fuente oficial. ✅ |
+| P1 | **Portable.** La app vive en su carpeta, junto con su base de datos (`data\`) y sus herramientas (`Herramientas\`). No escribe nada en AppData. |
+| P2 | **Las bibliotecas de juegos van separadas del sistema.** Pueden estar en cualquier disco y la app las encuentra. |
+| P3 | **Multiplataforma**: Windows hoy y Linux en el futuro. |
+| P4 | **Claude decide y los scripts repiten.** Claude se usa solo para juzgar o la primera vez que aparece un caso. Lo repetitivo pasa a scripts y no gasta tokens (§11). |
+| P5 | **Claude se usa a través de tu Claude Code** (`claude -p`), **nunca de la API** de Anthropic. |
+| P6 | **Intervención mínima.** La app solo pregunta cuando no puede decidir. Si duda, asigna y marca "revisar". |
+| P7 | **No se pierden datos.** Nunca se borran versiones viejas de emuladores ni actualizaciones de juegos. Mover siempre es copiar, verificar y recién entonces borrar. |
+| P8 | **Solo enlaces tuyos.** La app nunca busca de dónde descargar juegos. Emuladores, ports y complementos sí los descarga de su fuente oficial. |
+| P9 | **La app evoluciona.** Cuando detecta tareas que conviene automatizar, crea issues. Claude Code las implementa en el repositorio y la app se actualiza sola (§11.5). |
 
-## 3. Stack ✅
+## 3. Stack y repositorio ✅
 
-- **Backend:** C# con ASP.NET Core y SQLite.
-- **Interfaz:** Next.js exportado como estático (React).
-- **Ventana:** Photino, una ventana nativa que usa WebView2 en Windows y WebKitGTK en Linux.
-- **Uso:** interfaz en **español**, pensada para escritorio con ratón y teclado. Para la tele se usa Steam Big Picture.
-- **Nombre y repositorio:** Otteretro, en `D:\dev\personal\otteretro`. La build final es portable y puede ir en cualquier carpeta.
+- **Backend:** C# con ASP.NET Core y SQLite. **Interfaz:** Next.js exportado como estático (React). **Ventana:** Photino, que usa WebView2 en Windows y WebKitGTK en Linux.
+- **Idioma y uso:** interfaz en **español**, pensada para escritorio con ratón y teclado. Para la tele se usa Steam Big Picture.
+- **Repositorio:** `D:\dev\personal\otteretro`, con copia en **GitHub, privado**. Ramas: **`dev`**, donde se trabaja, y **`main`**, que es lo publicado.
+- **Releases:** al fusionar `dev` en `main`, GitHub Actions compila y publica una release.
+- **Autoactualización:** la app detecta una release nueva, la descarga y se reemplaza a sí misma **sin tocar `data\` ni `Herramientas\`**. No hace falta reinstalar.
 
 ## 4. Consolas ✅
 
@@ -59,142 +60,173 @@ Otteretro es una app **personal y portable** para:
 | Nintendo (12) | NES · Game Boy (incluye GBC) · SNES · Virtual Boy · N64 (incluye 64DD) · GBA · GameCube · DS (incluye DSi) · Wii · 3DS (incluye New 3DS) · Wii U · Switch |
 | Sony (7) | PS1 · PS2 · PSP · PS3 · PS Vita · PS4 · PS5 (emulación temprana: SharpEmu, KytyPS5) |
 | Microsoft (4) | Xbox · Xbox 360 · Xbox One y Series X\|S (estas dos solo se catalogan) |
-| **PC** | Plataforma para las versiones de PC oficiales y ports. Ver §6.6 |
+| **PC** | Versiones de PC oficiales y ports (§6.6) |
 
 **Reglas**
-- Los add-ons van dentro de su consola base y las variantes se agrupan con su consola.
-- Las consolas sin emulación se catalogan igual.
-- El estado de la emulación es un dato que se actualiza, no algo escrito a mano.
+- Los add-ons van dentro de su consola base y las variantes, junto con su consola.
+- Las consolas sin emulación también se catalogan.
+- El estado de la emulación es un dato que se actualiza, no un valor fijo.
 
-**Fuera: 49 sistemas.** Game & Watch, FDS, Satellaview, Pokémon Mini, Switch 2, y todo lo de Sega, NEC, SNK, Atari, otras marcas, arcade y computadoras retro. El detalle está en [historial/v1-por-tema/consolas.md](historial/v1-por-tema/consolas.md).
+**Fuera: 49 sistemas.** Game & Watch, FDS, Satellaview, Pokémon Mini, Switch 2 y todo lo de Sega, NEC, SNK, Atari, otras marcas, arcade y computadoras retro. Detalle en [historial/v1-por-tema/consolas.md](historial/v1-por-tema/consolas.md).
 
 ## 5. Bibliotecas
 
-### 5.1 Tipos 🟡
+### 5.1 Tipos ✅
 
-| Tipo | Contiene |
-|---|---|
-| **Juegos** | `<Consola>\<Juego>\…` y `_Entrada\`, donde se procesan las descargas y los megapacks. Puede haber las que quieras, en cualquier disco. |
-| **Herramientas** | `Emuladores\<Consola>\<Instalación>\<versión>\`, `Ports\<Consola>\<Port>\<versión>\` y `Sistema\<Consola>\<archivo>\<versión>\` (BIOS, keys, firmware). Es compartida por todas las bibliotecas de juegos. |
+```
+Otteretro\                      ← app portable (cualquier ruta)
+├── Otteretro(.exe) …           ← se reemplaza al actualizar
+├── data\otteretro.db           ← registro + catálogo (no se toca al actualizar)
+└── Herramientas\               ← la ÚNICA biblioteca de herramientas (no se toca al actualizar)
+    ├── Emuladores\<Consola>\<Instalación>\<versión>\
+    ├── Ports\<Consola>\<Port>\<versión>\
+    ├── Complementos\<Emulador o port>\<Complemento>\<versión>\   ← texturas, shaders, ReShade, mods
+    └── Sistema\<Consola>\<archivo>\<versión>\                     ← BIOS, keys, firmware
+
+E:\Consolas\  ·  D:\Juegos\…    ← bibliotecas de JUEGOS (las que quieras, en cualquier disco)
+├── otteretro-biblioteca.json
+├── _Entrada\                   ← descargas y megapacks en proceso
+└── <Consola>\<Juego>\…
+```
+
+| Tipo | Cuántas | Dónde |
+|---|---|---|
+| **Herramientas** | **Una sola** | **Dentro de la carpeta de Otteretro.** Si mueves la app, se mueve todo con ella. |
+| **Juegos** | Las que quieras | En cualquier carpeta o disco |
 
 ### 5.2 Marcador y registro ✅
-- Cada biblioteca tiene en su raíz un `otteretro-biblioteca.json` con `{id, nombre, tipo, creada, formato}`. El `id` no cambia nunca.
-- La app guarda en `data\otteretro.db` el registro de bibliotecas, con la última ruta conocida de cada una.
+- Cada biblioteca de juegos tiene en su raíz un `otteretro-biblioteca.json` con `{id, nombre, tipo, creada, formato}`. El `id` no cambia nunca.
+- `data\otteretro.db` guarda el registro de bibliotecas y la última ruta conocida de cada una.
 
 ### 5.3 Operaciones ✅
 | Operación | Qué hace |
 |---|---|
 | Crear | Elige una carpeta, escribe el marcador y registra la biblioteca. Las carpetas de cada consola se crean cuando hacen falta. |
-| Adoptar | Registra una carpeta que ya tiene marcador, o una con la estructura antigua (en ese caso crea el marcador). |
-| Renombrar | Cambia el nombre de la biblioteca. |
-| Quitar | Saca la biblioteca del registro. **Nunca borra archivos.** |
-| Reconectar | Si la biblioteca no está en su última ruta, la marca como desconectada y la busca en las raíces de los discos y puntos de montaje (2 niveles), o te deja indicar la ruta. |
-| Mover o migrar | Mueve una biblioteca, una consola, un juego o un emulador o port: copia, verifica el hash, actualiza la base de datos y **reescribe las rutas internas**, y por último borra el origen. |
+| Adoptar | Registra una carpeta con marcador, o una con la estructura antigua. En ese caso crea el marcador y mueve sus emuladores y ports a `Herramientas\`. |
+| Renombrar / Quitar | Quitar saca la biblioteca del registro. **Nunca borra archivos.** |
+| Reconectar | Si una biblioteca no está en su última ruta, la marca como desconectada y la busca en las raíces de los discos y puntos de montaje (2 niveles), o te deja indicar la ruta. |
+| Mover o migrar | Funciona con una biblioteca, una consola, un juego o un emulador o port. Copia, verifica el hash, actualiza la base de datos, **reescribe las rutas internas** y por último borra el origen. |
 
 ### 5.4 Rutas ✅
-- En la base de datos se guarda **id de biblioteca + ruta relativa**. La ruta absoluta se arma solo al lanzar un juego o exportarlo.
-- Las rutas guardadas dentro de emuladores y ports, como `isoPath` en Dusklight o `ISOPath0` en Dolphin, **se reescriben solas**. Cada receta indica cuáles son.
+- En la base de datos se guarda **id de biblioteca + ruta relativa**. La ruta absoluta se arma solo al lanzar o exportar un juego.
+- Las rutas guardadas dentro de emuladores y ports, como `isoPath` o `ISOPath0`, **se reescriben solas** según la receta de cada uno.
 - Los juegos de una biblioteca desconectada aparecen como "no disponibles" y no se exportan.
 
 ### 5.5 Migración de lo actual ✅
-- `E:\Consolas` se adopta como primera biblioteca de juegos. Sus emuladores y ports **se mueven** a la biblioteca de herramientas.
-- `_Herramientas\Catalogo` se integra al repositorio (ver §11.4).
-- Las carpetas sobrantes `E:\Roms`, `E:\Emuladores` y `D:\Roms` quedaron aprobadas para borrar, pero las tienes que borrar tú: Claude Code bloquea borrar carpetas en la raíz de un disco.
+- `E:\Consolas` se adopta como primera biblioteca de juegos. Sus emuladores (Dolphin, Ryujinx SS4K), su port (Dusklight) y los packs de texturas pasan a `Otteretro\Herramientas\`.
+- `_Herramientas\Catalogo` se integra al repositorio (§11.6).
+- Carpetas sobrantes: `E:\Roms`, `E:\Emuladores` y `D:\Roms` están aprobadas para borrar, pero lo tienes que hacer tú, porque Claude Code bloquea los borrados en la raíz de un disco.
 
 ## 6. Catálogo
 
 ### 6.1 Alcance ✅
-- **La mayor cantidad de juegos posible**, siempre con su **saga identificada**. Los juegos destacados sin saga también entran.
-- **Todo lo que tienes aparece siempre**, aunque no sea icónico.
+- **La mayor cantidad de juegos posible**, siempre con su **saga identificada**. También entran juegos destacados sin saga.
+- **Todo lo que tienes aparece siempre.**
 - Para cada juego se indica **si existe versión de PC**.
 
 ### 6.2 Modelo ✅
-**Saga → Juego → Versión** (consola o PC; original, remaster o remake) **→ Origen** (archivo en una biblioteca o tu cuenta de Steam).
+**Saga → Juego → Versión** (consola o PC; original, remaster o remake) **→ Origen** (un archivo en una biblioteca o tu Steam).
 - Los datos se guardan por consola, pero **se muestran, se gestionan y se exportan por saga**.
-- Los juegos sin saga se agrupan como "Emulación".
+- Lo que no tiene saga va a "Emulación".
 
 ### 6.3 Versiones ✅
-- **Todo es una versión del mismo juego**, también los remakes. Por ejemplo, Pokémon Ruby y Omega Ruby.
-- IGDB clasifica cada versión, Claude revisa y tú puedes corregir.
-- Se muestra una tarjeta por juego con sus versiones desplegables.
-- Puedes marcar **varias versiones** del mismo juego para Steam.
+- **Todo es una versión del mismo juego**, también los remakes (por ejemplo, Pokémon Ruby y Omega Ruby).
+- IGDB clasifica cada versión, Claude la revisa y tú puedes corregirla.
+- En pantalla hay una tarjeta por juego, con sus versiones desplegables. Puedes marcar **varias versiones** para Steam.
 
 ### 6.4 Mejor versión ✅
-Hay cuatro criterios y se muestran **por separado**: **contenido**, **jugabilidad hoy**, **técnico** y **original**. La comparación incluye todas las versiones.
+Se comparan todas las versiones con cuatro criterios, que se muestran **por separado**: **contenido**, **jugabilidad hoy**, **técnico** y **original**.
 
-### 6.5 Rutas por saga 🟡
-- Cada saga tiene sus rutas: **orden de lanzamiento**, **orden de la historia** y **ruta recomendada por la comunidad**.
-- En cada paso, la ruta indica **qué versión recomienda la comunidad**, el original o el remaster, y por qué.
+### 6.5 Rutas por saga ✅
+- Cada saga tiene tres rutas: **orden de lanzamiento**, **orden de la historia** y **ruta recomendada por la comunidad**.
+- Las prepara **Claude**, citando fuentes (Reddit, wikis de la saga), y tú las apruebas o las editas.
+- En cada paso se indica **qué versión recomienda la comunidad** (original o remaster) y por qué.
+- **Eliges qué ruta seguir** en cada saga.
+- **Progreso**: cada juego puede estar pendiente, en curso, terminado o abandonado. La app te dice **cuál es el siguiente juego** de la ruta que elegiste.
 
-### 6.6 Versión de PC 🟡
-- PC es una plataforma más dentro de cada saga.
-- **Tu biblioteca de Steam cuenta como "lo tengo"**: esos juegos aparecen como "lo tengo · versión PC" y no hace falta conseguirlos para un emulador.
-- Si un juego tiene versión de PC pero no la tienes, se indica que existe.
+### 6.6 Versión de PC ✅ (préstamo familiar 🔬)
+- PC es una plataforma más dentro de la saga.
+- **Lo que tienes en Steam cuenta como "lo tengo · versión PC"** y no hace falta conseguirlo para un emulador.
+  - Se lee con la **Steam Web API** (clave gratuita): incluye todo lo comprado, esté instalado o no, y las horas jugadas.
+  - Cuenta: la **detectada**, es decir, la última que inició sesión.
+  - Los juegos del **préstamo familiar (Steam Family)** también cuentan como "lo tengo". 🔬
+- **Prioridad:** si tienes la versión de PC oficial, **va primero** (§8.3).
+- **Si existe versión de PC pero no la tienes:** se indica que existe, con un enlace a la tienda.
+- **Otras tiendas, solo como información:** se indica si el juego está en Game Pass, si está o estuvo gratis en Epic y en qué otras tiendas se vende. Para "lo tengo" **solo cuenta Steam**.
+- Esta información de PC y tiendas **se actualiza periódicamente** (§11.2).
 
 ### 6.7 Icónico, gustos y Descubrir ✅
 | Eje | De dónde sale |
 |---|---|
-| Icónico | Claude reúne el consenso de Reddit, ResetEra, rankings, notas (OpenCritic/Metacritic) y ventas, con justificación y fuentes. Tú apruebas. |
-| Mis gustos | Sagas favoritas, juegos puntuados y horas jugadas en Steam |
-| Descubrir | Claude recomienda por afinidad con tus favoritos y explica por qué |
+| Icónico | Claude junta el consenso de Reddit, ResetEra, rankings, notas (OpenCritic/Metacritic) y ventas, y lo justifica con fuentes. Tú lo apruebas. |
+| Mis gustos | Sagas favoritas, juegos puntuados, horas en Steam y tu progreso en las rutas |
+| Descubrir | Claude recomienda por afinidad con lo que te gusta y explica por qué |
 
 ### 6.8 Fuentes ✅
-| Fuente | Para qué |
+| Fuente | Uso |
 |---|---|
-| IGDB | Base: sagas, versiones, plataformas e ids de Steam |
-| ScreenScraper | Identificar juegos por hash y medios |
-| Wikidata | Relaciones entre juegos y sagas |
+| IGDB | Base: sagas, versiones, plataformas, ids de Steam |
+| ScreenScraper | Identificación por hash y medios |
+| Wikidata | Relación entre juegos y sagas |
 | OpenCritic / Metacritic | Notas |
 | HowLongToBeat | Duración |
-| RAWG | Complemento de datos |
+| RAWG | Complemento |
 | SteamGridDB | **Imágenes** de la app y de Steam |
+| Steam Web API | Lo que tienes y horas jugadas |
+| Disponibilidad en tiendas | Game Pass, juegos gratis de Epic y otras tiendas (fuente por definir) 🔬 |
 
-Si dos fuentes no coinciden, manda una **prioridad fija por campo**. Lo que corriges a mano nunca se sobrescribe.
+Si dos fuentes no coinciden, se usa una **prioridad fija por campo**. Lo que corriges a mano no se sobrescribe nunca.
 
 ## 7. Colección
 
 ### 7.1 Qué cuenta como "lo tengo" ✅
-Un archivo en una biblioteca de juegos, o **un juego en tu biblioteca de Steam** (cuenta como versión PC).
+- Un archivo en una biblioteca de juegos.
+- Un juego en tu Steam, incluidos los del préstamo familiar. Cuenta como versión de PC.
 
 ### 7.2 Detección ✅
 1. Escaneo rápido por nombre y TitleID o serial.
-2. Verificación por hash bajo demanda, contra No-Intro y Redump. Los hashes quedan guardados.
+2. Verificación por hash cuando la pides, contra No-Intro y Redump. Los hashes quedan guardados.
 
 ### 7.3 Actualizaciones y DLC ✅
 Se detectan y se muestran BASE, UPD y DLC. **Nunca se borran las versiones viejas.**
 
 ### 7.4 Tiempo de juego y partidas ✅
-- La app no registra el tiempo de juego. **Muestra el de Steam**, que también sirve como señal de tus gustos.
-- No hay copias de seguridad generales de partidas, solo la copia puntual antes de actualizar un emulador o port (ver §8.4).
+- El tiempo de juego no lo registra la app: **muestra el de Steam**.
+- Las partidas no tienen copia de seguridad general. Solo se hace una copia puntual antes de actualizar un emulador o port (§8.4).
 
-## 8. Emuladores y ports
+## 8. Emuladores, ports y complementos
 
 ### 8.1 Instalación ✅
-- Se **descargan de la fuente oficial** y también se **detectan** los que pones a mano.
-- Cada emulador y port tiene una **receta** en el repositorio (JSON) con:
+- La app los **descarga de su fuente oficial** y también **detecta** los que instalas a mano.
+- Cada emulador, port y complemento tiene una **receta** en el repositorio (JSON) que indica:
   - de dónde se descarga,
-  - cómo se deja portable,
+  - cómo se deja en modo portable,
   - dónde guarda partidas y configuración,
   - qué rutas internas tiene,
-  - qué pasos extra necesita (la app los ejecuta sola),
+  - qué pasos extra necesita (los ejecuta la app),
   - qué formato de juego acepta o exige.
 
 ### 8.2 Ubicación ✅
-Van en la **biblioteca de herramientas** (§5.1).
+Todo va en `Otteretro\Herramientas\` (§5.1). Los **complementos** (packs de texturas, shaders, ReShade, mods) van junto a su emulador o port y se **instalan y actualizan igual que ellos**.
 
 ### 8.3 Asignación ✅
-- Cada consola tiene un emulador **predeterminado**, y cada juego puede tener un emulador o port **específico**, con su propia configuración.
+- Cada consola tiene un emulador **predeterminado**. Cada juego puede usar un emulador o port **específico**, con su propia configuración.
 - Puede haber **varias instalaciones** del mismo emulador.
-- La elección entre PC, port y emulador es **automática**, se puede cambiar a mano en cada juego, y los valores que usa la regla son editables. La prioridad de la versión de PC está 🟡 abierta.
+- **Regla automática** para elegir cómo se juega:
+  1. **Versión de PC oficial que tienes.**
+  2. Port al 100 %.
+  3. Emulador perfecto.
+  4. Lo más jugable.
+- Puedes cambiar la elección a mano en cada juego, y los valores que usa la regla son editables.
 
 ### 8.4 Actualización ✅
-- La actualización la lanzas tú. La app revisa y **avisa** qué tiene versión nueva, y tú eliges qué instalar.
-- La versión nueva se instala **al lado** de la anterior. **La vieja no se reemplaza nunca** y se puede volver a ella.
-- **Migración**: primero una copia de seguridad puntual, luego se copian las partidas y la configuración según la receta. Cómo guarda cada port sus partidas se investiga al escribir su receta.
+- La actualización la lanzas tú. La app **avisa** qué emuladores, ports y complementos tienen versión nueva, y tú eliges qué instalar.
+- La versión nueva se instala **al lado** de la anterior. **La vieja nunca se reemplaza** y puedes volver a ella.
+- **Migración:** antes de actualizar se hace una copia de seguridad puntual. Después se copian las partidas y la configuración según la receta. Cómo guarda sus partidas cada port se investiga al escribir su receta.
 
 ### 8.5 Archivos de sistema ✅
-- Las BIOS, keys y firmware **los subes tú desde la interfaz**. La app no los descarga.
-- Quedan en un almacén común, compartido por todos los emuladores, **con control de versiones**.
+- Las BIOS, keys y firmware **los subes desde la interfaz**. La app no los descarga.
+- Quedan en `Herramientas\Sistema\`, compartidos por todos los emuladores, **con versiones**.
 - La app indica dónde va cada uno, comprueba que estén y avisa si falta alguno.
 
 ## 9. Ingesta (descargas y megapacks)
@@ -206,24 +238,29 @@ Origen ─► Extraer ─► Identificar ─► Convertir ─► Ubicar ─► M
 ```
 
 ### 9.2 JDownloader ✅
-- Se usa la **API de MyJDownloader**.
-- Los enlaces se pegan en la ficha del juego o se importan en una lista. En las listas, la app averigua a qué juego corresponde cada enlace.
-- Al pedir la descarga eliges la biblioteca de destino, viendo cuántos **GB libres** tiene. La descarga, la extracción y la organización ocurren ahí mismo.
+- Se conecta por la **API de MyJDownloader**.
+- Los enlaces se pegan en la ficha de un juego o se importan como lista. Para una lista, primero un script los asocia a sus juegos y Claude resuelve solo los que el script no pudo.
+- Eliges la biblioteca de destino viendo los **GB libres**. La descarga, la descompresión y la organización se hacen ahí.
 
-### 9.3 Megapacks 🟡
-Un archivo o carpeta con muchos juegos entra por el mismo proceso y se identifica, ordena y organiza igual.
+### 9.3 Megapacks ✅
+- **Se mueven** los archivos después de verificarlos, así el pack se va vaciando y no se duplica espacio.
+- **Vista previa:** la app muestra lo que identificó, todo marcado por defecto, con filtros por saga, consola o "está en el catálogo", y tú eliges qué importar.
+- **Regiones:** se importa una versión por juego (1G1R). El orden de regiones es configurable y por defecto **va primero la que tiene español**.
+- **Extras:** solo se importan **traducciones de fans**. No se importan hacks, betas, demos ni juegos sin licencia.
+- **Duplicados:** si ya tienes el juego, se salta, **salvo que el nuevo esté verificado y el tuyo no**. En ese caso se reemplaza.
 
 ### 9.4 Identificación ✅
-Se intenta en este orden:
-1. El origen (por ejemplo, la ficha donde pegaste el enlace).
+Se prueba en este orden:
+1. El origen, por ejemplo la ficha donde pegaste el enlace.
 2. El nombre y el TitleID o serial.
 3. El hash contra No-Intro y Redump.
-4. Claude, solo para los casos ambiguos.
-5. Si nada funciona, va a "Sin identificar" y la app avisa.
+4. Los alias aprendidos.
+5. **Claude**: si no está seguro, **asigna el juego y lo marca "revisar"**. Hay una lista de pendientes de confirmar.
+6. Si Claude tampoco puede proponer nada, el archivo va a "Sin identificar" y la app avisa.
 
 ### 9.5 Formatos ✅
-- Siempre se usa **el formato más liviano**: se descomprimen zip, 7z y rar; GameCube y Wii pasan a RVZ; PS1 y PS2 pasan a CHD.
-- **Excepción:** si un port exige el juego original sin modificar, se respeta. Qué copia se guarda en ese caso está 🟡 abierto.
+- La regla general es **el formato más liviano**: se descomprimen zip, 7z y rar; GameCube y Wii pasan a RVZ; PS1 y PS2 pasan a CHD.
+- **Lo que pide el port manda sobre el emulador.** Si un port exige el formato original, se guarda **solo el original**, sin recortes, y esa única copia la usan el port y el emulador. Si lo que tienes es RVZ o CHD, se regenera el ISO completo.
 - El comprimido se borra después de verificar.
 
 ## 10. Steam ✅
@@ -231,51 +268,63 @@ Se intenta en este orden:
 | Tema | Decisión |
 |---|---|
 | Herramienta | Steam ROM Manager, a partir de manifiestos "Manual" que genera Otteretro. El arte sale de SteamGridDB. |
-| Cuenta | Se detecta la última que inició sesión (`loginusers.vdf`). |
-| Qué se exporta | Por cada versión marcada, la opción elegida (port o emulador). Pueden ser varias versiones de un mismo juego. |
-| Juegos que ya tienes en Steam | **No se exportan.** Solo marcan "lo tengo". |
+| Cuenta | La detectada (`loginusers.vdf`) |
+| Qué se exporta | La opción elegida (port o emulador) de cada versión marcada. Puede haber varias versiones del mismo juego. |
+| Juegos que ya están en Steam | **No se exportan.** Solo cuentan como "lo tengo". |
 | Categorías | **Por saga**. Lo que no tiene saga va a **"Emulación"**. |
-| Nombre | "Juego (Consola)", por ejemplo "The Legend of Zelda: Twilight Princess (GameCube)". |
+| Nombre | "Juego (Consola)" |
 
 ## 11. Automatización y Claude
 
-### 11.1 Claude decide, los scripts repiten 🟡
-- **Claude** se usa para lo que requiere **criterio**: qué es icónico, la mejor versión, las rutas por saga, Descubrir, los casos ambiguos de identificación, y escribir una receta nueva.
-- **Los scripts** hacen todo lo **repetitivo y determinista**, sin gastar tokens.
-- **La primera vez** que aparece un caso, lo resuelve Claude. Lo que aprende se **guarda como dato reutilizable** (alias, regla o receta), y desde ahí lo hace el script.
+### 11.1 Claude decide y los scripts repiten ✅
+- **Claude** se encarga de lo que requiere **criterio**: qué es icónico, la mejor versión, las rutas, Descubrir, los casos ambiguos y la primera receta de cada emulador o port.
+- **Los scripts**, en C# dentro de la app, hacen lo **repetitivo y determinista**. Se usan desde la interfaz o desde la línea de comandos: `otteretro <tarea>`.
+- **El script va siempre primero.** Claude entra solo cuando el script no puede resolver algo.
+- **Aprendizaje automático:** lo que resuelve Claude se guarda solo como dato (un alias, una regla, una receta o una ruta). Hay un **registro** donde puedes revisarlo o deshacerlo.
+- **Mientras la app funciona, Claude solo genera datos**, nunca código. El código nuevo entra por el repositorio (§11.5).
 
-| Función | Lo que hace el script (sin tokens) | Lo que hace Claude (solo cuando hace falta) |
+| Función | Script (sin tokens) | Claude (solo cuando hace falta) |
 |---|---|---|
-| Ports nuevos | Descarga Recompendium y otras fuentes y calcula qué cambió | Clasificar entradas que no encajan en los patrones conocidos |
-| Compatibilidad de emuladores | Todo | Nada |
-| Identificar juegos | TitleID, hash, DAT y alias aprendidos | Casos ambiguos; el resultado se guarda como alias |
-| Enlaces de una lista → ficha | Búsqueda aproximada por nombre y alias | Lo que no encaje; el resultado se guarda como alias |
-| Recetas de emuladores y ports | Instalar, actualizar y migrar | Escribir la receta la primera vez |
-| Icónico, mejor versión y rutas | Reunir notas, ventas y datos de las APIs | Ponderar y justificar; el resultado se guarda y solo se rehace cuando lo pides |
-| Descubrir | Leer gustos y horas jugadas | Recomendar; se guarda |
+| Ports nuevos | Descarga las fuentes y calcula qué cambió | Clasifica lo que no encaja en ningún patrón |
+| Compatibilidad de emuladores | Todo | — |
+| Identificar juegos | TitleID, hash, DAT, alias | Casos ambiguos, que se guardan como alias |
+| Enlaces de una lista | Coincidencia aproximada por nombre y alias | Lo que no coincide, que se guarda como alias |
+| Recetas | Instalar, actualizar, migrar | Escribir la primera receta |
+| Icónico, mejor versión, rutas | Reunir notas, ventas y datos | Ponderar y justificar; el resultado se guarda |
+| Descubrir | Leer gustos, horas y progreso | Recomendar; el resultado se guarda |
+| Tiendas y versión de PC | Todo 🔬 | — |
 
-Cómo se implementa este principio (dónde viven los scripts, si se registra el uso de Claude, si las reglas aprendidas se aprueban) se decide en la encuesta 4 (§12).
-
-### 11.2 Ejecución ✅
-- Las actualizaciones las lanzas tú con un botón. Desde ahí, el proceso es automático.
-- Se lanzan a mano porque pueden implicar migrar partidas.
+### 11.2 Cuándo se ejecuta ✅
+- **Actualizaciones** de emuladores, ports y complementos: las lanzas tú, porque pueden implicar migrar partidas. Una vez lanzadas, todo es automático.
+- **Resultados que requieren criterio** (icónico, rutas, mejor versión, Descubrir): se recalculan **cuando cambian los datos de los que dependen**, algo que detecta un script, y **cuando lo pides**.
+- **Información de tiendas y versión de PC**: se refresca periódicamente; el intervalo es configurable.
 
 ### 11.3 Claude Code ✅
-- Otteretro ejecuta `claude -p` con prompts guardados en el repositorio.
-- Esos prompts fijan qué puede tocar Claude, cuántos cambios puede hacer como máximo y que debe citar fuentes.
+Otteretro ejecuta `claude -p` con prompts guardados en el repositorio. Cada prompt fija qué puede tocar Claude, cuántos cambios puede hacer como máximo y que debe citar fuentes.
 
-### 11.4 Generador actual ✅
-`E:\Consolas\_Herramientas\Catalogo`, el script en Node de unas 350 líneas, se integra al repositorio. Propuesta: portarlo a C#.
+### 11.4 Registro de uso de Claude ✅
+- Cada vez que se usa Claude se registra **la tarea, la duración y el resultado**.
+- Cuando una tarea se repite, la app **avisa que conviene automatizarla** (§11.5).
 
-## 12. Temas abiertos
+### 11.5 La app evoluciona ✅
+```
+App detecta una tarea repetida ─► crea un GitHub Issue documentado (gh, etiqueta "automatizar")
+  ─► tú lo ejecutas con Claude Code en la rama dev ─► se fusiona dev en main
+  ─► GitHub Actions publica una release ─► la app se actualiza sola
+```
+Así, cada tarea que Claude resolvía pasa a un script y la app depende cada vez menos de los tokens.
 
-Se cierran con la encuesta 4, **[Temas abiertos (2)](https://claude.ai/artifact/J451E3j479E1AXqRJah3iF)** (doc `cuestionario/temas2`), que incluye el bloque F de automatización.
+### 11.6 Generador actual ✅
+`E:\Consolas\_Herramientas\Catalogo` (Node, unas 350 líneas) se integra **portándolo a C#**, como scripts de la app.
 
-| Bloque | Pendiente |
+## 12. Pendientes técnicos 🔬
+
+Los requisitos del usuario están **cerrados**. Quedan cosas por comprobar durante el desarrollo:
+
+| # | Qué hay que comprobar |
 |---|---|
-| A · Steam y PC | Cómo leer Steam (Web API o archivos locales), qué cuentas, otras tiendas, prioridad de la versión de PC y qué mostrar si no la tienes |
-| B · Megapacks | Copiar o mover, qué importar, regiones (1G1R), hacks y traducciones, duplicados, y qué hacer cuando Claude no está seguro |
-| C · Herramientas | Cuántas bibliotecas de herramientas, si los ports van ahí, qué significa "temas para emuladores" y dónde van los packs de texturas |
-| D · Formatos | Qué copia se guarda cuando un port exige el original |
-| E · Rutas | Tipos de ruta, quién las prepara, y si se registra el progreso |
-| F · Automatización | Dónde viven los scripts, aprendizaje de reglas, registro del uso de Claude y sugerencias de automatización |
+| T1 | **Préstamo familiar de Steam:** la Web API con clave no lo expone. Puede necesitar el token de sesión de Steam (`IFamilyGroupsService`) o leer archivos locales. |
+| T2 | **Fuente de disponibilidad en tiendas:** por ejemplo, IsThereAnyDeal para tiendas y juegos gratis, y el catálogo público de Game Pass. |
+| T3 | **Cómo guarda sus partidas cada port**, para su receta de migración. |
+| T4 | **Qué formato exige cada port**, por ejemplo si Dusklight acepta RVZ o solo ISO. |
+| T5 | **Autoactualización en Linux:** reemplazar el ejecutable mientras la app está abierta. |
