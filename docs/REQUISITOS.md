@@ -317,9 +317,22 @@ Así, cada tarea que Claude resolvía pasa a un script y la app depende cada vez
 ### 11.6 Generador actual ✅
 `E:\Consolas\_Herramientas\Catalogo` (Node, unas 350 líneas) se integra **portándolo a C#**, como scripts de la app.
 
-## 12. Pendientes técnicos 🔬
+## 12. Pendientes
 
-Los requisitos del usuario están **cerrados**. Quedan cosas por comprobar durante el desarrollo:
+### 12.1 Decisiones del usuario (encuesta 5)
+Una revisión de punta a punta encontró temas que no se habían tratado. Se cierran con la encuesta **[Puntos ciegos](https://claude.ai/artifact/BeCk8zFmS6kmVgmchL5n2N)** (doc `cuestionario/temas3`):
+
+| Bloque | Pendiente |
+|---|---|
+| A · Uso diario | Botón "Jugar" en la app, pantallas principales, estilo visual, mandos |
+| B · Datos y seguridad | Dónde se guardan las credenciales, copias de la base de datos, uso en varios PCs |
+| C · Emuladores | Instalar contenido dentro del emulador (UPD/DLC, Cemu, pkg, cia), quién instala Steam ROM Manager, RetroAchievements |
+| D · Tokens | Carga inicial por etapas, tope de uso de Claude, idioma de las descripciones |
+| E · Escaneo | Vigilar las carpetas o escanear a mano |
+| F · Linux | AppImage, Flatpak o decidirlo más adelante |
+
+### 12.2 Pendientes técnicos 🔬
+Se comprueban durante el desarrollo:
 
 | # | Qué hay que comprobar |
 |---|---|
