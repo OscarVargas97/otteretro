@@ -4,7 +4,9 @@
 - **Objetivo:** cerrar los pendientes técnicos T1 a T7 de [REQUISITOS.md §13.2](REQUISITOS.md) para que el desarrollo tenga que tomar la menor cantidad posible de decisiones.
 - **Fiabilidad:** casi todo sale de fuentes comunitarias, porque Valve, Microsoft, Epic y las demás tiendas no documentan estas APIs. Cada punto indica lo que **falta comprobar** en el primer prototipo.
 
-| # | Tema | ¿Es viable? | Decisión |
+> **Revisado con la encuesta 7.** Las decisiones definitivas están en [REQUISITOS.md §13.2](REQUISITOS.md). Cambian **T1** (ahora SteamKit2 con token de larga duración), **T5** (ahora Velopack, con una carpeta de datos elegida por ti), **T6** (ahora Steam, Epic, Xbox y Battle.net) y **T7** (ahora basado en eventos, sin comprobaciones periódicas). Abajo queda la investigación original.
+
+| # | Tema | ¿Es viable? | Decisión original |
 |---|---|---|---|
 | T1 | Préstamo familiar de Steam | 🟡 Sí, con un paso manual | Un botón "Actualizar préstamo familiar" que pide iniciar sesión en Steam |
 | T2 | Disponibilidad en tiendas | ✅ | IsThereAnyDeal (precios y tiendas) + GamerPower (juegos gratis) + catálogo de Game Pass (no oficial) |

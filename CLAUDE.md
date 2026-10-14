@@ -1,6 +1,6 @@
 # Otteretro
 
-App personal y portable (C# ASP.NET Core + SQLite, interfaz Next.js estática en una ventana Photino) para catalogar sagas de videojuegos, gestionar bibliotecas de juegos, emuladores y ports en varios discos, y exportarlo todo a Steam con Steam ROM Manager.
+App personal, instalada con Velopack y con los datos en una carpeta que elige el usuario (C# ASP.NET Core + SQLite, interfaz Next.js estática en una ventana Photino) para catalogar sagas de videojuegos, gestionar bibliotecas de juegos, emuladores y ports en varios discos, y exportarlo todo a Steam con Steam ROM Manager.
 
 ## Requisitos
 

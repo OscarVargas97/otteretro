@@ -1,0 +1,46 @@
+{
+  "actualizado": "2026-10-14T19:25:45.055Z",
+  "respuestas": {
+    "t1": {
+      "v": "steamkit"
+    },
+    "t2": {
+      "v": "tres"
+    },
+    "t2_que": {
+      "v": [
+        "donde",
+        "precio",
+        "minimo",
+        "gratis",
+        "gamepass",
+        "ofertas"
+      ]
+    },
+    "t34": {
+      "v": "al_instalar"
+    },
+    "t5": {
+      "c": "Esta bien que se instale en appdata, pero eso si, las cosas que son pesadas, se deben seleccionar donde almacenar, esto lo digo por que habran cosas como datos de imagenes y etc etc, que son cosas pesadas, que eso si que no debe ir en la misma ubicacion de instalacion.",
+      "v": "velopack"
+    },
+    "t6": {
+      "v": "etapas"
+    },
+    "t6_tiendas": {
+      "v": [
+        "steam",
+        "epic",
+        "xbox",
+        "battlenet"
+      ]
+    },
+    "t7": {
+      "c": "El tema aqui es que no quiero un trabajo que este funcionando o espiando constantmente por que son recursos. preferiria que estuviera en algun sistema de colas o algo. que se avise cuando se abre o cierra algo, no estoy muy seguro de como lograr esto.",
+      "v": "mixto"
+    },
+    "t7_respaldo": {
+      "v": "silencioso"
+    }
+  }
+}

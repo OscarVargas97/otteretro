@@ -21,7 +21,7 @@
 
 ## 1. Visión
 
-Otteretro es una app **personal y portable** para:
+Otteretro es una app **personal** para:
 
 1. **Catalogar** las sagas icónicas y los juegos interesantes de las consolas elegidas, desde lo retro hasta la generación de PS5 y Switch, incluida la versión de PC.
 2. **Saber qué tienes**: archivos en tus bibliotecas y juegos en tu cuenta de Steam.
@@ -34,7 +34,7 @@ Otteretro es una app **personal y portable** para:
 
 | # | Principio |
 |---|---|
-| P1 | **Portable.** La app vive en su carpeta, junto con su base de datos (`data\`) y sus herramientas (`Herramientas\`). No escribe nada en AppData. |
+| P1 | **Instalada, con los datos donde tú elijas.** La app se instala con Velopack (en AppData, o como AppImage en Linux). Todo lo pesado o valioso (base de datos, herramientas, caché de imágenes) va en una **carpeta de datos** que eliges tú. *Reemplaza a "Portable" (decisión #55).* |
 | P2 | **Las bibliotecas de juegos van separadas del sistema.** Pueden estar en cualquier disco y la app las encuentra. |
 | P3 | **Multiplataforma**: Windows hoy y Linux en el futuro. |
 | P4 | **Claude decide y los scripts repiten.** Claude se usa solo para juzgar o la primera vez que aparece un caso. Lo repetitivo pasa a scripts y no gasta tokens (§11). |
@@ -51,7 +51,7 @@ Otteretro es una app **personal y portable** para:
 - **Idioma y uso:** interfaz en **español**, pensada para escritorio con ratón y teclado. Para la tele se usa Steam Big Picture.
 - **Repositorio:** `D:\dev\personal\otteretro`, con copia en **GitHub, privado**. Ramas: **`dev`**, donde se trabaja, y **`main`**, que es lo publicado.
 - **Releases:** al fusionar `dev` en `main`, GitHub Actions compila y publica una release.
-- **Autoactualización:** la app detecta una release nueva, la descarga y se reemplaza a sí misma **sin tocar `data\` ni `Herramientas\`**. No hace falta reinstalar.
+- **Instalación y actualización:** con **Velopack**, desde las releases de GitHub. En Windows se instala en `%LocalAppData%\Otteretro` y en Linux es un AppImage. Se actualiza sola y nunca toca la carpeta de datos.
 
 ## 4. Consolas ✅
 
@@ -76,10 +76,13 @@ Otteretro es una app **personal y portable** para:
 ### 5.1 Tipos ✅
 
 ```
-Otteretro\                      ← app portable (cualquier ruta)
-├── Otteretro(.exe) …           ← se reemplaza al actualizar
-├── data\otteretro.db           ← registro + catálogo (no se toca al actualizar)
-└── Herramientas\               ← la ÚNICA biblioteca de herramientas (no se toca al actualizar)
+%LocalAppData%\Otteretro\       ← la app instalada con Velopack (solo binarios; se actualiza sola)
+                                   guarda una sola cosa: dónde está la carpeta de datos
+
+<carpeta de datos>\             ← la ELIGES tú la primera vez que abres la app (ej. E:\Otteretro)
+├── data\otteretro.db           ← registro + catálogo
+├── cache\imagenes\             ← portadas y arte de SteamGridDB
+└── Herramientas\               ← la ÚNICA biblioteca de herramientas
     ├── Emuladores\<Consola>\<Instalación>\<versión>\
     ├── Ports\<Consola>\<Port>\<versión>\
     ├── Complementos\<Emulador o port>\<Complemento>\<versión>\   ← texturas, shaders, ReShade, mods
@@ -93,7 +96,7 @@ E:\Consolas\  ·  D:\Juegos\…    ← bibliotecas de JUEGOS (las que quieras, e
 
 | Tipo | Cuántas | Dónde |
 |---|---|---|
-| **Herramientas** | **Una sola** | **Dentro de la carpeta de Otteretro.** Si mueves la app, se mueve todo con ella. |
+| **Herramientas** | **Una sola** | Dentro de la **carpeta de datos** que eliges (supuesto S7). Se puede mover desde la app, igual que una biblioteca. |
 | **Juegos** | Las que quieras | En cualquier carpeta o disco |
 
 ### 5.2 Marcador y registro ✅
@@ -115,7 +118,7 @@ E:\Consolas\  ·  D:\Juegos\…    ← bibliotecas de JUEGOS (las que quieras, e
 - Los juegos de una biblioteca desconectada aparecen como "no disponibles" y no se exportan.
 
 ### 5.5 Migración de lo actual ✅
-- `E:\Consolas` se adopta como primera biblioteca de juegos. Sus emuladores (Dolphin, Ryujinx SS4K), su port (Dusklight) y los packs de texturas pasan a `Otteretro\Herramientas\`.
+- `E:\Consolas` se adopta como primera biblioteca de juegos. Sus emuladores (Dolphin, Ryujinx SS4K), su port (Dusklight) y los packs de texturas pasan a `<carpeta de datos>\Herramientas\`.
 - `_Herramientas\Catalogo` se integra al repositorio (§11.6).
 - Carpetas sobrantes: `E:\Roms`, `E:\Emuladores` y `D:\Roms` están aprobadas para borrar, pero lo tienes que hacer tú, porque Claude Code bloquea los borrados en la raíz de un disco.
 
@@ -154,7 +157,7 @@ Se comparan todas las versiones con cuatro criterios, que se muestran **por sepa
 - PC es una plataforma más dentro de la saga.
 - **Lo que tienes en cualquier tienda de PC cuenta como "lo tengo · versión PC"**, y ese juego no hace falta conseguirlo para un emulador. **Esto reemplaza lo decidido en la #31** ("solo cuenta Steam").
   - **Steam:** se lee con la **Steam Web API** e incluye todo lo comprado, esté instalado o no, y las horas jugadas. Se usa la cuenta **detectada**, y también cuentan los juegos del **préstamo familiar**. 🔬 T1
-  - **Epic, GOG, Xbox para PC, EA app y Ubisoft Connect:** también cuentan como "lo tengo" y **se pueden lanzar desde la app**. 🔬 T6
+  - **Epic, Xbox para PC y Battle.net**, que son las tiendas que usas, también cuentan como "lo tengo" y **se pueden lanzar desde la app**. Etapa 1: Steam y Epic, con todo lo que tienes en la cuenta. Etapa 2: Xbox y Battle.net, al principio solo con lo instalado (§13.2, T6).
   - **Game Pass:** se muestra como **"en Game Pass"**, aparte de "lo tengo", porque depende de la suscripción (supuesto S5).
 - **Prioridad:** si tienes la versión de PC oficial, **va primero** (§8.3).
 - **Si existe versión de PC pero no la tienes:** se indica que existe, con un enlace a la tienda, si está en Game Pass y si está o estuvo gratis en Epic. 🔬 T2
@@ -186,7 +189,7 @@ Si dos fuentes no coinciden, se usa una **prioridad fija por campo**. Lo que cor
 
 ### 7.1 Qué cuenta como "lo tengo" ✅
 - Un archivo en una biblioteca de juegos.
-- Un juego en cualquiera de tus tiendas de PC (Steam con el préstamo familiar, Epic, GOG, Xbox, EA, Ubisoft). Cuenta como versión de PC.
+- Un juego en cualquiera de tus tiendas de PC (Steam con el préstamo familiar, Epic, Xbox, Battle.net). Cuenta como versión de PC.
 
 ### 7.2 Detección ✅
 1. Escaneo rápido por nombre y TitleID o serial.
@@ -216,7 +219,7 @@ El tiempo de juego no lo registra la app: **muestra el de Steam**.
 
 ### 7.6 Migración entre equipos ✅
 - Es probable que formatees, que pases a Linux o que tengas otro PC. **Todo tiene que poder moverse de un equipo a otro**:
-  - La app es portable (P1).
+  - Se reinstala la app con Velopack y se le indica la carpeta de datos que ya existe (P1).
   - Los datos y las partidas se recuperan desde el repositorio de respaldo (§7.5).
   - Las credenciales se recuperan según §5.6.
 - Lo que depende de cada equipo, como la exportación a Steam o las rutas de Steam, se guarda **por equipo**. La app reconoce en qué PC está.
@@ -234,7 +237,7 @@ El tiempo de juego no lo registra la app: **muestra el de Steam**.
   - qué formato de juego acepta o exige.
 
 ### 8.2 Ubicación ✅
-Todo va en `Otteretro\Herramientas\` (§5.1). Los **complementos** (packs de texturas, shaders, ReShade, mods) van junto a su emulador o port y se **instalan y actualizan igual que ellos**.
+Todo va en `<carpeta de datos>\Herramientas\` (§5.1). Los **complementos** (packs de texturas, shaders, ReShade, mods) van junto a su emulador o port y se **instalan y actualizan igual que ellos**.
 
 ### 8.3 Asignación ✅
 - Cada consola tiene un emulador **predeterminado**. Cada juego puede usar un emulador o port **específico**, con su propia configuración.
@@ -399,22 +402,30 @@ Así, cada tarea que Claude resolvía pasa a un script y la app depende cada vez
 **No queda ninguna.** La encuesta 6 ([Interfaz y cierre](https://claude.ai/artifact/GHKEE7GuPTgWjKGopbKHwN)) cerró las que quedaban.
 
 ### 13.2 Pendientes técnicos 🔬
-**Investigados el 2026-10-14. Las decisiones están en revisión** con la encuesta 7, **[Decisiones técnicas](https://claude.ai/artifact/Jt8wyddvjggYVypLwgruWz)** (doc `cuestionario/temas5`). Los resultados y las fuentes están en [investigacion.md](investigacion.md). Resumen de lo que se había decidido:
-- **T1, préstamo familiar:** se puede, pero necesita un paso manual (iniciar sesión en Steam desde un botón).
-- **T5, autoactualización:** se hace con un actualizador propio, porque Velopack no es portable.
-- **T6, otras tiendas:** van por etapas. Steam, Epic y GOG con la cuenta completa; EA, Ubisoft y Xbox, al principio solo lo instalado.
-- **Dusklight acepta RVZ.**
-- Lo que falta se comprueba en el primer prototipo.
+**Resueltos** con la investigación ([investigacion.md](investigacion.md)) y la encuesta 7, **[Decisiones técnicas](https://claude.ai/artifact/Jt8wyddvjggYVypLwgruWz)**. Lo marcado con 🔬 se comprueba en el primer prototipo.
 
-| # | Qué hay que comprobar |
+| # | Decisión |
 |---|---|
-| T1 | **Préstamo familiar de Steam:** la Web API con clave no lo expone. Puede necesitar el token de sesión de Steam (`IFamilyGroupsService`) o leer archivos locales. |
-| T2 | **Fuente de disponibilidad en tiendas:** por ejemplo, IsThereAnyDeal para tiendas y juegos gratis, y el catálogo público de Game Pass. |
-| T3 | **Cómo guarda sus partidas cada port**, para su receta de migración. |
-| T4 | **Qué formato exige cada port**, por ejemplo si Dusklight acepta RVZ o solo ISO. |
-| T5 | **Autoactualización en Linux:** reemplazar el ejecutable mientras la app está abierta. |
-| T6 | **Qué juegos tienes en Epic, GOG, Xbox para PC, EA y Ubisoft**, y cómo lanzarlos desde la app. |
-| T7 | **Lanzador `otteretro jugar`:** detectar que el juego se cerró cuando el emulador abre procesos hijos, o cuando una tienda abre su propio launcher. |
+| T1 | **Préstamo familiar con SteamKit2.** Inicias sesión **una vez**, con Steam Guard. Queda un token que dura meses, se renueva solo y se guarda cifrado. Después todo es automático. 🔬 Hay que confirmar que esa sesión no cierra la del cliente de Steam mientras juegas. |
+| T2 | **Las tres fuentes:** IsThereAnyDeal, GamerPower y el catálogo de Game Pass, que no es oficial. Se muestra en qué tiendas está el juego, el precio actual, el **mínimo histórico**, si está o estuvo gratis, si está en Game Pass, y llega un **aviso cuando baja de precio**. |
+| T3 / T4 | Dónde guarda las partidas cada port y qué formatos acepta **se averigua al instalar ese port por primera vez**. Dusklight ya está resuelto: acepta RVZ. |
+| T5 | **Velopack**, aunque la app deje de ser portable. Lo pesado va en la **carpeta de datos** que eliges (P1, §5.1). |
+| T6 | Tiendas que usas: **Steam, Epic, Xbox y Battle.net**. Etapa 1: Steam y Epic, con todo lo que tienes en la cuenta. Etapa 2: Xbox y Battle.net, al principio solo con lo instalado. No se integran GOG, EA, Ubisoft ni Amazon. |
+| T7 | **Sin procesos vigilando de fondo.** Ver el detalle debajo. |
+
+**T7 · Cómo se sabe que terminaste de jugar, sin gastar recursos**
+- `otteretro jugar` **solo existe mientras juegas**. Cuando no hay ningún juego abierto, no corre nada.
+- **Emuladores y ports:** el sistema operativo **avisa** cuando terminan.
+  - En Windows, el aviso de Job Object "ya no queda ningún proceso" (`ACTIVE_PROCESS_ZERO`).
+  - En Linux, `pidfd` o `waitpid` sobre el proceso.
+  - El proceso queda bloqueado esperando ese aviso, sin consumir CPU.
+- **Juegos de tienda:** se lanzan con su enlace, por ejemplo `steam://`.
+  - Al arrancar, se busca su ejecutable **durante los primeros segundos y nada más**.
+  - Cuando aparece, se queda esperando su cierre igual que en el caso anterior, sin volver a revisar.
+- **Al cerrar el juego** se deja la tarea "respaldar partidas" en una **cola** persistente, guardada en SQLite.
+  - El respaldo se hace **en segundo plano, sin avisarte**.
+  - Si falla, lo ves en el panel de tareas.
+  - Si la app no está abierta, la tarea espera en la cola hasta la próxima vez que se abra.
 
 ### 13.3 Acciones tuyas fuera de la app
 No son requisitos, pero siguen pendientes:
@@ -436,3 +447,4 @@ Si alguno no te sirve, dímelo:
 | S4 | Todo el respaldo va a **un solo repositorio privado**, `otteretro-datos`, con una carpeta por tipo. Si quieres separar las BIOS y keys en otro repositorio, dímelo. |
 | S5 | **Game Pass** se muestra como "en Game Pass", no como "lo tengo", porque depende de tener la suscripción activa. |
 | S6 | Para saber cuándo se cierra un juego y respaldar sus partidas, los accesos de Steam lanzan **`otteretro jugar <id>`** y no el emulador directamente (§10). |
+| S7 | Dijiste que lo pesado debe ir donde tú elijas. Puse **todo lo que no es la app** en la misma carpeta de datos: la base de datos, `Herramientas\` y la caché de imágenes. Así migrar de equipo es mover una sola carpeta. La base de datos es liviana y podría quedarse en AppData, pero entonces habría dos sitios que respaldar. |
