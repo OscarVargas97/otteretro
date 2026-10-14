@@ -399,7 +399,12 @@ Así, cada tarea que Claude resolvía pasa a un script y la app depende cada vez
 **No queda ninguna.** La encuesta 6 ([Interfaz y cierre](https://claude.ai/artifact/GHKEE7GuPTgWjKGopbKHwN)) cerró las que quedaban.
 
 ### 13.2 Pendientes técnicos 🔬
-**Se investigan ahora, antes de desarrollar** (decisión #52). Los resultados quedarán en `docs/investigacion.md`.
+**Investigados el 2026-10-14.** Los resultados y las fuentes están en [investigacion.md](investigacion.md). Resumen:
+- **T1, préstamo familiar:** se puede, pero necesita un paso manual (iniciar sesión en Steam desde un botón).
+- **T5, autoactualización:** se hace con un actualizador propio, porque Velopack no es portable.
+- **T6, otras tiendas:** van por etapas. Steam, Epic y GOG con la cuenta completa; EA, Ubisoft y Xbox, al principio solo lo instalado.
+- **Dusklight acepta RVZ.**
+- Lo que falta se comprueba en el primer prototipo.
 
 | # | Qué hay que comprobar |
 |---|---|
