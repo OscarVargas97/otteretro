@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-14, después de la encuesta 6, "Interfaz y cierre".
+> **Última actualización:** 2026-10-14, después de la encuesta 7, "Decisiones técnicas".
 
 ## Cómo se mantiene
 
