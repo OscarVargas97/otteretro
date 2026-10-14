@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-14, después de la encuesta 5, "Puntos ciegos".
+> **Última actualización:** 2026-10-14, después de la encuesta 6, "Interfaz y cierre".
 
 ## Cómo se mantiene
 
@@ -119,9 +119,9 @@ E:\Consolas\  ·  D:\Juegos\…    ← bibliotecas de JUEGOS (las que quieras, e
 - `_Herramientas\Catalogo` se integra al repositorio (§11.6).
 - Carpetas sobrantes: `E:\Roms`, `E:\Emuladores` y `D:\Roms` están aprobadas para borrar, pero lo tienes que hacer tú, porque Claude Code bloquea los borrados en la raíz de un disco.
 
-### 5.6 Credenciales 🟡
-- Las claves de Steam Web API, IGDB, MyJDownloader, ScreenScraper, SteamGridDB y RetroAchievements se guardan en `data\`, **cifradas con el almacén seguro del sistema operativo**: DPAPI en Windows, libsecret en Linux.
-- Usas **Bitwarden**. Falta decidir cómo se integra (§13).
+### 5.6 Credenciales ✅
+- Las claves de Steam Web API, IGDB, MyJDownloader, ScreenScraper, SteamGridDB, RetroAchievements y las tiendas se guardan en `data\`, **cifradas con el almacén seguro del sistema operativo**: DPAPI en Windows, libsecret en Linux.
+- **Bitwarden** es tu **respaldo manual**: la app no lo lee. En un PC nuevo, las claves se vuelven a escribir desde ahí.
 
 ## 6. Catálogo
 
@@ -131,7 +131,7 @@ E:\Consolas\  ·  D:\Juegos\…    ← bibliotecas de JUEGOS (las que quieras, e
 - Para cada juego se indica **si existe versión de PC**.
 
 ### 6.2 Modelo ✅
-**Saga → Juego → Versión** (consola o PC; original, remaster o remake) **→ Origen** (un archivo en una biblioteca o tu Steam).
+**Saga → Juego → Versión** (consola o PC; original, remaster o remake) **→ Origen** (un archivo en una biblioteca o tu cuenta en una tienda de PC).
 - Los datos se guardan por consola, pero **se muestran, se gestionan y se exportan por saga**.
 - Lo que no tiene saga va a "Emulación".
 
@@ -150,16 +150,15 @@ Se comparan todas las versiones con cuatro criterios, que se muestran **por sepa
 - **Eliges qué ruta seguir** en cada saga.
 - **Progreso**: cada juego puede estar pendiente, en curso, terminado o abandonado. La app te dice **cuál es el siguiente juego** de la ruta que elegiste.
 
-### 6.6 Versión de PC ✅ (préstamo familiar 🔬)
+### 6.6 Versión de PC ✅ (lectura de cada tienda 🔬)
 - PC es una plataforma más dentro de la saga.
-- **Lo que tienes en Steam cuenta como "lo tengo · versión PC"** y no hace falta conseguirlo para un emulador.
-  - Se lee con la **Steam Web API** (clave gratuita): incluye todo lo comprado, esté instalado o no, y las horas jugadas.
-  - Cuenta: la **detectada**, es decir, la última que inició sesión.
-  - Los juegos del **préstamo familiar (Steam Family)** también cuentan como "lo tengo". 🔬
+- **Lo que tienes en cualquier tienda de PC cuenta como "lo tengo · versión PC"**, y ese juego no hace falta conseguirlo para un emulador. **Esto reemplaza lo decidido en la #31** ("solo cuenta Steam").
+  - **Steam:** se lee con la **Steam Web API** e incluye todo lo comprado, esté instalado o no, y las horas jugadas. Se usa la cuenta **detectada**, y también cuentan los juegos del **préstamo familiar**. 🔬 T1
+  - **Epic, GOG, Xbox para PC, EA app y Ubisoft Connect:** también cuentan como "lo tengo" y **se pueden lanzar desde la app**. 🔬 T6
+  - **Game Pass:** se muestra como **"en Game Pass"**, aparte de "lo tengo", porque depende de la suscripción (supuesto S5).
 - **Prioridad:** si tienes la versión de PC oficial, **va primero** (§8.3).
-- **Si existe versión de PC pero no la tienes:** se indica que existe, con un enlace a la tienda.
-- **Otras tiendas, solo como información:** se indica si el juego está en Game Pass, si está o estuvo gratis en Epic y en qué otras tiendas se vende. Para "lo tengo" **solo cuenta Steam**.
-- Esta información de PC y tiendas **se actualiza periódicamente** (§11.2).
+- **Si existe versión de PC pero no la tienes:** se indica que existe, con un enlace a la tienda, si está en Game Pass y si está o estuvo gratis en Epic. 🔬 T2
+- Esta información **se actualiza periódicamente** (§11.2).
 
 ### 6.7 Icónico, gustos y Descubrir ✅
 | Eje | De dónde sale |
@@ -187,7 +186,7 @@ Si dos fuentes no coinciden, se usa una **prioridad fija por campo**. Lo que cor
 
 ### 7.1 Qué cuenta como "lo tengo" ✅
 - Un archivo en una biblioteca de juegos.
-- Un juego en tu Steam, incluidos los del préstamo familiar. Cuenta como versión de PC.
+- Un juego en cualquiera de tus tiendas de PC (Steam con el préstamo familiar, Epic, GOG, Xbox, EA, Ubisoft). Cuenta como versión de PC.
 
 ### 7.2 Detección ✅
 1. Escaneo rápido por nombre y TitleID o serial.
@@ -199,12 +198,21 @@ Se detectan y se muestran BASE, UPD y DLC. **Nunca se borran las versiones vieja
 ### 7.4 Tiempo de juego ✅
 El tiempo de juego no lo registra la app: **muestra el de Steam**.
 
-### 7.5 Respaldo de datos y partidas 🟡
+### 7.5 Respaldo de datos y partidas ✅
 - **Esto reemplaza lo que se había dicho antes** ("las partidas no tienen copia de seguridad").
-- La información de la app y las **partidas guardadas** tienen que poder recuperarse. Se guardan en un **repositorio git privado aparte**, solo para datos, porque sale barato. Si git no sirve para algo concreto, se usa otro proveedor.
-- La base de datos se exporta **como texto** (JSON por tabla) para que git pueda guardar solo los cambios entre una copia y otra.
-- Antes de actualizar un emulador o port se sigue haciendo una copia puntual (§8.4).
-- Falta decidir qué se respalda exactamente, cada cuánto y el nombre del repositorio (§13).
+- **Dónde:** en un repositorio **privado** de GitHub, `otteretro-datos`. Las partidas de más de 50 MB van con Git LFS.
+- **Qué se respalda:**
+
+  | Qué | Cuándo |
+  |---|---|
+  | Base de datos de la app, exportada como texto (JSON por tabla) | Cuando cambia algo y al cerrar la app |
+  | Configuración de emuladores y ports | **Cada vez que cambia** |
+  | Partidas guardadas | **Al cerrar el juego o el emulador** |
+  | BIOS, keys y firmware | Cuando cambian (siempre en repositorio privado) |
+
+- Los packs de texturas **no** se respaldan, porque pesan varios GB.
+- Antes de actualizar un emulador o un port se sigue haciendo además una copia puntual (§8.4).
+- Para saber cuándo se cierra un juego, **todo se lanza a través de Otteretro** (§10).
 
 ### 7.6 Migración entre equipos ✅
 - Es probable que formatees, que pases a Linux o que tengas otro PC. **Todo tiene que poder moverse de un equipo a otro**:
@@ -301,6 +309,7 @@ Se prueba en este orden:
 | Tema | Decisión |
 |---|---|
 | Herramienta | Steam ROM Manager, a partir de manifiestos "Manual" que genera Otteretro. El arte sale de SteamGridDB. |
+| Lanzador | Cada acceso de Steam abre **`otteretro jugar <id>`**, no el emulador directamente. Así Otteretro sabe cuándo se cierra el juego, respalda las partidas (§7.5) e instala lo que haga falta antes de abrirlo. El botón "Jugar" de la app usa el mismo camino. |
 | Cuenta | La detectada (`loginusers.vdf`) |
 | Qué se exporta | La opción elegida (port o emulador) de cada versión marcada. Puede haber varias versiones del mismo juego. |
 | Juegos que ya están en Steam | **No se exportan.** Solo cuentan como "lo tengo". |
@@ -333,7 +342,7 @@ Se prueba en este orden:
 - **Información de tiendas y versión de PC**: se refresca periódicamente; el intervalo es configurable.
 - **Bibliotecas**: se escanean **solo cuando pulsas "Escanear"**. La app no vigila las carpetas.
 - **Carga inicial del catálogo**: **completa**, todas las sagas y juegos. Los datos que vienen de APIs se bajan con scripts.
-- **Tope de Claude**: cada ejecución tiene un tope configurable de tareas. Al llegar al tope, la app se pausa y avisa. 🟡 Cómo encaja esto con una carga inicial completa está pendiente (§13).
+- **Tope de Claude**: la **carga inicial va sin tope** y se hace de una sola vez. Después, cada ejecución tiene un tope configurable de tareas: al llegar a él, la app se pausa y avisa.
 - **Descripciones**: se **traducen al español con Claude una sola vez** y quedan guardadas.
 
 ### 11.3 Claude Code ✅
@@ -354,30 +363,43 @@ Así, cada tarea que Claude resolvía pasa a un script y la app depende cada vez
 ### 11.6 Generador actual ✅
 `E:\Consolas\_Herramientas\Catalogo` (Node, unas 350 líneas) se integra **portándolo a C#**, como scripts de la app.
 
-## 12. Interfaz 🟡
+## 12. Interfaz ✅
 
-- **Primero se diseña y después se programa.** Las vistas se diseñan antes de escribir el front y forman parte del plan por fases. La especificación de cada pantalla (qué muestra y qué acciones tiene) se cierra antes de diseñar.
-- **Estilo:** oscuro, con **portadas grandes**, como una biblioteca de juegos (Steam, Playnite). El arte sale de SteamGridDB.
-- **Pantallas principales:** **Inicio**, **Sagas**, **Colección** y **Descubrir**. Descargas, Herramientas y Exportar a Steam van en un nivel secundario.
-- **Botón "Jugar"**: la app lanza juegos por su cuenta, además de lo que exporta a Steam. Se conecta con Steam (y quizás con otras tiendas, 🟡 ver §13) para lanzar los juegos de PC.
+### 12.1 Proceso
+- **Primero se diseña y después se programa.** Se diseña en **Claude Design**: primero el **sistema de diseño** (colores, tipografía, componentes) y luego cada pantalla. Tú lo apruebas y recién entonces se programa el front.
+- La **especificación de pantallas** (qué muestra cada una y qué acciones tiene) se escribe antes de diseñar, a partir de esta sección.
+
+### 12.2 Aspecto
+| Tema | Decisión |
+|---|---|
+| Estilo | Oscuro, con portadas grandes. Referencias: **la biblioteca de Steam y Playnite** |
+| Densidad | **Mixta**: portadas medianas con los datos clave a la vista (estado, consola, versión) |
+| Acento | **Se adapta al color de la portada** de la saga o el juego que estás viendo |
+| Identidad | **Logo y una pequeña mascota: una nutria retro**, usada con moderación (icono, pantallas vacías, avisos) |
+| Imágenes | SteamGridDB |
+
+### 12.3 Navegación
+- **Barra lateral izquierda** con las pantallas principales: **Inicio, Sagas, Colección y Descubrir**.
+- Abajo, una sección secundaria: **Descargas, Herramientas, Steam y Ajustes**.
+- **Panel de tareas en segundo plano** (escaneos, descargas, Claude, respaldos) con su progreso, y una **notificación del sistema** cuando terminan.
+
+### 12.4 Pantallas
+| Pantalla | Contenido |
+|---|---|
+| **Inicio** | El siguiente juego de cada ruta que sigues · lo pendiente de revisar (identificaciones dudosas, sin identificar) · novedades (ports nuevos, cambios de compatibilidad, versiones nuevas de emuladores) · descargas y tareas en curso |
+| **Sagas** | Cuadrícula de sagas. Al entrar en una saga: **línea de tiempo horizontal** con las portadas de la ruta elegida, un selector de ruta y tu progreso marcado en cada juego |
+| **Colección** | **Por consola**, con filtros (lo tengo, me falta, verificado, revisar) y orden por nombre, saga o año |
+| **Descubrir** | Sagas recomendadas por afinidad, cada una con su porqué |
+| **Ficha de juego** | **A la vista:** cómo jugarlo (opción elegida, botón Jugar, cambiar de opción), versiones y comparativa con los 4 criterios, archivos (dónde están, BASE/UPD/DLC, si están verificados), y tu progreso, puntuación y notas. **En secciones desplegables o pestañas secundarias:** logros de RetroAchievements, tiempo jugado, disponibilidad en tiendas, conseguirlo (enlaces o megapack) y datos con sus fuentes |
+| Descargas · Herramientas · Steam · Ajustes | Secundarias. Su contenido se detalla en la especificación de pantallas |
 
 ## 13. Pendientes
 
-### 13.1 Decisiones del usuario (encuesta 6)
-Salen de las notas de la encuesta 5 y de cómo se va a ver la app. Encuesta: **[Interfaz y cierre](https://claude.ai/artifact/GHKEE7GuPTgWjKGopbKHwN)** (doc `cuestionario/temas4`).
-
-| Tema | Pendiente |
-|---|---|
-| Respaldo en git | Qué se respalda, cada cuánto y el nombre del repositorio |
-| Bitwarden | Si es la fuente principal de las credenciales o solo un respaldo manual |
-| Otras tiendas | "Conectar con Steam u otras tiendas": ¿solo para lanzar, o también cuentan como "lo tengo"? |
-| Carga completa con tope | Cómo se combinan la carga completa y el tope por ejecución |
-| Interfaz | Navegación, contenido de cada pantalla, ficha de juego, referencias visuales, identidad y herramienta de diseño |
-| Tareas largas | Cómo se muestra el progreso y cómo se avisa |
-| Investigación técnica | Si T1 a T5 se investigan ahora o durante el desarrollo |
+### 13.1 Decisiones del usuario
+**No queda ninguna.** La encuesta 6 ([Interfaz y cierre](https://claude.ai/artifact/GHKEE7GuPTgWjKGopbKHwN)) cerró las que quedaban.
 
 ### 13.2 Pendientes técnicos 🔬
-Se comprueban durante el desarrollo:
+**Se investigan ahora, antes de desarrollar** (decisión #52). Los resultados quedarán en `docs/investigacion.md`.
 
 | # | Qué hay que comprobar |
 |---|---|
@@ -386,6 +408,8 @@ Se comprueban durante el desarrollo:
 | T3 | **Cómo guarda sus partidas cada port**, para su receta de migración. |
 | T4 | **Qué formato exige cada port**, por ejemplo si Dusklight acepta RVZ o solo ISO. |
 | T5 | **Autoactualización en Linux:** reemplazar el ejecutable mientras la app está abierta. |
+| T6 | **Qué juegos tienes en Epic, GOG, Xbox para PC, EA y Ubisoft**, y cómo lanzarlos desde la app. |
+| T7 | **Lanzador `otteretro jugar`:** detectar que el juego se cerró cuando el emulador abre procesos hijos, o cuando una tienda abre su propio launcher. |
 
 ### 13.3 Acciones tuyas fuera de la app
 No son requisitos, pero siguen pendientes:
@@ -394,7 +418,7 @@ No son requisitos, pero siguen pendientes:
 |---|---|
 | A1 | Borrar `E:\Roms`, `E:\Emuladores` y `D:\Roms`. Están aprobadas, pero Claude Code no puede borrarlas. |
 | A2 | Poner `prod.keys` y el firmware en Ryujinx SS4K. Hoy no arranca ningún juego de Switch. Cuando exista, la app lo hará desde `Herramientas\Sistema\` (§8.5). |
-| A3 | Crear las cuentas y claves cuando toque: Steam Web API, IGDB (Twitch), MyJDownloader, ScreenScraper, SteamGridDB y RetroAchievements. |
+| A3 | Crear las cuentas y claves cuando toque: Steam Web API, IGDB (Twitch), MyJDownloader, ScreenScraper, SteamGridDB, RetroAchievements y las tiendas de PC. |
 
 ### 13.4 Supuestos que tomé sin preguntarte
 Si alguno no te sirve, dímelo:
@@ -404,3 +428,6 @@ Si alguno no te sirve, dímelo:
 | S1 | El generador `_Herramientas\Catalogo` se porta a C#. Lo deduje de que elegiste scripts en C# dentro de la app (#36). |
 | S2 | En 1G1R solo dijiste "español primero". El resto del orden por defecto es Europa > USA > Japón, y se puede cambiar en Ajustes. |
 | S3 | La base de datos se respalda como JSON por tabla, para que git guarde solo los cambios entre copias. |
+| S4 | Todo el respaldo va a **un solo repositorio privado**, `otteretro-datos`, con una carpeta por tipo. Si quieres separar las BIOS y keys en otro repositorio, dímelo. |
+| S5 | **Game Pass** se muestra como "en Game Pass", no como "lo tengo", porque depende de tener la suscripción activa. |
+| S6 | Para saber cuándo se cierra un juego y respaldar sus partidas, los accesos de Steam lanzan **`otteretro jugar <id>`** y no el emulador directamente (§10). |

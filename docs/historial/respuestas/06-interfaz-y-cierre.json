@@ -1,0 +1,81 @@
+{
+  "actualizado": "2026-10-14T19:00:40.054Z",
+  "respuestas": {
+    "acento": {
+      "v": "auto_portada"
+    },
+    "bitwarden": {
+      "v": "respaldo"
+    },
+    "carga_tope": {
+      "v": "sin_tope_inicial"
+    },
+    "coleccion_vista": {
+      "v": "consola_filtros"
+    },
+    "densidad": {
+      "v": "mixta"
+    },
+    "ficha": {
+      "c": "los otros puntos quizas tambien son interesantes y deberian ir en un desplegable o de alguna manera poder acceder a ellos desde la ficha, pero no mostrarlos directamente",
+      "v": [
+        "como_jugar",
+        "versiones",
+        "archivos",
+        "progreso"
+      ]
+    },
+    "herramienta_diseno": {
+      "v": "claude_design"
+    },
+    "identidad": {
+      "v": "nutria"
+    },
+    "inicio": {
+      "v": [
+        "siguiente",
+        "revisar",
+        "novedades",
+        "tareas"
+      ]
+    },
+    "investigar": {
+      "v": "ahora"
+    },
+    "navegacion": {
+      "v": "lateral"
+    },
+    "referencias": {
+      "v": [
+        "steam",
+        "playnite"
+      ]
+    },
+    "respaldo_cuando": {
+      "c": "los respaldo a git, de este repo deben quedar cuando se hacen cambios de configuraciones, respecto a las partidas, cuando se cierra el emulador o el juego se debe actualizar los saves.",
+      "v": "cerrar_y_cambios"
+    },
+    "respaldo_que": {
+      "c": "Todo esto en repositorios privados.",
+      "v": [
+        "db",
+        "partidas",
+        "config",
+        "sistema"
+      ]
+    },
+    "respaldo_repo": {
+      "v": "github_priv"
+    },
+    "sagas_vista": {
+      "v": "linea_tiempo"
+    },
+    "tareas_largas": {
+      "v": "panel_notif"
+    },
+    "tiendas_lanzar": {
+      "c": "en realidad todo pueda contar como lo tengo",
+      "v": "lanzar"
+    }
+  }
+}

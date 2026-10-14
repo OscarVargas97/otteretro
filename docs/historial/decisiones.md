@@ -52,3 +52,10 @@ Los requisitos vigentes están en [../REQUISITOS.md](../REQUISITOS.md). Este reg
 | 44 | 2026-10-14 | La app instala sola el contenido que va dentro de los emuladores (UPD/DLC, Cemu, pkg, cia) y avisa si no puede. Steam ROM Manager lo gestiona la app. Se integra RetroAchievements | Decidido |
 | 45 | 2026-10-14 | Carga inicial completa, con tope de uso de Claude por ejecución. Las descripciones se traducen con Claude una sola vez. Las bibliotecas se escanean a mano | Decidido (falta cómo combinar la carga completa con el tope) |
 | 46 | 2026-10-14 | Linux: el formato de los emuladores se decide al migrar | Decidido |
+| 47 | 2026-10-14 | Bitwarden es un respaldo manual tuyo. La app usa el almacén del sistema operativo. Cierra la #41 | Decidido |
+| 48 | 2026-10-14 | Respaldo en el repositorio privado `otteretro-datos`: la base de datos y la configuración cuando cambian, las partidas al cerrar el juego o el emulador, y también las BIOS y keys. Las texturas no. Cierra la #42 | Decidido |
+| 49 | 2026-10-14 | **Reemplaza la #31**: todo lo que tienes en cualquier tienda de PC (Steam con el préstamo familiar, Epic, GOG, Xbox, EA, Ubisoft) cuenta como "lo tengo" y se puede lanzar desde la app | Decidido |
+| 50 | 2026-10-14 | La carga inicial va sin tope, de una vez; el tope de Claude se aplica después. Cierra la #45 | Decidido |
+| 51 | 2026-10-14 | Interfaz: se diseña en Claude Design (primero el sistema de diseño, luego las pantallas). Barra lateral; referencias Steam y Playnite; densidad mixta; el acento se adapta a la portada; mascota nutria retro. Inicio con lo siguiente, lo pendiente de revisar, novedades y tareas. Sagas como línea de tiempo. Colección por consola con filtros. Ficha con 4 secciones a la vista y el resto desplegable. Panel de tareas con notificaciones | Decidido |
+| 52 | 2026-10-14 | Los pendientes técnicos (T1 a T7) se investigan **ahora**, antes de desarrollar | Decidido |
+| 53 | 2026-10-14 | Se derivan dos cosas nuevas: el lanzador `otteretro jugar <id>`, que hace falta para respaldar las partidas al cerrar el juego, y la investigación T6 y T7 | Decidido |
