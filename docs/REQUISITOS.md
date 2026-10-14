@@ -399,7 +399,7 @@ Así, cada tarea que Claude resolvía pasa a un script y la app depende cada vez
 **No queda ninguna.** La encuesta 6 ([Interfaz y cierre](https://claude.ai/artifact/GHKEE7GuPTgWjKGopbKHwN)) cerró las que quedaban.
 
 ### 13.2 Pendientes técnicos 🔬
-**Investigados el 2026-10-14.** Los resultados y las fuentes están en [investigacion.md](investigacion.md). Resumen:
+**Investigados el 2026-10-14. Las decisiones están en revisión** con la encuesta 7, **[Decisiones técnicas](https://claude.ai/artifact/Jt8wyddvjggYVypLwgruWz)** (doc `cuestionario/temas5`). Los resultados y las fuentes están en [investigacion.md](investigacion.md). Resumen de lo que se había decidido:
 - **T1, préstamo familiar:** se puede, pero necesita un paso manual (iniciar sesión en Steam desde un botón).
 - **T5, autoactualización:** se hace con un actualizador propio, porque Velopack no es portable.
 - **T6, otras tiendas:** van por etapas. Steam, Epic y GOG con la cuenta completa; EA, Ubisoft y Xbox, al principio solo lo instalado.
