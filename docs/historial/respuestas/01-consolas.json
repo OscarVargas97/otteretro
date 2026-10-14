@@ -1,0 +1,171 @@
+{
+  "actualizado": "2026-10-14T16:25:24.553Z",
+  "answers": {
+    "addons": "Dentro de su consola base",
+    "sinemu": "Catalogar igual",
+    "sinemu_nota": "Ojo por que ps5 ya es emulable.",
+    "variantes": "Juntas"
+  },
+  "consolas": [
+    {
+      "empresa": "Nintendo",
+      "id": "nes",
+      "nombre": "NES / Famicom"
+    },
+    {
+      "empresa": "Nintendo",
+      "id": "gb",
+      "nombre": "Game Boy"
+    },
+    {
+      "empresa": "Nintendo",
+      "id": "snes",
+      "nombre": "Super Nintendo / Super Famicom"
+    },
+    {
+      "empresa": "Nintendo",
+      "id": "vb",
+      "nombre": "Virtual Boy"
+    },
+    {
+      "empresa": "Nintendo",
+      "id": "n64",
+      "nombre": "Nintendo 64"
+    },
+    {
+      "empresa": "Nintendo",
+      "id": "gbc",
+      "nombre": "Game Boy Color"
+    },
+    {
+      "empresa": "Nintendo",
+      "id": "64dd",
+      "nombre": "64DD"
+    },
+    {
+      "empresa": "Nintendo",
+      "id": "gba",
+      "nombre": "Game Boy Advance"
+    },
+    {
+      "empresa": "Nintendo",
+      "id": "gc",
+      "nombre": "GameCube"
+    },
+    {
+      "empresa": "Nintendo",
+      "id": "nds",
+      "nombre": "Nintendo DS"
+    },
+    {
+      "empresa": "Nintendo",
+      "id": "dsi",
+      "nombre": "Nintendo DSi (DSiWare)"
+    },
+    {
+      "empresa": "Nintendo",
+      "id": "wii",
+      "nombre": "Wii"
+    },
+    {
+      "empresa": "Nintendo",
+      "id": "3ds",
+      "nombre": "Nintendo 3DS / New 3DS"
+    },
+    {
+      "empresa": "Nintendo",
+      "id": "wiiu",
+      "nombre": "Wii U"
+    },
+    {
+      "empresa": "Nintendo",
+      "id": "switch",
+      "nombre": "Switch"
+    },
+    {
+      "empresa": "Sony",
+      "id": "ps1",
+      "nombre": "PlayStation"
+    },
+    {
+      "empresa": "Sony",
+      "id": "ps2",
+      "nombre": "PlayStation 2"
+    },
+    {
+      "empresa": "Sony",
+      "id": "psp",
+      "nombre": "PSP"
+    },
+    {
+      "empresa": "Sony",
+      "id": "ps3",
+      "nombre": "PlayStation 3"
+    },
+    {
+      "empresa": "Sony",
+      "id": "vita",
+      "nombre": "PS Vita"
+    },
+    {
+      "empresa": "Sony",
+      "id": "ps4",
+      "nombre": "PlayStation 4"
+    },
+    {
+      "empresa": "Sony",
+      "id": "ps5",
+      "nombre": "PlayStation 5"
+    },
+    {
+      "empresa": "Microsoft",
+      "id": "xbox",
+      "nombre": "Xbox"
+    },
+    {
+      "empresa": "Microsoft",
+      "id": "x360",
+      "nombre": "Xbox 360"
+    },
+    {
+      "empresa": "Microsoft",
+      "id": "xone",
+      "nombre": "Xbox One"
+    },
+    {
+      "empresa": "Microsoft",
+      "id": "xsx",
+      "nombre": "Xbox Series X|S"
+    }
+  ],
+  "notes": {},
+  "sel": {
+    "3ds": true,
+    "64dd": true,
+    "dsi": true,
+    "gb": true,
+    "gba": true,
+    "gbc": true,
+    "gc": true,
+    "n64": true,
+    "nds": true,
+    "nes": true,
+    "ps1": true,
+    "ps2": true,
+    "ps3": true,
+    "ps4": true,
+    "ps5": true,
+    "psp": true,
+    "snes": true,
+    "switch": true,
+    "switch2": false,
+    "vb": true,
+    "vita": true,
+    "wii": true,
+    "wiiu": true,
+    "x360": true,
+    "xbox": true,
+    "xone": true,
+    "xsx": true
+  }
+}

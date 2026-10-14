@@ -1,0 +1,98 @@
+{
+  "actualizado": "2026-10-14T17:06:02.516Z",
+  "respuestas": {
+    "actualizar": {
+      "c": "pero ojo, eso si, no vamos a usar api de claude, vamos a usar mi agente de ia con claude code para poder ejecutar esas actualizaciones. Quiero que sea manual, por que podria significar tener que migrar savs y otros, osea manual el que se ejecute, automatizada la ejecucion.",
+      "v": "manual"
+    },
+    "alcance": {
+      "c": "Osea, esto tiene que ver como se van a mostrar los datos, si bien los vamos a almacenar por consola, al mostrar gestionar y subirlo a steam, debemos categorizarlo por saga, las sagas son  por ejemplo: Zelda, contiene cada uno de las entregas en cada uno de sus consolas."
+    },
+    "ambos_steam": {
+      "v": "elegido"
+    },
+    "bib_ok": {
+      "v": "si"
+    },
+    "borrar_vacias": {
+      "v": "si"
+    },
+    "categorias": {
+      "c": "Lo que no este dentro de una saga, ponlo en una categoria de emulacion, todo el resto lo dejas en catalogo por saga",
+      "v": [
+        "saga"
+      ]
+    },
+    "claude_usos": {
+      "v": [
+        "ports",
+        "iconico"
+      ]
+    },
+    "cuenta": {
+      "v": "nose"
+    },
+    "deteccion": {
+      "v": "ambos"
+    },
+    "emus_descarga": {
+      "c": "Osea, esto tambien aplica para los ports, creo que tenemos que dioscutir esto como tema propio y bien profundo"
+    },
+    "faltan": {
+      "c": "Quiero montar un sistema para entregar los enlaces, cargarlos en jdownload, una vez todo este descargado, lo reubique solo y ademas haga todo lo necesario para marcarlo como listo. ",
+      "v": "marcar"
+    },
+    "iconico": {
+      "c": "Quiero que tanto claude como lo que dicen foros. lo que busco, es: 1 tener los juegos que tanto me gusta como xenoblade, zelda y otros, pero ademas saber que sagas no conozco, creo que debemos separar lo que es iconico de lo que a mi me gusta. "
+    },
+    "idioma": {
+      "v": "es"
+    },
+    "igdb": {
+      "c": "Si hay otras fuentes conocidas que sean mejor o que se puedan consultar tambien sirve.\n",
+      "v": "crear"
+    },
+    "libre": {
+      "c": "No por ahora.\n"
+    },
+    "mando": {
+      "v": "escritorio"
+    },
+    "mejor_version": {
+      "v": [
+        "contenido",
+        "jugabilidad_hoy",
+        "tecnico",
+        "original"
+      ]
+    },
+    "nombre_acceso": {
+      "v": "consola"
+    },
+    "regla": {
+      "c": "Debemos poder tambien actualizar y cambiar los valores, para cambiar entre uno y otro.",
+      "v": "auto_override"
+    },
+    "remakes": {
+      "c": "Este es un tema complicado que tenemos que trabajar mas, ya quiero poder jugar los antiguos pero tambien puede que quiera jugar la version mas optimizada, entonces creo que esto es algo que tenemos que discutir y ver mas a dcetalle."
+    },
+    "rutas_internas": {
+      "c": "La app debe permitir moverlo y dentro de la app y migrarlo de lugar.",
+      "v": "auto"
+    },
+    "saves": {
+      "v": "no"
+    },
+    "stack": {
+      "v": "photino-next"
+    },
+    "tiempo": {
+      "c": "Pero seria bueno que igual me lo muestre la app.",
+      "v": "no"
+    },
+    "updates": {
+      "c": "No borres las versiones viejas.Quiero que detecte las base los upd y los dlc",
+      "v": "detectar"
+    }
+  }
+}

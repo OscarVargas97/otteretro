@@ -1,0 +1,132 @@
+{
+  "actualizado": "2026-10-14T17:49:45.514Z",
+  "respuestas": {
+    "alcance": {
+      "c": "En realidad quiero la mayor cantidad de juegos por catalo, pero que se identifiquen las sagas, ademas algo importante es saber si hay version para pc de ese juego.",
+      "v": "sagas_destacados"
+    },
+    "aviso": {
+      "c": "Esto podria incluir temas para emuladores incluso y almacenamos los emuladores viejos, no los remplazamos. sino que actualizamos los emuladores.",
+      "v": "avisa"
+    },
+    "borrar_comp": {
+      "v": "si"
+    },
+    "clasifica": {
+      "v": "igdb_claude"
+    },
+    "coleccion_siempre": {
+      "v": "si"
+    },
+    "comparar": {
+      "v": "todo"
+    },
+    "conflictos": {
+      "v": "prioridad"
+    },
+    "consenso": {
+      "v": [
+        "reddit",
+        "resetera",
+        "rankings",
+        "notas",
+        "ventas"
+      ]
+    },
+    "conversion": {
+      "c": "Eso si, las conversiones tambien deben considerar lo que requieren los ports, por que en algunos casos los ports requieren el juego en su estado original. igualmente siempre se debe preferir el formato mas liviano, a menos que el port requiera un caso diferente como el juego completo sin modificar.",
+      "v": [
+        "descomprimir",
+        "rvz",
+        "chd"
+      ]
+    },
+    "descubrir": {
+      "c": "recuerda que no es con api eso si.",
+      "v": "claude"
+    },
+    "destino": {
+      "v": "elijo"
+    },
+    "enlaces": {
+      "c": "cuiando importo una lista o un archivo con varias de ellas, usamos claude apra identificar la ficha correspondiente.",
+      "v": "ambos"
+    },
+    "entrada": {
+      "c": "puedo elegir la biblioteca donde lo vamos a descargar, mostrando los gb disponibles y en base de donde se seleccione, se descarga ahi y se descomprime ahi, se organiza automaticamente donde debe ir.",
+      "v": "porbib"
+    },
+    "fallo": {
+      "c": "Pero me gustaria que esto se resolviera o bien durante el proceso de descarga. la idea es que se tenga que intervenir lo minimo posible.",
+      "v": "sin_id"
+    },
+    "fuentes": {
+      "v": [
+        "screenscraper",
+        "wikidata",
+        "opencritic",
+        "hltb",
+        "rawg"
+      ]
+    },
+    "imagenes": {
+      "v": "steamgriddb"
+    },
+    "integracion": {
+      "v": "api"
+    },
+    "keys": {
+      "c": "Ademas podemos a traves de la interfaz subirlos y quedan disponibles para todos los emuladores que lo utilicen, ademas se puede manejar versionado.",
+      "v": "verifica"
+    },
+    "marcar_gustos": {
+      "c": "Tambien considera lo de steam",
+      "v": "sagas_y_juegos"
+    },
+    "migracion": {
+      "c": "Esto si puede varias por que no se como manejan los ports el guardado de saves.",
+      "v": "adaptador"
+    },
+    "modelo": {
+      "c": "Pero en ciertos casos, quiero por ejemplo, jugar pokemon ruby en vez  de su version de 3ds. pero a nivel de saga, igual necesito saber por ejemplo, las rutas recomendadas de que juegos jugar, es decir, rutas cronologicas y rutas logicas por historia y en base a eso usar la version recomendada por comunidad, lo que queremos lograr es poder tener las cronologias de las distintas sagas y asi evaluar que juego jugar, si el remaster por que es una mejro experiencia o bien el juego original.",
+      "v": "versiones"
+    },
+    "multiples": {
+      "v": "si"
+    },
+    "origen": {
+      "c": "hay veces que querre configurar ciertos emuladores particulares para ciertos juegos.",
+      "v": "descarga_y_detecta"
+    },
+    "pasos_extra": {
+      "v": "auto"
+    },
+    "proceso": {
+      "v": "seguro"
+    },
+    "que_mover": {
+      "v": [
+        "biblioteca",
+        "consola",
+        "juego",
+        "emulador"
+      ]
+    },
+    "recetas": {
+      "c": "Esto debe ser configurable, especificar que emulador queremos, para ciertas consolas y especificar un emulador o port especifico para un juego, igualmente lo de los ports, deberia ser automatico por lo que discutimos antes.",
+      "v": "receta"
+    },
+    "steam_versiones": {
+      "v": "varias"
+    },
+    "ubicacion_emus": {
+      "v": "aparte"
+    },
+    "versionado": {
+      "v": "lado"
+    },
+    "vista": {
+      "v": "desplegable"
+    }
+  }
+}
