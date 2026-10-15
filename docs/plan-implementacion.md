@@ -1,6 +1,6 @@
 # Plan de implementación (para la IA que programa)
 
-> **Dónde vamos:** 🟡 **F0 · Esqueleto — en curso** (rama `fase/0-esqueleto`). Última actualización: 2026-10-14.
+> **Dónde vamos:** ✅ F0 · Esqueleto terminado (PR a `dev`). Siguiente: ⬜ **F1 · Catálogo** (rama `fase/1-catalogo`). Última actualización: 2026-10-15.
 >
 > Leyenda: ⬜ pendiente · 🟡 en curso · ✅ hecho · ⏸️ bloqueado (dice por qué).
 > Al terminar una tarea, márcala aquí en el mismo commit. Al cambiar de fase, actualiza la línea de arriba.
@@ -16,6 +16,17 @@
 4. `docs/pantallas.md` y el prototipo https://claude.ai/artifact/Bo8gtfiPdRAumFhkFikHPV — qué muestra cada pantalla.
 5. El sistema de diseño https://claude.ai/artifact/DMH4KuU2kkAnb3ApFTCiuu — tokens y componentes (`bundle.css`, prefijo `ot-`).
 6. `docs/plan.md` — el plan para el usuario (resumen); **este archivo** es el detalle.
+7. `web/AGENTS.md` — aviso de Next 16: antes de escribir código del front, leer la guía que corresponda en `web/node_modules/next/dist/docs/`.
+
+### 0.1b Cómo se ejecuta
+| Para | Comando |
+|---|---|
+| Pruebas | `dotnet test` |
+| Compilar todo (incluye `npm run build`) | `dotnet build src/Otteretro -c Release` |
+| Ver la interfaz en un navegador sin ventana ni tocar la config real | `OTTERETRO_CONFIG=<ruta>/config.json Otteretro.exe servidor` → abre la URL que imprime |
+| Front en caliente | `cd web && npm run dev` (puerto 3000) y la app con `OTTERETRO_DEV_WEB=http://localhost:3000` (la ventana carga `next dev` y la API acepta ese origen) |
+| Regenerar los tipos del front tras cambiar la API | `cd web && npm run tipos` |
+| Instalador local | `./scripts/empaquetar.ps1 -Version 0.0.N` → `artefactos/paquetes` (también es el origen de actualizaciones local) |
 
 ### 0.2 Reglas de trabajo
 - **Ramas:** cada fase en `fase/N-nombre` desde `dev`. Al terminar: PR a `dev` con `gh pr create --base dev`. **Nunca** fusionar en `main` (#101).
@@ -54,7 +65,7 @@ Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
 
 ---
 
-## F0 · Esqueleto 🟡
+## F0 · Esqueleto ✅
 
 **Objetivo:** la app se instala, abre su ventana con la navegación del prototipo, guarda en la carpeta de datos elegida y se actualiza con Velopack (paquetes locales).
 
@@ -78,7 +89,7 @@ Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
 - ✅ **F0.16 Velopack**: `VelopackApp.Build().Run()` al inicio de `Main`. Script `scripts/empaquetar.ps1` que publica `win-x64` self-contained y ejecuta `vpk pack` con versión pasada por parámetro, salida en `artefactos/` (ignorado por git). Actualización desde una carpeta local (`UpdateManager` con `SimpleFileSource`) configurable en `config.json` (`origenActualizaciones`), más tarde GitHub.
 - ✅ **F0.17 GitHub Actions (escrito, no activo)**: `.github/workflows/release.yml` disparado por push a `main`: build, pruebas, `vpk pack`, `vpk upload github`. Queda en el repo; no se ejecuta porque no hay pushes a `main` (#101).
 - ✅ **F0.18 Pruebas**: servidor (401/400), migraciones idempotentes, carpeta de datos (crea subcarpetas, rechaza ruta inválida), modos del ejecutable.
-- 🟡 **F0.19 Cierre de fase**: actualizar este archivo y `docs/plan.md`; PR `fase/0-esqueleto` → `dev`.
+- ✅ **F0.19 Cierre de fase**: actualizar este archivo y `docs/plan.md`; PR `fase/0-esqueleto` → `dev`.
 
 ### Listo cuando
 - [x] `scripts/empaquetar.ps1 -Version 0.0.1` genera el instalador (`artefactos/paquetes/Otteretro-win-Setup.exe`).
@@ -88,7 +99,9 @@ Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
 - [x] Abrir la app dos veces trae la ventana existente al frente (probado por el usuario).
 - [x] Una llamada a la API sin clave da 401 (pruebas automáticas).
 - [x] Con `0.0.2` empaquetado en la carpeta local de actualizaciones, la app 0.0.1 se actualiza sola (probado por el usuario).
-- [ ] La actualización se ve: tarea en el panel, aviso "lista" con Reiniciar ahora y botón Buscar actualización en Ajustes › Acerca de. **(lo prueba el usuario con 0.0.4 → 0.0.5)**
+- [x] La actualización se ve: tarea en el panel, aviso "lista" con Reiniciar ahora y botón Buscar actualización en Ajustes › Acerca de (probado por el usuario, 0.0.4 → 0.0.6).
+- [x] Mover la carpeta de datos desde Ajustes (probado por el usuario y por pruebas automáticas).
+- [x] Modo desarrollo: `next dev` + `OTTERETRO_DEV_WEB`; la API solo acepta ese origen (probado con curl).
 - [x] `dotnet test` pasa (25 pruebas).
 
 ---
@@ -197,3 +210,4 @@ Cada entrada: fecha, fase en curso, qué se hizo, por qué, cómo (archivos/comm
 | 2026-10-15 | F0 | La actualización se ve: tarea en el panel de Tareas, aviso con **Reiniciar ahora** cuando está lista y botón **Buscar actualización** en Ajustes › Acerca de | Al probar F0 el usuario vio que la app se actualizaba sin avisar: no se sabía si buscaba, si encontró algo ni que había que reiniciar. Pidió además poder buscar sin cerrar y abrir | `Inicio/Actualizador.cs` (servicio con estado y eventos), `Api/Endpoints.cs` (`/api/actualizacion`, `/buscar`, `/reiniciar`), `web/componentes/Actualizacion.tsx` | #102 |
 | 2026-10-15 | F0 | El botón Buscar actualización da respuesta visible: muestra Buscando… un instante, el resultado con insignia (Estás al día, Descargando, Lista, Error) y la hora de la comprobación | El usuario notó que con la app al día el botón no hacía nada visible; además el resultado podía pisarse con la respuesta del botón | La comprobación termina antes de responder y la descarga sigue en segundo plano (`Actualizador.Buscar`/`Descargar`); `EstadoActualizacion.Comprobada`; `VersionYActualizacion` | #102 |
 | 2026-10-15 | F0 | Ajustes › Carpeta de datos: ver cuánto ocupa, **Mover a otra carpeta** (copiar → verificar por hash → cambiar config → borrar la anterior; en el mismo disco, mover directo) y **Usar otra carpeta** (apuntar a una existente sin mover nada). Progreso en Ajustes y en el panel de Tareas | Estaba en pantallas.md §10 (S7) pero no en las tareas de F0; el usuario lo notó al probar | `Inicio/Mudanza.cs` (`Mudanza`, `ServicioMudanza`), `/api/carpeta-datos` (GET), `/mover`, `/mudanza`; `web/componentes/CarpetaDatos.tsx`; pruebas en `MudanzaTests.cs` | No (ya estaba decidido en S7 y pantallas.md) |
+| 2026-10-15 | F0 | Se conserva `web/AGENTS.md`, que genera `next dev` | Avisa de los cambios de Next 16 y remite a su documentación local; útil para la IA de las próximas fases | Enlazado en §0.1 | No |

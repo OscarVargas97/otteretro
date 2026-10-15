@@ -17,7 +17,7 @@ Las **acciones tuyas** de cada fase (cuentas y claves, A3) se piden al empezarla
 
 ---
 
-## F0 · Esqueleto
+## F0 · Esqueleto ✅
 
 **Qué tendrás:** la app instalada que abre su ventana, con la navegación del prototipo y sin datos todavía.
 
