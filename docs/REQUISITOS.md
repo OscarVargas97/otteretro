@@ -427,6 +427,9 @@ Así, cada tarea que Claude resolvía pasa a un script y la app depende cada vez
   - Si falla, lo ves en el panel de tareas.
   - Si la app no está abierta, la tarea espera en la cola hasta la próxima vez que se abra.
 
+### 13.2.1 Revisión de viabilidad ⚠️
+[viabilidad.md](viabilidad.md) revisa todo este documento. Hay **6 ajustes propuestos (V1 a V6)** pendientes de tu aprobación: la espera de T7 necesita una comprobación de seguridad, Reddit y OpenCritic no tienen API usable, No-Intro se descarga a mano, y ScreenScraper y HowLongToBeat pasan a ser opcionales.
+
 ### 13.3 Acciones tuyas fuera de la app
 No son requisitos, pero siguen pendientes:
 
