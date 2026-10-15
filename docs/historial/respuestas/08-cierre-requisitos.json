@@ -1,0 +1,77 @@
+{
+  "actualizado": "2026-10-15T01:42:44.412Z",
+  "respuestas": {
+    "c_carga": {
+      "c": "Deberiamos partir por las de nintendo. Esas son las que mas me impotan, pero debemos ir por todas. evitando lo maximo el usar los tockens."
+    },
+    "c_epic": {
+      "c": "",
+      "v": "ok"
+    },
+    "c_lfs": {
+      "c": "",
+      "v": "bloquear"
+    },
+    "c_ps4": {
+      "v": "extraer"
+    },
+    "c_ryujinx": {
+      "c": "Ten disponible varios los que recomienda https://www.youtube.com/@GordoFriki ",
+      "v": "eden"
+    },
+    "c_token": {
+      "v": "un_token"
+    },
+    "s1": {
+      "v": "ok"
+    },
+    "s2": {
+      "v": "ok"
+    },
+    "s3": {
+      "v": "ok"
+    },
+    "s4": {
+      "v": "ok"
+    },
+    "s5": {
+      "v": "ok"
+    },
+    "s6": {
+      "v": "ok"
+    },
+    "s7": {
+      "v": "ok"
+    },
+    "sig_orden": {
+      "v": "pantallas"
+    },
+    "v1": {
+      "v": "esde"
+    },
+    "v2": {
+      "v": "claude_web"
+    },
+    "v3": {
+      "v": "igdb_claude"
+    },
+    "v4": {
+      "c": "eEsto es para imagenes ? no podemos hacdr lo que hacd es de ?",
+      "v": "datoso"
+    },
+    "v5": {
+      "v": "propias"
+    },
+    "v6": {
+      "v": "opcional"
+    }
+  },
+  "seguimiento": {
+    "fecha": "2026-10-14",
+    "medio": "AskUserQuestion",
+    "v4": "Como ES-DE: cartuchos por hash con ScreenScraper, discos con Redump",
+    "emuladores": "Todas las consolas: predeterminado + alternativos (GordoFriki); Switch Eden+Ryubing+Citron+SS4K",
+    "carga": "Nintendo -> Sony -> Microsoft, Claude por lotes",
+    "comprobaciones": "Solo con la app abierta"
+  }
+}

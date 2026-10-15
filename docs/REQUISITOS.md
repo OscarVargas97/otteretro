@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-14, después de la encuesta 7, "Decisiones técnicas".
+> **Última actualización:** 2026-10-14, después de la encuesta 8, "Cierre de requisitos".
 
 ## Cómo se mantiene
 
@@ -124,6 +124,7 @@ E:\Consolas\  ·  D:\Juegos\…    ← bibliotecas de JUEGOS (las que quieras, e
 
 ### 5.6 Credenciales ✅
 - Las claves de Steam Web API, IGDB, MyJDownloader, ScreenScraper, SteamGridDB, RetroAchievements y las tiendas se guardan en `data\`, **cifradas con el almacén seguro del sistema operativo**: DPAPI en Windows, libsecret en Linux.
+- **Un solo token de GitHub** sirve para descargar las actualizaciones (releases del repositorio privado) y para escribir en `otteretro-datos` (#68).
 - **Bitwarden** es tu **respaldo manual**: la app no lo lee. En un PC nuevo, las claves se vuelven a escribir desde ahí.
 
 ## 6. Catálogo
@@ -148,7 +149,7 @@ Se comparan todas las versiones con cuatro criterios, que se muestran **por sepa
 
 ### 6.5 Rutas por saga ✅
 - Cada saga tiene tres rutas: **orden de lanzamiento**, **orden de la historia** y **ruta recomendada por la comunidad**.
-- Las prepara **Claude**, citando fuentes (Reddit, wikis de la saga), y tú las apruebas o las editas.
+- Las prepara **Claude**, citando fuentes (Reddit, wikis de la saga) que lee con búsqueda web, y tú las apruebas o las editas.
 - En cada paso se indica **qué versión recomienda la comunidad** (original o remaster) y por qué.
 - **Eliges qué ruta seguir** en cada saga.
 - **Progreso**: cada juego puede estar pendiente, en curso, terminado o abandonado. La app te dice **cuál es el siguiente juego** de la ruta que elegiste.
@@ -157,7 +158,7 @@ Se comparan todas las versiones con cuatro criterios, que se muestran **por sepa
 - PC es una plataforma más dentro de la saga.
 - **Lo que tienes en cualquier tienda de PC cuenta como "lo tengo · versión PC"**, y ese juego no hace falta conseguirlo para un emulador. **Esto reemplaza lo decidido en la #31** ("solo cuenta Steam").
   - **Steam:** se lee con la **Steam Web API** e incluye todo lo comprado, esté instalado o no, y las horas jugadas. Se usa la cuenta **detectada**, y también cuentan los juegos del **préstamo familiar**. 🔬 T1
-  - **Epic, Xbox para PC y Battle.net**, que son las tiendas que usas, también cuentan como "lo tengo" y **se pueden lanzar desde la app**. Etapa 1: Steam y Epic, con todo lo que tienes en la cuenta. Etapa 2: Xbox y Battle.net, al principio solo con lo instalado (§13.2, T6).
+  - **Epic, Xbox para PC y Battle.net**, que son las tiendas que usas, también cuentan como "lo tengo" y **se pueden lanzar desde la app**. Etapa 1: Steam y Epic, con todo lo que tienes en la cuenta. Etapa 2: Xbox y Battle.net, al principio solo con lo instalado (§13.2, T6). Epic se lee con un método no oficial; si se rompe, se cae a solo lo instalado (#73).
   - **Game Pass:** se muestra como **"en Game Pass"**, aparte de "lo tengo", porque depende de la suscripción (supuesto S5).
 - **Prioridad:** si tienes la versión de PC oficial, **va primero** (§8.3).
 - **Si existe versión de PC pero no la tienes:** se indica que existe, con un enlace a la tienda, si está en Game Pass y si está o estuvo gratis en Epic. 🔬 T2
@@ -166,7 +167,7 @@ Se comparan todas las versiones con cuatro criterios, que se muestran **por sepa
 ### 6.7 Icónico, gustos y Descubrir ✅
 | Eje | De dónde sale |
 |---|---|
-| Icónico | Claude junta el consenso de Reddit, ResetEra, rankings, notas (OpenCritic/Metacritic) y ventas, y lo justifica con fuentes. Tú lo apruebas. |
+| Icónico | Claude junta, con búsqueda web, el consenso de Reddit y ResetEra, rankings, notas y ventas, y lo justifica con fuentes. Tú lo apruebas. No se usa ninguna API de Reddit (#62). |
 | Mis gustos | Sagas favoritas, juegos puntuados, horas en Steam y tu progreso en las rutas |
 | Descubrir | Claude recomienda por afinidad con lo que te gusta y explica por qué |
 
@@ -174,10 +175,10 @@ Se comparan todas las versiones con cuatro criterios, que se muestran **por sepa
 | Fuente | Uso |
 |---|---|
 | IGDB | Base: sagas, versiones, plataformas, ids de Steam |
-| ScreenScraper | Identificación por hash y medios |
+| ScreenScraper | Identificación y **verificación por hash de cartuchos**, como ES-DE, y medios. Con credenciales de desarrollador propias de Otteretro (#64, #65) |
 | Wikidata | Relación entre juegos y sagas |
-| OpenCritic / Metacritic | Notas |
-| HowLongToBeat | Duración |
+| IGDB · Metacritic / OpenCritic | Notas: la agregada de IGDB; en las sagas icónicas, Claude cita además Metacritic y OpenCritic (#63) |
+| HowLongToBeat | Duración. **Opcional**: no tiene API y el scraper puede fallar; entonces se muestra "sin datos" (#66) |
 | RAWG | Complemento |
 | SteamGridDB | **Imágenes** de la app y de Steam |
 | Steam Web API | Lo que tienes y horas jugadas |
@@ -193,7 +194,7 @@ Si dos fuentes no coinciden, se usa una **prioridad fija por campo**. Lo que cor
 
 ### 7.2 Detección ✅
 1. Escaneo rápido por nombre y TitleID o serial.
-2. Verificación por hash cuando la pides, contra No-Intro y Redump. Los hashes quedan guardados.
+2. Verificación por hash cuando la pides: los **cartuchos** con ScreenScraper, en línea, como ES-DE; los **discos** con los DAT de Redump, que se descargan solos. No se usa No-Intro (#64). Los hashes quedan guardados.
 
 ### 7.3 Actualizaciones y DLC ✅
 Se detectan y se muestran BASE, UPD y DLC. **Nunca se borran las versiones viejas.**
@@ -203,7 +204,7 @@ El tiempo de juego no lo registra la app: **muestra el de Steam**.
 
 ### 7.5 Respaldo de datos y partidas ✅
 - **Esto reemplaza lo que se había dicho antes** ("las partidas no tienen copia de seguridad").
-- **Dónde:** en un repositorio **privado** de GitHub, `otteretro-datos`. Las partidas de más de 50 MB van con Git LFS.
+- **Dónde:** en un repositorio **privado** de GitHub, `otteretro-datos`. Las partidas de más de 50 MB van con Git LFS, con **presupuesto 0**: si se supera la cuota gratis (10 GiB), LFS se bloquea hasta el mes siguiente y la app avisa (#70).
 - **Qué se respalda:**
 
   | Qué | Cuándo |
@@ -242,6 +243,7 @@ Todo va en `<carpeta de datos>\Herramientas\` (§5.1). Los **complementos** (pac
 ### 8.3 Asignación ✅
 - Cada consola tiene un emulador **predeterminado**. Cada juego puede usar un emulador o port **específico**, con su propia configuración.
 - Puede haber **varias instalaciones** del mismo emulador.
+- **Varios emuladores por consola** (#72): uno predeterminado y otros alternativos instalables. La referencia son las recomendaciones de **GordoFriki**, que Claude revisa al escribir las recetas. **Switch:** Eden (predeterminado), Ryubing, Citron y Ryujinx SS4K.
 - **Regla automática** para elegir cómo se juega:
   1. **Versión de PC oficial que tienes.**
   2. Port al 100 %.
@@ -261,6 +263,7 @@ Todo va en `<carpeta de datos>\Herramientas\` (§5.1). Los **complementos** (pac
 
 ### 8.6 Contenido instalado dentro del emulador ✅
 - Actualizaciones y DLC de Switch, juegos de Wii U (Cemu), paquetes `.pkg` de PS3 y `.cia` de 3DS: **la app los instala sola** en el emulador, según la receta. Los archivos originales siguen en la biblioteca.
+- **PS4:** shadPS4 ya no instala `.pkg`, así que la ingesta lo **extrae** con una herramienta externa (receta) y guarda el juego extraído (#71).
 - Si no lo consigue, **avisa de qué hay que instalar a mano**.
 
 ### 8.7 Herramientas que gestiona la app ✅
@@ -297,7 +300,7 @@ Origen ─► Extraer ─► Identificar ─► Convertir ─► Ubicar ─► M
 Se prueba en este orden:
 1. El origen, por ejemplo la ficha donde pegaste el enlace.
 2. El nombre y el TitleID o serial.
-3. El hash contra No-Intro y Redump.
+3. El hash: ScreenScraper para cartuchos y Redump para discos.
 4. Los alias aprendidos.
 5. **Claude**: si no está seguro, **asigna el juego y lo marca "revisar"**. Hay una lista de pendientes de confirmar.
 6. Si Claude tampoco puede proponer nada, el archivo va a "Sin identificar" y la app avisa.
@@ -342,10 +345,10 @@ Se prueba en este orden:
 ### 11.2 Cuándo se ejecuta ✅
 - **Actualizaciones** de emuladores, ports y complementos: las lanzas tú, porque pueden implicar migrar partidas. Una vez lanzadas, todo es automático.
 - **Resultados que requieren criterio** (icónico, rutas, mejor versión, Descubrir): se recalculan **cuando cambian los datos de los que dependen**, algo que detecta un script, y **cuando lo pides**.
-- **Información de tiendas y versión de PC**: se refresca periódicamente; el intervalo es configurable.
+- **Información de tiendas y versión de PC, precios y versiones nuevas**: se comprueban **solo con la app abierta**, al abrirla y cada cierto intervalo configurable. Con la app cerrada no corre nada; los avisos (como una bajada de precio) llegan la próxima vez que la abras (#75).
 - **Bibliotecas**: se escanean **solo cuando pulsas "Escanear"**. La app no vigila las carpetas.
-- **Carga inicial del catálogo**: **completa**, todas las sagas y juegos. Los datos que vienen de APIs se bajan con scripts.
-- **Tope de Claude**: la **carga inicial va sin tope** y se hace de una sola vez. Después, cada ejecución tiene un tope configurable de tareas: al llegar a él, la app se pausa y avisa.
+- **Carga inicial del catálogo**: **completa**, todas las sagas y juegos, en orden **Nintendo → Sony → Microsoft** (#69). Los scripts bajan primero todos los datos de las APIs. Claude solo juzga, **por lotes de varias sagas por llamada**, para gastar los mínimos tokens.
+- **Tope de Claude**: la carga inicial no tiene tope propio, pero **dura días** por los límites de la suscripción (ventanas de 5 h y semanales): la cola se pausa al llegar al límite y **continúa sola** cuando se renueva. Después, cada ejecución tiene un tope configurable de tareas: al llegar a él, la app se pausa y avisa.
 - **Descripciones**: se **traducen al español con Claude una sola vez** y quedan guardadas.
 
 ### 11.3 Claude Code ✅
@@ -415,20 +418,19 @@ Así, cada tarea que Claude resolvía pasa a un script y la app depende cada vez
 
 **T7 · Cómo se sabe que terminaste de jugar, sin gastar recursos**
 - `otteretro jugar` **solo existe mientras juegas**. Cuando no hay ningún juego abierto, no corre nada.
-- **Emuladores y ports:** el sistema operativo **avisa** cuando terminan.
-  - En Windows, el aviso de Job Object "ya no queda ningún proceso" (`ACTIVE_PROCESS_ZERO`).
-  - En Linux, `pidfd` o `waitpid` sobre el proceso.
-  - El proceso queda bloqueado esperando ese aviso, sin consumir CPU.
+- **Emuladores y ports:** como ES-DE, se espera a que termine **el proceso que se lanzó** (#61).
+  - En Windows, `WaitForSingleObject`; en Linux, `pidfd` o `waitpid`. Esa espera está garantizada y no consume CPU.
+  - Si ese proceso termina dejando otros vivos (un lanzador que abre el juego y se cierra), se sigue el Job Object y, como red de seguridad, se cuentan sus procesos cada 60 s. Microsoft no garantiza que llegue el aviso `ACTIVE_PROCESS_ZERO`.
 - **Juegos de tienda:** se lanzan con su enlace, por ejemplo `steam://`.
   - Al arrancar, se busca su ejecutable **durante los primeros segundos y nada más**.
-  - Cuando aparece, se queda esperando su cierre igual que en el caso anterior, sin volver a revisar.
+  - Cuando aparece, se espera su cierre igual que en el caso anterior.
 - **Al cerrar el juego** se deja la tarea "respaldar partidas" en una **cola** persistente, guardada en SQLite.
   - El respaldo se hace **en segundo plano, sin avisarte**.
   - Si falla, lo ves en el panel de tareas.
   - Si la app no está abierta, la tarea espera en la cola hasta la próxima vez que se abra.
 
-### 13.2.1 Revisión de viabilidad ⚠️
-[viabilidad.md](viabilidad.md) revisa todo este documento. Hay **6 ajustes propuestos (V1 a V6)** que se aprueban en la **[encuesta 8](https://claude.ai/artifact/REx65yraTo9AMN7tW6UCZa)**, junto con los supuestos S1 a S7 y las condiciones de la revisión: T7 espera al proceso lanzado como ES-DE, Reddit y OpenCritic no tienen API usable, No-Intro se descarga a mano, ScreenScraper necesita credenciales propias y HowLongToBeat pasa a ser opcional.
+### 13.2.1 Revisión de viabilidad ✅
+[viabilidad.md](viabilidad.md) revisó todo este documento. Sus ajustes V1 a V6 se aprobaron en la **[encuesta 8](https://claude.ai/artifact/REx65yraTo9AMN7tW6UCZa)** (decisiones #61 a #74) y ya están incorporados arriba.
 
 ### 13.3 Acciones tuyas fuera de la app
 No son requisitos, pero siguen pendientes:
@@ -440,7 +442,7 @@ No son requisitos, pero siguen pendientes:
 | A3 | Crear las cuentas y claves cuando toque: Steam Web API, IGDB (Twitch), MyJDownloader, ScreenScraper, SteamGridDB, RetroAchievements y las tiendas de PC. |
 
 ### 13.4 Supuestos que tomé sin preguntarte
-Si alguno no te sirve, dímelo:
+**Confirmados** en la encuesta 8 (#67):
 
 | # | Supuesto |
 |---|---|
@@ -451,3 +453,6 @@ Si alguno no te sirve, dímelo:
 | S5 | **Game Pass** se muestra como "en Game Pass", no como "lo tengo", porque depende de tener la suscripción activa. |
 | S6 | Para saber cuándo se cierra un juego y respaldar sus partidas, los accesos de Steam lanzan **`otteretro jugar <id>`** y no el emulador directamente (§10). |
 | S7 | Dijiste que lo pesado debe ir donde tú elijas. Puse **todo lo que no es la app** en la misma carpeta de datos: la base de datos, `Herramientas\` y la caché de imágenes. Así migrar de equipo es mover una sola carpeta. La base de datos es liviana y podría quedarse en AppData, pero entonces habría dos sitios que respaldar. |
+
+### 13.5 Siguiente paso
+Orden decidido (#74): **especificación de pantallas → Claude Design** (sistema de diseño y pantallas) **→ arquitectura → plan por fases → código**.

@@ -66,3 +66,18 @@ Los requisitos vigentes están en [../REQUISITOS.md](../REQUISITOS.md). Este reg
 | 58 | 2026-10-14 | T3/T4: dónde guarda partidas cada port y qué formatos acepta se averigua al instalarlo | Decidido |
 | 59 | 2026-10-14 | T6: tiendas Steam, Epic, Xbox y Battle.net. Etapa 1: Steam y Epic con la cuenta completa. Etapa 2: Xbox y Battle.net, solo lo instalado. Fuera GOG, EA, Ubisoft y Amazon | Decidido |
 | 60 | 2026-10-14 | T7: sin procesos que vigilen de fondo. `otteretro jugar` solo existe mientras juegas y el sistema operativo avisa cuando el juego se cierra. El respaldo de partidas se encola y se hace en silencio | Decidido |
+| 61 | 2026-10-14 | **Precisa la #60** (V1): se espera a que termine el proceso lanzado, como ES-DE, porque esa espera está garantizada. El Job Object y una comprobación cada 60 s solo se usan si ese proceso termina dejando otros vivos (lanzadores, juegos de tienda) | Decidido |
+| 62 | 2026-10-14 | V2: el consenso de Reddit y ResetEra lo lee Claude con búsqueda web y cita fuentes. No se usa ninguna API de Reddit | Decidido |
+| 63 | 2026-10-14 | V3: las notas salen de IGDB. En las sagas icónicas, Claude cita además Metacritic y OpenCritic | Decidido |
+| 64 | 2026-10-14 | **Reemplaza No-Intro en §7.2 y §9.4** (V4): como ES-DE, los cartuchos se verifican por hash en línea con ScreenScraper. Los discos se verifican con los DAT de Redump, que se descargan solos. No se usa No-Intro | Decidido |
+| 65 | 2026-10-14 | V5: Otteretro pide credenciales de desarrollador propias en ScreenScraper, como ES-DE. Mientras no lleguen, se identifica por nombre, TitleID y Redump | Decidido |
+| 66 | 2026-10-14 | V6: HowLongToBeat es un dato opcional; si falla, se muestra "sin datos" | Decidido |
+| 67 | 2026-10-14 | Se confirman los supuestos S1 a S7 tal como estaban | Decidido |
+| 68 | 2026-10-14 | Un solo token de GitHub, cifrado, sirve para las releases (Velopack) y para `otteretro-datos` | Decidido |
+| 69 | 2026-10-14 | Carga inicial: **todas las sagas**, en orden Nintendo → Sony → Microsoft. Los scripts bajan primero todos los datos de las APIs; Claude solo juzga, por lotes de varias sagas, para gastar los mínimos tokens. La cola se pausa al llegar al límite de la suscripción y continúa sola | Decidido |
+| 70 | 2026-10-14 | Git LFS con presupuesto 0: si se supera la cuota gratis, se bloquea hasta el mes siguiente y la app avisa | Decidido |
+| 71 | 2026-10-14 | PS4: la ingesta extrae el `.pkg` con una herramienta externa (receta) y guarda el juego extraído, porque shadPS4 ya no instala `.pkg` | Decidido |
+| 72 | 2026-10-14 | **Varios emuladores por consola**: uno predeterminado y alternativos instalables, tomando como referencia las recomendaciones de GordoFriki (Claude las revisa al escribir las recetas). Switch: Eden predeterminado, más Ryubing, Citron y Ryujinx SS4K | Decidido |
+| 73 | 2026-10-14 | Epic: se acepta el método no oficial para leer la cuenta completa; si se rompe, se cae a solo lo instalado | Decidido |
+| 74 | 2026-10-14 | Orden de trabajo: especificación de pantallas → Claude Design (sistema de diseño y pantallas) → arquitectura → plan por fases → código | Decidido |
+| 75 | 2026-10-14 | Las comprobaciones periódicas (precios, tiendas, versiones nuevas de emuladores) se hacen **solo con la app abierta**: al abrirla y cada cierto intervalo mientras está abierta. Con la app cerrada no corre nada; los avisos llegan la próxima vez que la abras | Decidido |
