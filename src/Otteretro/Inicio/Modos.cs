@@ -30,7 +30,7 @@ public static class ModoApp
             ? $"{api}/?clave={contexto.Clave}"
             : $"{web}/?clave={contexto.Clave}&api={Uri.EscapeDataString(api)}";
 
-        _ = Actualizador.BuscarEnSegundoPlano(config);
+        _ = app.Services.GetRequiredService<Actualizador>().Buscar();
         Ventana.Mostrar(url, instancia);
         app.StopAsync().GetAwaiter().GetResult();
         return 0;

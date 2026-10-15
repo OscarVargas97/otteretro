@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:49418/"
+      "url": "http://127.0.0.1:62182/"
     }
   ],
   "paths": {
@@ -89,6 +89,66 @@
           }
         }
       }
+    },
+    "/api/actualizacion": {
+      "get": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstadoActualizacion"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/actualizacion/buscar": {
+      "post": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstadoActualizacion"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/actualizacion/reiniciar": {
+      "post": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -122,6 +182,40 @@
           }
         }
       },
+      "EstadoActualizacion": {
+        "required": [
+          "fase",
+          "version",
+          "progreso",
+          "mensaje"
+        ],
+        "type": "object",
+        "properties": {
+          "fase": {
+            "$ref": "#/components/schemas/FaseActualizacion"
+          },
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "progreso": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "EstadoApp": {
         "required": [
           "version",
@@ -143,6 +237,17 @@
             "type": "boolean"
           }
         }
+      },
+      "FaseActualizacion": {
+        "enum": [
+          "Ninguna",
+          "NoDisponible",
+          "Buscando",
+          "AlDia",
+          "Descargando",
+          "Lista",
+          "Error"
+        ]
       },
       "PedidoCarpeta": {
         "required": [

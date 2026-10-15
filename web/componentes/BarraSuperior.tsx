@@ -1,7 +1,9 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { urlEventos } from "@/lib/cliente";
+import { TareaActualizacion, useActualizacion } from "./Actualizacion";
 import { Vacio } from "./Marco";
 
 /** Título de la pantalla, búsqueda global (Ctrl+K) y panel de tareas en segundo plano. */
@@ -9,6 +11,9 @@ export function BarraSuperior({ titulo }: { titulo: string }) {
   const [buscando, setBuscando] = useState(false);
   const [tareas, setTareas] = useState(false);
   const conectado = useEventos();
+  const actualizacion = useActualizacion();
+  const hayTareas = !!actualizacion && actualizacion.fase !== "Ninguna";
+  const trabajando = actualizacion?.fase === "Buscando" || actualizacion?.fase === "Descargando";
 
   useEffect(() => {
     const alPulsar = (e: KeyboardEvent) => {
@@ -37,13 +42,16 @@ export function BarraSuperior({ titulo }: { titulo: string }) {
         <span className="kbd">CTRL K</span>
       </button>
       <button className="ot-btn" type="button" aria-expanded={tareas} onClick={() => setTareas(!tareas)}>
-        <span className="dot" data-conectado={conectado} />
-        Tareas
+        <span className="dot" data-conectado={conectado} data-trabajando={trabajando} />
+        {trabajando ? "1 tarea" : "Tareas"}
       </button>
 
       {tareas && (
         <div className="ot-tasks panel-tareas" role="dialog" aria-label="Tareas en segundo plano">
-          <Vacio titulo="No hay tareas en curso" texto="Aquí verás escaneos, descargas, respaldos y el trabajo de Claude." />
+          <TareaActualizacion />
+          {!hayTareas && (
+            <Vacio titulo="No hay tareas en curso" texto="Aquí verás escaneos, descargas, respaldos y el trabajo de Claude." />
+          )}
           <p className="small muted panel-tareas-pie">{conectado ? "Conectado a la app" : "Reconectando…"}</p>
         </div>
       )}
@@ -70,11 +78,13 @@ function Busqueda({ alCerrar }: { alCerrar: () => void }) {
 /** Conexión de Server-Sent Events con la app; el navegador reconecta solo. */
 function useEventos() {
   const [conectado, setConectado] = useState(false);
+  const cache = useQueryClient();
   useEffect(() => {
     const fuente = new EventSource(urlEventos());
     fuente.onopen = () => setConectado(true);
     fuente.onerror = () => setConectado(false);
+    fuente.addEventListener("actualizacion", (e) => cache.setQueryData(["actualizacion"], JSON.parse(e.data)));
     return () => fuente.close();
-  }, []);
+  }, [cache]);
   return conectado;
 }

@@ -77,6 +77,26 @@ public class ServidorTests : IDisposable
     }
 
     [Fact]
+    public async Task SinActualizacionNoSePuedeReiniciar()
+    {
+        cliente.DefaultRequestHeaders.Add(Servidor.CabeceraClave, contexto.Clave);
+        var estado = await cliente.GetFromJsonAsync<EstadoActualizacion>("/api/actualizacion");
+        Assert.Equal(FaseActualizacion.Ninguna, estado!.Fase);
+        var r = await cliente.PostAsync("/api/actualizacion/reiniciar", null);
+        Assert.Equal(HttpStatusCode.Conflict, r.StatusCode);
+    }
+
+    [Fact]
+    public async Task BuscarSinOrigenDiceQueNoEstaDisponible()
+    {
+        cliente.DefaultRequestHeaders.Add(Servidor.CabeceraClave, contexto.Clave);
+        var r = await cliente.PostAsync("/api/actualizacion/buscar", null);
+        var estado = await r.Content.ReadFromJsonAsync<EstadoActualizacion>();
+        Assert.Equal(FaseActualizacion.NoDisponible, estado!.Fase);
+        Assert.NotNull(estado.Mensaje);
+    }
+
+    [Fact]
     public async Task CarpetaInvalidaDa400()
     {
         cliente.DefaultRequestHeaders.Add(Servidor.CabeceraClave, contexto.Clave);

@@ -82,13 +82,14 @@ Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
 
 ### Listo cuando
 - [x] `scripts/empaquetar.ps1 -Version 0.0.1` genera el instalador (`artefactos/paquetes/Otteretro-win-Setup.exe`).
-- [ ] Al instalarlo se abre la ventana. **(lo prueba el usuario)**
+- [x] Al instalarlo se abre la ventana (probado por el usuario).
 - [x] El asistente pide la carpeta de datos, la crea con sus subcarpetas y no vuelve a aparecer (probado en navegador con `otteretro servidor`).
 - [x] Se navega por todas las pantallas con la barra lateral; cada una muestra su estado vacío (probado en navegador).
-- [ ] Abrir la app dos veces trae la ventana existente al frente. **(lo prueba el usuario)**
+- [x] Abrir la app dos veces trae la ventana existente al frente (probado por el usuario).
 - [x] Una llamada a la API sin clave da 401 (pruebas automáticas).
-- [ ] Con `0.0.2` empaquetado en la carpeta local de actualizaciones, la app 0.0.1 se actualiza sola. **(lo prueba el usuario)**
-- [x] `dotnet test` pasa (19 pruebas).
+- [x] Con `0.0.2` empaquetado en la carpeta local de actualizaciones, la app 0.0.1 se actualiza sola (probado por el usuario).
+- [ ] La actualización se ve: tarea en el panel, aviso "lista" con Reiniciar ahora y botón Buscar actualización en Ajustes › Acerca de. **(lo prueba el usuario con 0.0.4 → 0.0.5)**
+- [x] `dotnet test` pasa (21 pruebas).
 
 ---
 
@@ -193,3 +194,4 @@ Cada entrada: fecha, fase en curso, qué se hizo, por qué, cómo (archivos/comm
 | 2026-10-15 | F0 | Generador de iconos de la nutria | Velopack y Windows necesitan `.ico`; el sistema de diseño solo tenía SVG | `scripts/nutria.js` → `src/Otteretro/nutria.ico`, `web/public/nutria.png` | No |
 | 2026-10-15 | F0 | `web/scripts/tipos.mjs` en lugar de un comando en package.json | `dotnet run` resuelve rutas relativas desde la carpeta del proyecto | `web/scripts/tipos.mjs` | No |
 | 2026-10-15 | F0 | Copia de `web/out` a `wwwroot` al terminar el build, en vez de declararlo como Content | El SDK web registraba los archivos antes de que Next los regenerara con otros nombres y fallaba | `src/Otteretro/Otteretro.csproj` (targets `CopiarWeb` y `PublicarWeb`) | No |
+| 2026-10-15 | F0 | La actualización se ve: tarea en el panel de Tareas, aviso con **Reiniciar ahora** cuando está lista y botón **Buscar actualización** en Ajustes › Acerca de | Al probar F0 el usuario vio que la app se actualizaba sin avisar: no se sabía si buscaba, si encontró algo ni que había que reiniciar. Pidió además poder buscar sin cerrar y abrir | `Inicio/Actualizador.cs` (servicio con estado y eventos), `Api/Endpoints.cs` (`/api/actualizacion`, `/buscar`, `/reiniciar`), `web/componentes/Actualizacion.tsx` | #102 |

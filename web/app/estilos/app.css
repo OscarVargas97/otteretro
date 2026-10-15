@@ -10,6 +10,15 @@ html, body { margin: 0; min-height: 100%; background: var(--bg); }
 
 .top { position: relative; }
 .dot[data-conectado="false"] { background: var(--ink-muted); }
+.dot[data-trabajando="true"] { animation: latido 1.2s ease-in-out infinite; }
+@keyframes latido { 50% { opacity: .3; } }
+.panel-tareas .ot-task { min-width: 300px; }
+
+.fila-version { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+
+.aviso { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin: var(--space-4) var(--space-6) 0; padding: var(--space-3) var(--space-4); background: var(--accent-soft); border: 1px solid var(--accent); border-radius: var(--radius-md); }
+.aviso img { image-rendering: pixelated; }
+.aviso span { flex: 1 1 320px; }
 
 .panel-tareas { position: absolute; top: calc(100% + 4px); right: var(--space-6); z-index: 20; }
 .panel-tareas .ot-empty { padding: var(--space-6) var(--space-4); }

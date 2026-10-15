@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { pedir } from "@/lib/cliente";
 import type { EstadoApp } from "@/lib/tipos";
+import { AvisoActualizacion } from "./Actualizacion";
 import { Barra } from "./Barra";
 import { BarraSuperior } from "./BarraSuperior";
 
@@ -56,6 +57,7 @@ function Contenido({ children }: { children: ReactNode }) {
       <Barra />
       <main className="app-main">
         <BarraSuperior titulo={TITULOS[ruta] ?? "Otteretro"} />
+        <AvisoActualizacion />
         {children}
       </main>
     </div>

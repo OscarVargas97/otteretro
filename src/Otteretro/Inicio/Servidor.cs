@@ -32,6 +32,7 @@ public static class Servidor
         builder.Services.AddOpenApi();
         builder.Services.AddSingleton(contexto);
         builder.Services.AddSingleton<Eventos>();
+        builder.Services.AddSingleton<Actualizador>();
 
         // Solo en desarrollo: la interfaz corre en `next dev` en otro origen.
         var origenDev = Environment.GetEnvironmentVariable("OTTERETRO_DEV_WEB");

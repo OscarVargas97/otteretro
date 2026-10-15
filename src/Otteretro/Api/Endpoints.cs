@@ -32,6 +32,18 @@ public static class Endpoints
             .Select(d => new Disco(d.Name, d.TotalFreeSpace, d.TotalSize))
             .ToList());
 
+        api.MapGet("/actualizacion", (Actualizador a) => a.Estado);
+
+        // Arranca la búsqueda y responde enseguida; el progreso llega por el evento "actualizacion".
+        api.MapPost("/actualizacion/buscar", (Actualizador a) =>
+        {
+            _ = a.Buscar();
+            return a.Estado;
+        });
+
+        api.MapPost("/actualizacion/reiniciar", Results<Ok, Conflict<Problema>> (Actualizador a) =>
+            a.ReiniciarAhora() ? TypedResults.Ok() : TypedResults.Conflict(new Problema("No hay ninguna actualización descargada.")));
+
         api.MapGet("/eventos", (HttpContext http, Eventos eventos) => eventos.Atender(http)).ExcludeFromDescription();
     }
 
