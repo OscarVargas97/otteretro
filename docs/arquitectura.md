@@ -2,7 +2,7 @@
 
 - **Fecha:** 2026-10-14
 - **Base:** [REQUISITOS.md](REQUISITOS.md), [pantallas.md](pantallas.md) y el [prototipo aprobado](https://claude.ai/artifact/Bo8gtfiPdRAumFhkFikHPV) (#91).
-- **Estado:** borrador. Las marcas **❓An** se cierran en la [encuesta 10](https://claude.ai/artifact/SRr97iFU13mskEjBNiobtv). Las marcas **(propia)** son decisiones mías sin alternativa razonable: quedan escritas para que las revises.
+- **Estado:** cerrado con la [encuesta 10](https://claude.ai/artifact/SRr97iFU13mskEjBNiobtv) (decisiones #92 a #99). Las marcas **(An)** indican la pregunta de la que sale cada punto; **(propia)** son decisiones sin alternativa razonable que no cambiaste.
 
 ---
 
@@ -28,20 +28,20 @@
 | Una sola ventana | Si la app ya está abierta y se vuelve a abrir, se trae al frente la ventana existente (mutex con nombre en Windows, socket en Linux). (propia) |
 | Servidor local protegido | Solo escucha en `127.0.0.1`, en un **puerto aleatorio**. Al arrancar se genera una **clave aleatoria** que solo conoce la ventana; toda llamada a la API debe llevarla, y se rechaza cualquier `Host` que no sea `127.0.0.1`. Así ningún otro programa ni página web del PC puede usar la API. (propia) |
 | Interfaz | Next.js exportado como estático (`output: "export"`), servido por Kestrel desde el ejecutable. En desarrollo, `next dev` con proxy a la API. (propia) |
-| Progreso en vivo | Panel de tareas, descargas y escaneos reciben el progreso al instante ❓A2 |
-| Tipos compartidos | Contrato entre la API C# y el front ❓A3 |
+| Progreso en vivo | **Server-Sent Events**: el servidor empuja el progreso de tareas, descargas y escaneos; la interfaz lo recibe con `EventSource`. (A2) |
+| Tipos compartidos | **Generados desde la API**: ASP.NET Core publica OpenAPI y un paso de build genera los tipos TypeScript del front. Si cambia un dato en C#, el front no compila hasta adaptarse. (A3) |
 | Varios procesos | `otteretro jugar` y la CLI escriben en la misma base mientras la app está abierta: SQLite en modo **WAL** y la cola de tareas con bloqueo por fila evitan choques. (propia) |
-| Plataforma | **.NET 10** ❓A8. Windows hoy; todo lo específico de Windows (Job Objects, DPAPI, registro) va detrás de una clase por sistema operativo para Linux después. |
+| Plataforma | **.NET 10** (LTS) (A8). Windows hoy; todo lo específico de Windows (Job Objects, DPAPI, registro) va detrás de una clase por sistema operativo para Linux después. |
 
 ## 2. Estructura del repositorio
 
 ```
 otteretro/
 ├── src/
-│   ├── Otteretro/                 ← el ejecutable ❓A7 (un proyecto con una carpeta por módulo)
+│   ├── Otteretro/                 ← el ejecutable: un solo proyecto con una carpeta por módulo (A7)
 │   │   ├── Inicio/                ← Program.cs, modos APP/JUGAR/CLI, una sola instancia, Photino
 │   │   ├── Api/                   ← endpoints HTTP por módulo
-│   │   ├── Datos/                 ← SQLite, migraciones, exportación JSON por tabla ❓A1
+│   │   ├── Datos/                 ← Dapper + SQL; migraciones en archivos .sql numerados; exportación JSON por tabla (A1)
 │   │   ├── Tareas/                ← cola persistente, ejecución, progreso, notificaciones del sistema
 │   │   ├── Bibliotecas/           ← marcador, registro, escanear, reconectar, mover/migrar
 │   │   ├── Catalogo/              ← sagas, juegos, versiones, fuentes y prioridad por campo
@@ -55,12 +55,12 @@ otteretro/
 │   │   ├── Claude/                ← `claude -p`, prompts, lotes, pausa por límite, aprendizajes, registro
 │   │   ├── Credenciales/          ← DPAPI / libsecret
 │   │   └── Evolucion/             ← issues "automatizar" con gh
-│   └── Otteretro.Tests/           ← pruebas ❓A4
+│   └── Otteretro.Tests/           ← pruebas de lo delicado y de cada flujo clave (A4)
 ├── web/                           ← Next.js (pantallas del prototipo), usa el CSS del sistema de diseño
 ├── recetas/                       ← JSON de emuladores, ports, complementos y tiendas (§5)
 ├── prompts/                       ← prompts de `claude -p`, uno por tarea
 ├── docs/
-└── .github/workflows/release.yml  ← compila y publica la release con Velopack al fusionar en main ❓A6
+└── .github/workflows/release.yml  ← compila y publica la release con Velopack al fusionar en main (A6)
 ```
 
 ## 3. Módulos
@@ -155,9 +155,9 @@ Claude escribe la primera receta de algo nuevo; desde ahí la usa el script.
 
 | Tema | Decisión |
 |---|---|
-| Registro de errores | ❓A5 |
-| Releases y versiones | ❓A6 |
-| Pruebas | ❓A4 |
+| Registro de errores | Archivo en `<carpeta de datos>\logs\`, uno por día, se guardan **30 días**. (A5) |
+| Releases y versiones | **Cada fusión en `main` publica una release** y la versión se calcula sola (0.1.0, 0.2.0…). (A6) |
+| Pruebas | **Lo delicado** (mover, verificar hashes, respaldar, reescribir rutas internas, la regla de cómo jugar) **más una prueba de cada flujo clave** de §6. (A4) |
 | Front: datos | Las pantallas piden datos a la API con TanStack Query (caché y refresco). (propia) |
 | Front: estilo | El CSS del sistema de diseño (`bundle.css` y tokens) se copia a `web/` tal cual; los componentes del prototipo pasan a componentes React con las mismas clases `ot-`. (propia) |
 | Idioma del código | Nombres de clases y carpetas en español, como en este documento; los términos técnicos estándar (API, token, hash) se quedan como son. (propia) |

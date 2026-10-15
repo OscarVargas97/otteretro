@@ -1,0 +1,29 @@
+{
+  "actualizado": "2026-10-15T02:46:29.814Z",
+  "respuestas": {
+    "a1": {
+      "v": "dapper"
+    },
+    "a2": {
+      "v": "sse"
+    },
+    "a3": {
+      "v": "openapi"
+    },
+    "a4": {
+      "v": "delicada_flujos"
+    },
+    "a5": {
+      "v": "archivo30"
+    },
+    "a6": {
+      "v": "auto"
+    },
+    "a7": {
+      "v": "uno"
+    },
+    "a8": {
+      "v": "net10"
+    }
+  }
+}

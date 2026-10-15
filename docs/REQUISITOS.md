@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-14, después de la encuesta 9, "Pantallas".
+> **Última actualización:** 2026-10-14, después de la encuesta 10, "Arquitectura".
 
 ## Cómo se mantiene
 
@@ -47,7 +47,7 @@ Otteretro es una app **personal** para:
 
 ## 3. Stack y repositorio ✅
 
-- **Backend:** C# con ASP.NET Core y SQLite. **Interfaz:** Next.js exportado como estático (React). **Ventana:** Photino, que usa WebView2 en Windows y WebKitGTK en Linux.
+- **Backend:** C# (.NET 10) con ASP.NET Core y SQLite (Dapper). Detalle en **[arquitectura.md](arquitectura.md)** (#92 a #99). **Interfaz:** Next.js exportado como estático (React). **Ventana:** Photino, que usa WebView2 en Windows y WebKitGTK en Linux.
 - **Idioma y uso:** interfaz en **español**, pensada para escritorio con ratón y teclado. Para la tele se usa Steam Big Picture.
 - **Repositorio:** `D:\dev\personal\otteretro`, con copia en **GitHub, privado**. Ramas: **`dev`**, donde se trabaja, y **`main`**, que es lo publicado.
 - **Releases:** al fusionar `dev` en `main`, GitHub Actions compila y publica una release.
@@ -465,4 +465,4 @@ No son requisitos, pero siguen pendientes:
 | S8 | En Descubrir, lo que marcas "no me interesa" vuelve a poder recomendarse a los **6 meses** (configurable en Ajustes). Dijiste "después de un tiempo" sin fijar cuánto (#85). |
 
 ### 13.5 Siguiente paso
-Orden decidido (#74): **especificación de pantallas → Claude Design** (sistema de diseño y pantallas) **→ arquitectura → plan por fases → código**.
+Orden decidido (#74): **especificación de pantallas → Claude Design** (sistema de diseño y pantallas) **→ arquitectura → plan por fases → código**. Hechos: pantallas, Claude Design (#91) y arquitectura (#92 a #99). Falta: plan por fases.

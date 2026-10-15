@@ -97,3 +97,11 @@ Los requisitos vigentes están en [../REQUISITOS.md](../REQUISITOS.md). Este reg
 | 89 | 2026-10-14 | **Precisa §10** (D10b): en Steam se usa el mismo nombre que en la app, con "(Consola)" | Decidido |
 | 90 | 2026-10-14 | **Precisa §12.2** (D11): la nutria aparece en el icono, pantallas vacías, avisos, la animación de carga, cuando Claude trabaja y al terminar un juego o completar una ruta | Decidido |
 | 91 | 2026-10-14 | Se aprueba la primera versión del sistema de diseño y del prototipo navegable de pantallas en Claude Design ("es exactamente lo que pensaba") | Decidido |
+| 92 | 2026-10-14 | Arquitectura en `docs/arquitectura.md`. A1: acceso a datos con Dapper + SQL y migraciones en archivos .sql numerados | Decidido |
+| 93 | 2026-10-14 | A2: el progreso en vivo llega a la interfaz con Server-Sent Events | Decidido |
+| 94 | 2026-10-14 | A3: los tipos del front se generan desde la API (OpenAPI → TypeScript) | Decidido |
+| 95 | 2026-10-14 | A4: pruebas de lo delicado (mover, verificar, respaldar, rutas internas, regla de cómo jugar) y una de cada flujo clave | Decidido |
+| 96 | 2026-10-14 | A5: registro de errores en archivo dentro de la carpeta de datos, 30 días | Decidido |
+| 97 | 2026-10-14 | A6: cada fusión en main publica una release con versión calculada sola | Decidido |
+| 98 | 2026-10-14 | A7: un solo proyecto C# con una carpeta por módulo, más uno de pruebas | Decidido |
+| 99 | 2026-10-14 | A8: .NET 10 (LTS). Se aceptan las decisiones marcadas como (propia) en la arquitectura | Decidido |
