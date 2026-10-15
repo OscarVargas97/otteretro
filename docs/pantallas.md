@@ -3,7 +3,7 @@
 - **Fecha:** 2026-10-14
 - **Para qué sirve:** es la base para diseñar en **Claude Design**. Cada pantalla indica qué muestra, qué acciones tiene y qué estados contempla. No define colores ni disposición exacta: eso sale del sistema de diseño.
 - **De dónde sale:** de [REQUISITOS.md](REQUISITOS.md), sobre todo §12. Cada punto lleva entre paréntesis la sección o decisión que lo respalda.
-- **Decisiones abiertas:** las marcadas con **❓Dn** se cierran en la [encuesta 9](https://claude.ai/artifact/XsFAKMCB683zcsdRzmZWLR). Mientras tanto, se diseña con la opción recomendada.
+- **Decisiones de diseño:** cerradas en la [encuesta 9](https://claude.ai/artifact/XsFAKMCB683zcsdRzmZWLR) (decisiones #79 a #90). Las marcas **(Dn)** indican de qué pregunta sale cada punto.
 
 ---
 
@@ -12,7 +12,7 @@
 ### 0.1 Estructura de la ventana (§12.3)
 ```
 ┌──────────┬───────────────────────────────────────────────┐
-│ [nutria] │  Barra superior: título · búsqueda ❓D1 · tareas │
+│ [nutria] │  Barra superior: título · búsqueda (D1) · tareas │
 │ Inicio   ├───────────────────────────────────────────────┤
 │ Sagas    │                                               │
 │ Colección│               Contenido                       │
@@ -32,12 +32,14 @@
 ### 0.2 Panel de tareas (§12.3)
 - Un botón en la barra superior con un **indicador de actividad**. Al pulsarlo se abre un panel lateral.
 - Lista de tareas: **en curso** (con progreso y botón cancelar si se puede), **en cola**, **pausadas** (por ejemplo, Claude al llegar al límite de la suscripción, con la hora de reanudación) y **terminadas o con error** (con reintentar y ver detalle).
+- Cuando **Claude está trabajando**, el panel muestra a la nutria (D11).
 - Tipos de tarea: escaneo, verificación por hash, descarga, ingesta, conversión, mover biblioteca, instalar o actualizar emulador, Claude, respaldo, exportar a Steam y refrescar tiendas.
 - Al terminar una tarea larga llega una **notificación del sistema** (§12.3). El respaldo de partidas tras jugar va **en silencio** y solo se ve si falla (T7).
 
 ### 0.3 Tarjeta de juego (componente)
-- Portada (SteamGridDB), nombre, consola o consolas, año.
-- **Insignias de estado:** lo tengo · versión PC · en Game Pass · verificado · revisar · no disponible (biblioteca desconectada) · me falta.
+- Portada (SteamGridDB), **nombre oficial en español si existe; si no, el original** (D10), consola o consolas, año.
+- **Datos a la vista** (D4b): lo tengo o me falta · consola · año · progreso en la ruta · tiene versión de PC · en Game Pass · **cómo se juega** (PC, port o emulador) · **tamaño en disco**.
+- **Insignias de aviso:** revisar · no disponible (biblioteca desconectada).
 - Progreso en la ruta: pendiente, en curso, terminado o abandonado.
 - **Acciones rápidas** al pasar el ratón: Jugar (si lo tienes) y abrir la ficha.
 
@@ -49,12 +51,12 @@
 | Estado | Qué se muestra |
 |---|---|
 | Vacío | La **nutria** con un mensaje y la acción que lo resuelve (§12.2). Ejemplo: "Aún no hay bibliotecas. Crear o adoptar una". |
-| Cargando | Esqueletos de las tarjetas, sin spinners de página completa |
+| Cargando | Esqueletos de las tarjetas, sin spinners de página completa. En cargas largas, **animación de la nutria** (D11) |
 | Error | Qué falló, en español, con reintentar. Las fuentes opcionales que fallan (HowLongToBeat, Game Pass) muestran "sin datos" sin bloquear nada (#66) |
 | Sin conexión | Lo local funciona; lo que necesita internet se marca como no disponible |
 
-### 0.6 Búsqueda ❓D1
-- Recomendado: **búsqueda global** en la barra superior (atajo `Ctrl+K`) que encuentra sagas, juegos, emuladores y ajustes.
+### 0.6 Búsqueda (D1)
+- **Búsqueda global** en la barra superior (atajo `Ctrl+K`) que encuentra sagas, juegos, emuladores y ajustes.
 
 ---
 
@@ -64,7 +66,7 @@ Aparece solo la primera vez, o si la carpeta de datos no está donde se esperaba
 
 | Paso | Contenido | Acciones |
 |---|---|---|
-| 1. Bienvenida | Logo y nutria. Qué hace la app, en tres líneas | Empezar |
+| 1. Bienvenida | Logo. Qué hace la app, en tres líneas | Empezar |
 | 2. Carpeta de datos | Explica qué guarda: base de datos, Herramientas y caché (S7). Muestra el espacio libre de cada disco | Elegir carpeta nueva · **Usar una carpeta existente** (reinstalación o migración, §7.6) |
 | 3. Respaldo | Token de GitHub (#68) y repositorio `otteretro-datos` | Pegar token · Crear el repositorio · **Restaurar desde el respaldo** (PC nuevo) · Saltar por ahora |
 | 4. Bibliotecas | Detecta `E:\Consolas` con la estructura antigua (§5.5) | **Adoptar** · Crear nueva · Saltar |
@@ -78,16 +80,18 @@ Aparece solo la primera vez, o si la carpeta de datos no está donde se esperaba
 
 ## 2. Inicio (§12.4)
 
-Secciones, en este orden ❓D2:
+Secciones, en este **orden fijo** (D2):
 
 1. **Continuar:** el **siguiente juego** de cada ruta que sigues (§6.5), en tarjetas grandes con botón Jugar, o "Conseguirlo" si no lo tienes.
 2. **Revisar:** contadores de identificaciones dudosas, sin identificar y aprendizajes de Claude recientes. Cada uno lleva a la pantalla Revisar (§2.1).
-3. **Novedades:** ports nuevos, cambios de compatibilidad, versiones nuevas de emuladores, ports y complementos, y **bajadas de precio** (#57, #75).
+3. **Novedades:** ports nuevos, cambios de compatibilidad, versiones nuevas de emuladores, ports y complementos, y **bajadas de precio** (#57, #75, D6).
+   - **De qué juegos:** los de las **sagas que sigues que no tienes**, más los que marcas **"seguir precio"**.
+   - **Cuándo cuenta como bajada:** llega a su **mínimo histórico**, queda **gratis** o tiene un **descuento del 40 % o más** (D6b).
 4. **En curso:** descargas y tareas activas (resumen del panel de tareas).
 5. **Avisos de configuración:** pasos del asistente que se saltaron, credenciales vencidas, biblioteca desconectada, BIOS o keys que faltan (§8.5), LFS bloqueado (#70).
 
-### 2.1 Revisar ❓D3
-Cola de lo que la app decidió con dudas (P6, §9.4):
+### 2.1 Revisar (D3)
+**Pantalla propia.** Se llega desde Inicio y desde un **contador en la barra lateral**. Es la cola de lo que la app decidió con dudas (P6, §9.4):
 
 | Pestaña | Cada elemento muestra | Acciones |
 |---|---|---|
@@ -121,6 +125,7 @@ Cola de lo que la app decidió con dudas (P6, §9.4):
 ```
 - **Línea de tiempo horizontal** con las portadas de la ruta elegida. Cada paso muestra: estado de progreso, si lo tienes, **qué versión recomienda la comunidad** y por qué (§6.5).
 - **Selector de ruta:** lanzamiento, historia o comunidad. Muestra la ruta que sigues y deja cambiarla.
+- Al **terminar un juego** o **completar una ruta**, aparece la nutria celebrándolo (D11).
 - **Acciones:** marcar favorita, seguir la saga, cambiar el estado de un juego, abrir la ficha, editar la ruta, pedir a Claude que la recalcule.
 - **Debajo:** la justificación de la ruta con sus fuentes, y una tabla de todos los juegos de la saga, incluidos los que no están en la ruta.
 
@@ -130,7 +135,7 @@ Cola de lo que la app decidió con dudas (P6, §9.4):
 - **Agrupada por consola**: un selector de consola (las 23 más PC) con el número de juegos de cada una.
 - **Filtros:** lo tengo · me falta · verificado · revisar · versión PC · no disponible · por biblioteca.
 - **Orden:** nombre, saga o año.
-- **Vista:** cuadrícula de tarjetas o lista compacta ❓D4.
+- **Vista** (D4): **cuadrícula** de portadas por defecto, con alternativa de **lista compacta**.
 - **Acciones:** **Escanear** (una biblioteca o todas, §11.2), **Verificar por hash** lo seleccionado (§7.2), marcar varias versiones para Steam, mover juegos a otra biblioteca (§5.3).
 
 ---
@@ -140,7 +145,7 @@ Cola de lo que la app decidió con dudas (P6, §9.4):
 ### 5.1 A la vista
 | Bloque | Contenido | Acciones |
 |---|---|---|
-| Cabecera | Portada, nombre, saga (enlace), años y consolas, insignias | Jugar · Favorito · Puntuar ❓D5 |
+| Cabecera | Portada, nombre, saga (enlace), años y consolas, insignias | Jugar · Favorito · Puntuar **de 1 a 10** (D5) |
 | **Cómo jugarlo** | Opción elegida (versión de PC, port o emulador) y por qué la eligió la regla (§8.3) | **Jugar** · Cambiar opción · Configuración específica del juego |
 | **Versiones** | Todas las versiones: consola o PC, original, remaster o remake. Comparativa con los **4 criterios por separado**: contenido, jugabilidad hoy, técnico y original (§6.4) | Marcar para Steam (varias) · Corregir la clasificación (§6.3) |
 | **Archivos** | Dónde está cada archivo (biblioteca y ruta), BASE, UPD y DLC, verificado o no, formato y tamaño (§7.2, §7.3) | Abrir carpeta · Verificar · Mover · Instalar en el emulador (§8.6) |
@@ -151,7 +156,7 @@ Cola de lo que la app decidió con dudas (P6, §9.4):
 |---|---|
 | Logros | RetroAchievements: lista y avance (§8.7) |
 | Tiempo jugado | Horas de Steam (§7.4) |
-| Tiendas | Dónde se vende, precio actual, mínimo histórico, gratis ahora o antes, Game Pass, y **seguir precio** ❓D6 (T2) |
+| Tiendas | Dónde se vende, precio actual, mínimo histórico, gratis ahora o antes, Game Pass, y el interruptor **seguir precio** (D6, T2) |
 | Conseguirlo | Pegar enlaces para JDownloader, elegir biblioteca destino con GB libres (§9.2) o buscarlo en un megapack |
 | Datos y fuentes | Descripción traducida, duración (HowLongToBeat, opcional), notas (IGDB y las citadas por Claude) y de qué fuente sale cada dato. **Corregir a mano** cualquier campo (§6.8) |
 
@@ -159,7 +164,7 @@ Cola de lo que la app decidió con dudas (P6, §9.4):
 
 ## 6. Descubrir (§12.4, §6.7)
 - Lista de **sagas recomendadas por afinidad**, cada una con su **porqué** escrito por Claude.
-- **Acciones por recomendación:** seguir la saga, marcar favorita, "no me interesa" (Claude lo tiene en cuenta la próxima vez) ❓D7.
+- **Acciones por recomendación:** seguir la saga, marcar favorita y **"no me interesa"** (D7), que **oculta** la recomendación. **Pasado un tiempo vuelve a poder recomendarse**: por defecto 6 meses, configurable (supuesto S8).
 - **Pedir nuevas recomendaciones** (gasta tokens; muestra la fecha de la última).
 - Bloque de **"Mis gustos"**: sagas favoritas, juegos puntuados, horas de Steam, para que veas en qué se basa.
 
@@ -208,7 +213,7 @@ Cola de lo que la app decidió con dudas (P6, §9.4):
 
 | Sección | Contenido |
 |---|---|
-| **Bibliotecas** ❓D8 | Lista con nombre, ruta, disco, espacio libre, estado (conectada o desconectada). Acciones: crear, adoptar, renombrar, quitar (sin borrar), **reconectar** y **mover o migrar** con progreso (§5.3) |
+| **Bibliotecas** (D8) | Lista con nombre, ruta, disco, espacio libre, estado (conectada o desconectada). Acciones: crear, adoptar, renombrar, quitar (sin borrar), **reconectar** y **mover o migrar** con progreso (§5.3) |
 | **Carpeta de datos** | Ruta actual y espacio. Mover la carpeta de datos (S7) |
 | **Cuentas y claves** | Cada servicio con estado (válida, vencida, falta), pegar o cambiar, enlace para conseguirla. Recordatorio de que el respaldo manual va en Bitwarden (§5.6) |
 | **Respaldo** | Repositorio, último respaldo de cada tipo, uso de LFS sobre 10 GiB (#70), conflictos guardados aparte (#77). Acciones: respaldar ahora, restaurar |
@@ -221,7 +226,7 @@ Cola de lo que la app decidió con dudas (P6, §9.4):
 
 ---
 
-## 11. Lanzar un juego (`otteretro jugar`) ❓D9
+## 11. Lanzar un juego (`otteretro jugar`) (D9)
 - Desde Steam o desde el botón Jugar (S6).
 - Si antes de abrir hay que hacer algo (instalar una actualización en el emulador, regenerar un ISO, §8.6, §9.5), se muestra una **ventana pequeña** con el paso y su progreso. Si no hay nada que hacer, el juego se abre directo, sin ventana.
 - Si falla (falta una BIOS, biblioteca desconectada), la ventana pequeña lo explica y ofrece abrir Otteretro.
@@ -239,20 +244,21 @@ Cola de lo que la app decidió con dudas (P6, §9.4):
 
 ---
 
-## Decisiones abiertas (encuesta 9)
+## Decisiones de la encuesta 9
 
-| # | Pregunta | Recomendación |
-|---|---|---|
-| D1 | ¿Búsqueda global? | Sí, en la barra superior con `Ctrl+K` |
-| D2 | ¿Orden de las secciones de Inicio, y se puede personalizar? | El orden de §2, fijo |
-| D3 | ¿Dónde vive "Revisar"? | Pantalla propia a la que se llega desde Inicio y desde el contador de la barra lateral |
-| D4 | Vista de Colección | Cuadrícula por defecto, con alternativa de lista |
-| D5 | Escala de puntuación | 1 a 10 |
-| D6 | ¿De qué juegos se avisa cuando bajan de precio? | Solo los que marcas **"seguir precio"** (una lista de deseos) |
-| D7 | ¿"No me interesa" en Descubrir? | Sí, y Claude lo tiene en cuenta |
-| D8 | ¿Dónde se gestionan las bibliotecas? | En Ajustes |
-| D9 | ¿Ventana al lanzar un juego? | Solo si hay que preparar algo o si falla |
-| D10 | Nombres de los juegos | Nombre oficial en español si existe; si no, el original |
-| D11 | ¿Qué hace la nutria? | Icono, pantallas vacías y avisos (§12.2). ¿Algún sitio más? |
-
-La encuesta añade tres preguntas de detalle: qué datos lleva la tarjeta de juego (D4b), cuándo cuenta como bajada de precio (D6b) y qué nombre se usa en Steam (D10b). También deja un espacio para comentarios libres (D12).
+| # | Decisión |
+|---|---|
+| D1 | Búsqueda global en la barra superior, `Ctrl+K` |
+| D2 | Inicio con el orden de §2, fijo |
+| D3 | Revisar es una pantalla propia, con contador en la barra lateral |
+| D4 | Colección en cuadrícula, con alternativa de lista compacta |
+| D4b | La tarjeta muestra: lo tengo, consola, año, progreso, versión PC, Game Pass, cómo se juega y tamaño |
+| D5 | Puntuación de 1 a 10 |
+| D6 | Avisos de precio: juegos de las sagas que sigues que no tienes, más los marcados "seguir precio" |
+| D6b | Cuenta como bajada: mínimo histórico, gratis o descuento del 40 % o más |
+| D7 | "No me interesa" oculta la recomendación; pasado un tiempo puede volver (6 meses por defecto, S8) |
+| D8 | Bibliotecas en Ajustes |
+| D9 | Ventana al lanzar solo si hay que preparar algo o si falla |
+| D10 | Nombre oficial en español si existe; si no, el original |
+| D10b | En Steam, el mismo nombre que en la app, con "(Consola)" |
+| D11 | Nutria: icono, pantallas vacías, avisos, animación de carga, cuando Claude trabaja y al terminar un juego o completar una ruta. No en el asistente |

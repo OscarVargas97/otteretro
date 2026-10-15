@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-14, después de la encuesta 8, "Cierre de requisitos".
+> **Última actualización:** 2026-10-14, después de la encuesta 9, "Pantallas".
 
 ## Cómo se mantiene
 
@@ -322,7 +322,7 @@ Se prueba en este orden:
 | Qué se exporta | La opción elegida (port o emulador) de cada versión marcada. Puede haber varias versiones del mismo juego. |
 | Juegos que ya están en Steam | **No se exportan.** Solo cuentan como "lo tengo". |
 | Categorías | **Por saga**. Lo que no tiene saga va a **"Emulación"**. |
-| Nombre | "Juego (Consola)" |
+| Nombre | "Juego (Consola)", con el mismo nombre que en la app: el oficial en español si existe (#88, #89) |
 
 ## 11. Automatización y Claude
 
@@ -375,7 +375,7 @@ Así, cada tarea que Claude resolvía pasa a un script y la app depende cada vez
 
 ### 12.1 Proceso
 - **Primero se diseña y después se programa.** Se diseña en **Claude Design**: primero el **sistema de diseño** (colores, tipografía, componentes) y luego cada pantalla. Tú lo apruebas y recién entonces se programa el front.
-- La **especificación de pantallas** (qué muestra cada una y qué acciones tiene) se escribe antes de diseñar, a partir de esta sección.
+- La **especificación de pantallas** está en **[pantallas.md](pantallas.md)**: qué muestra cada una, qué acciones tiene y sus estados. Sus decisiones (#79 a #90) se cerraron en la encuesta 9.
 
 ### 12.2 Aspecto
 | Tema | Decisión |
@@ -383,7 +383,7 @@ Así, cada tarea que Claude resolvía pasa a un script y la app depende cada vez
 | Estilo | Oscuro, con portadas grandes. Referencias: **la biblioteca de Steam y Playnite** |
 | Densidad | **Mixta**: portadas medianas con los datos clave a la vista (estado, consola, versión) |
 | Acento | **Se adapta al color de la portada** de la saga o el juego que estás viendo |
-| Identidad | **Logo y una pequeña mascota: una nutria retro**, usada con moderación (icono, pantallas vacías, avisos) |
+| Identidad | **Logo y una pequeña mascota: una nutria retro**: icono, pantallas vacías, avisos, animación de carga, cuando Claude trabaja y al terminar un juego o una ruta (#90) |
 | Imágenes | SteamGridDB |
 
 ### 12.3 Navegación
@@ -412,7 +412,7 @@ Así, cada tarea que Claude resolvía pasa a un script y la app depende cada vez
 | # | Decisión |
 |---|---|
 | T1 | **Préstamo familiar con SteamKit2.** Inicias sesión **una vez**, con Steam Guard. Queda un token que dura meses, se renueva solo y se guarda cifrado. Después todo es automático. 🔬 Hay que confirmar que esa sesión no cierra la del cliente de Steam mientras juegas. |
-| T2 | **Las tres fuentes:** IsThereAnyDeal, GamerPower y el catálogo de Game Pass, que no es oficial. Se muestra en qué tiendas está el juego, el precio actual, el **mínimo histórico**, si está o estuvo gratis, si está en Game Pass, y llega un **aviso cuando baja de precio**. |
+| T2 | **Las tres fuentes:** IsThereAnyDeal, GamerPower y el catálogo de Game Pass, que no es oficial. Se muestra en qué tiendas está el juego, el precio actual, el **mínimo histórico**, si está o estuvo gratis, si está en Game Pass, y llega un **aviso cuando baja de precio**: de los juegos de las sagas que sigues que no tienes y de los marcados "seguir precio", al llegar al mínimo, quedar gratis o tener un 40 % o más de descuento (#84). |
 | T3 / T4 | Dónde guarda las partidas cada port y qué formatos acepta **se averigua al instalar ese port por primera vez**. Dusklight ya está resuelto: acepta RVZ. |
 | T5 | **Velopack**, aunque la app deje de ser portable. Lo pesado va en la **carpeta de datos** que eliges (P1, §5.1). |
 | T6 | Tiendas que usas: **Steam, Epic, Xbox y Battle.net**. Etapa 1: Steam y Epic, con todo lo que tienes en la cuenta. Etapa 2: Xbox y Battle.net, al principio solo con lo instalado. No se integran GOG, EA, Ubisoft ni Amazon. |
@@ -455,6 +455,12 @@ No son requisitos, pero siguen pendientes:
 | S5 | **Game Pass** se muestra como "en Game Pass", no como "lo tengo", porque depende de tener la suscripción activa. |
 | S6 | Para saber cuándo se cierra un juego y respaldar sus partidas, los accesos de Steam lanzan **`otteretro jugar <id>`** y no el emulador directamente (§10). |
 | S7 | Dijiste que lo pesado debe ir donde tú elijas. Puse **todo lo que no es la app** en la misma carpeta de datos: la base de datos, `Herramientas\` y la caché de imágenes. Así migrar de equipo es mover una sola carpeta. La base de datos es liviana y podría quedarse en AppData, pero entonces habría dos sitios que respaldar. |
+
+**Pendiente de confirmar:**
+
+| # | Supuesto |
+|---|---|
+| S8 | En Descubrir, lo que marcas "no me interesa" vuelve a poder recomendarse a los **6 meses** (configurable en Ajustes). Dijiste "después de un tiempo" sin fijar cuánto (#85). |
 
 ### 13.5 Siguiente paso
 Orden decidido (#74): **especificación de pantallas → Claude Design** (sistema de diseño y pantallas) **→ arquitectura → plan por fases → código**.

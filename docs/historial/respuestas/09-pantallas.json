@@ -1,0 +1,66 @@
+{
+  "actualizado": "2026-10-15T02:09:34.133Z",
+  "respuestas": {
+    "d1": {
+      "v": "global"
+    },
+    "d10": {
+      "v": "es"
+    },
+    "d10b": {
+      "v": "igual"
+    },
+    "d11": {
+      "v": [
+        "icono",
+        "vacias",
+        "avisos",
+        "carga",
+        "claude",
+        "logros"
+      ]
+    },
+    "d2": {
+      "v": "fijo"
+    },
+    "d3": {
+      "v": "propia"
+    },
+    "d4": {
+      "v": "grid_lista"
+    },
+    "d4b": {
+      "v": [
+        "estado",
+        "consola",
+        "anio",
+        "progreso",
+        "pc",
+        "gamepass",
+        "como",
+        "tamano"
+      ]
+    },
+    "d5": {
+      "v": "10"
+    },
+    "d6": {
+      "c": "Quiero tambien los que marcamos como seguir.",
+      "v": "sagas"
+    },
+    "d6b": {
+      "c": "O cuando el descuento es del 40% o mas ",
+      "v": "minimo"
+    },
+    "d7": {
+      "c": "Y desepues de un tiempo puede volver a estar disponible",
+      "v": "ocultar"
+    },
+    "d8": {
+      "v": "ajustes"
+    },
+    "d9": {
+      "v": "si_hace_falta"
+    }
+  }
+}

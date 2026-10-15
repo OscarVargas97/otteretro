@@ -84,3 +84,15 @@ Los requisitos vigentes están en [../REQUISITOS.md](../REQUISITOS.md). Este reg
 | 76 | 2026-10-14 | **Reemplaza la #64**: los cartuchos se verifican **sin conexión** con los DAT de No-Intro que publica libretro en GitHub (`libretro-database`, sin captcha) y los discos con Redump. Ambos se descargan solos. ScreenScraper queda para identificar lo que no coincida y para medios | Decidido |
 | 77 | 2026-10-14 | Un solo PC activo a la vez. Si hay un conflicto en `otteretro-datos`, gana lo más reciente y lo otro se guarda aparte, sin perderlo | Decidido |
 | 78 | 2026-10-14 | Se acepta que el respaldo no incluya binarios de emuladores, packs de texturas ni juegos: se vuelven a conseguir (los emuladores, con sus recetas) | Decidido |
+| 79 | 2026-10-14 | Especificación de pantallas en `docs/pantallas.md`. D1: búsqueda global con Ctrl+K | Decidido |
+| 80 | 2026-10-14 | D2: Inicio con orden fijo (Continuar, Revisar, Novedades, En curso, Avisos) | Decidido |
+| 81 | 2026-10-14 | D3: Revisar es una pantalla propia, con contador en la barra lateral | Decidido |
+| 82 | 2026-10-14 | D4 y D4b: Colección en cuadrícula con alternativa de lista. La tarjeta muestra lo tengo, consola, año, progreso, versión PC, Game Pass, cómo se juega y tamaño | Decidido |
+| 83 | 2026-10-14 | D5: puntuación de 1 a 10 | Decidido |
+| 84 | 2026-10-14 | **Precisa la #57** (D6, D6b): se avisa de los juegos de las sagas que sigues que no tienes y de los marcados "seguir precio", cuando llegan al mínimo histórico, quedan gratis o tienen un 40 % o más de descuento | Decidido |
+| 85 | 2026-10-14 | D7: "No me interesa" oculta la recomendación; pasado un tiempo vuelve a poder recomendarse (S8: 6 meses, configurable) | Decidido |
+| 86 | 2026-10-14 | D8: las bibliotecas se gestionan en Ajustes | Decidido |
+| 87 | 2026-10-14 | D9: al lanzar un juego solo aparece una ventana si hay que preparar algo o si falla | Decidido |
+| 88 | 2026-10-14 | D10: nombre oficial en español si existe; si no, el original | Decidido |
+| 89 | 2026-10-14 | **Precisa §10** (D10b): en Steam se usa el mismo nombre que en la app, con "(Consola)" | Decidido |
+| 90 | 2026-10-14 | **Precisa §12.2** (D11): la nutria aparece en el icono, pantallas vacías, avisos, la animación de carga, cuando Claude trabaja y al terminar un juego o completar una ruta | Decidido |
