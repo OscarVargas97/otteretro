@@ -6,3 +6,5 @@ export type EstadoApp = Esquemas["EstadoApp"];
 export type Disco = Esquemas["Disco"];
 export type PedidoCarpeta = Esquemas["PedidoCarpeta"];
 export type EstadoActualizacion = Esquemas["EstadoActualizacion"];
+export type EstadoMudanza = Esquemas["EstadoMudanza"];
+export type InfoCarpeta = Esquemas["InfoCarpeta"];

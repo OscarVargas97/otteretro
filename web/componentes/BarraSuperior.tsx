@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { urlEventos } from "@/lib/cliente";
 import { TareaActualizacion, useActualizacion } from "./Actualizacion";
+import { TareaMudanza, useMudanza } from "./CarpetaDatos";
 import { Vacio } from "./Marco";
 
 /** Título de la pantalla, búsqueda global (Ctrl+K) y panel de tareas en segundo plano. */
@@ -12,8 +13,11 @@ export function BarraSuperior({ titulo }: { titulo: string }) {
   const [tareas, setTareas] = useState(false);
   const conectado = useEventos();
   const actualizacion = useActualizacion();
-  const hayTareas = !!actualizacion && actualizacion.fase !== "Ninguna";
-  const trabajando = actualizacion?.fase === "Buscando" || actualizacion?.fase === "Descargando";
+  const mudanza = useMudanza();
+  const enMudanza = !!mudanza?.enCurso;
+  const hayTareas = (!!actualizacion && ["Buscando", "Descargando", "Lista", "Error"].includes(actualizacion.fase)) || (!!mudanza && (mudanza.enCurso || ["Listo", "Error"].includes(mudanza.paso)));
+  const activas = Number(actualizacion?.fase === "Buscando" || actualizacion?.fase === "Descargando") + Number(enMudanza);
+  const trabajando = activas > 0;
 
   useEffect(() => {
     const alPulsar = (e: KeyboardEvent) => {
@@ -43,12 +47,13 @@ export function BarraSuperior({ titulo }: { titulo: string }) {
       </button>
       <button className="ot-btn" type="button" aria-expanded={tareas} onClick={() => setTareas(!tareas)}>
         <span className="dot" data-conectado={conectado} data-trabajando={trabajando} />
-        {trabajando ? "1 tarea" : "Tareas"}
+        {activas === 0 ? "Tareas" : activas === 1 ? "1 tarea" : `${activas} tareas`}
       </button>
 
       {tareas && (
         <div className="ot-tasks panel-tareas" role="dialog" aria-label="Tareas en segundo plano">
           <TareaActualizacion />
+          <TareaMudanza />
           {!hayTareas && (
             <Vacio titulo="No hay tareas en curso" texto="Aquí verás escaneos, descargas, respaldos y el trabajo de Claude." />
           )}
@@ -84,6 +89,7 @@ function useEventos() {
     fuente.onopen = () => setConectado(true);
     fuente.onerror = () => setConectado(false);
     fuente.addEventListener("actualizacion", (e) => cache.setQueryData(["actualizacion"], JSON.parse(e.data)));
+    fuente.addEventListener("mudanza", (e) => cache.setQueryData(["mudanza"], JSON.parse(e.data)));
     return () => fuente.close();
   }, [cache]);
   return conectado;

@@ -7,6 +7,7 @@ public record EstadoApp(string Version, string? CarpetaDatos, bool Configurada);
 public record PedidoCarpeta(string Ruta);
 public record Problema(string Mensaje);
 public record Disco(string Nombre, long Libre, long Total);
+public record InfoCarpeta(string? Ruta, long Ocupado, long LibreEnDisco);
 
 /// <summary>Endpoints base de F0. Cada módulo añadirá los suyos.</summary>
 public static class Endpoints
@@ -25,6 +26,22 @@ public static class Endpoints
             c.Config.Guardar(c.RutaConfig);
             Arranque.PrepararDatos(c.Config);
             return TypedResults.Ok(Estado(c));
+        });
+
+        api.MapGet("/carpeta-datos", (ContextoApp c) =>
+        {
+            var ruta = c.Config.CarpetaDatos;
+            var raiz = ruta is null ? null : Path.GetPathRoot(ruta);
+            return new InfoCarpeta(ruta, ruta is null ? 0 : Mudanza.Tamano(ruta),
+                raiz is not null && Directory.Exists(raiz) ? new DriveInfo(raiz).AvailableFreeSpace : 0);
+        });
+
+        api.MapGet("/carpeta-datos/mudanza", (ServicioMudanza m) => m.Estado);
+
+        api.MapPost("/carpeta-datos/mover", Results<Accepted<EstadoMudanza>, BadRequest<Problema>> (PedidoCarpeta pedido, ServicioMudanza m) =>
+        {
+            var error = m.Iniciar(pedido.Ruta);
+            return error is null ? TypedResults.Accepted("/api/carpeta-datos/mudanza", m.Estado) : TypedResults.BadRequest(new Problema(error));
         });
 
         api.MapGet("/discos", () => DriveInfo.GetDrives()

@@ -89,7 +89,7 @@ Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
 - [x] Una llamada a la API sin clave da 401 (pruebas automáticas).
 - [x] Con `0.0.2` empaquetado en la carpeta local de actualizaciones, la app 0.0.1 se actualiza sola (probado por el usuario).
 - [ ] La actualización se ve: tarea en el panel, aviso "lista" con Reiniciar ahora y botón Buscar actualización en Ajustes › Acerca de. **(lo prueba el usuario con 0.0.4 → 0.0.5)**
-- [x] `dotnet test` pasa (21 pruebas).
+- [x] `dotnet test` pasa (25 pruebas).
 
 ---
 
@@ -196,3 +196,4 @@ Cada entrada: fecha, fase en curso, qué se hizo, por qué, cómo (archivos/comm
 | 2026-10-15 | F0 | Copia de `web/out` a `wwwroot` al terminar el build, en vez de declararlo como Content | El SDK web registraba los archivos antes de que Next los regenerara con otros nombres y fallaba | `src/Otteretro/Otteretro.csproj` (targets `CopiarWeb` y `PublicarWeb`) | No |
 | 2026-10-15 | F0 | La actualización se ve: tarea en el panel de Tareas, aviso con **Reiniciar ahora** cuando está lista y botón **Buscar actualización** en Ajustes › Acerca de | Al probar F0 el usuario vio que la app se actualizaba sin avisar: no se sabía si buscaba, si encontró algo ni que había que reiniciar. Pidió además poder buscar sin cerrar y abrir | `Inicio/Actualizador.cs` (servicio con estado y eventos), `Api/Endpoints.cs` (`/api/actualizacion`, `/buscar`, `/reiniciar`), `web/componentes/Actualizacion.tsx` | #102 |
 | 2026-10-15 | F0 | El botón Buscar actualización da respuesta visible: muestra Buscando… un instante, el resultado con insignia (Estás al día, Descargando, Lista, Error) y la hora de la comprobación | El usuario notó que con la app al día el botón no hacía nada visible; además el resultado podía pisarse con la respuesta del botón | La comprobación termina antes de responder y la descarga sigue en segundo plano (`Actualizador.Buscar`/`Descargar`); `EstadoActualizacion.Comprobada`; `VersionYActualizacion` | #102 |
+| 2026-10-15 | F0 | Ajustes › Carpeta de datos: ver cuánto ocupa, **Mover a otra carpeta** (copiar → verificar por hash → cambiar config → borrar la anterior; en el mismo disco, mover directo) y **Usar otra carpeta** (apuntar a una existente sin mover nada). Progreso en Ajustes y en el panel de Tareas | Estaba en pantallas.md §10 (S7) pero no en las tareas de F0; el usuario lo notó al probar | `Inicio/Mudanza.cs` (`Mudanza`, `ServicioMudanza`), `/api/carpeta-datos` (GET), `/mover`, `/mudanza`; `web/componentes/CarpetaDatos.tsx`; pruebas en `MudanzaTests.cs` | No (ya estaba decidido en S7 y pantallas.md) |

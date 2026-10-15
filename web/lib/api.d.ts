@@ -46,7 +46,26 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InfoCarpeta"];
+                    };
+                };
+            };
+        };
         put?: never;
         post: {
             parameters: {
@@ -68,6 +87,89 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["EstadoApp"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Problema"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/carpeta-datos/mudanza": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EstadoMudanza"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/carpeta-datos/mover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PedidoCarpeta"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EstadoMudanza"];
                     };
                 };
                 /** @description Bad Request */
@@ -259,8 +361,26 @@ export interface components {
             carpetaDatos: null | string;
             configurada: boolean;
         };
+        EstadoMudanza: {
+            paso: string;
+            /** Format: int64 */
+            hecho: number | string;
+            /** Format: int64 */
+            total: number | string;
+            enCurso: boolean;
+            destino: null | string;
+            error: null | string;
+            aviso: null | string;
+        };
         /** @enum {unknown} */
         FaseActualizacion: "Ninguna" | "NoDisponible" | "Buscando" | "AlDia" | "Descargando" | "Lista" | "Error";
+        InfoCarpeta: {
+            ruta: null | string;
+            /** Format: int64 */
+            ocupado: number | string;
+            /** Format: int64 */
+            libreEnDisco: number | string;
+        };
         PedidoCarpeta: {
             ruta: string;
         };

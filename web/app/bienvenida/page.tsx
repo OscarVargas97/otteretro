@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { pedir } from "@/lib/cliente";
+import { gb } from "@/lib/formato";
 import type { Disco, EstadoApp, PedidoCarpeta } from "@/lib/tipos";
 
 const PASOS = [
@@ -16,7 +17,6 @@ const PASOS = [
   { titulo: "Carga inicial", fase: 2 },
 ];
 
-const gb = (bytes: number | string) => `${Math.round(Number(bytes) / 1024 ** 3).toLocaleString("es")} GB`;
 
 /** Asistente de primer arranque (pantallas.md §1). En F0 funcionan los pasos 1 y 2. */
 export default function Bienvenida() {

@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { VersionYActualizacion } from "@/componentes/Actualizacion";
+import { AjustesCarpetaDatos } from "@/componentes/CarpetaDatos";
 import { pedir } from "@/lib/cliente";
 import type { EstadoApp } from "@/lib/tipos";
 
@@ -11,10 +12,7 @@ export default function Ajustes() {
     <div className="content">
       <section className="sec">
         <div className="sec-h"><h2>Carpeta de datos</h2></div>
-        <div className="panel">
-          <span>{data?.carpetaDatos}</span>
-          <span className="small muted">Base de datos, Herramientas, caché de imágenes y registro de errores.</span>
-        </div>
+        <AjustesCarpetaDatos />
       </section>
       <section className="sec">
         <div className="sec-h"><h2>Acerca de</h2></div>

@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:54750/"
+      "url": "http://127.0.0.1:57277/"
     }
   ],
   "paths": {
@@ -51,6 +51,81 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/EstadoApp"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InfoCarpeta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/carpeta-datos/mudanza": {
+      "get": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstadoMudanza"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/carpeta-datos/mover": {
+      "post": {
+        "tags": [
+          "Otteretro"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PedidoCarpeta"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstadoMudanza"
                 }
               }
             }
@@ -246,6 +321,60 @@
           }
         }
       },
+      "EstadoMudanza": {
+        "required": [
+          "paso",
+          "hecho",
+          "total",
+          "enCurso",
+          "destino",
+          "error",
+          "aviso"
+        ],
+        "type": "object",
+        "properties": {
+          "paso": {
+            "type": "string"
+          },
+          "hecho": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "enCurso": {
+            "type": "boolean"
+          },
+          "destino": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "aviso": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "FaseActualizacion": {
         "enum": [
           "Ninguna",
@@ -256,6 +385,38 @@
           "Lista",
           "Error"
         ]
+      },
+      "InfoCarpeta": {
+        "required": [
+          "ruta",
+          "ocupado",
+          "libreEnDisco"
+        ],
+        "type": "object",
+        "properties": {
+          "ruta": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ocupado": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "libreEnDisco": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          }
+        }
       },
       "PedidoCarpeta": {
         "required": [
