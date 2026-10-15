@@ -96,3 +96,4 @@ Los requisitos vigentes están en [../REQUISITOS.md](../REQUISITOS.md). Este reg
 | 88 | 2026-10-14 | D10: nombre oficial en español si existe; si no, el original | Decidido |
 | 89 | 2026-10-14 | **Precisa §10** (D10b): en Steam se usa el mismo nombre que en la app, con "(Consola)" | Decidido |
 | 90 | 2026-10-14 | **Precisa §12.2** (D11): la nutria aparece en el icono, pantallas vacías, avisos, la animación de carga, cuando Claude trabaja y al terminar un juego o completar una ruta | Decidido |
+| 91 | 2026-10-14 | Se aprueba la primera versión del sistema de diseño y del prototipo navegable de pantallas en Claude Design ("es exactamente lo que pensaba") | Decidido |
