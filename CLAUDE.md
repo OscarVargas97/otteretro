@@ -13,7 +13,8 @@ App personal, instalada con Velopack y con los datos en una carpeta que elige el
 
 ## Ramas y publicación
 
-- Se trabaja en `dev`. `main` es lo publicado: al fusionar en `main`, GitHub Actions publica una release y la app se autoactualiza.
+- Cada fase del plan se trabaja en su rama `fase/N-nombre`, creada desde `dev`, y se fusiona en `dev` con un pull request cuando está lista.
+- **Por ahora no se fusiona nada en `main`** (#101). Cuando se decida publicar, al fusionar en `main` GitHub Actions publicará una release y la app se autoactualizará.
 - Las tareas de automatización llegan como GitHub Issues con la etiqueta `automatizar`.
 
 ## Reglas del proyecto

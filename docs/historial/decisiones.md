@@ -106,3 +106,4 @@ Los requisitos vigentes están en [../REQUISITOS.md](../REQUISITOS.md). Este reg
 | 98 | 2026-10-14 | A7: un solo proyecto C# con una carpeta por módulo, más uno de pruebas | Decidido |
 | 99 | 2026-10-14 | A8: .NET 10 (LTS). Se aceptan las decisiones marcadas como (propia) en la arquitectura | Decidido |
 | 100 | 2026-10-14 | Plan por fases en `docs/plan.md`, con el **catálogo primero**: F0 esqueleto, F1 catálogo, F2 Claude, F3 bibliotecas, F4 emuladores/ports/Jugar, F5 respaldo, F6 Steam, F7 tiendas, F8 ingesta, F9 Descubrir y pulido | Decidido |
+| 101 | 2026-10-14 | **Precisa la #97 y el plan**: cada fase se trabaja en su rama `fase/N-nombre` desde `dev` y se fusiona en `dev` con un pull request. Por ahora no se fusiona nada en `main`, así que no hay releases publicadas; F0 prueba Velopack con paquetes locales | Decidido |

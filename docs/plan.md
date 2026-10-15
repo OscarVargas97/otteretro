@@ -6,9 +6,9 @@
 
 ## Cómo se trabaja cada fase
 
-1. Se programa en `dev` con Claude Code, siguiendo este plan y los documentos de arriba.
-2. La fase está **lista** cuando se cumple su lista de "Listo cuando" y pasan sus pruebas (A4).
-3. Se fusiona `dev` en `main` → GitHub Actions publica la release → tu app se actualiza sola (A6).
+1. Cada fase se programa en su rama **`fase/N-nombre`**, creada desde `dev`, con Claude Code, siguiendo este plan y los documentos de arriba.
+2. La fase está **lista** cuando se cumple su lista de "Listo cuando" y pasan sus pruebas (A4). Entonces se abre un pull request y se fusiona en **`dev`**.
+3. **Por ahora nada va a `main`** (#101): todas las fases se acumulan en `dev`. Cuando decidas publicar, se fusiona `dev` en `main` y GitHub Actions publica la release (A6).
 4. Si durante una fase aparece una decisión que no está en los documentos, se te pregunta antes de seguir y se registra en `decisiones.md`.
 
 Las **acciones tuyas** de cada fase (cuentas y claves, A3) se piden al empezarla, no antes.
@@ -25,9 +25,9 @@ Las **acciones tuyas** de cada fase (cuentas y claves, A3) se piden al empezarla
 - SQLite con Dapper y migraciones `.sql`; registro de errores en `logs\` (30 días).
 - Server-Sent Events y panel de tareas vacío; tipos TypeScript generados desde OpenAPI.
 - Asistente de primer arranque: pasos 1 (bienvenida) y 2 (carpeta de datos). El resto de pasos se activa en su fase.
-- Velopack + GitHub Actions: release al fusionar en `main` y autoactualización (token de GitHub, #68).
+- Velopack: empaquetado e instalador generados en local; el flujo de GitHub Actions queda escrito, pero solo se activará cuando algo llegue a `main` (#101). La autoactualización se prueba con dos paquetes locales.
 
-**Listo cuando:** instalas desde la release, eliges la carpeta de datos, navegas por todas las pantallas, y una segunda release se instala sola.
+**Listo cuando:** instalas desde el paquete local, eliges la carpeta de datos, navegas por todas las pantallas, y un segundo paquete local se instala solo como actualización.
 **Tú:** crear el token de GitHub.
 
 ## F1 · Catálogo
