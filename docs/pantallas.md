@@ -2,6 +2,7 @@
 
 - **Fecha:** 2026-10-14
 - **Para qué sirve:** es la base para diseñar en **Claude Design**. Cada pantalla indica qué muestra, qué acciones tiene y qué estados contempla. No define colores ni disposición exacta: eso sale del sistema de diseño.
+- **Diseño:** sistema de diseño https://claude.ai/artifact/DMH4KuU2kkAnb3ApFTCiuu · prototipo navegable de todas las pantallas https://claude.ai/artifact/Bo8gtfiPdRAumFhkFikHPV
 - **De dónde sale:** de [REQUISITOS.md](REQUISITOS.md), sobre todo §12. Cada punto lleva entre paréntesis la sección o decisión que lo respalda.
 - **Decisiones de diseño:** cerradas en la [encuesta 9](https://claude.ai/artifact/XsFAKMCB683zcsdRzmZWLR) (decisiones #79 a #90). Las marcas **(Dn)** indican de qué pregunta sale cada punto.
 
