@@ -28,12 +28,24 @@
   <PropertyGroup>
     <DirWeb>$(MSBuildThisFileDirectory)..\..\web\</DirWeb>
   </PropertyGroup>
-  <Target Name="ConstruirWeb" BeforeTargets="AssignTargetPaths" Condition="'$(Configuration)' == 'Release' And '$(SaltarWeb)' != 'true'">
+  <!-- En Release se compila el front; en Debug se copia el último web/out si existe. Se copia al terminar
+       (no como Content) porque Next genera nombres nuevos en cada build. -->
+  <Target Name="ConstruirWeb" BeforeTargets="Build" Condition="'$(Configuration)' == 'Release' And '$(SaltarWeb)' != 'true'">
     <Exec Command="npm ci" WorkingDirectory="$(DirWeb)" Condition="!Exists('$(DirWeb)node_modules')" />
     <Exec Command="npm run build" WorkingDirectory="$(DirWeb)" />
   </Target>
-  <ItemGroup>
-    <Content Include="$(DirWeb)out\**\*" LinkBase="wwwroot" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-  </ItemGroup>
+  <Target Name="CopiarWeb" AfterTargets="Build">
+    <ItemGroup>
+      <ArchivoWeb Include="$(DirWeb)out\**\*" />
+    </ItemGroup>
+    <RemoveDir Directories="$(OutDir)wwwroot" />
+    <Copy SourceFiles="@(ArchivoWeb)" DestinationFiles="@(ArchivoWeb->'$(OutDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
+  </Target>
+  <Target Name="PublicarWeb" AfterTargets="Publish">
+    <ItemGroup>
+      <ArchivoWeb Include="$(DirWeb)out\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ArchivoWeb)" DestinationFiles="@(ArchivoWeb->'$(PublishDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
+  </Target>
 
 </Project>

@@ -1,0 +1,176 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Otteretro | v1",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:49418/"
+    }
+  ],
+  "paths": {
+    "/api/estado": {
+      "get": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstadoApp"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/carpeta-datos": {
+      "post": {
+        "tags": [
+          "Otteretro"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PedidoCarpeta"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstadoApp"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/discos": {
+      "get": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Disco"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Disco": {
+        "required": [
+          "nombre",
+          "libre",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string"
+          },
+          "libre": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "EstadoApp": {
+        "required": [
+          "version",
+          "carpetaDatos",
+          "configurada"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "carpetaDatos": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "configurada": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PedidoCarpeta": {
+        "required": [
+          "ruta"
+        ],
+        "type": "object",
+        "properties": {
+          "ruta": {
+            "type": "string"
+          }
+        }
+      },
+      "Problema": {
+        "required": [
+          "mensaje"
+        ],
+        "type": "object",
+        "properties": {
+          "mensaje": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Otteretro"
+    }
+  ]
+}

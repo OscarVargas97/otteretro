@@ -14,7 +14,8 @@ public sealed class Configuracion
 
     static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
-    public static string RutaPorDefecto => Path.Combine(
+    /// <summary>OTTERETRO_CONFIG permite usar otra configuración (desarrollo y pruebas) sin tocar la real.</summary>
+    public static string RutaPorDefecto => Environment.GetEnvironmentVariable("OTTERETRO_CONFIG") ?? Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Otteretro", "config.json");
 
     public static Configuracion Cargar(string ruta)

@@ -59,6 +59,7 @@ public static class ModoCli
           jugar <id>             Lanza un juego (fase 4).
           version                Muestra la versión.
           openapi <archivo>      Escribe el contrato OpenAPI de la API (para generar los tipos del front).
+          servidor               Levanta la API y la interfaz sin ventana, para abrirlas en un navegador (desarrollo).
           ayuda                  Muestra esta ayuda.
         """;
 
@@ -81,11 +82,29 @@ public static class ModoCli
                 EscribirOpenApi(archivo).GetAwaiter().GetResult();
                 salida.WriteLine($"Contrato escrito en {archivo}");
                 return 0;
+            case ["servidor"]:
+                Servir(salida);
+                return 0;
             default:
                 salida.WriteLine($"Comando desconocido: {string.Join(' ', args)}");
                 salida.WriteLine(Ayuda);
                 return 1;
         }
+    }
+
+    static void Servir(TextWriter salida)
+    {
+        var rutaConfig = Configuracion.RutaPorDefecto;
+        var config = Configuracion.Cargar(rutaConfig);
+        if (CarpetaDatos.EstaLista(config.CarpetaDatos))
+            Arranque.PrepararDatos(config);
+        var contexto = new ContextoApp(config, rutaConfig, Servidor.NuevaClave());
+        var app = Servidor.Crear(contexto);
+        app.StartAsync().GetAwaiter().GetResult();
+        salida.WriteLine($"Configuración: {rutaConfig}");
+        salida.WriteLine($"Abre {Servidor.Direccion(app)}/?clave={contexto.Clave}");
+        salida.WriteLine("Ctrl+C para terminar.");
+        app.WaitForShutdownAsync().GetAwaiter().GetResult();
     }
 
     static async Task EscribirOpenApi(string archivo)
@@ -103,6 +122,7 @@ public static class ModoCli
     static void EngancharConsola()
     {
         if (OperatingSystem.IsWindows()) AttachConsole(-1);
+        Console.OutputEncoding = System.Text.Encoding.UTF8;
     }
 
     [DllImport("kernel32.dll")]
