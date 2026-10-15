@@ -181,7 +181,7 @@ Se comparan todas las versiones con cuatro criterios, que se muestran **por sepa
 | RAWG | Complemento |
 | SteamGridDB | **Imágenes** de la app y de Steam |
 | Steam Web API | Lo que tienes y horas jugadas |
-| Disponibilidad en tiendas | Game Pass, juegos gratis de Epic y otras tiendas (fuente por definir) 🔬 |
+| IsThereAnyDeal · GamerPower · catálogo de Game Pass | Disponibilidad en tiendas, precios y juegos gratis (T2) |
 
 Si dos fuentes no coinciden, se usa una **prioridad fija por campo**. Lo que corriges a mano no se sobrescribe nunca.
 
@@ -428,7 +428,7 @@ Así, cada tarea que Claude resolvía pasa a un script y la app depende cada vez
   - Si la app no está abierta, la tarea espera en la cola hasta la próxima vez que se abra.
 
 ### 13.2.1 Revisión de viabilidad ⚠️
-[viabilidad.md](viabilidad.md) revisa todo este documento. Hay **6 ajustes propuestos (V1 a V6)** pendientes de tu aprobación: la espera de T7 necesita una comprobación de seguridad, Reddit y OpenCritic no tienen API usable, No-Intro se descarga a mano, y ScreenScraper y HowLongToBeat pasan a ser opcionales.
+[viabilidad.md](viabilidad.md) revisa todo este documento. Hay **6 ajustes propuestos (V1 a V6)** que se aprueban en la **[encuesta 8](https://claude.ai/artifact/REx65yraTo9AMN7tW6UCZa)**, junto con los supuestos S1 a S7 y las condiciones de la revisión: T7 espera al proceso lanzado como ES-DE, Reddit y OpenCritic no tienen API usable, No-Intro se descarga a mano, ScreenScraper necesita credenciales propias y HowLongToBeat pasa a ser opcional.
 
 ### 13.3 Acciones tuyas fuera de la app
 No son requisitos, pero siguen pendientes:
