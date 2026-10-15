@@ -2,7 +2,7 @@
 
 - **Fecha:** 2026-10-14
 - **Alcance:** todo lo que dice [REQUISITOS.md](REQUISITOS.md), revisado punto por punto contra documentación y proyectos que existen hoy.
-- **Aprobado en la encuesta 8** (#61 a #74). V1 y V5 se ajustaron según ES-DE. **V4 cambió**: en lugar de bajar No-Intro a mano, los cartuchos se verifican por hash con ScreenScraper, como ES-DE (#64).
+- **Aprobado en la encuesta 8** (#61 a #74). V1 y V5 se ajustaron según ES-DE. **V4 cambió**: en lugar de bajar No-Intro a mano, se usan los DAT de No-Intro que publica libretro en GitHub (`libretro-database`), sin captcha y sin conexión (#76).
 - **Resultado:** la app es viable. **Hay 6 puntos que no funcionan tal como están escritos** y necesitan un ajuste (❌/🟡 abajo). Los ajustes son **propuestas**: no entran en REQUISITOS.md hasta que los apruebes.
 
 ## 1. Puntos que hay que ajustar

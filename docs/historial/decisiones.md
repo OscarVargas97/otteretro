@@ -81,3 +81,6 @@ Los requisitos vigentes están en [../REQUISITOS.md](../REQUISITOS.md). Este reg
 | 73 | 2026-10-14 | Epic: se acepta el método no oficial para leer la cuenta completa; si se rompe, se cae a solo lo instalado | Decidido |
 | 74 | 2026-10-14 | Orden de trabajo: especificación de pantallas → Claude Design (sistema de diseño y pantallas) → arquitectura → plan por fases → código | Decidido |
 | 75 | 2026-10-14 | Las comprobaciones periódicas (precios, tiendas, versiones nuevas de emuladores) se hacen **solo con la app abierta**: al abrirla y cada cierto intervalo mientras está abierta. Con la app cerrada no corre nada; los avisos llegan la próxima vez que la abras | Decidido |
+| 76 | 2026-10-14 | **Reemplaza la #64**: los cartuchos se verifican **sin conexión** con los DAT de No-Intro que publica libretro en GitHub (`libretro-database`, sin captcha) y los discos con Redump. Ambos se descargan solos. ScreenScraper queda para identificar lo que no coincida y para medios | Decidido |
+| 77 | 2026-10-14 | Un solo PC activo a la vez. Si hay un conflicto en `otteretro-datos`, gana lo más reciente y lo otro se guarda aparte, sin perderlo | Decidido |
+| 78 | 2026-10-14 | Se acepta que el respaldo no incluya binarios de emuladores, packs de texturas ni juegos: se vuelven a conseguir (los emuladores, con sus recetas) | Decidido |

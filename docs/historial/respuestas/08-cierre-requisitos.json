@@ -72,6 +72,9 @@
     "v4": "Como ES-DE: cartuchos por hash con ScreenScraper, discos con Redump",
     "emuladores": "Todas las consolas: predeterminado + alternativos (GordoFriki); Switch Eden+Ryubing+Citron+SS4K",
     "carga": "Nintendo -> Sony -> Microsoft, Claude por lotes",
-    "comprobaciones": "Solo con la app abierta"
+    "comprobaciones": "Solo con la app abierta",
+    "v4_mejorado": "DAT de libretro + ScreenScraper",
+    "varios_pc": "Uno a la vez",
+    "no_respaldado": "Sí, así está bien"
   }
 }

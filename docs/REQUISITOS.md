@@ -175,7 +175,8 @@ Se comparan todas las versiones con cuatro criterios, que se muestran **por sepa
 | Fuente | Uso |
 |---|---|
 | IGDB | Base: sagas, versiones, plataformas, ids de Steam |
-| ScreenScraper | Identificación y **verificación por hash de cartuchos**, como ES-DE, y medios. Con credenciales de desarrollador propias de Otteretro (#64, #65) |
+| ScreenScraper | Identificar lo que no coincide con los DAT, y medios. Con credenciales de desarrollador propias de Otteretro, como ES-DE (#65, #76) |
+| libretro-database · Redump | DAT para verificar por hash sin conexión: No-Intro (cartuchos) y Redump (discos) (#76) |
 | Wikidata | Relación entre juegos y sagas |
 | IGDB · Metacritic / OpenCritic | Notas: la agregada de IGDB; en las sagas icónicas, Claude cita además Metacritic y OpenCritic (#63) |
 | HowLongToBeat | Duración. **Opcional**: no tiene API y el scraper puede fallar; entonces se muestra "sin datos" (#66) |
@@ -194,7 +195,7 @@ Si dos fuentes no coinciden, se usa una **prioridad fija por campo**. Lo que cor
 
 ### 7.2 Detección ✅
 1. Escaneo rápido por nombre y TitleID o serial.
-2. Verificación por hash cuando la pides: los **cartuchos** con ScreenScraper, en línea, como ES-DE; los **discos** con los DAT de Redump, que se descargan solos. No se usa No-Intro (#64). Los hashes quedan guardados.
+2. Verificación por hash cuando la pides, **sin conexión**: los **cartuchos** con los DAT de No-Intro que publica libretro en GitHub (`libretro-database`) y los **discos** con los DAT de Redump. Ambos se descargan solos (#76). Los hashes quedan guardados.
 
 ### 7.3 Actualizaciones y DLC ✅
 Se detectan y se muestran BASE, UPD y DLC. **Nunca se borran las versiones viejas.**
@@ -214,7 +215,7 @@ El tiempo de juego no lo registra la app: **muestra el de Steam**.
   | Partidas guardadas | **Al cerrar el juego o el emulador** |
   | BIOS, keys y firmware | Cuando cambian (siempre en repositorio privado) |
 
-- Los packs de texturas **no** se respaldan, porque pesan varios GB.
+- **No** se respaldan los packs de texturas, los binarios de emuladores ni los juegos: se vuelven a conseguir, los emuladores con sus recetas (#78). Alguna versión vieja de un emulador podría no estar ya disponible.
 - Antes de actualizar un emulador o un port se sigue haciendo además una copia puntual (§8.4).
 - Para saber cuándo se cierra un juego, **todo se lanza a través de Otteretro** (§10).
 
@@ -224,6 +225,7 @@ El tiempo de juego no lo registra la app: **muestra el de Steam**.
   - Los datos y las partidas se recuperan desde el repositorio de respaldo (§7.5).
   - Las credenciales se recuperan según §5.6.
 - Lo que depende de cada equipo, como la exportación a Steam o las rutas de Steam, se guarda **por equipo**. La app reconoce en qué PC está.
+- **Un solo PC activo a la vez** (#77). Si aparece un conflicto en el respaldo, gana lo más reciente y lo otro se guarda aparte, sin perderlo.
 
 ## 8. Emuladores, ports y complementos
 
@@ -300,7 +302,7 @@ Origen ─► Extraer ─► Identificar ─► Convertir ─► Ubicar ─► M
 Se prueba en este orden:
 1. El origen, por ejemplo la ficha donde pegaste el enlace.
 2. El nombre y el TitleID o serial.
-3. El hash: ScreenScraper para cartuchos y Redump para discos.
+3. El hash contra los DAT (No-Intro de libretro y Redump). Si no coincide, se consulta ScreenScraper.
 4. Los alias aprendidos.
 5. **Claude**: si no está seguro, **asigna el juego y lo marca "revisar"**. Hay una lista de pendientes de confirmar.
 6. Si Claude tampoco puede proponer nada, el archivo va a "Sin identificar" y la app avisa.
