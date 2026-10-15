@@ -375,6 +375,7 @@ Así, cada tarea que Claude resolvía pasa a un script y la app depende cada vez
 
 ### 12.1 Proceso
 - **Primero se diseña y después se programa.** Se diseña en **Claude Design**: primero el **sistema de diseño** (colores, tipografía, componentes) y luego cada pantalla. Tú lo apruebas y recién entonces se programa el front.
+- **Sistema de diseño** (primera versión, en revisión): https://claude.ai/artifact/DMH4KuU2kkAnb3ApFTCiuu
 - La **especificación de pantallas** está en **[pantallas.md](pantallas.md)**: qué muestra cada una, qué acciones tiene y sus estados. Sus decisiones (#79 a #90) se cerraron en la encuesta 9.
 
 ### 12.2 Aspecto
