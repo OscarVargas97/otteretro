@@ -251,6 +251,8 @@ export interface components {
             /** Format: int32 */
             progreso: number | string;
             mensaje: null | string;
+            /** Format: date-time */
+            comprobada: null | string;
         };
         EstadoApp: {
             version: string;

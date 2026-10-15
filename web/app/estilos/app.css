@@ -15,6 +15,10 @@ html, body { margin: 0; min-height: 100%; background: var(--bg); }
 .panel-tareas .ot-task { min-width: 300px; }
 
 .fila-version { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.resultado-actualizacion { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); animation: aparecer .3s ease-out; }
+@keyframes aparecer { from { opacity: 0; transform: translateY(-4px); } }
+.girando { width: 12px; height: 12px; border: 2px solid var(--line); border-top-color: var(--ink); border-radius: 50%; animation: girar .8s linear infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }
 
 .aviso { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin: var(--space-4) var(--space-6) 0; padding: var(--space-3) var(--space-4); background: var(--accent-soft); border: 1px solid var(--accent); border-radius: var(--radius-md); }
 .aviso img { image-rendering: pixelated; }

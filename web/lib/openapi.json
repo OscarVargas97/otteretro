@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:62182/"
+      "url": "http://127.0.0.1:54750/"
     }
   ],
   "paths": {
@@ -187,7 +187,8 @@
           "fase",
           "version",
           "progreso",
-          "mensaje"
+          "mensaje",
+          "comprobada"
         ],
         "type": "object",
         "properties": {
@@ -213,6 +214,13 @@
               "null",
               "string"
             ]
+          },
+          "comprobada": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },

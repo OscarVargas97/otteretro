@@ -34,10 +34,10 @@ public static class Endpoints
 
         api.MapGet("/actualizacion", (Actualizador a) => a.Estado);
 
-        // Arranca la búsqueda y responde enseguida; el progreso llega por el evento "actualizacion".
-        api.MapPost("/actualizacion/buscar", (Actualizador a) =>
+        // Responde cuando termina la comprobación; si hay descarga, su progreso llega por el evento "actualizacion".
+        api.MapPost("/actualizacion/buscar", async (Actualizador a) =>
         {
-            _ = a.Buscar();
+            await a.Buscar();
             return a.Estado;
         });
 

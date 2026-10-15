@@ -8,7 +8,8 @@ namespace Otteretro.Inicio;
 [JsonConverter(typeof(JsonStringEnumConverter<FaseActualizacion>))]
 public enum FaseActualizacion { Ninguna, NoDisponible, Buscando, AlDia, Descargando, Lista, Error }
 
-public record EstadoActualizacion(FaseActualizacion Fase, string? Version, int Progreso, string? Mensaje);
+/// <param name="Comprobada">Cuándo terminó la última comprobación (para mostrar "comprobado a las …").</param>
+public record EstadoActualizacion(FaseActualizacion Fase, string? Version, int Progreso, string? Mensaje, DateTimeOffset? Comprobada);
 
 /// <summary>
 /// Busca una versión nueva, la descarga y avisa a la interfaz en cada paso (panel de tareas y aviso de "lista").
@@ -20,9 +21,13 @@ public sealed class Actualizador(ContextoApp contexto, Eventos eventos)
     UpdateManager? gestor;
     VelopackAsset? lista;
 
-    public EstadoActualizacion Estado { get; private set; } = new(FaseActualizacion.Ninguna, null, 0, null);
+    public EstadoActualizacion Estado { get; private set; } = new(FaseActualizacion.Ninguna, null, 0, null, null);
+    DateTimeOffset? comprobada;
 
-    /// <summary>Se llama al abrir la app y desde el botón "Buscar actualización". No hace nada si ya está buscando o hay una lista.</summary>
+    /// <summary>
+    /// Se llama al abrir la app y desde el botón "Buscar actualización". Termina cuando acaba la comprobación;
+    /// si hay versión nueva, la descarga sigue en segundo plano. No hace nada si ya está buscando o hay una lista.
+    /// </summary>
     public async Task Buscar()
     {
         if (Estado.Fase is FaseActualizacion.Buscando or FaseActualizacion.Descargando or FaseActualizacion.Lista) return;
@@ -42,13 +47,26 @@ public sealed class Actualizador(ContextoApp contexto, Eventos eventos)
             }
             Cambiar(FaseActualizacion.Buscando, null, 0);
             var info = await gestor.CheckForUpdatesAsync();
+            comprobada = DateTimeOffset.Now;
             if (info is null)
             {
                 Cambiar(FaseActualizacion.AlDia, null, 0);
                 return;
             }
-            var version = info.TargetFullRelease.Version.ToString();
-            Cambiar(FaseActualizacion.Descargando, version, 0);
+            Cambiar(FaseActualizacion.Descargando, info.TargetFullRelease.Version.ToString(), 0);
+            _ = Descargar(gestor, info);
+        }
+        catch (Exception e)
+        {
+            Fallo(e);
+        }
+    }
+
+    async Task Descargar(UpdateManager gestor, UpdateInfo info)
+    {
+        var version = info.TargetFullRelease.Version.ToString();
+        try
+        {
             await gestor.DownloadUpdatesAsync(info, p => Cambiar(FaseActualizacion.Descargando, version, p));
             lista = info.TargetFullRelease;
             // Si no se reinicia antes, se instala al cerrar la app.
@@ -58,9 +76,14 @@ public sealed class Actualizador(ContextoApp contexto, Eventos eventos)
         }
         catch (Exception e)
         {
-            Cambiar(FaseActualizacion.Error, Estado.Version, 0, "No se pudo buscar o descargar la actualización. El detalle está en el registro.");
-            RegistroArchivo.Escribir(LogLevel.Error, "Actualizador", e.ToString());
+            Fallo(e);
         }
+    }
+
+    void Fallo(Exception e)
+    {
+        Cambiar(FaseActualizacion.Error, Estado.Version, 0, "No se pudo buscar o descargar la actualización. El detalle está en el registro.");
+        RegistroArchivo.Escribir(LogLevel.Error, "Actualizador", e.ToString());
     }
 
     /// <summary>Instala la versión descargada y vuelve a abrir la app. Devuelve false si no hay ninguna lista.</summary>
@@ -73,7 +96,7 @@ public sealed class Actualizador(ContextoApp contexto, Eventos eventos)
 
     void Cambiar(FaseActualizacion fase, string? version, int progreso, string? mensaje = null)
     {
-        Estado = new(fase, version, progreso, mensaje);
+        Estado = new(fase, version, progreso, mensaje, comprobada);
         eventos.Publicar("actualizacion", Estado);
     }
 }
