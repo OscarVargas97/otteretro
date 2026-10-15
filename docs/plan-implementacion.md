@@ -59,34 +59,36 @@ Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
 **Objetivo:** la app se instala, abre su ventana con la navegación del prototipo, guarda en la carpeta de datos elegida y se actualiza con Velopack (paquetes locales).
 
 ### Tareas
-- ⬜ **F0.1 Entorno.** Verificar .NET 10 SDK, Node LTS, npm. Instalar `vpk` (`dotnet tool install -g vpk`) si falta. Anotar versiones en este archivo.
-- ⬜ **F0.2 Solución.** `Otteretro.slnx` (o `.sln`) con `src/Otteretro` (web) y `src/Otteretro.Tests` (xUnit). `Directory.Build.props` con `Nullable`, `ImplicitUsings`, `TreatWarningsAsErrors` para nuevos avisos. `.gitignore` de .NET y Node. `global.json` fijando el SDK 10.
-- ⬜ **F0.3 Modos del ejecutable** (`Inicio/Program.cs`): sin argumentos → APP; `jugar <id>` → JUGAR (por ahora: escribe en log "no implementado" y sale con código 2); `<tarea>` → CLI (por ahora solo `version` y `ayuda`). Parseo con `System.CommandLine` o a mano si son pocos casos (preferir a mano).
-- ⬜ **F0.4 Una sola instancia** (`Inicio/UnaInstancia.cs`): mutex con nombre `Local\Otteretro`; si ya existe, avisa a la instancia viva por una tubería con nombre para que traiga su ventana al frente y sale. Solo en modo APP.
-- ⬜ **F0.5 Carpeta de datos** (`Inicio/CarpetaDatos.cs`): en `%LocalAppData%\Otteretro\config.json` se guarda solo `{ "carpetaDatos": "E:\\Otteretro" }`. Si no existe o la ruta no está, el front muestra el asistente. Crear `data\`, `cache\imagenes\`, `Herramientas\`, `logs\` al elegirla.
-- ⬜ **F0.6 Logs** (`Inicio/Registro.cs`): `Microsoft.Extensions.Logging` + proveedor de archivo mínimo propio (o Serilog si ahorra código), un archivo por día, borrar > 30 días al arrancar. Antes de elegir carpeta de datos: log en `%LocalAppData%\Otteretro\logs\`.
-- ⬜ **F0.7 Servidor local** (`Inicio/Servidor.cs`): Kestrel en `127.0.0.1:0` (puerto aleatorio). Clave aleatoria de 32 bytes por sesión. Middleware que exige la clave (cabecera `X-Otteretro-Clave` o cookie `otteretro` puesta al cargar la página con `?clave=`) y rechaza `Host` distinto de `127.0.0.1:<puerto>`. Sirve los estáticos del front desde `wwwroot` embebido. Prueba: petición sin clave → 401; con `Host` falso → 400.
-- ⬜ **F0.8 Ventana** (`Inicio/Ventana.cs`): Photino con título "Otteretro", icono (nutria), tamaño mínimo 1100×700, carga `http://127.0.0.1:<puerto>/?clave=<clave>`. Al cerrar la ventana se detiene el servidor.
-- ⬜ **F0.9 Base de datos** (`Datos/`): `Bd.cs` abre `data\otteretro.db` con `journal_mode=WAL`, `foreign_keys=ON`, `busy_timeout=5000`. `Migraciones.cs` aplica `Datos/Migraciones/NNNN_nombre.sql` (recursos embebidos) en orden y registra en tabla `migracion`. Primera migración: `equipo`, `ajuste`. Registrar el equipo actual (GUID + nombre de máquina + SO) al arrancar. Prueba: aplicar migraciones dos veces no falla.
-- ⬜ **F0.10 SSE** (`Api/Eventos.cs`): `GET /api/eventos` con `text/event-stream`; un `Canal` en memoria donde cualquier módulo publica `{tipo, datos}`. Evento de prueba `latido` cada 15 s para mantener viva la conexión.
-- ⬜ **F0.11 API base y OpenAPI**: `GET /api/estado` → `{ version, carpetaDatos, configurada }`; `POST /api/carpeta-datos` `{ ruta }` → valida, crea subcarpetas, guarda config; `GET /api/discos` → unidades con espacio libre (para el asistente). OpenAPI en `/openapi/v1.json`.
-- ⬜ **F0.12 Front** (`web/`): Next.js (App Router) con `output: "export"`, `trailingSlash: true`. Copiar `bundle.css` y tokens del sistema de diseño a `web/app/estilos/`. Componentes React con las clases `ot-`: `Barra` (barra lateral con contadores), `BarraSuperior` (título, búsqueda Ctrl+K sin función aún, botón tareas), `EstadoVacio` (nutria), `PanelTareas` (vacío, recibe SSE). Rutas: `/`, `/sagas`, `/sagas/[id]` (generada vacía), `/coleccion`, `/juego/[id]`, `/descubrir`, `/revisar`, `/descargas`, `/herramientas`, `/steam`, `/ajustes`, `/bienvenida`. Cada pantalla: título y estado vacío con la acción que la llenará. La nutria en `web/public/nutria.svg`.
-- ⬜ **F0.13 Tipos generados**: script `npm run tipos` → `openapi-typescript http://.../openapi/v1.json -o web/lib/api.d.ts` (o desde el archivo exportado en build). Cliente `web/lib/api.ts` con `fetch` que añade la clave.
-- ⬜ **F0.14 Asistente pasos 1–2**: `/bienvenida` (paso 1) y elección de carpeta de datos con la lista de discos y espacio libre (paso 2). Pasos 3–7 visibles pero deshabilitados con "Llega en la fase N".
-- ⬜ **F0.15 Build integrado**: `npm run build` en `web/` deja `out/`; el `.csproj` copia `web/out` a `wwwroot` en Release (target MSBuild que ejecuta `npm ci && npm run build` si falta `out/`). En desarrollo: `dotnet run` + `next dev` con proxy (`/api` → puerto del servidor fijado por variable `OTTERETRO_PUERTO`).
-- ⬜ **F0.16 Velopack**: `VelopackApp.Build().Run()` al inicio de `Main`. Script `scripts/empaquetar.ps1` que publica `win-x64` self-contained y ejecuta `vpk pack` con versión pasada por parámetro, salida en `artefactos/` (ignorado por git). Actualización desde una carpeta local (`UpdateManager` con `SimpleFileSource`) configurable en `config.json` (`origenActualizaciones`), más tarde GitHub.
-- ⬜ **F0.17 GitHub Actions (escrito, no activo)**: `.github/workflows/release.yml` disparado por push a `main`: build, pruebas, `vpk pack`, `vpk upload github`. Queda en el repo; no se ejecuta porque no hay pushes a `main` (#101).
-- ⬜ **F0.18 Pruebas**: servidor (401/400), migraciones idempotentes, carpeta de datos (crea subcarpetas, rechaza ruta inválida), modos del ejecutable.
-- ⬜ **F0.19 Cierre de fase**: actualizar este archivo y `docs/plan.md`; PR `fase/0-esqueleto` → `dev`.
+- ✅ **F0.1 Entorno.** Verificar .NET 10 SDK, Node LTS, npm. Instalar `vpk` (`dotnet tool install -g vpk`) si falta. Anotar versiones en este archivo.
+  - Versiones: .NET SDK 10.0.302 · Node 24.19.0 · npm 11.17.0 · vpk 1.2.161 · gh 2.98.0 · Next 16.4 · React 19.3 · TypeScript 5.9 · Photino.NET 4.0.16 · Dapper 2.1.89 · Velopack 1.2.161.
+- ✅ **F0.2 Solución.** `Otteretro.slnx` (o `.sln`) con `src/Otteretro` (web) y `src/Otteretro.Tests` (xUnit). `Directory.Build.props` con `Nullable`, `ImplicitUsings`, `TreatWarningsAsErrors` para nuevos avisos. `.gitignore` de .NET y Node. `global.json` fijando el SDK 10.
+- ✅ **F0.3 Modos del ejecutable** (`Inicio/Program.cs`): sin argumentos → APP; `jugar <id>` → JUGAR (por ahora: escribe en log "no implementado" y sale con código 2); `<tarea>` → CLI (por ahora solo `version` y `ayuda`). Parseo con `System.CommandLine` o a mano si son pocos casos (preferir a mano).
+- ✅ **F0.4 Una sola instancia** (`Inicio/UnaInstancia.cs`): mutex con nombre `Local\Otteretro`; si ya existe, avisa a la instancia viva por una tubería con nombre para que traiga su ventana al frente y sale. Solo en modo APP.
+- ✅ **F0.5 Carpeta de datos** (`Inicio/CarpetaDatos.cs`): en `%LocalAppData%\Otteretro\config.json` se guarda solo `{ "carpetaDatos": "E:\\Otteretro" }`. Si no existe o la ruta no está, el front muestra el asistente. Crear `data\`, `cache\imagenes\`, `Herramientas\`, `logs\` al elegirla.
+- ✅ **F0.6 Logs** (`Inicio/Registro.cs`): `Microsoft.Extensions.Logging` + proveedor de archivo mínimo propio (o Serilog si ahorra código), un archivo por día, borrar > 30 días al arrancar. Antes de elegir carpeta de datos: log en `%LocalAppData%\Otteretro\logs\`.
+- ✅ **F0.7 Servidor local** (`Inicio/Servidor.cs`): Kestrel en `127.0.0.1:0` (puerto aleatorio). Clave aleatoria de 32 bytes por sesión. Middleware que exige la clave (cabecera `X-Otteretro-Clave` o cookie `otteretro` puesta al cargar la página con `?clave=`) y rechaza `Host` distinto de `127.0.0.1:<puerto>`. Sirve los estáticos del front desde `wwwroot` embebido. Prueba: petición sin clave → 401; con `Host` falso → 400.
+- ✅ **F0.8 Ventana** (`Inicio/Ventana.cs`): Photino con título "Otteretro", icono (nutria), tamaño mínimo 1100×700, carga `http://127.0.0.1:<puerto>/?clave=<clave>`. Al cerrar la ventana se detiene el servidor.
+- ✅ **F0.9 Base de datos** (`Datos/`): `Bd.cs` abre `data\otteretro.db` con `journal_mode=WAL`, `foreign_keys=ON`, `busy_timeout=5000`. `Migraciones.cs` aplica `Datos/Migraciones/NNNN_nombre.sql` (recursos embebidos) en orden y registra en tabla `migracion`. Primera migración: `equipo`, `ajuste`. Registrar el equipo actual (GUID + nombre de máquina + SO) al arrancar. Prueba: aplicar migraciones dos veces no falla.
+- ✅ **F0.10 SSE** (`Api/Eventos.cs`): `GET /api/eventos` con `text/event-stream`; un `Canal` en memoria donde cualquier módulo publica `{tipo, datos}`. Evento de prueba `latido` cada 15 s para mantener viva la conexión.
+- ✅ **F0.11 API base y OpenAPI**: `GET /api/estado` → `{ version, carpetaDatos, configurada }`; `POST /api/carpeta-datos` `{ ruta }` → valida, crea subcarpetas, guarda config; `GET /api/discos` → unidades con espacio libre (para el asistente). OpenAPI en `/openapi/v1.json`.
+- ✅ **F0.12 Front** (`web/`): Next.js (App Router) con `output: "export"`, `trailingSlash: true`. Copiar `bundle.css` y tokens del sistema de diseño a `web/app/estilos/`. Componentes React con las clases `ot-`: `Barra` (barra lateral con contadores), `BarraSuperior` (título, búsqueda Ctrl+K sin función aún, botón tareas), `EstadoVacio` (nutria), `PanelTareas` (vacío, recibe SSE). Rutas: `/`, `/sagas`, `/saga/?id=` (ver registro), `/coleccion`, `/juego/?id=`, `/descubrir`, `/revisar`, `/descargas`, `/herramientas`, `/steam`, `/ajustes`, `/bienvenida`. Cada pantalla: título y estado vacío con la acción que la llenará. La nutria en `web/public/nutria.svg`.
+- ✅ **F0.13 Tipos generados**: script `npm run tipos` → `openapi-typescript http://.../openapi/v1.json -o web/lib/api.d.ts` (o desde el archivo exportado en build). Cliente `web/lib/api.ts` con `fetch` que añade la clave.
+- ✅ **F0.14 Asistente pasos 1–2**: `/bienvenida` (paso 1) y elección de carpeta de datos con la lista de discos y espacio libre (paso 2). Pasos 3–7 visibles pero deshabilitados con "Llega en la fase N".
+- ✅ **F0.15 Build integrado**: `npm run build` en `web/` deja `out/`; el `.csproj` copia `web/out` a `wwwroot` en Release (target MSBuild que ejecuta `npm ci && npm run build` si falta `out/`). En desarrollo: `dotnet run` + `next dev` con proxy (`/api` → puerto del servidor fijado por variable `OTTERETRO_PUERTO`).
+- ✅ **F0.16 Velopack**: `VelopackApp.Build().Run()` al inicio de `Main`. Script `scripts/empaquetar.ps1` que publica `win-x64` self-contained y ejecuta `vpk pack` con versión pasada por parámetro, salida en `artefactos/` (ignorado por git). Actualización desde una carpeta local (`UpdateManager` con `SimpleFileSource`) configurable en `config.json` (`origenActualizaciones`), más tarde GitHub.
+- ✅ **F0.17 GitHub Actions (escrito, no activo)**: `.github/workflows/release.yml` disparado por push a `main`: build, pruebas, `vpk pack`, `vpk upload github`. Queda en el repo; no se ejecuta porque no hay pushes a `main` (#101).
+- ✅ **F0.18 Pruebas**: servidor (401/400), migraciones idempotentes, carpeta de datos (crea subcarpetas, rechaza ruta inválida), modos del ejecutable.
+- 🟡 **F0.19 Cierre de fase**: actualizar este archivo y `docs/plan.md`; PR `fase/0-esqueleto` → `dev`.
 
 ### Listo cuando
-- [ ] `scripts/empaquetar.ps1 -Version 0.0.1` genera instalador; al instalarlo se abre la ventana.
-- [ ] El asistente pide la carpeta de datos, la crea con sus subcarpetas y no vuelve a aparecer.
-- [ ] Se navega por todas las pantallas con la barra lateral; cada una muestra su estado vacío.
-- [ ] Abrir la app dos veces trae la ventana existente al frente.
-- [ ] Una llamada a la API sin clave da 401.
-- [ ] Con `0.0.2` empaquetado en la carpeta local de actualizaciones, la app 0.0.1 se actualiza sola.
-- [ ] `dotnet test` pasa.
+- [x] `scripts/empaquetar.ps1 -Version 0.0.1` genera el instalador (`artefactos/paquetes/Otteretro-win-Setup.exe`).
+- [ ] Al instalarlo se abre la ventana. **(lo prueba el usuario)**
+- [x] El asistente pide la carpeta de datos, la crea con sus subcarpetas y no vuelve a aparecer (probado en navegador con `otteretro servidor`).
+- [x] Se navega por todas las pantallas con la barra lateral; cada una muestra su estado vacío (probado en navegador).
+- [ ] Abrir la app dos veces trae la ventana existente al frente. **(lo prueba el usuario)**
+- [x] Una llamada a la API sin clave da 401 (pruebas automáticas).
+- [ ] Con `0.0.2` empaquetado en la carpeta local de actualizaciones, la app 0.0.1 se actualiza sola. **(lo prueba el usuario)**
+- [x] `dotnet test` pasa (19 pruebas).
 
 ---
 
@@ -185,4 +187,9 @@ Cada entrada: fecha, fase en curso, qué se hizo, por qué, cómo (archivos/comm
 
 | Fecha | Fase | Qué | Por qué | Cómo | Decisión |
 |---|---|---|---|---|---|
-| — | — | (sin entradas todavía) | | | |
+| 2026-10-15 | F0 | Comando `otteretro servidor` y variable `OTTERETRO_CONFIG` | Probar la interfaz en un navegador sin abrir la ventana ni tocar la configuración real del usuario | `Inicio/Modos.cs` (`Servir`), `Inicio/Configuracion.cs` (`RutaPorDefecto`) | No |
+| 2026-10-15 | F0 | Saga y ficha como `/saga/?id=` y `/juego/?id=` en lugar de `/sagas/[id]` y `/juego/[id]` | La exportación estática de Next no admite rutas dinámicas cuyos id no se conocen al compilar | `web/app/saga`, `web/app/juego` | No |
+| 2026-10-15 | F0 | TypeScript fijado en 5.x | npm instaló TypeScript 7 (versión nativa), que Next aún no usa para comprobar tipos | `web/package.json` | No |
+| 2026-10-15 | F0 | Generador de iconos de la nutria | Velopack y Windows necesitan `.ico`; el sistema de diseño solo tenía SVG | `scripts/nutria.js` → `src/Otteretro/nutria.ico`, `web/public/nutria.png` | No |
+| 2026-10-15 | F0 | `web/scripts/tipos.mjs` en lugar de un comando en package.json | `dotnet run` resuelve rutas relativas desde la carpeta del proyecto | `web/scripts/tipos.mjs` | No |
+| 2026-10-15 | F0 | Copia de `web/out` a `wwwroot` al terminar el build, en vez de declararlo como Content | El SDK web registraba los archivos antes de que Next los regenerara con otros nombres y fallaba | `src/Otteretro/Otteretro.csproj` (targets `CopiarWeb` y `PublicarWeb`) | No |
