@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-14, después de la encuesta 10, "Arquitectura".
+> **Última actualización:** 2026-10-14, después de la encuesta 10, "Arquitectura", y el plan por fases.
 
 ## Cómo se mantiene
 
@@ -465,4 +465,4 @@ No son requisitos, pero siguen pendientes:
 | S8 | En Descubrir, lo que marcas "no me interesa" vuelve a poder recomendarse a los **6 meses** (configurable en Ajustes). Dijiste "después de un tiempo" sin fijar cuánto (#85). |
 
 ### 13.5 Siguiente paso
-Orden decidido (#74): **especificación de pantallas → Claude Design** (sistema de diseño y pantallas) **→ arquitectura → plan por fases → código**. Hechos: pantallas, Claude Design (#91) y arquitectura (#92 a #99). Falta: plan por fases.
+Orden decidido (#74): **especificación de pantallas → Claude Design** (sistema de diseño y pantallas) **→ arquitectura → plan por fases → código**. Hechos: pantallas, Claude Design (#91), arquitectura (#92 a #99) y **[plan por fases](plan.md)** (#100). Siguiente: **F0 · Esqueleto**.

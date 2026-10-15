@@ -105,3 +105,4 @@ Los requisitos vigentes están en [../REQUISITOS.md](../REQUISITOS.md). Este reg
 | 97 | 2026-10-14 | A6: cada fusión en main publica una release con versión calculada sola | Decidido |
 | 98 | 2026-10-14 | A7: un solo proyecto C# con una carpeta por módulo, más uno de pruebas | Decidido |
 | 99 | 2026-10-14 | A8: .NET 10 (LTS). Se aceptan las decisiones marcadas como (propia) en la arquitectura | Decidido |
+| 100 | 2026-10-14 | Plan por fases en `docs/plan.md`, con el **catálogo primero**: F0 esqueleto, F1 catálogo, F2 Claude, F3 bibliotecas, F4 emuladores/ports/Jugar, F5 respaldo, F6 Steam, F7 tiendas, F8 ingesta, F9 Descubrir y pulido | Decidido |
