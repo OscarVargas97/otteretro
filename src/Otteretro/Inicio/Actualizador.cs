@@ -20,6 +20,7 @@ public sealed class Actualizador(ContextoApp contexto, Eventos eventos)
 {
     UpdateManager? gestor;
     VelopackAsset? lista;
+    int ocupado;
 
     public EstadoActualizacion Estado { get; private set; } = new(FaseActualizacion.Ninguna, null, 0, null, null);
     DateTimeOffset? comprobada;
@@ -30,15 +31,17 @@ public sealed class Actualizador(ContextoApp contexto, Eventos eventos)
     /// </summary>
     public async Task Buscar()
     {
-        if (Estado.Fase is FaseActualizacion.Buscando or FaseActualizacion.Descargando or FaseActualizacion.Lista) return;
-        var origen = contexto.Config.OrigenActualizaciones;
-        if (string.IsNullOrEmpty(origen))
-        {
-            Cambiar(FaseActualizacion.NoDisponible, null, 0, "No hay un origen de actualizaciones configurado.");
-            return;
-        }
+        // Una sola búsqueda o descarga a la vez (el arranque y el botón pueden coincidir).
+        if (Estado.Fase == FaseActualizacion.Lista || Interlocked.CompareExchange(ref ocupado, 1, 0) != 0) return;
+        var descargando = false;
         try
         {
+            var origen = contexto.Config.OrigenActualizaciones;
+            if (string.IsNullOrEmpty(origen))
+            {
+                Cambiar(FaseActualizacion.NoDisponible, null, 0, "No hay un origen de actualizaciones configurado.");
+                return;
+            }
             gestor = new UpdateManager(new SimpleFileSource(new DirectoryInfo(origen)));
             if (!gestor.IsInstalled)
             {
@@ -46,7 +49,8 @@ public sealed class Actualizador(ContextoApp contexto, Eventos eventos)
                 return;
             }
             Cambiar(FaseActualizacion.Buscando, null, 0);
-            var info = await gestor.CheckForUpdatesAsync();
+            // Un origen en una unidad de red caída no debe dejar el botón colgado en "Buscando".
+            var info = await gestor.CheckForUpdatesAsync().WaitAsync(TimeSpan.FromMinutes(1));
             comprobada = DateTimeOffset.Now;
             if (info is null)
             {
@@ -54,11 +58,16 @@ public sealed class Actualizador(ContextoApp contexto, Eventos eventos)
                 return;
             }
             Cambiar(FaseActualizacion.Descargando, info.TargetFullRelease.Version.ToString(), 0);
+            descargando = true;
             _ = Descargar(gestor, info);
         }
         catch (Exception e)
         {
             Fallo(e);
+        }
+        finally
+        {
+            if (!descargando) Volatile.Write(ref ocupado, 0);
         }
     }
 
@@ -77,6 +86,10 @@ public sealed class Actualizador(ContextoApp contexto, Eventos eventos)
         catch (Exception e)
         {
             Fallo(e);
+        }
+        finally
+        {
+            Volatile.Write(ref ocupado, 0);
         }
     }
 

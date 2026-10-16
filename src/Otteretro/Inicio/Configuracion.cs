@@ -30,6 +30,9 @@ public sealed class Configuracion
     public void Guardar(string ruta)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(ruta)!);
-        File.WriteAllText(ruta, JsonSerializer.Serialize(this, Json));
+        // Escribir aparte y reemplazar: un corte a mitad nunca deja config.json roto.
+        var temporal = ruta + ".tmp";
+        File.WriteAllText(temporal, JsonSerializer.Serialize(this, Json));
+        File.Move(temporal, ruta, overwrite: true);
     }
 }

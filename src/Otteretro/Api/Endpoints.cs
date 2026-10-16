@@ -18,8 +18,9 @@ public static class Endpoints
 
         api.MapGet("/estado", (ContextoApp c) => Estado(c));
 
-        api.MapPost("/carpeta-datos", Results<Ok<EstadoApp>, BadRequest<Problema>> (PedidoCarpeta pedido, ContextoApp c) =>
+        api.MapPost("/carpeta-datos", Results<Ok<EstadoApp>, BadRequest<Problema>, Conflict<Problema>> (PedidoCarpeta pedido, ContextoApp c, ServicioMudanza m) =>
         {
+            if (m.Estado.EnCurso) return TypedResults.Conflict(new Problema("Espera a que termine la mudanza de la carpeta de datos."));
             var error = CarpetaDatos.Preparar(pedido.Ruta);
             if (error is not null) return TypedResults.BadRequest(new Problema(error));
             c.Config.CarpetaDatos = pedido.Ruta;

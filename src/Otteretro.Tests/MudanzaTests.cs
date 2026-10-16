@@ -55,6 +55,54 @@ public class MudanzaTests
     }
 
     [Fact]
+    public async Task DosMudanzasALaVezSoloArrancaUna()
+    {
+        using var tmp = new Temporal();
+        var origen = CrearCarpeta(tmp);
+        var destino = tmp["destino"];
+        var config = new Configuracion { CarpetaDatos = origen };
+        using var eventos = new Otteretro.Api.Eventos();
+        var servicio = new ServicioMudanza(new ContextoApp(config, tmp["config.json"], "clave"), eventos);
+
+        var respuestas = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(() => servicio.Iniciar(destino))));
+        for (var i = 0; i < 200 && servicio.Estado.EnCurso; i++) await Task.Delay(50);
+
+        Assert.Single(respuestas, r => r is null);
+        Assert.Equal("Listo", servicio.Estado.Paso);
+        Assert.True(CarpetaDatos.EstaLista(destino));
+        Assert.Equal(destino, Configuracion.Cargar(tmp["config.json"]).CarpetaDatos);
+    }
+
+    [Fact]
+    public void DeshacerUnaCopiaSoloBorraLoCopiado()
+    {
+        using var tmp = new Temporal();
+        var origen = CrearCarpeta(tmp);
+        var destino = tmp["destino"];
+        Mudanza.CopiarYVerificar(origen, destino, _ => { }, copiar: true);
+        File.WriteAllText(Path.Combine(destino, "ajeno.txt"), "de otra persona");
+
+        Mudanza.Deshacer(origen, destino);
+
+        Assert.True(CarpetaDatos.EstaLista(origen));
+        Assert.Equal(["ajeno.txt"], Directory.EnumerateFileSystemEntries(destino).Select(Path.GetFileName));
+    }
+
+    [Fact]
+    public void DeshacerUnMovimientoDevuelveLaCarpeta()
+    {
+        using var tmp = new Temporal();
+        var origen = CrearCarpeta(tmp);
+        var destino = tmp["otra\\carpeta"];
+        Mudanza.CopiarYVerificar(origen, destino, _ => { });
+
+        Mudanza.Deshacer(origen, destino);
+
+        Assert.True(CarpetaDatos.EstaLista(origen));
+        Assert.False(Directory.Exists(destino));
+    }
+
+    [Fact]
     public void AceptaUnaCarpetaVaciaQueYaExiste()
     {
         using var tmp = new Temporal();
