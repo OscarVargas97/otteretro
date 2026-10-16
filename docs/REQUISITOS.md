@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-16, después de la encuesta 13, "Metodología" (#118 a #127), y de #128 (workspace). Quedan puntos de PlayOS por refinar en la encuesta 12.
+> **Última actualización:** 2026-10-17, después de la encuesta 12, "PlayOS · refinamiento" (#129 a #138).
 
 ## Cómo se mantiene
 
@@ -29,7 +29,7 @@ Otteretro es una app **personal** para:
 4. **Conseguir y organizar** juegos con la mínima intervención, ya sea con descargas o con megapacks.
 5. **Llevarlo todo a Steam**, organizado por saga.
 6. **Descubrir** sagas que no conoces y **recorrerlas** siguiendo la ruta que elijas.
-7. **Ser tu centro de entretenimiento** (#107): la pantalla principal del modo juego de PlayOS, con tus juegos y sagas **de consola y de PC**, el seguimiento de lo que juegas y el paso fácil a Steam Big Picture. Se maneja completo con mando (#108).
+7. **Ser tu centro de entretenimiento** (#107): la pantalla principal del modo juego de PlayOS, con tus juegos y sagas **de consola y de PC**, el seguimiento de lo que juegas (§7.4) y el paso fácil a Steam Big Picture. Se maneja completo con mando (#108, §12.5). **Envuelve, no reemplaza:** muestra lo útil para jugar y cada juego lo abre su tienda o lanzador dueño (#130).
 
 ## 2. Principios ✅
 
@@ -101,6 +101,8 @@ E:\Consolas\  ·  D:\Juegos\…    ← bibliotecas de JUEGOS (las que quieras, e
 | **Herramientas** | **Una sola** | Dentro de la **carpeta de datos** que eliges (supuesto S7). Se puede mover desde la app, igual que una biblioteca. |
 | **Juegos** | Las que quieras | En cualquier carpeta o disco |
 
+- **En red** (#136): una biblioteca puede estar en una carpeta de red (SMB/NFS), pensando en el NAS con todas las ROMs (#115). En la ficha, **«traer a este equipo»** copia el juego por la red y lo verifica por hash.
+
 ### 5.2 Marcador y registro ✅
 - Cada biblioteca de juegos tiene en su raíz un `otteretro-biblioteca.json` con `{id, nombre, tipo, creada, formato}`. El `id` no cambia nunca.
 - `data\otteretro.db` guarda el registro de bibliotecas y la última ruta conocida de cada una.
@@ -133,7 +135,9 @@ E:\Consolas\  ·  D:\Juegos\…    ← bibliotecas de JUEGOS (las que quieras, e
 
 ### 6.1 Alcance ✅
 - **La mayor cantidad de juegos posible**, siempre con su **saga identificada**. También entran juegos destacados sin saga.
-- **También juegos y sagas de PC**, no solo de consolas (#107). Detalle en la encuesta 12.
+- **También juegos y sagas de PC**, no solo de consolas (#107): las sagas icónicas de PC y todo lo que tienes (#131).
+- **Una saga no pertenece a un sistema** y no se repite: sus juegos se asocian a los sistemas, y PC es uno más (#131).
+- **La carga es por partes** (scripts y Claude): nunca todas las sagas de PC de golpe, para que termine y no agote la suscripción. PC va después de Microsoft (#69, #131).
 - **Todo lo que tienes aparece siempre.**
 - Para cada juego se indica **si existe versión de PC**.
 
@@ -162,6 +166,7 @@ Se comparan todas las versiones con cuatro criterios, que se muestran **por sepa
 - **Lo que tienes en cualquier tienda de PC cuenta como "lo tengo · versión PC"**, y ese juego no hace falta conseguirlo para un emulador. **Esto reemplaza lo decidido en la #31** ("solo cuenta Steam").
   - **Steam:** se lee con la **Steam Web API** e incluye todo lo comprado, esté instalado o no, y las horas jugadas. Se usa la cuenta **detectada**, y también cuentan los juegos del **préstamo familiar**. 🔬 T1
   - **Epic, Xbox para PC y Battle.net**, que son las tiendas que usas, también cuentan como "lo tengo" y **se pueden lanzar desde la app**. Etapa 1: Steam y Epic, con todo lo que tienes en la cuenta. Etapa 2: Xbox y Battle.net, al principio solo con lo instalado (§13.2, T6). Epic se lee con un método no oficial; si se rompe, se cae a solo lo instalado (#73).
+  - **En PlayOS** (#132), lo que tienes se lee de **Steam**, **Heroic** (Epic, GOG, Amazon), **Lutris** (Battle.net, EA, Ubisoft) e **itch.io**; Xbox/Game Pass para PC solo en Torrecita. También cuentan los **juegos sueltos** sin tienda (una carpeta).
   - **Game Pass:** se muestra como **"en Game Pass"**, aparte de "lo tengo", porque depende de la suscripción (supuesto S5).
 - **Prioridad:** si tienes la versión de PC oficial, **va primero** (§8.3).
 - **Si existe versión de PC pero no la tienes:** se indica que existe, con un enlace a la tienda, si está en Game Pass y si está o estuvo gratis en Epic. 🔬 T2
@@ -204,7 +209,12 @@ Si dos fuentes no coinciden, se usa una **prioridad fija por campo**. Lo que cor
 Se detectan y se muestran BASE, UPD y DLC. **Nunca se borran las versiones viejas.**
 
 ### 7.4 Tiempo de juego ✅
-El tiempo de juego no lo registra la app: **muestra el de Steam**.
+*Reemplazado por la #133:* Otteretro lleva el **seguimiento** de cada juego:
+- **Tiempo jugado:** el de Steam y, en lo que lanza Otteretro, medido por él.
+- **Historial de sesiones** y **última vez** jugado.
+- **Estado:** pendiente, jugando, terminado, 100 %, abandonado; con **fechas** de inicio y fin.
+- **Logros** de Steam y RetroAchievements; **nota** de 1 a 10 y notas.
+- Sin capturas ni estadísticas. Del historial actual se importa lo de Steam (horas y última vez).
 
 ### 7.5 Respaldo de datos y partidas ✅
 - **Esto reemplaza lo que se había dicho antes** ("las partidas no tienen copia de seguridad").
@@ -241,6 +251,8 @@ El tiempo de juego no lo registra la app: **muestra el de Steam**.
   - qué rutas internas tiene,
   - qué pasos extra necesita (los ejecuta la app),
   - qué formato de juego acepta o exige.
+
+- **Recetas compartidas** (#135): la misma receta lleva, por versión y por sistema, la URL y el hash. En Windows la app descarga con ella; en PlayOS, Nix arma con ella los paquetes que no están en nixpkgs, y **todas las versiones** de la receta quedan instaladas. Lo de base lo deciden las recetas por consola, pero se puede elegir por juego otra variante (por ejemplo, un emulador con packs de texturas o ajustado para el rendimiento de un juego).
 
 ### 8.2 Ubicación ✅
 Todo va en `<carpeta de datos>\Herramientas\` (§5.1). Los **complementos** (packs de texturas, shaders, ReShade, mods) van junto a su emulador o port y se **instalan y actualizan igual que ellos**.
@@ -320,6 +332,7 @@ Se prueba en este orden:
 | Tema | Decisión |
 |---|---|
 | Herramienta | Steam ROM Manager, a partir de manifiestos "Manual" que genera Otteretro. El arte sale de SteamGridDB. |
+| Quién lanza | **El dueño del juego** (#130): el botón Jugar de Otteretro abre por Steam (`steam://rungameid/…`) lo que está en Steam, incluido lo exportado; lo de Heroic, Lutris o itch, con su lanzador |
 | Lanzador | Cada acceso de Steam abre **`otteretro jugar <id>`**, no el emulador directamente. Así Otteretro sabe cuándo se cierra el juego, respalda las partidas (§7.5) e instala lo que haga falta antes de abrirlo. El botón "Jugar" de la app usa el mismo camino. |
 | Cuenta | La detectada (`loginusers.vdf`) |
 | Qué se exporta | La opción elegida (port o emulador) de cada versión marcada. Puede haber varias versiones del mismo juego. |
@@ -406,6 +419,12 @@ Así, cada tarea que Claude resolvía pasa a un script y la app depende cada vez
 | **Ficha de juego** | **A la vista:** cómo jugarlo (opción elegida, botón Jugar, cambiar de opción), versiones y comparativa con los 4 criterios, archivos (dónde están, BASE/UPD/DLC, si están verificados), y tu progreso, puntuación y notas. **En secciones desplegables o pestañas secundarias:** logros de RetroAchievements, tiempo jugado, disponibilidad en tiendas, conseguirlo (enlaces o megapack) y datos con sus fuentes |
 | Descargas · Herramientas · Steam · Ajustes | Secundarias. Su contenido se detalla en la especificación de pantallas |
 
+### 12.5 Mando (#108, #134)
+- **La misma interfaz**, con navegación espacial: la cruceta salta entre elementos, el foco se ve claro y abajo aparece una barra con los botones (A elegir, B volver, X buscar, Menú). Con el ratón, foco y barra se ocultan.
+- **Escribir:** el teclado en pantalla de Steam; fuera de la sesión de Steam, uno propio.
+- **Botón Guía:** menú rápido de Otteretro (volver a Otteretro, ir a Steam, cerrar el juego, capturar). En la sesión de Steam ese botón es de Steam, así que se usa una combinación (por ejemplo Guía + A).
+- Desde F1, **cada pantalla nueva se hace navegable con mando** (#138).
+
 ## 13. Pendientes
 
 ### 13.1 Decisiones del usuario
@@ -468,7 +487,7 @@ No son requisitos, pero siguen pendientes:
 | S8 | En Descubrir, lo que marcas "no me interesa" vuelve a poder recomendarse a los **6 meses** (configurable en Ajustes). Dijiste "después de un tiempo" sin fijar cuánto (#85). |
 
 ### 13.5 Siguiente paso
-Orden decidido (#74): **especificación de pantallas → Claude Design** (sistema de diseño y pantallas) **→ arquitectura → plan por fases → código**. Hechos: pantallas, Claude Design (#91), arquitectura (#92 a #99) y **[plan por fases](plan.md)** (#100). Siguiente: **F0 · Esqueleto**.
+Orden decidido (#74): **especificación de pantallas → Claude Design** (sistema de diseño y pantallas) **→ arquitectura → plan por fases → código**. Hechos: pantallas, Claude Design (#91), arquitectura (#92 a #99), **[plan por fases](plan.md)** (#100, reordenado por la #138) y F0. Siguiente: **P0 · PlayOS y Linux** (#137), después **D1 · Diseño** y F1.
 
 ## 14. PlayOS (#103 a #117)
 
@@ -476,13 +495,13 @@ Mod público de WorkOS (tu NixOS) para juegos, en el repo `playos`, que importa 
 
 | Tema | Decisión |
 |---|---|
-| Sesiones | Al iniciar sesión eliges **Play** (modo juego dedicado, con Otteretro como pantalla principal) o **Work** (Hyprland); en Work los juegos son apps normales (#105, #107) |
+| Sesiones | Al iniciar sesión eliges **Play** o **Work** (Hyprland); en Work los juegos son apps normales (#105). **Play es la sesión gamescope de Steam** y Otteretro arranca encima a pantalla completa; Big Picture está a un botón y Otteretro sigue detrás (#129) |
 | Máquinas | legioncita; a futuro un PC para la tele y una portátil de mano; una VM de pruebas (#106) |
 | GPU de legioncita | Se usa la configuración que funciona hoy, **comprobada en el equipo** (#109) 🔬 |
 | Rendimiento | GameMode, gamescope, MangoHud, perfil de rendimiento automático, LACT; kernel por defecto; LenovoLegionLinux y OpenRGB (#110) |
 | Steam y tiendas | Steam (gamescope, Proton-GE, Remote Play y transferencia local, extest, Steam ROM Manager), Heroic, Lutris, Bottles, itch.io; Discord (Vesktop), OBS, gpu-screen-recorder (#111) |
 | Sin soporte en Linux | Se juega en Torrecita por streaming (Moonlight) y Otteretro lo marca (#112) |
-| Emuladores y ports | Todo instalado de base; nixpkgs y lo que falte gestionado aparte; configuración y partidas, de Otteretro (#113) |
+| Emuladores y ports | Todo instalado de base (#113): nixpkgs y, lo que no esté, armado por Nix desde las **recetas compartidas** de Otteretro, con todas sus versiones (#135); configuración y partidas, de Otteretro |
 | Otteretro | Flake propio, se actualiza con el sistema, datos en `~/Otteretro`, claves en libsecret, GameMode/MangoHud/NVIDIA automáticos (#114, #116) |
 | Juegos | SSD interno, USB y copiar desde Torrecita; a futuro un NAS con todas las ROMs (#115) |
 | Cómo se trabaja | Fase P0 antes de F1; pruebo por `ssh legioncita` y el rebuild lo haces tú (#117) |

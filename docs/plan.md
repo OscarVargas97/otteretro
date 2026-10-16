@@ -1,8 +1,8 @@
 # Plan por fases
 
-- **Fecha:** 2026-10-14
+- **Fecha:** 2026-10-14 · reordenado el 2026-10-17 (#138)
 - **Base:** [REQUISITOS.md](REQUISITOS.md), [pantallas.md](pantallas.md), el [prototipo aprobado](https://claude.ai/artifact/Bo8gtfiPdRAumFhkFikHPV) y [arquitectura.md](arquitectura.md).
-- **Orden:** **catálogo primero** (#100). Así la carga inicial de Claude, que dura días, avanza sola mientras se construyen las demás fases. Jugar desde Steam llega en la fase 6; hasta entonces sigues jugando como hoy.
+- **Orden (#138):** **P0 PlayOS y Linux → D1 Diseño → F1 a F9**. Primero se resuelve lo de Linux y la sesión Play, después se actualiza el diseño (centro de entretenimiento y mando) y recién entonces el catálogo, que sigue yendo antes que el resto para que la carga de Claude avance sola (#100). Desde F1, cada pantalla nueva se hace navegable con mando.
 
 > **Detalle para implementar:** [plan-implementacion.md](plan-implementacion.md). **Avance:** en GitHub, un [milestone por fase](https://github.com/OscarVargas97/otteretro/milestones) y las tareas en el [Project otteretro](https://github.com/users/OscarVargas97/projects/2) (#122).
 
@@ -32,20 +32,50 @@ Las **acciones tuyas** de cada fase (cuentas y claves, A3) se piden al empezarla
 **Listo cuando:** instalas desde el paquete local, eliges la carpeta de datos, navegas por todas las pantallas, y un segundo paquete local se instala solo como actualización.
 **Tú:** crear el token de GitHub.
 
+## P0 · PlayOS y Linux
+
+**Qué tendrás:** legioncita con PlayOS: al entrar eliges **Work** (tu Hyprland de siempre) o **Play** (la sesión de Steam, con Otteretro arriba a pantalla completa), y Otteretro F0 funcionando en Linux.
+
+- Antes de tocar el código de F0: renombrar sus identificadores al inglés (#125, issue #4), para que P0 trabaje ya sobre los nombres nuevos.
+- **Otteretro en Linux**: ventana con WebKitGTK, rutas XDG, discos y montajes reales, una sola instancia, mover la carpeta de datos entre discos de verdad.
+- **Credenciales** cifradas con DPAPI (Windows) y libsecret (Linux), y Ajustes › Cuentas y claves (se adelanta de F1).
+- En Linux la actualización es con el sistema: Ajustes › Acerca de lo dice; Velopack queda solo para Windows (#114).
+- **Flake de Otteretro**: paquete y módulo de NixOS.
+- **Repo `playos`** (público, importa workos): sesiones Work y Play, Steam (Proton-GE, Remote Play, extest, Steam ROM Manager), Heroic, Lutris, Bottles, itch, Discord, OBS, gpu-screen-recorder, GameMode, gamescope, MangoHud, LACT, mandos (xone), LenovoLegionLinux y OpenRGB.
+- **GPU de legioncita**: comprobar en el equipo qué configuración funciona y dejar esa (#109).
+- **Sesión Play**: Steam es la sesión y Otteretro arranca encima; pasar a Big Picture y volver (#129).
+- legioncita pasa a usar PlayOS (cambio en `workos-personal`).
+
+**Listo cuando:** en legioncita eliges Play al entrar, aparece Otteretro a pantalla completa, con el botón Steam vas a Big Picture y vuelves a Otteretro; en Work, Steam y Otteretro se abren como apps normales.
+**Tú:** el rebuild de legioncita (sudo con TOTP) y tenerla encendida para las pruebas por ssh.
+
+## D1 · Diseño
+
+**Qué tendrás:** el diseño actualizado en Claude Design para el centro de entretenimiento, aprobado por ti antes de programar F1.
+
+- Inicio como centro de entretenimiento: continuar jugando (consola y PC), rutas, novedades.
+- Juegos y sagas de PC en Sagas, Colección (PC como consola) y la ficha.
+- Seguimiento en la ficha: estado, fechas, sesiones, tiempo y logros.
+- Mando: foco, barra de botones, menú rápido del botón Guía, teclado en pantalla.
+- Ficha: quién lanza el juego (Steam, Heroic, Lutris, itch, emulador), «jugar en Torrecita» y «traer a este equipo».
+
+**Listo cuando:** apruebas el prototipo navegable actualizado.
+
 ## F1 · Catálogo
 
-**Qué tendrás:** Sagas, fichas y Colección con datos reales de todas las consolas, y lo que tienes en Steam.
+**Qué tendrás:** Sagas, fichas y Colección con datos reales de todas las consolas **y de PC**, y lo que tienes en Steam, todo manejable con mando.
 
-- Credenciales cifradas (DPAPI) y Ajustes › Cuentas y claves.
 - Cola de tareas real en SQLite y caché de API.
+- Sagas sin plataforma: una saga no se repite y sus juegos se asocian a los sistemas, PC incluido (#131). La carga es **por partes** y se puede retomar (#131).
 - Carga por scripts desde **IGDB** (sagas, juegos, versiones, plataformas, ids de Steam), **Wikidata** (sagas), **RAWG** (complemento) y **HowLongToBeat** (opcional). Prioridad fija por campo y correcciones manuales que no se sobrescriben.
 - Nombre oficial en español cuando existe; las 23 consolas y PC.
 - Imágenes de **SteamGridDB** en la caché.
-- **Steam Web API**: lo comprado y las horas → "lo tengo · versión PC" (cuenta detectada en `loginusers.vdf`).
+- **Steam Web API**: lo comprado, las horas y la última vez → "lo tengo" y el seguimiento (cuenta detectada en `loginusers.vdf`) (#133).
 - Pantallas con datos: **Sagas**, **detalle de saga** (sin rutas aún), **Colección** (por consola, lo tengo / me falta con Steam), **ficha** (versiones, datos y fuentes), **búsqueda global**.
-- Favoritas, "sigo esta saga", progreso por juego y nota de 1 a 10.
+- Favoritas, "sigo esta saga", seguimiento por juego (estado, fechas, nota de 1 a 10 y notas) (#133).
+- Navegación con mando en todas estas pantallas (#134).
 
-**Listo cuando:** ves la saga Zelda con todos sus juegos y versiones, sus portadas, y tus juegos de Steam marcados como "lo tengo".
+**Listo cuando:** ves la saga Zelda con todos sus juegos y versiones, sus portadas, y tus juegos de Steam marcados como "lo tengo" con sus horas; una saga de PC (por ejemplo Half-Life) aparece igual; todo se recorre con el mando.
 **Tú:** claves de IGDB (Twitch), SteamGridDB, Steam Web API y RAWG.
 
 ## F2 · Claude
@@ -58,7 +88,7 @@ Las **acciones tuyas** de cada fase (cuentas y claves, A3) se piden al empezarla
 - Revisar › Resultados por aprobar y Aprendizajes (con deshacer); registro de uso de Claude.
 - Recalcular cuando cambian los datos o cuando lo pides; tope por ejecución después de la carga inicial.
 - Pantallas: línea de tiempo con selector de ruta, "Por qué este orden", comparativa de versiones, **Inicio › Continuar**.
-- Carga inicial completa: Nintendo → Sony → Microsoft (#69).
+- Carga inicial completa, por partes: Nintendo → Sony → Microsoft → PC (#69, #131).
 
 **Listo cuando:** apruebas la ruta de la comunidad de Zelda, Inicio te dice cuál es tu siguiente juego, y la carga avanza sola durante días, pausándose y siguiendo sin que hagas nada.
 
@@ -70,6 +100,7 @@ Las **acciones tuyas** de cada fase (cuentas y claves, A3) se piden al empezarla
 - Escanear por nombre y TitleID/serial; BASE/UPD/DLC; verificación por hash con DAT de **libretro (No-Intro)** y **Redump**, que se descargan solos.
 - Revisar › Identificaciones dudosas y Sin identificar; alias aprendidos.
 - Mover o migrar bibliotecas (copiar → hash → BD → borrar origen), con la pantalla Ajustes › Bibliotecas.
+- Bibliotecas **en red** (SMB/NFS) y **«traer a este equipo»** desde la ficha (#136). Juegos de PC sueltos, sin tienda (#132).
 - Asistente: paso 4 (bibliotecas).
 
 **Listo cuando:** `E:\Consolas` está adoptada, Twilight Princess y tus 7 juegos de Switch aparecen como "lo tengo" con sus UPD y DLC, y Twilight Princess sale verificado por Redump.
@@ -78,12 +109,14 @@ Las **acciones tuyas** de cada fase (cuentas y claves, A3) se piden al empezarla
 
 **Qué tendrás:** el botón **Jugar** de la app abre cada juego con la mejor opción.
 
-- Recetas: Dolphin, Dusklight, Ryujinx SS4K, Eden, Ryubing, Citron y los predeterminados de cada consola (referencia: GordoFriki, #72).
+- **Recetas compartidas** (#135): URL y hash por versión y sistema; en Windows descarga Otteretro y en PlayOS las arma Nix, con **todas las versiones instaladas de base**. Dolphin, Dusklight, Ryujinx SS4K, Eden, Ryubing, Citron y los predeterminados de cada consola (referencia: GordoFriki, #72). Variantes elegibles por juego (texturas, rendimiento).
 - Instalar desde la fuente oficial, versiones lado a lado, copia previa al actualizar, migrar partidas y configuración, reescritura de rutas internas, detección de lo instalado a mano.
 - Mover los emuladores, el port y las texturas de `E:\Consolas` a `Herramientas\` (copiar, verificar, borrar).
 - Herramientas › Sistema: subir BIOS, keys y firmware con versiones.
 - Regla de cómo jugar y elección manual por juego; contenido instalado dentro del emulador (UPD/DLC de Switch).
-- `otteretro jugar`: prepara, lanza, **espera al proceso lanzado** (V1) y ventana pequeña solo si prepara o falla.
+- `otteretro jugar`: prepara, lanza, **espera al proceso lanzado** (V1) y ventana pequeña solo si prepara o falla. En Linux aplica GameMode, MangoHud y la NVIDIA, desactivable por juego (#116).
+- **El dueño lanza** (#130): Jugar abre por Steam lo que está en Steam y por Heroic, Lutris o itch lo suyo. Lo que no corre en Linux se marca «jugar en Torrecita» (#112).
+- **Seguimiento**: sesiones y tiempo medidos en lo que lanza Otteretro (#133).
 - Portar `_Herramientas\Catalogo` a C# (S1): ports nuevos y compatibilidad → **Inicio › Novedades**.
 
 **Listo cuando:** pulsas Jugar en Twilight Princess y abre Dusklight, y en Skyward Sword HD abre Ryujinx SS4K con su pack 4K.
@@ -116,6 +149,7 @@ Las **acciones tuyas** de cada fase (cuentas y claves, A3) se piden al empezarla
 
 - **SteamKit2**: préstamo familiar con token de larga duración (T1).
 - Epic con la cuenta completa (si falla, solo lo instalado); después Xbox y Battle.net con lo instalado.
+- En PlayOS, las bibliotecas de **Heroic** (Epic, GOG, Amazon), **Lutris** e **itch.io** (#132).
 - IsThereAnyDeal, GamerPower y Game Pass; "seguir precio"; avisos según #84; solo con la app abierta (#75).
 - Ficha › Tiendas; Inicio › Novedades con bajadas de precio.
 
@@ -139,7 +173,7 @@ Las **acciones tuyas** de cada fase (cuentas y claves, A3) se piden al empezarla
 ## F9 · Descubrir, logros y pulido
 
 - **Descubrir**: recomendaciones por afinidad, "no me interesa" con 6 meses (S8).
-- **RetroAchievements**: logros en la ficha y activarlos en los emuladores compatibles.
+- **Logros**: los de Steam y RetroAchievements en la ficha (#133), y activar RetroAchievements en los emuladores compatibles.
 - **Evolución**: sugerir y crear issues "automatizar" con `gh`.
 - Asistente paso 7 (carga inicial) y repaso de estados vacíos, errores y la nutria en todas las pantallas.
 
@@ -149,5 +183,6 @@ Las **acciones tuyas** de cada fase (cuentas y claves, A3) se piden al empezarla
 
 ## Después
 
-- **Linux / PlayOS** (#103): el destino es WorkOS, que es NixOS. Ahí lo natural es declarativo: Otteretro como paquete y módulo Nix y los emuladores y Steam desde nixpkgs, en vez de AppImage/Flatpak y la autoactualización de Velopack. Se decide al trabajar PlayOS; mientras, lo propio de Windows queda detrás de su clase (§8.9).
+- Un PC para la tele y una portátil de mano con PlayOS (#106).
+- El NAS con todas las ROMs (#115): las bibliotecas en red ya lo admiten desde F3.
 - Mejoras que vayan saliendo como issues "automatizar".
