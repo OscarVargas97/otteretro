@@ -17,7 +17,7 @@ Errores propios de este stack que `otter:pr-reviewer` revisa además de su check
 - **Transacciones**: leer un estado y escribir según él va en una transacción; SQLite está en WAL con `busy_timeout`, pero dos escrituras que dependen de la misma lectura igual compiten.
 - **Servidor local**: todo endpoint nuevo pasa por el middleware de la clave y del `Host` (`Inicio/Servidor.cs`); nada escucha fuera de `127.0.0.1`.
 - **Errores**: el registro nunca lanza; un error del usuario (ruta inválida, operación en curso) responde 4xx con un mensaje legible, no 500.
-- **API y tipos**: si cambió un endpoint, se regeneraron los tipos del front (`npm run tipos`) en el mismo PR.
+- **API y tipos**: si cambió un endpoint, se regeneraron los tipos del front (`npm run tipos`) y se actualizó `docs/mapa/README.md` en el mismo PR.
 - **Claude**: solo con `claude -p`; nunca la API de Anthropic. La salida de Claude se valida contra un esquema antes de guardarla.
 - **Lo propio de cada sistema operativo** detrás de su clase; nada de rutas de Windows sueltas en código que también corre en Linux.
 

@@ -10,6 +10,7 @@
 | [`plan.md`](plan.md) | El plan por fases, para la persona |
 | [`plan-implementacion.md`](plan-implementacion.md) | El detalle técnico de cada fase, para la IA que programa: qué leer, cómo se ejecuta, tareas y tareas no planificadas |
 | [`review-checklist.md`](review-checklist.md) | Errores propios de este stack que revisa `otter:pr-reviewer` |
+| [`mapa/`](mapa/README.md) | Mapa funcional: qué pantalla o comando llama a qué endpoint, módulo y tablas. Se actualiza con el código |
 
 ## Historial
 

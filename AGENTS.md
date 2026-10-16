@@ -22,6 +22,7 @@ Desde el **workspace** `otteretro-workspace` (`D:\dev\personal\otteretro`), con 
 - **Ramas**: cada fase en `fase/N-nombre` desde `dev`; lo demás en `feat|fix|refactor|chore|docs/<nombre>`. Todo entra a `dev` por PR. **Por ahora nada se fusiona en `main`** (#101): cuando se decida publicar, al fusionar en `main` GitHub Actions publica una release y la app se autoactualiza.
 - **Tareas fuera del plan**: se registran al final de `docs/plan-implementacion.md` (qué, por qué, cómo) y, si quedan pendientes, como issue.
 - **Revisión**: `docs/review-checklist.md` tiene los errores propios de este stack.
+- **Mapa funcional**: `docs/mapa/README.md`. Si un cambio agrega o cambia una pantalla, un endpoint, un comando o una tabla, el mapa se actualiza en el mismo PR.
 
 ## Reglas del proyecto
 
