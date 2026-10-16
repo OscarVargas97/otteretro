@@ -131,7 +131,7 @@ Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
 
 **Listo cuando:** en legioncita, al entrar, se elige Play y aparece Otteretro a pantalla completa; con el botón Steam se va a Big Picture y se vuelve; en Work, Steam y Otteretro se abren como apps normales; `nix flake check` pasa en otteretro y en playos; `dotnet test` pasa en Windows y en Linux.
 
-## D1 · Diseño · milestone por crear
+## D1 · Diseño · [milestone](https://github.com/OscarVargas97/otteretro/milestone/12)
 
 **Objetivo:** actualizar el sistema de diseño y el prototipo (https://claude.ai/artifact/DMH4KuU2kkAnb3ApFTCiuu, https://claude.ai/artifact/Bo8gtfiPdRAumFhkFikHPV) para el centro de entretenimiento (#107, #138), con lo que dejó P0.12.
 
