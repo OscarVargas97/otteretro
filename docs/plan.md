@@ -4,11 +4,11 @@
 - **Base:** [REQUISITOS.md](REQUISITOS.md), [pantallas.md](pantallas.md), el [prototipo aprobado](https://claude.ai/artifact/Bo8gtfiPdRAumFhkFikHPV) y [arquitectura.md](arquitectura.md).
 - **Orden:** **catálogo primero** (#100). Así la carga inicial de Claude, que dura días, avanza sola mientras se construyen las demás fases. Jugar desde Steam llega en la fase 6; hasta entonces sigues jugando como hoy.
 
-> **Detalle para implementar y estado actual:** [plan-implementacion.md](plan-implementacion.md).
+> **Detalle para implementar:** [plan-implementacion.md](plan-implementacion.md). **Avance:** en GitHub, un [milestone por fase](https://github.com/OscarVargas97/otteretro/milestones) y las tareas en el [Project otteretro](https://github.com/users/OscarVargas97/projects/2) (#122).
 
 ## Cómo se trabaja cada fase
 
-1. Cada fase se programa en su rama **`fase/N-nombre`**, creada desde `dev`, con Claude Code, siguiendo este plan y los documentos de arriba.
+1. Al abrir una fase, sus tareas se levantan como solicitudes y sub-issues en GitHub (skill `otter:fase`, con una encuesta solo para lo que el plan deja abierto). Se programa en su rama **`fase/N-nombre`**, creada desde `dev`, con Claude Code, siguiendo este plan y los documentos de arriba.
 2. La fase está **lista** cuando se cumple su lista de "Listo cuando" y pasan sus pruebas (A4). Entonces se abre un pull request y se fusiona en **`dev`**.
 3. **Por ahora nada va a `main`** (#101): todas las fases se acumulan en `dev`. Cuando decidas publicar, se fusiona `dev` en `main` y GitHub Actions publica la release (A6).
 4. Si durante una fase aparece una decisión que no está en los documentos, se te pregunta antes de seguir y se registra en `decisiones.md`.
@@ -17,7 +17,7 @@ Las **acciones tuyas** de cada fase (cuentas y claves, A3) se piden al empezarla
 
 ---
 
-## F0 · Esqueleto ✅
+## F0 · Esqueleto (cerrada)
 
 **Qué tendrás:** la app instalada que abre su ventana, con la navegación del prototipo y sin datos todavía.
 

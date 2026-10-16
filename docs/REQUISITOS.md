@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-16, después de la encuesta 13, "Metodología" (#118 a #127). Quedan puntos de PlayOS por refinar en la encuesta 12.
+> **Última actualización:** 2026-10-16, después de la encuesta 13, "Metodología" (#118 a #127), y de #128 (workspace). Quedan puntos de PlayOS por refinar en la encuesta 12.
 
 ## Cómo se mantiene
 
@@ -498,8 +498,9 @@ Cómo se trabaja en Otteretro y en tus demás repos personales. Va en un plugin 
 | Decisiones y plan | Las decisiones siguen en `historial/decisiones.md` y los issues las citan. El estado de las tareas vive en issues y milestones; `plan-implementacion.md` queda con el detalle técnico de cada fase, sin marcar avance (#122) |
 | Reglas para la IA | `AGENTS.md` (y `CLAUDE.md` que lo importa), adaptaciones por repo, `work/<tarea>/ESTADO.md` para retomar entre sesiones, estado al iniciar sesión, lint después de editar, worktrees con las reglas del LMS, `docs/README.md` como índice, `docs/review-checklist.md`, mapa funcional y badge de la skill (#123) |
 | Guardián | En el plugin, basado en el del LMS, con reglas por repo. En Otteretro bloquea o pide confirmación según la lista de #124. Cambios sin commitear o sin pushear: **avisa, no bloquea** (#124) |
+| Workspace | `otteretro-workspace` en `D:\dev\personal\otteretro` agrupa Otteretro y PlayOS en `repos/<repo>/<rama>`, con `work/`, la configuración del guardián y lo que cruza repos (#128) |
 | Idioma | Código en inglés; el resto en español (#125, §3) |
 | Skills | `requerimientos`, `issue-solver`, `pr-reviewer` (revisa tus PRs antes de fusionar en `dev`), `repo-docs`, docs entre repos, `fase` y `estado`. Un paso a la vez; commit, push y PR solo cuando los pides (#126) |
 | Puesta en marcha | Primero el plugin; después se aplica a Otteretro en una rama propia, con milestones de todas las fases e issues de la fase en curso. Se instala a nivel usuario (#127) |
 
-Mientras Otteretro no adopte el plugin, siguen las reglas actuales de `CLAUDE.md` (encuestas, decisiones y plan marcado).
+Otteretro adoptó el plugin el 2026-10-16 (rama `chore/metodologia`) y se trabaja desde un workspace con PlayOS (#128): reglas en `AGENTS.md` del repo y del workspace, configuración en el `.claude/otter.json` del workspace, tareas en el [Project otteretro](https://github.com/users/OscarVargas97/projects/2) y un milestone por fase.
