@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-17, después de la encuesta 12, "PlayOS · refinamiento" (#129 a #138).
+> **Última actualización:** 2026-10-16, después de la encuesta 12, "PlayOS · refinamiento" (#129 a #138).
 
 ## Cómo se mantiene
 
@@ -35,7 +35,7 @@ Otteretro es una app **personal** para:
 
 | # | Principio |
 |---|---|
-| P1 | **Instalada, con los datos donde tú elijas.** La app se instala con Velopack (en AppData, o como AppImage en Linux). Todo lo pesado o valioso (base de datos, herramientas, caché de imágenes) va en una **carpeta de datos** que eliges tú. *Reemplaza a "Portable" (decisión #55).* |
+| P1 | **Instalada, con los datos donde tú elijas.** La app se instala con Velopack (en AppData; *en Linux, reemplazado por la #114: flake de Nix y se actualiza con el sistema*). Todo lo pesado o valioso (base de datos, herramientas, caché de imágenes) va en una **carpeta de datos** que eliges tú. *Reemplaza a "Portable" (decisión #55).* |
 | P2 | **Las bibliotecas de juegos van separadas del sistema.** Pueden estar en cualquier disco y la app las encuentra. |
 | P3 | **Multiplataforma**: Windows hoy y Linux en el futuro. El destino es **PlayOS**, un mod de WorkOS (tu sistema NixOS) orientado a juegos, con Otteretro, Steam y configuraciones de juego, para legioncita (Lenovo Legion 5 Pro, NVIDIA, Hyprland); se diseña pensando en él desde ya y se trabaja después (#103). |
 | P4 | **Claude decide y los scripts repiten.** Claude se usa solo para juzgar o la primera vez que aparece un caso. Lo repetitivo pasa a scripts y no gasta tokens (§11). |
@@ -53,7 +53,7 @@ Otteretro es una app **personal** para:
 - **Idioma del código** (#125): identificadores en **inglés**; documentación, comentarios, commits, PRs e issues en español. Los nombres de F0 se renombran al inglés.
 - **Repositorio:** `D:\dev\personal\otteretro`, con copia en **GitHub, privado**. Ramas: **`dev`**, donde se trabaja, y **`main`**, que es lo publicado.
 - **Releases:** al fusionar `dev` en `main`, GitHub Actions compila y publica una release.
-- **Instalación y actualización:** con **Velopack**, desde las releases de GitHub. En Windows se instala en `%LocalAppData%\Otteretro` y en Linux es un AppImage. Se actualiza sola y nunca toca la carpeta de datos.
+- **Instalación y actualización:** con **Velopack**, desde las releases de GitHub. En Windows se instala en `%LocalAppData%\Otteretro`. *En Linux, reemplazado por la #114:* paquete y módulo de Nix, que se actualiza con el sistema. Se actualiza sola y nunca toca la carpeta de datos.
 
 ## 4. Consolas ✅
 
@@ -200,6 +200,7 @@ Si dos fuentes no coinciden, se usa una **prioridad fija por campo**. Lo que cor
 ### 7.1 Qué cuenta como "lo tengo" ✅
 - Un archivo en una biblioteca de juegos.
 - Un juego en cualquiera de tus tiendas de PC (Steam con el préstamo familiar, Epic, Xbox, Battle.net). Cuenta como versión de PC.
+- En PlayOS, además, lo que está en **Heroic** (Epic, GOG, Amazon), **Lutris** (Battle.net, EA, Ubisoft) e **itch.io**, y los **juegos sueltos** sin tienda (#132).
 
 ### 7.2 Detección ✅
 1. Escaneo rápido por nombre y TitleID o serial.
@@ -410,6 +411,8 @@ Así, cada tarea que Claude resolvía pasa a un script y la app depende cada vez
 - **Panel de tareas en segundo plano** (escaneos, descargas, Claude, respaldos) con su progreso, y una **notificación del sistema** cuando terminan.
 
 ### 12.4 Pantallas
+> Se rediseñan en **D1** para el centro de entretenimiento (Inicio con consola y PC, seguimiento, mando) (#138); hasta entonces vale esta tabla.
+
 | Pantalla | Contenido |
 |---|---|
 | **Inicio** | El siguiente juego de cada ruta que sigues · lo pendiente de revisar (identificaciones dudosas, sin identificar) · novedades (ports nuevos, cambios de compatibilidad, versiones nuevas de emuladores) · descargas y tareas en curso |

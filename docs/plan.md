@@ -1,6 +1,6 @@
 # Plan por fases
 
-- **Fecha:** 2026-10-14 · reordenado el 2026-10-17 (#138)
+- **Fecha:** 2026-10-14 · reordenado el 2026-10-16 (#138)
 - **Base:** [REQUISITOS.md](REQUISITOS.md), [pantallas.md](pantallas.md), el [prototipo aprobado](https://claude.ai/artifact/Bo8gtfiPdRAumFhkFikHPV) y [arquitectura.md](arquitectura.md).
 - **Orden (#138):** **P0 PlayOS y Linux → D1 Diseño → F1 a F9**. Primero se resuelve lo de Linux y la sesión Play, después se actualiza el diseño (centro de entretenimiento y mando) y recién entonces el catálogo, que sigue yendo antes que el resto para que la carga de Claude avance sola (#100). Desde F1, cada pantalla nueva se hace navegable con mando.
 

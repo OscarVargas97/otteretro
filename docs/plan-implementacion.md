@@ -1,6 +1,6 @@
 # Plan de implementación (para la IA que programa)
 
-> **Dónde vamos:** F0 · Esqueleto cerrada. Siguiente: **P0 · PlayOS y Linux** ([milestone](https://github.com/OscarVargas97/otteretro/milestone/2), #117, #137); después **D1 · Diseño** y **F1 · Catálogo** (#138). Última actualización: 2026-10-17.
+> **Dónde vamos:** F0 · Esqueleto cerrada. Siguiente: **P0 · PlayOS y Linux** ([milestone](https://github.com/OscarVargas97/otteretro/milestone/2), #117, #137); después **D1 · Diseño** y **F1 · Catálogo** (#138). Última actualización: 2026-10-16.
 >
 > Este archivo guarda el **detalle técnico** de cada fase. El **avance** vive en GitHub: un milestone por fase, solicitudes y tareas como issues y sub-issues, y su estado en el [Project otteretro](https://github.com/users/OscarVargas97/projects/2) (#122). Al abrir o cerrar una fase, actualiza la línea de arriba.
 
@@ -115,7 +115,7 @@ Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
 ### Otteretro
 - P0.1 Renombrado al inglés de F0 (#4, #125) antes de tocar nada más, para no mezclar renombres con cambios de Linux.
 - P0.2 Correr en Linux: Photino con WebKitGTK (dependencias en el paquete Nix), config en `$XDG_CONFIG_HOME/otteretro/config.json` y carpeta de datos sugerida `~/Otteretro` (#114); `/api/discos` con los montajes reales (`/`, `/home`, `/run/media/<usuario>/*`, `/mnt/*`), no `DriveType.Fixed`; mudanza: «mismo disco» por punto de montaje y no por raíz (hallazgo #4 de la revisión de F0); una sola instancia comprobada en Linux (mutex con nombre y tubería de .NET).
-- P0.3 `Credentials/` (se adelanta de F1.1): almacén cifrado con DPAPI en Windows y libsecret (Secret Service por D-Bus) en Linux, una clase por SO (#116); tabla `credential`; Ajustes › Cuentas y claves (estado válida/falta/vence). Pruebas: cifra y descifra; el valor guardado no es el texto plano.
+- P0.3 `Credentials/` (se adelanta de F1.1): almacén cifrado con DPAPI en Windows y libsecret (Secret Service por D-Bus) en Linux, una clase por SO (#116); tabla `credencial` (si las tablas pasan al inglés se decide en #4); Ajustes › Cuentas y claves (estado válida/falta/vence). Pruebas: cifra y descifra; el valor guardado no es el texto plano.
 - P0.4 Actualización por SO: en Linux (o cuando la app corre desde el store de Nix) el actualizador queda en `NoDisponible` con «Se actualiza con el sistema» y la versión; Velopack solo en Windows (#114).
 - P0.5 `flake.nix` en la raíz de otteretro: `packages.x86_64-linux.default` (front con `buildNpmPackage`, back con `buildDotnetModule` y su `deps.json`; el target `CopiarWeb` se salta con una propiedad y se copia `web/out` ya construido), `nixosModules.default` (`programs.otteretro.enable`, paquete y entrada `.desktop`), `checks` con `dotnet test`. Cómo regenerar `deps.json` y `npmDepsHash`, en el AGENTS.md del repo.
 - P0.6 Modo pantalla completa para la sesión Play (`--fullscreen`, o solo al detectar gamescope) y acción «Ir a Steam» (lo que funcione en la sesión de Steam, ver P0.12).

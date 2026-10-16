@@ -90,7 +90,7 @@ Tablas principales. `id` entero salvo donde se indica.
 | Equipo y ajustes | `equipo` | id (GUID), nombre, so |
 | | `ajuste` | clave, valor, equipo_id (vacío = para todos los equipos) |
 | | `credencial` | servicio, valor_cifrado, equipo_id, vence |
-| Bibliotecas | `biblioteca` | id (GUID del marcador), nombre, tipo (juegos/herramientas), ultima_ruta, conectada, formato |
+| Bibliotecas | `biblioteca` | id (GUID del marcador), nombre, tipo (juegos/herramientas), ubicacion (local/red, #136), ultima_ruta, conectada, formato |
 | Catálogo | `consola` | id, nombre, empresa, estado_emulacion |
 | | `saga` | id, nombre, igdb_id, favorita, sigo, iconica, ruta_elegida |
 | | `juego` | id, saga_id (vacío = Emulación), nombre_es, nombre_original, anio, igdb_id, existe_pc |
@@ -102,7 +102,8 @@ Tablas principales. `id` entero salvo donde se indica.
 | | `alias` | texto, juego_id, origen (script/Claude), deshecho |
 | Rutas y progreso | `ruta` | id, saga_id, tipo (lanzamiento/historia/comunidad), justificacion, fuentes, aprobada |
 | | `ruta_paso` | ruta_id, orden, juego_id, version_recomendada_id, porque |
-| | `progreso` | juego_id, estado, nota (1–10), notas, favorito |
+| | `progreso` | juego_id, estado (pendiente/jugando/terminado/100 %/abandonado), fecha_inicio, fecha_fin, nota (1–10), notas, favorito (#133) |
+| | `sesion` | id, version_id, equipo_id, lanzador (steam/heroic/lutris/itch/otteretro), inicio, fin, duracion (#133) |
 | Herramientas | `herramienta` | id, tipo (emulador/port/complemento/sistema), nombre, receta, consola_id, instalacion |
 | | `herramienta_version` | herramienta_id, version, ruta_relativa, instalada |
 | | `asignacion` | juego_id o consola_id, herramienta_version_id, config_especifica (predeterminado por consola o específico por juego) |
@@ -129,7 +130,13 @@ Un JSON por emulador, port, complemento o tienda en `recetas/`. Ejemplo resumido
   "id": "dolphin",
   "tipo": "emulador",
   "consolas": ["gamecube", "wii"],
-  "fuente": { "github": "dolphin-emu/dolphin", "archivo": { "windows": "*-x64.7z", "linux": "*.AppImage" } },
+  "fuente": { "github": "dolphin-emu/dolphin" },
+  "versiones": {
+    "2509": {
+      "windows": { "url": "https://…/dolphin-2509-x64.7z", "hash": "sha256-…" },
+      "linux": { "nixpkgs": "dolphin-emu" }
+    }
+  },
   "portable": { "crear": ["portable.txt"] },
   "partidas": ["User/GC/**", "User/Wii/title/**"],
   "configuracion": ["User/Config/*.ini"],
@@ -140,6 +147,8 @@ Un JSON por emulador, port, complemento o tienda en `recetas/`. Ejemplo resumido
 ```
 
 Claude escribe la primera receta de algo nuevo; desde ahí la usa el script.
+
+**Versiones fijas y compartidas con Nix (#135):** cada versión lleva, por sistema, la URL y el hash (SRI), o el paquete de nixpkgs si ya está ahí. En Windows Otteretro descarga y verifica con eso; en PlayOS, Nix arma un paquete por versión desde las mismas recetas, y todas las versiones quedan instaladas. Una versión nueva es una entrada más: nunca se borra una vieja.
 
 ## 6. Flujos clave
 
