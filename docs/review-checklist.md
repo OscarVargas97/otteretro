@@ -24,10 +24,10 @@ Errores propios de este stack que `otter:pr-reviewer` revisa además de su check
 ## Front (Next.js estático, React, TanStack Query)
 
 - **Exportación estática**: sin rutas dinámicas que no se conozcan al compilar (`/saga/?id=`, no `/saga/[id]`), sin APIs de servidor de Next.
-- **Llamadas**: siempre por `web/lib/api.ts` (añade la clave); los tipos salen de `web/lib/api.d.ts`, no se escriben a mano.
+- **Llamadas**: siempre por `web/lib/cliente.ts` (añade la clave); los tipos salen de `web/lib/api.d.ts`, no se escriben a mano.
 - **Estados de cada pantalla**: vacío (con la nutria y la acción que la llena), cargando, error y con datos.
 - **Progreso en vivo** por SSE (`/api/eventos`), no con sondeos.
-- **Sistema de diseño**: clases `ot-` de `bundle.css`; nada de estilos sueltos que lo contradigan.
+- **Sistema de diseño**: clases `ot-` de `web/app/estilos/` (`componentes.css`); nada de estilos sueltos que lo contradigan.
 - **Textos**: español neutro, sin voseo ni formas peninsulares.
 
 ## Idioma
