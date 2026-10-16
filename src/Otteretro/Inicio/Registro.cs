@@ -16,9 +16,14 @@ public sealed class RegistroArchivo : ILoggerProvider
     {
         lock (Cerrojo)
         {
-            Directory.CreateDirectory(Directorio);
-            File.AppendAllText(Path.Combine(Directorio, $"otteretro-{DateTime.Now:yyyy-MM-dd}.log"),
-                $"{DateTime.Now:HH:mm:ss.fff} [{nivel}] {categoria}: {mensaje}{Environment.NewLine}");
+            // Escribir el registro nunca puede romper lo que se está registrando.
+            try
+            {
+                Directory.CreateDirectory(Directorio);
+                File.AppendAllText(Path.Combine(Directorio, $"otteretro-{DateTime.Now:yyyy-MM-dd}.log"),
+                    $"{DateTime.Now:HH:mm:ss.fff} [{nivel}] {categoria}: {mensaje}{Environment.NewLine}");
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         }
     }
 

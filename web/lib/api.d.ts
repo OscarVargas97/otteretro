@@ -98,6 +98,15 @@ export interface paths {
                         "application/json": components["schemas"]["Problema"];
                     };
                 };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Problema"];
+                    };
+                };
             };
         };
         delete?: never;

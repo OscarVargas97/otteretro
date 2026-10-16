@@ -1,0 +1,144 @@
+{
+  "actualizado": "2026-10-16T13:04:31.312Z",
+  "respuestas": {
+    "c1": {
+      "c": "Eso si tenemos que actualizar y reconstuir el plan y quizas actualizar el diseño",
+      "v": "f0linux"
+    },
+    "c2": {
+      "v": "ssh"
+    },
+    "c3": {
+      "v": "personal"
+    },
+    "e1": {
+      "c": "La idea es que ojala planifiquemos los emuladores en una seccion y que ya esten integrados, ya sea si es necesario que creemos un repo con todos los emuladores y que gestionemos ahi las versiones, tambien es una opcion, el tema es que ojala quede todo instalado de base",
+      "v": "mixto"
+    },
+    "e2": {
+      "v": "otteretro"
+    },
+    "e3": {
+      "v": "nixpkgs"
+    },
+    "o1": {
+      "v": "flake"
+    },
+    "o2": {
+      "v": "rebuild"
+    },
+    "o3": {
+      "v": "home"
+    },
+    "o4": {
+      "c": "Considera que en un futuro quiero tener un nass que tenga todas las roms.",
+      "v": [
+        "interno",
+        "usb",
+        "copiar"
+      ]
+    },
+    "o5": {
+      "v": "libsecret"
+    },
+    "o6": {
+      "v": "ambos"
+    },
+    "o7": {
+      "v": "auto"
+    },
+    "p1": {
+      "c": "La idea es que las cosas que uso en workos esten y que se agregen nuevas, por eso la idea es que workos sea la base",
+      "v": "repo"
+    },
+    "p2": {
+      "v": "publico"
+    },
+    "p3": {
+      "c": "La idea es que en el login, pueeda seleccionar si quiero ir modo gameming dedicado o modo trabajo, en modo trabajo las apps de juegos se lanzan como apps normales",
+      "v": "sesiones"
+    },
+    "p4": {
+      "v": [
+        "legioncita",
+        "htpc",
+        "portatil",
+        "vm"
+      ]
+    },
+    "r1": {
+      "c": "Esto si bien respondi nvidia, creo que debemos confirmarlo con el dispositivo real, por que me parece que habia 1 de las 2 configuraciones que daba problema, debemos usar lo que hay hoy en dia confirmalo con el equipo ",
+      "v": "discreta"
+    },
+    "r2": {
+      "v": [
+        "gamemode",
+        "gamescope",
+        "mangohud",
+        "perfil",
+        "lact"
+      ]
+    },
+    "r3": {
+      "v": "defecto"
+    },
+    "r4": {
+      "v": [
+        "legionlinux",
+        "openrgb"
+      ]
+    },
+    "s1": {
+      "c": "Pensandolo mejor, quiero que otteretro no solo tenga mis juegos y sagas de consolas, sino tambien las de pc y mis juegos de pc, quiero que sea mi centro de entretenimiento, que aproveche steam y las herramientas que entrega steam pero que sea un tracking de mis juegos y tal. amo steam lo encuentro increible y quiero poder cambiar a big picture y otteretro facilmente pero entiendo que puede tener limitaciones tecnicas.",
+      "v": "otteretro"
+    },
+    "s2": {
+      "c": "Esto no debe afectar a como distribuimos la interfaz actual",
+      "v": "completo"
+    },
+    "s3": {
+      "v": [
+        "xbox",
+        "xboxdongle",
+        "dualsense",
+        "switchpro"
+      ]
+    },
+    "s4": {
+      "v": "otteretro"
+    },
+    "t1": {
+      "v": [
+        "base",
+        "protonge",
+        "remoteplay",
+        "extest",
+        "srm"
+      ]
+    },
+    "t2": {
+      "v": [
+        "heroic",
+        "lutris",
+        "bottles",
+        "itch"
+      ]
+    },
+    "t3": {
+      "c": "",
+      "v": "stream"
+    },
+    "t4": {
+      "v": [
+        "cliente"
+      ]
+    },
+    "t5": {
+      "v": [
+        "discord",
+        "obs",
+        "gpuscreen"
+      ]
+    }
+  }
+}

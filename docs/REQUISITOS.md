@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-14, después de la encuesta 10, "Arquitectura", y el plan por fases.
+> **Última actualización:** 2026-10-16, después de la encuesta 13, "Metodología" (#118 a #127). Quedan puntos de PlayOS por refinar en la encuesta 12.
 
 ## Cómo se mantiene
 
@@ -29,6 +29,7 @@ Otteretro es una app **personal** para:
 4. **Conseguir y organizar** juegos con la mínima intervención, ya sea con descargas o con megapacks.
 5. **Llevarlo todo a Steam**, organizado por saga.
 6. **Descubrir** sagas que no conoces y **recorrerlas** siguiendo la ruta que elijas.
+7. **Ser tu centro de entretenimiento** (#107): la pantalla principal del modo juego de PlayOS, con tus juegos y sagas **de consola y de PC**, el seguimiento de lo que juegas y el paso fácil a Steam Big Picture. Se maneja completo con mando (#108).
 
 ## 2. Principios ✅
 
@@ -36,7 +37,7 @@ Otteretro es una app **personal** para:
 |---|---|
 | P1 | **Instalada, con los datos donde tú elijas.** La app se instala con Velopack (en AppData, o como AppImage en Linux). Todo lo pesado o valioso (base de datos, herramientas, caché de imágenes) va en una **carpeta de datos** que eliges tú. *Reemplaza a "Portable" (decisión #55).* |
 | P2 | **Las bibliotecas de juegos van separadas del sistema.** Pueden estar en cualquier disco y la app las encuentra. |
-| P3 | **Multiplataforma**: Windows hoy y Linux en el futuro. |
+| P3 | **Multiplataforma**: Windows hoy y Linux en el futuro. El destino es **PlayOS**, un mod de WorkOS (tu sistema NixOS) orientado a juegos, con Otteretro, Steam y configuraciones de juego, para legioncita (Lenovo Legion 5 Pro, NVIDIA, Hyprland); se diseña pensando en él desde ya y se trabaja después (#103). |
 | P4 | **Claude decide y los scripts repiten.** Claude se usa solo para juzgar o la primera vez que aparece un caso. Lo repetitivo pasa a scripts y no gasta tokens (§11). |
 | P5 | **Claude se usa a través de tu Claude Code** (`claude -p`), **nunca de la API** de Anthropic. |
 | P6 | **Intervención mínima.** La app solo pregunta cuando no puede decidir. Si duda, asigna y marca "revisar". |
@@ -49,6 +50,7 @@ Otteretro es una app **personal** para:
 
 - **Backend:** C# (.NET 10) con ASP.NET Core y SQLite (Dapper). Detalle en **[arquitectura.md](arquitectura.md)** (#92 a #99). **Interfaz:** Next.js exportado como estático (React). **Ventana:** Photino, que usa WebView2 en Windows y WebKitGTK en Linux.
 - **Idioma y uso:** interfaz en **español**, pensada para escritorio con ratón y teclado. Para la tele se usa Steam Big Picture.
+- **Idioma del código** (#125): identificadores en **inglés**; documentación, comentarios, commits, PRs e issues en español. Los nombres de F0 se renombran al inglés.
 - **Repositorio:** `D:\dev\personal\otteretro`, con copia en **GitHub, privado**. Ramas: **`dev`**, donde se trabaja, y **`main`**, que es lo publicado.
 - **Releases:** al fusionar `dev` en `main`, GitHub Actions compila y publica una release.
 - **Instalación y actualización:** con **Velopack**, desde las releases de GitHub. En Windows se instala en `%LocalAppData%\Otteretro` y en Linux es un AppImage. Se actualiza sola y nunca toca la carpeta de datos.
@@ -131,6 +133,7 @@ E:\Consolas\  ·  D:\Juegos\…    ← bibliotecas de JUEGOS (las que quieras, e
 
 ### 6.1 Alcance ✅
 - **La mayor cantidad de juegos posible**, siempre con su **saga identificada**. También entran juegos destacados sin saga.
+- **También juegos y sagas de PC**, no solo de consolas (#107). Detalle en la encuesta 12.
 - **Todo lo que tienes aparece siempre.**
 - Para cada juego se indica **si existe versión de PC**.
 
@@ -273,10 +276,10 @@ Todo va en `<carpeta de datos>\Herramientas\` (§5.1). Los **complementos** (pac
 - **RetroAchievements**: inicias sesión y la app muestra los logros de cada juego y los activa en los emuladores compatibles.
 
 ### 8.8 Mandos ✅
-Los mandos los gestiona **Steam Input**; la app no los configura.
+*Reemplazado por la #108:* Otteretro se maneja **completo con mando** sin cambiar la distribución de la interfaz (Xbox, adaptador inalámbrico de Xbox, DualSense/DualShock 4, Switch Pro/Joy-Con). Dentro de los juegos los mandos los sigue gestionando Steam Input o cada emulador.
 
 ### 8.9 Linux ✅
-El formato de los emuladores en Linux (AppImage o Flatpak) **se decide cuando migres**. Las recetas ya prevén tener una variante por sistema operativo.
+*Reemplazado por la #113 y la #114:* Linux es **PlayOS** (§14). Ahí Otteretro se instala con su flake y se actualiza con el sistema, y los emuladores vienen **instalados de base** (nixpkgs y lo que no esté, gestionado aparte). Las recetas siguen teniendo una variante por sistema operativo.
 
 ## 9. Ingesta (descargas y megapacks)
 
@@ -466,3 +469,37 @@ No son requisitos, pero siguen pendientes:
 
 ### 13.5 Siguiente paso
 Orden decidido (#74): **especificación de pantallas → Claude Design** (sistema de diseño y pantallas) **→ arquitectura → plan por fases → código**. Hechos: pantallas, Claude Design (#91), arquitectura (#92 a #99) y **[plan por fases](plan.md)** (#100). Siguiente: **F0 · Esqueleto**.
+
+## 14. PlayOS (#103 a #117)
+
+Mod público de WorkOS (tu NixOS) para juegos, en el repo `playos`, que importa `workos` como base (#104).
+
+| Tema | Decisión |
+|---|---|
+| Sesiones | Al iniciar sesión eliges **Play** (modo juego dedicado, con Otteretro como pantalla principal) o **Work** (Hyprland); en Work los juegos son apps normales (#105, #107) |
+| Máquinas | legioncita; a futuro un PC para la tele y una portátil de mano; una VM de pruebas (#106) |
+| GPU de legioncita | Se usa la configuración que funciona hoy, **comprobada en el equipo** (#109) 🔬 |
+| Rendimiento | GameMode, gamescope, MangoHud, perfil de rendimiento automático, LACT; kernel por defecto; LenovoLegionLinux y OpenRGB (#110) |
+| Steam y tiendas | Steam (gamescope, Proton-GE, Remote Play y transferencia local, extest, Steam ROM Manager), Heroic, Lutris, Bottles, itch.io; Discord (Vesktop), OBS, gpu-screen-recorder (#111) |
+| Sin soporte en Linux | Se juega en Torrecita por streaming (Moonlight) y Otteretro lo marca (#112) |
+| Emuladores y ports | Todo instalado de base; nixpkgs y lo que falte gestionado aparte; configuración y partidas, de Otteretro (#113) |
+| Otteretro | Flake propio, se actualiza con el sistema, datos en `~/Otteretro`, claves en libsecret, GameMode/MangoHud/NVIDIA automáticos (#114, #116) |
+| Juegos | SSD interno, USB y copiar desde Torrecita; a futuro un NAS con todas las ROMs (#115) |
+| Cómo se trabaja | Fase P0 antes de F1; pruebo por `ssh legioncita` y el rebuild lo haces tú (#117) |
+
+## 15. Metodología de trabajo con IA (#118 a #127)
+
+Cómo se trabaja en Otteretro y en tus demás repos personales. Va en un plugin propio de Claude Code, **`otter`** (repo privado `OscarVargas97/claude-skills`). Parte de las skills de `mynu-ai` y del workspace del LMS, pero es independiente: no se sincroniza con ellos y **no toca nada de Multiplex** (#118, #119).
+
+| Tema | Decisión |
+|---|---|
+| Requerimientos | Las encuestas levantan los requerimientos y de ahí salen las tareas. Skill `requerimientos`: idea → encuesta → decisiones y requisitos → **una solicitud por tema** con sus sub-issues, creados cuando dices que sí. Criterios de aceptación derivados de las respuestas; lo que no queda claro y las preguntas que aparecen al implementar van a una mini-encuesta. Selector para 1 a 3 preguntas, artifact para más (#121) |
+| Tareas en GitHub | Solicitud = issue `solicitud`; tareas = sub-issues; estado en un GitHub Project (Pendiente → En desarrollo → En revisión → Hecho, Descartado); etiquetas de tipo y prioridad, `solicitud` y `automatizar`; un milestone por fase; se identifica con el número del issue. Sin Notion (#120) |
+| Decisiones y plan | Las decisiones siguen en `historial/decisiones.md` y los issues las citan. El estado de las tareas vive en issues y milestones; `plan-implementacion.md` queda con el detalle técnico de cada fase, sin marcar avance (#122) |
+| Reglas para la IA | `AGENTS.md` (y `CLAUDE.md` que lo importa), adaptaciones por repo, `work/<tarea>/ESTADO.md` para retomar entre sesiones, estado al iniciar sesión, lint después de editar, worktrees con las reglas del LMS, `docs/README.md` como índice, `docs/review-checklist.md`, mapa funcional y badge de la skill (#123) |
+| Guardián | En el plugin, basado en el del LMS, con reglas por repo. En Otteretro bloquea o pide confirmación según la lista de #124. Cambios sin commitear o sin pushear: **avisa, no bloquea** (#124) |
+| Idioma | Código en inglés; el resto en español (#125, §3) |
+| Skills | `requerimientos`, `issue-solver`, `pr-reviewer` (revisa tus PRs antes de fusionar en `dev`), `repo-docs`, docs entre repos, `fase` y `estado`. Un paso a la vez; commit, push y PR solo cuando los pides (#126) |
+| Puesta en marcha | Primero el plugin; después se aplica a Otteretro en una rama propia, con milestones de todas las fases e issues de la fase en curso. Se instala a nivel usuario (#127) |
+
+Mientras Otteretro no adopte el plugin, siguen las reglas actuales de `CLAUDE.md` (encuestas, decisiones y plan marcado).
