@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-16, con el destino a futuro PlayOS (#103).
+> **Última actualización:** 2026-10-16, después de la encuesta 11, "PlayOS" (#104 a #117). Quedan puntos por refinar en la encuesta 12.
 
 ## Cómo se mantiene
 
@@ -29,6 +29,7 @@ Otteretro es una app **personal** para:
 4. **Conseguir y organizar** juegos con la mínima intervención, ya sea con descargas o con megapacks.
 5. **Llevarlo todo a Steam**, organizado por saga.
 6. **Descubrir** sagas que no conoces y **recorrerlas** siguiendo la ruta que elijas.
+7. **Ser tu centro de entretenimiento** (#107): la pantalla principal del modo juego de PlayOS, con tus juegos y sagas **de consola y de PC**, el seguimiento de lo que juegas y el paso fácil a Steam Big Picture. Se maneja completo con mando (#108).
 
 ## 2. Principios ✅
 
@@ -131,6 +132,7 @@ E:\Consolas\  ·  D:\Juegos\…    ← bibliotecas de JUEGOS (las que quieras, e
 
 ### 6.1 Alcance ✅
 - **La mayor cantidad de juegos posible**, siempre con su **saga identificada**. También entran juegos destacados sin saga.
+- **También juegos y sagas de PC**, no solo de consolas (#107). Detalle en la encuesta 12.
 - **Todo lo que tienes aparece siempre.**
 - Para cada juego se indica **si existe versión de PC**.
 
@@ -273,10 +275,10 @@ Todo va en `<carpeta de datos>\Herramientas\` (§5.1). Los **complementos** (pac
 - **RetroAchievements**: inicias sesión y la app muestra los logros de cada juego y los activa en los emuladores compatibles.
 
 ### 8.8 Mandos ✅
-Los mandos los gestiona **Steam Input**; la app no los configura.
+*Reemplazado por la #108:* Otteretro se maneja **completo con mando** sin cambiar la distribución de la interfaz (Xbox, adaptador inalámbrico de Xbox, DualSense/DualShock 4, Switch Pro/Joy-Con). Dentro de los juegos los mandos los sigue gestionando Steam Input o cada emulador.
 
 ### 8.9 Linux ✅
-El formato de los emuladores en Linux (AppImage o Flatpak) **se decide cuando migres**. Las recetas ya prevén tener una variante por sistema operativo.
+*Reemplazado por la #113 y la #114:* Linux es **PlayOS** (§14). Ahí Otteretro se instala con su flake y se actualiza con el sistema, y los emuladores vienen **instalados de base** (nixpkgs y lo que no esté, gestionado aparte). Las recetas siguen teniendo una variante por sistema operativo.
 
 ## 9. Ingesta (descargas y megapacks)
 
@@ -466,3 +468,20 @@ No son requisitos, pero siguen pendientes:
 
 ### 13.5 Siguiente paso
 Orden decidido (#74): **especificación de pantallas → Claude Design** (sistema de diseño y pantallas) **→ arquitectura → plan por fases → código**. Hechos: pantallas, Claude Design (#91), arquitectura (#92 a #99) y **[plan por fases](plan.md)** (#100). Siguiente: **F0 · Esqueleto**.
+
+## 14. PlayOS (#103 a #117)
+
+Mod público de WorkOS (tu NixOS) para juegos, en el repo `playos`, que importa `workos` como base (#104).
+
+| Tema | Decisión |
+|---|---|
+| Sesiones | Al iniciar sesión eliges **Play** (modo juego dedicado, con Otteretro como pantalla principal) o **Work** (Hyprland); en Work los juegos son apps normales (#105, #107) |
+| Máquinas | legioncita; a futuro un PC para la tele y una portátil de mano; una VM de pruebas (#106) |
+| GPU de legioncita | Se usa la configuración que funciona hoy, **comprobada en el equipo** (#109) 🔬 |
+| Rendimiento | GameMode, gamescope, MangoHud, perfil de rendimiento automático, LACT; kernel por defecto; LenovoLegionLinux y OpenRGB (#110) |
+| Steam y tiendas | Steam (gamescope, Proton-GE, Remote Play y transferencia local, extest, Steam ROM Manager), Heroic, Lutris, Bottles, itch.io; Discord (Vesktop), OBS, gpu-screen-recorder (#111) |
+| Sin soporte en Linux | Se juega en Torrecita por streaming (Moonlight) y Otteretro lo marca (#112) |
+| Emuladores y ports | Todo instalado de base; nixpkgs y lo que falte gestionado aparte; configuración y partidas, de Otteretro (#113) |
+| Otteretro | Flake propio, se actualiza con el sistema, datos en `~/Otteretro`, claves en libsecret, GameMode/MangoHud/NVIDIA automáticos (#114, #116) |
+| Juegos | SSD interno, USB y copiar desde Torrecita; a futuro un NAS con todas las ROMs (#115) |
+| Cómo se trabaja | Fase P0 antes de F1; pruebo por `ssh legioncita` y el rebuild lo haces tú (#117) |
