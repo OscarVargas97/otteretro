@@ -4,6 +4,8 @@
 - **Base:** [REQUISITOS.md](REQUISITOS.md), [pantallas.md](pantallas.md), el [prototipo aprobado](https://claude.ai/artifact/Bo8gtfiPdRAumFhkFikHPV) y [arquitectura.md](arquitectura.md).
 - **Orden:** **catálogo primero** (#100). Así la carga inicial de Claude, que dura días, avanza sola mientras se construyen las demás fases. Jugar desde Steam llega en la fase 6; hasta entonces sigues jugando como hoy.
 
+> **Detalle para implementar y estado actual:** [plan-implementacion.md](plan-implementacion.md).
+
 ## Cómo se trabaja cada fase
 
 1. Cada fase se programa en su rama **`fase/N-nombre`**, creada desde `dev`, con Claude Code, siguiendo este plan y los documentos de arriba.
@@ -15,7 +17,7 @@ Las **acciones tuyas** de cada fase (cuentas y claves, A3) se piden al empezarla
 
 ---
 
-## F0 · Esqueleto
+## F0 · Esqueleto ✅
 
 **Qué tendrás:** la app instalada que abre su ventana, con la navegación del prototipo y sin datos todavía.
 

@@ -1,0 +1,450 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Otteretro | v1",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:57277/"
+    }
+  ],
+  "paths": {
+    "/api/estado": {
+      "get": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstadoApp"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/carpeta-datos": {
+      "post": {
+        "tags": [
+          "Otteretro"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PedidoCarpeta"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstadoApp"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InfoCarpeta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/carpeta-datos/mudanza": {
+      "get": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstadoMudanza"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/carpeta-datos/mover": {
+      "post": {
+        "tags": [
+          "Otteretro"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PedidoCarpeta"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstadoMudanza"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/discos": {
+      "get": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Disco"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/actualizacion": {
+      "get": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstadoActualizacion"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/actualizacion/buscar": {
+      "post": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstadoActualizacion"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/actualizacion/reiniciar": {
+      "post": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problema"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Disco": {
+        "required": [
+          "nombre",
+          "libre",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string"
+          },
+          "libre": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "EstadoActualizacion": {
+        "required": [
+          "fase",
+          "version",
+          "progreso",
+          "mensaje",
+          "comprobada"
+        ],
+        "type": "object",
+        "properties": {
+          "fase": {
+            "$ref": "#/components/schemas/FaseActualizacion"
+          },
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "progreso": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "comprobada": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "EstadoApp": {
+        "required": [
+          "version",
+          "carpetaDatos",
+          "configurada"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "carpetaDatos": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "configurada": {
+            "type": "boolean"
+          }
+        }
+      },
+      "EstadoMudanza": {
+        "required": [
+          "paso",
+          "hecho",
+          "total",
+          "enCurso",
+          "destino",
+          "error",
+          "aviso"
+        ],
+        "type": "object",
+        "properties": {
+          "paso": {
+            "type": "string"
+          },
+          "hecho": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "enCurso": {
+            "type": "boolean"
+          },
+          "destino": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "aviso": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "FaseActualizacion": {
+        "enum": [
+          "Ninguna",
+          "NoDisponible",
+          "Buscando",
+          "AlDia",
+          "Descargando",
+          "Lista",
+          "Error"
+        ]
+      },
+      "InfoCarpeta": {
+        "required": [
+          "ruta",
+          "ocupado",
+          "libreEnDisco"
+        ],
+        "type": "object",
+        "properties": {
+          "ruta": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ocupado": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "libreEnDisco": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "PedidoCarpeta": {
+        "required": [
+          "ruta"
+        ],
+        "type": "object",
+        "properties": {
+          "ruta": {
+            "type": "string"
+          }
+        }
+      },
+      "Problema": {
+        "required": [
+          "mensaje"
+        ],
+        "type": "object",
+        "properties": {
+          "mensaje": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Otteretro"
+    }
+  ]
+}

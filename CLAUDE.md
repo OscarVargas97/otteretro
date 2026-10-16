@@ -17,6 +17,10 @@ App personal, instalada con Velopack y con los datos en una carpeta que elige el
 - **Por ahora no se fusiona nada en `main`** (#101). Cuando se decida publicar, al fusionar en `main` GitHub Actions publicará una release y la app se autoactualizará.
 - Las tareas de automatización llegan como GitHub Issues con la etiqueta `automatizar`.
 
+## Implementación
+
+- `docs/plan-implementacion.md` es el plan detallado: indica la fase y tarea en curso. Márcalo al avanzar y anota al final cualquier tarea no planificada (qué, por qué, cómo).
+
 ## Reglas del proyecto
 
 - Claude se usa a través del Claude Code del usuario (`claude -p`), **nunca con la API de Anthropic**.
