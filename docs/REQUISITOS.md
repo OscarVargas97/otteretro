@@ -36,7 +36,7 @@ Otteretro es una app **personal** para:
 |---|---|
 | P1 | **Instalada, con los datos donde tú elijas.** La app se instala con Velopack (en AppData, o como AppImage en Linux). Todo lo pesado o valioso (base de datos, herramientas, caché de imágenes) va en una **carpeta de datos** que eliges tú. *Reemplaza a "Portable" (decisión #55).* |
 | P2 | **Las bibliotecas de juegos van separadas del sistema.** Pueden estar en cualquier disco y la app las encuentra. |
-| P3 | **Multiplataforma**: Windows hoy y Linux en el futuro. El destino es **PlayOS**, un mod de WorkOS orientado a juegos (con Otteretro, Steam y configuraciones de juego) para «legioncita»; se diseña pensando en él desde ya y se trabaja después (#103). |
+| P3 | **Multiplataforma**: Windows hoy y Linux en el futuro. El destino es **PlayOS**, un mod de WorkOS (tu sistema NixOS) orientado a juegos, con Otteretro, Steam y configuraciones de juego, para legioncita (Lenovo Legion 5 Pro, NVIDIA, Hyprland); se diseña pensando en él desde ya y se trabaja después (#103). |
 | P4 | **Claude decide y los scripts repiten.** Claude se usa solo para juzgar o la primera vez que aparece un caso. Lo repetitivo pasa a scripts y no gasta tokens (§11). |
 | P5 | **Claude se usa a través de tu Claude Code** (`claude -p`), **nunca de la API** de Anthropic. |
 | P6 | **Intervención mínima.** La app solo pregunta cuando no puede decidir. Si duda, asigna y marca "revisar". |

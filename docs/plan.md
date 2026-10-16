@@ -149,5 +149,5 @@ Las **acciones tuyas** de cada fase (cuentas y claves, A3) se piden al empezarla
 
 ## Después
 
-- **Linux**: formato de emuladores (AppImage o Flatpak) y pruebas cuando migres (§8.9).
+- **Linux / PlayOS** (#103): el destino es WorkOS, que es NixOS. Ahí lo natural es declarativo: Otteretro como paquete y módulo Nix y los emuladores y Steam desde nixpkgs, en vez de AppImage/Flatpak y la autoactualización de Velopack. Se decide al trabajar PlayOS; mientras, lo propio de Windows queda detrás de su clase (§8.9).
 - Mejoras que vayan saliendo como issues "automatizar".
