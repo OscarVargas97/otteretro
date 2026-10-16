@@ -1,0 +1,41 @@
+{
+  "actualizado": "2026-10-16T17:32:29.606Z",
+  "artifact": "https://claude.ai/artifact/Ccsnm5DkHm5BAR6rFaT5yR",
+  "respuestas": {
+    "a1": { "v": "otter" },
+    "a2": { "v": "nuevo" },
+    "a3": { "v": "privado" },
+    "a4": { "c": "La idea es eliminar lo que se de mynu y generar mi propia skills", "v": "suelto" },
+    "a5": { "c": "No toques nada de Multiplex, estamos migrandolo para este equipo y lenovo legion, la idea aqui es generar mi metodologia de trabajo, no afectar la de multiplex", "v": "mynu" },
+    "b1": { "v": "subissues" },
+    "b2": { "v": "project" },
+    "b3": { "v": ["tipo", "prioridad", "solicitud", "automatizar"] },
+    "b4": { "v": "milestone" },
+    "b5": { "v": "numero" },
+    "c3": { "v": "md" },
+    "c4": { "v": "issues" },
+    "d1": { "c": "Quiro que los worktrees sigan tambien las reglas del lms para manejarlo.", "v": ["agents", "guardian", "adaptaciones", "work", "sesion", "lint", "worktrees", "docsreadme", "checklist", "mapa", "badge"] },
+    "d2": { "v": "plugin" },
+    "d3": { "c": "por que no recomiendas: No terminar el turno con cambios sin commitear ni pushear ??", "v": ["commits", "noverify", "ramas", "main", "merge", "addall", "secretos", "borrar", "encuesta", "estado", "workdocs", "sucio"] },
+    "d4": { "v": "si" },
+    "d5": { "c": "Por que recomiendas todo en español, explicamelo y vuelveme a consultar si aun asi prefiero la opcion que marque", "v": "lms" },
+    "e1": { "v": ["creator", "solver", "reviewer", "repodocs", "requerimientos", "fase", "company", "estado"] },
+    "e2": { "v": "propio" },
+    "e3": { "v": "paso" },
+    "f1": { "v": ["otteretro", "playos", "workos", "todos"] },
+    "f2": { "v": "actual" },
+    "f3": { "v": "plugin" },
+    "r1": { "c": "", "v": "una" },
+    "r2": { "v": "tema" },
+    "r3": { "v": "derivados" },
+    "r4": { "v": "mini" },
+    "r5": { "v": "umbral" },
+    "r6": { "v": ["chat", "automatizar", "hallazgos", "plan"] }
+  },
+  "seguimiento": {
+    "fecha": "2026-10-16",
+    "medio": "selector de opciones, después de explicar D3 y D5",
+    "d3": "Avisar, no bloquear (Recommended)",
+    "d5": "Inglés y renombrar F0"
+  }
+}

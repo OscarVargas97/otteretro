@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-16, después de la encuesta 11, "PlayOS" (#104 a #117). Quedan puntos por refinar en la encuesta 12.
+> **Última actualización:** 2026-10-16, después de la encuesta 13, "Metodología" (#118 a #127). Quedan puntos de PlayOS por refinar en la encuesta 12.
 
 ## Cómo se mantiene
 
@@ -50,6 +50,7 @@ Otteretro es una app **personal** para:
 
 - **Backend:** C# (.NET 10) con ASP.NET Core y SQLite (Dapper). Detalle en **[arquitectura.md](arquitectura.md)** (#92 a #99). **Interfaz:** Next.js exportado como estático (React). **Ventana:** Photino, que usa WebView2 en Windows y WebKitGTK en Linux.
 - **Idioma y uso:** interfaz en **español**, pensada para escritorio con ratón y teclado. Para la tele se usa Steam Big Picture.
+- **Idioma del código** (#125): identificadores en **inglés**; documentación, comentarios, commits, PRs e issues en español. Los nombres de F0 se renombran al inglés.
 - **Repositorio:** `D:\dev\personal\otteretro`, con copia en **GitHub, privado**. Ramas: **`dev`**, donde se trabaja, y **`main`**, que es lo publicado.
 - **Releases:** al fusionar `dev` en `main`, GitHub Actions compila y publica una release.
 - **Instalación y actualización:** con **Velopack**, desde las releases de GitHub. En Windows se instala en `%LocalAppData%\Otteretro` y en Linux es un AppImage. Se actualiza sola y nunca toca la carpeta de datos.
@@ -485,3 +486,20 @@ Mod público de WorkOS (tu NixOS) para juegos, en el repo `playos`, que importa 
 | Otteretro | Flake propio, se actualiza con el sistema, datos en `~/Otteretro`, claves en libsecret, GameMode/MangoHud/NVIDIA automáticos (#114, #116) |
 | Juegos | SSD interno, USB y copiar desde Torrecita; a futuro un NAS con todas las ROMs (#115) |
 | Cómo se trabaja | Fase P0 antes de F1; pruebo por `ssh legioncita` y el rebuild lo haces tú (#117) |
+
+## 15. Metodología de trabajo con IA (#118 a #127)
+
+Cómo se trabaja en Otteretro y en tus demás repos personales. Va en un plugin propio de Claude Code, **`otter`** (repo privado `OscarVargas97/claude-skills`). Parte de las skills de `mynu-ai` y del workspace del LMS, pero es independiente: no se sincroniza con ellos y **no toca nada de Multiplex** (#118, #119).
+
+| Tema | Decisión |
+|---|---|
+| Requerimientos | Las encuestas levantan los requerimientos y de ahí salen las tareas. Skill `requerimientos`: idea → encuesta → decisiones y requisitos → **una solicitud por tema** con sus sub-issues, creados cuando dices que sí. Criterios de aceptación derivados de las respuestas; lo que no queda claro y las preguntas que aparecen al implementar van a una mini-encuesta. Selector para 1 a 3 preguntas, artifact para más (#121) |
+| Tareas en GitHub | Solicitud = issue `solicitud`; tareas = sub-issues; estado en un GitHub Project (Pendiente → En desarrollo → En revisión → Hecho, Descartado); etiquetas de tipo y prioridad, `solicitud` y `automatizar`; un milestone por fase; se identifica con el número del issue. Sin Notion (#120) |
+| Decisiones y plan | Las decisiones siguen en `historial/decisiones.md` y los issues las citan. El estado de las tareas vive en issues y milestones; `plan-implementacion.md` queda con el detalle técnico de cada fase, sin marcar avance (#122) |
+| Reglas para la IA | `AGENTS.md` (y `CLAUDE.md` que lo importa), adaptaciones por repo, `work/<tarea>/ESTADO.md` para retomar entre sesiones, estado al iniciar sesión, lint después de editar, worktrees con las reglas del LMS, `docs/README.md` como índice, `docs/review-checklist.md`, mapa funcional y badge de la skill (#123) |
+| Guardián | En el plugin, basado en el del LMS, con reglas por repo. En Otteretro bloquea o pide confirmación según la lista de #124. Cambios sin commitear o sin pushear: **avisa, no bloquea** (#124) |
+| Idioma | Código en inglés; el resto en español (#125, §3) |
+| Skills | `requerimientos`, `issue-solver`, `pr-reviewer` (revisa tus PRs antes de fusionar en `dev`), `repo-docs`, docs entre repos, `fase` y `estado`. Un paso a la vez; commit, push y PR solo cuando los pides (#126) |
+| Puesta en marcha | Primero el plugin; después se aplica a Otteretro en una rama propia, con milestones de todas las fases e issues de la fase en curso. Se instala a nivel usuario (#127) |
+
+Mientras Otteretro no adopte el plugin, siguen las reglas actuales de `CLAUDE.md` (encuestas, decisiones y plan marcado).

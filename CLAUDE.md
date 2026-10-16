@@ -26,4 +26,4 @@ App personal, instalada con Velopack y con los datos en una carpeta que elige el
 - Claude se usa a través del Claude Code del usuario (`claude -p`), **nunca con la API de Anthropic**.
 - Claude decide y los scripts repiten: lo repetitivo y determinista se automatiza para no gastar tokens.
 - No borrar nunca versiones viejas de emuladores ni actualizaciones de juegos. Mover es copiar, verificar y recién entonces borrar.
-- Todo en español: interfaz, documentación y comentarios.
+- Interfaz, documentación, comentarios, commits, PRs e issues en español; el código (identificadores) en inglés (#125). Los nombres de F0 todavía están en español: se renombran al inglés.
