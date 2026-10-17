@@ -12,7 +12,7 @@ App personal, instalada con Velopack y con los datos en una carpeta que elige el
 
 ## Cómo se trabaja
 
-Desde el **workspace** `otteretro-workspace` (`D:\dev\personal\otteretro`), con el plugin `otter`. Su `AGENTS.md` explica los worktrees (`repos/otteretro/<rama>`), `work/<rama>/ESTADO.md`, el guardián y el flujo completo; este repo es `repos/otteretro/` dentro de él. Lo propio de este repo:
+Desde un **espacio** de [ia-workspace](https://github.com/OscarVargas97/ia-workspace) con Otteretro y PlayOS (en esta máquina, `D:\dev\personal\integracion-otter`), con el plugin `otter`. Su `AGENTS.md` explica los worktrees (`repos/otteretro/<rama>`), `work/<rama>/ESTADO.md`, el guardián y el flujo completo; este repo es `repos/otteretro/` dentro de él. Para armarlo en otra máquina: `make espacio DIR=<carpeta>` desde un clon de ia-workspace y, adentro, `make repo URL=OscarVargas97/otteretro` y `make repo URL=OscarVargas97/playos`. La config del guardián de este repo (`.claude/otter.json`) y sus adaptaciones (`.claude/adaptaciones/otter.md`) viven acá y el espacio las toma solas. Lo propio de este repo:
 
 - **Requerimientos y decisiones**: toda decisión de la persona sale de una encuesta (`otter:requerimientos`). Después de cada una:
   1. Respuestas originales en `docs/historial/respuestas/NN-nombre.json`.
