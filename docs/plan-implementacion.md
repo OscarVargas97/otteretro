@@ -1,6 +1,6 @@
 # Plan de implementación (para la IA que programa)
 
-> **Dónde vamos:** F0 · Esqueleto cerrada. Siguiente: **P0 · PlayOS y Linux** ([milestone](https://github.com/OscarVargas97/otteretro/milestone/2), #117), que se define con la encuesta 12; después **F1 · Catálogo**. Última actualización: 2026-10-16.
+> **Dónde vamos:** F0 · Esqueleto cerrada. Siguiente: **P0 · PlayOS y Linux** ([milestone](https://github.com/OscarVargas97/otteretro/milestone/2), #117, #137); después **D1 · Diseño** y **F1 · Catálogo** (#138). Última actualización: 2026-10-16.
 >
 > Este archivo guarda el **detalle técnico** de cada fase. El **avance** vive en GitHub: un milestone por fase, solicitudes y tareas como issues y sub-issues, y su estado en el [Project otteretro](https://github.com/users/OscarVargas97/projects/2) (#122). Al abrir o cerrar una fase, actualiza la línea de arriba.
 
@@ -105,24 +105,60 @@ Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
 
 ---
 
+## P0 · PlayOS y Linux · [milestone](https://github.com/OscarVargas97/otteretro/milestone/2)
+
+**Objetivo:** Otteretro F0 en Linux, empaquetado con Nix, y PlayOS en legioncita con las sesiones Work y Play (#104, #105, #129, #137).
+**Repos:** `otteretro` (rama `fase/p0-playos`) y `playos` (repo nuevo, `OscarVargas97/playos`, público, rama base `main`), con la misma rama en los dos y un solo `work/fase-p0-playos/` en el workspace. El cambio de host va en `workos-personal` (privado, fuera del workspace).
+**Cómo se prueba:** por `ssh legioncita` (C:/Windows/System32/OpenSSH/ssh.exe): `nix build`, `nix flake check`, `dotnet test` y correr la app. El `rebuild` (sudo con TOTP) lo hace el usuario (#117). Antes de leer workos: `git pull --ff-only` en sus repos.
+**Pedir al usuario al empezar:** tener legioncita encendida y alcanzable por ssh.
+
+### Otteretro
+- P0.1 Renombrado al inglés de F0 (#4, #125) antes de tocar nada más, para no mezclar renombres con cambios de Linux.
+- P0.2 Correr en Linux: Photino con WebKitGTK (dependencias en el paquete Nix), config en `$XDG_CONFIG_HOME/otteretro/config.json` y carpeta de datos sugerida `~/Otteretro` (#114); `/api/discos` con los montajes reales (`/`, `/home`, `/run/media/<usuario>/*`, `/mnt/*`), no `DriveType.Fixed`; mudanza: «mismo disco» por punto de montaje y no por raíz (hallazgo #4 de la revisión de F0); una sola instancia comprobada en Linux (mutex con nombre y tubería de .NET).
+- P0.3 `Credentials/` (se adelanta de F1.1): almacén cifrado con DPAPI en Windows y libsecret (Secret Service por D-Bus) en Linux, una clase por SO (#116); tabla `credencial` (si las tablas pasan al inglés se decide en #4); Ajustes › Cuentas y claves (estado válida/falta/vence). Pruebas: cifra y descifra; el valor guardado no es el texto plano.
+- P0.4 Actualización por SO: en Linux (o cuando la app corre desde el store de Nix) el actualizador queda en `NoDisponible` con «Se actualiza con el sistema» y la versión; Velopack solo en Windows (#114).
+- P0.5 `flake.nix` en la raíz de otteretro: `packages.x86_64-linux.default` (front con `buildNpmPackage`, back con `buildDotnetModule` y su `deps.json`; el target `CopiarWeb` se salta con una propiedad y se copia `web/out` ya construido), `nixosModules.default` (`programs.otteretro.enable`, paquete y entrada `.desktop`), `checks` con `dotnet test`. Cómo regenerar `deps.json` y `npmDepsHash`, en el AGENTS.md del repo.
+- P0.6 Modo pantalla completa para la sesión Play (`--fullscreen`, o solo al detectar gamescope) y acción «Ir a Steam» (lo que funcione en la sesión de Steam, ver P0.12).
+- P0.7 Documentación: Linux en `arquitectura.md`, comandos de Linux y Nix en `AGENTS.md` y §0.1b, `docs/mapa/` si cambian endpoints. El contrato Otteretro ↔ PlayOS (módulo, opciones, sesión Play) se documenta en el repo dueño con `otter:docs-compartidos`.
+
+### PlayOS
+- P0.8 Repo `playos`: `flake.nix` con inputs `workos` y `otteretro` (nixpkgs con `follows` de workos), `lib.mkHost` = `workos.lib.mkHost` + `nixosModules.playos`; `README.md`, `AGENTS.md` (mismas invariantes que workos: cero datos personales, todo declarativo), `docs/DECISIONS.md` que remite al registro de Otteretro; host `vm` para evaluar.
+- P0.9 Sesiones: greetd con **Work** (la de workos) y **Play** (`programs.steam.gamescopeSession`), con Otteretro como primera app de la sesión Play (#105, #129).
+- P0.10 Juegos: `programs.steam` (`remotePlay`, `localNetworkGameTransfers`, `extest`, `extraCompatPackages` con Proton-GE), Steam ROM Manager, Heroic, Lutris, Bottles, itch, Vesktop, OBS, gpu-screen-recorder (#111); GameMode (con perfil de energía de rendimiento al empezar y al terminar), gamescope, MangoHud, LACT (#110); mandos: `hardware.xone`, `hardware.steam-hardware`, Bluetooth (#108); LenovoLegionLinux y OpenRGB (#110). Opciones `playos.*` para encender o apagar cada grupo.
+- P0.11 GPU (#109): en legioncita, comparar la configuración híbrida (offload) y la discreta (MUX) con lo que muestre el equipo (`lspci`, `nvidia-smi`, `/sys/class/drm`, la BIOS) y dejar la que funciona; si cambia, va en `workos-personal`.
+- P0.12 Prototipo de la sesión Play (#129): Otteretro arranca solo al entrar en Play, a pantalla completa; el botón Steam lleva a Big Picture y se vuelve a Otteretro; anotar qué funciona (overlay, teclado en pantalla, botón Guía) en `work/fase-p0-playos/` y lo que cambie el diseño, para D1.
+- P0.13 `workos-personal`: legioncita pasa a `playos.lib.mkHost` con su identidad y su hardware. Rebuild del usuario y verificación.
+
+**Listo cuando:** en legioncita, al entrar, se elige Play y aparece Otteretro a pantalla completa; con el botón Steam se va a Big Picture y se vuelve; en Work, Steam y Otteretro se abren como apps normales; `nix flake check` pasa en otteretro y en playos; `dotnet test` pasa en Windows y en Linux.
+
+## D1 · Diseño · [milestone](https://github.com/OscarVargas97/otteretro/milestone/12)
+
+**Objetivo:** actualizar el sistema de diseño y el prototipo (https://claude.ai/artifact/DMH4KuU2kkAnb3ApFTCiuu, https://claude.ai/artifact/Bo8gtfiPdRAumFhkFikHPV) para el centro de entretenimiento (#107, #138), con lo que dejó P0.12.
+
+- D1.1 Sistema de diseño: estado de foco para mando, barra de botones (glifos Xbox/PlayStation/Switch), menú rápido del botón Guía.
+- D1.2 Inicio: continuar jugando (consola y PC), siguiente de cada ruta, novedades, tareas.
+- D1.3 Sagas, Colección (PC como consola) y ficha con juegos de PC; en la ficha, quién lanza (Steam, Heroic, Lutris, itch, emulador o port), «jugar en Torrecita» y «traer a este equipo».
+- D1.4 Seguimiento en la ficha: estado, fechas, sesiones, tiempo jugado y logros (#133).
+- D1.5 Recorrido con mando de punta a punta en el prototipo y actualización de `pantallas.md`. Aprobación del usuario.
+
 ## F1 · Catálogo · [milestone](https://github.com/OscarVargas97/otteretro/milestone/3)
 
-**Objetivo:** Sagas, fichas y Colección con datos reales; lo que tienes en Steam como "lo tengo · versión PC".
+**Objetivo:** Sagas, fichas y Colección con datos reales, de consola y de PC (#107, #131); lo que tienes en Steam como "lo tengo" con sus horas; todo navegable con mando (#134).
 **Pedir al usuario al empezar:** claves de IGDB (Twitch client id/secret), SteamGridDB, Steam Web API, RAWG.
 
-- F1.1 `Credenciales/`: guardar y leer cifrado con DPAPI (`ProtectedData`, ámbito usuario) en tabla `credencial`. Ajustes › Cuentas y claves (estado válida/falta/vence). Prueba: cifra y descifra; el valor en la BD no es el texto plano.
+- F1.1 *(Pasó a P0.3: credenciales con DPAPI y libsecret.)* Navegación espacial con mando en el front: foco, barra de botones y menú rápido según D1 (#134); se usa en cada pantalla de esta fase y de las siguientes.
 - F1.2 `Tareas/`: tabla `tarea`, trabajador en segundo plano (un `BackgroundService` con concurrencia 1 por tipo), estados, progreso publicado por SSE, notificación del sistema al terminar tareas largas. Panel de tareas real en el front.
 - F1.3 Tabla `cache_api` y cliente HTTP con caché y límite de ritmo por fuente (IGDB: 4 req/s).
-- F1.4 Migración del catálogo: `consola`, `saga`, `juego`, `version`, `version_criterio`, `dato`, `progreso`, `seguir_precio`, `descarte` (ver arquitectura §4). Semilla de las 23 consolas + PC.
-- F1.5 Importador IGDB (`Catalogo/Igdb.cs`): franquicias/colecciones → sagas; juegos por plataforma de las 23 consolas; `version_parent`, remakes, remasters, ports → versiones; nombres alternativos (español); ids externos de Steam.
+- F1.4 Migración del catálogo: `consola`, `saga`, `juego`, `version`, `version_criterio`, `dato`, `progreso`, `seguir_precio`, `descarte` (ver arquitectura §4; identificadores en inglés, #125). La saga no tiene plataforma: la plataforma va en la versión (#131). `progreso` con estado (pendiente, jugando, terminado, 100 %, abandonado), fechas de inicio y fin, nota y notas; tabla de sesiones (la llena F4) (#133). Semilla de las 23 consolas + PC.
+- F1.5 Importador IGDB (`Catalogo/Igdb.cs`): franquicias/colecciones → sagas; juegos por plataforma de las 23 consolas y PC, **por partes** (por saga o plataforma, encolado y reanudable, nunca todo PC de golpe) (#131); `version_parent`, remakes, remasters, ports → versiones; nombres alternativos (español); ids externos de Steam.
 - F1.6 Wikidata (relación juego–saga que IGDB no tenga), RAWG (complemento), HowLongToBeat opcional (scraper; si falla, "sin datos"). Prioridad fija por campo en `Catalogo/Prioridad.cs`; lo `manual` nunca se sobrescribe. Prueba de la prioridad.
 - F1.7 SteamGridDB: portadas 2:3, héroes y logos a `cache/imagenes/`; endpoint de imagen local.
-- F1.8 Steam Web API: `GetOwnedGames` (con horas) de la cuenta detectada en `loginusers.vdf` → `origen` tipo tienda; enlazar por id de Steam de IGDB.
-- F1.9 Pantallas con datos: Sagas (filtros, orden), detalle de saga (sin rutas), Colección por consola, ficha (versiones, datos y fuentes, corregir campo a mano), búsqueda global Ctrl+K, favoritas, "sigo", progreso, nota 1–10.
+- F1.8 Steam Web API: `GetOwnedGames` (con horas y última vez) de la cuenta detectada en `loginusers.vdf` → `origen` tipo tienda y seguimiento importado (#133); enlazar por id de Steam de IGDB. En Linux, `loginusers.vdf` en `~/.steam/steam/config/`.
+- F1.9 Pantallas con datos según D1: Sagas (filtros, orden), detalle de saga (sin rutas), Colección por consola (PC como una más), ficha (versiones, datos y fuentes, corregir campo a mano, seguimiento), búsqueda global Ctrl+K, favoritas, "sigo", nota 1–10. Todas navegables con mando.
 - F1.10 CLI: `otteretro catalogo cargar [--consola X]`, `otteretro steam sincronizar`.
 - F1.11 Pruebas y cierre de fase.
 
-**Listo cuando:** saga Zelda completa con versiones y portadas; tus juegos de Steam como "lo tengo".
+**Listo cuando:** saga Zelda completa con versiones y portadas; una saga de PC igual; tus juegos de Steam como "lo tengo" con sus horas; todo se recorre con el mando.
 
 ## F2 · Claude · [milestone](https://github.com/OscarVargas97/otteretro/milestone/4)
 
@@ -132,7 +168,7 @@ Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
 - F2.4 Tablas `ruta`, `ruta_paso`, `revision`, `aprendizaje`, `uso_claude`. Registro de uso por llamada.
 - F2.5 Recalcular cuando cambian los datos de los que depende un resultado (hash de entradas guardado con el resultado) o cuando se pide. Tope por ejecución tras la carga inicial (Ajustes › Claude).
 - F2.6 Pantallas: línea de tiempo con selector de ruta, "Por qué este orden", comparativa de 4 criterios, Revisar › Resultados por aprobar y Aprendizajes (deshacer), Inicio › Continuar, Ajustes › Claude.
-- F2.7 Carga inicial Nintendo → Sony → Microsoft; CLI `otteretro claude cargar`.
+- F2.7 Carga inicial por partes: Nintendo → Sony → Microsoft → PC (#69, #131); CLI `otteretro claude cargar`.
 - F2.8 Pruebas (ejecutor con un `claude` falso) y cierre.
 
 ## F3 · Bibliotecas · [milestone](https://github.com/OscarVargas97/otteretro/milestone/5)
@@ -143,17 +179,20 @@ Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
 - F3.4 Escaneo por nombre y TitleID/serial; BASE/UPD/DLC (Switch por TitleID).
 - F3.5 DAT: descargar No-Intro de `libretro-database` (GitHub) y Redump; tabla `dat_entrada`; verificación por hash bajo demanda.
 - F3.6 Revisar › Dudosas y Sin identificar; tabla `alias`.
-- F3.7 Ajustes › Bibliotecas; asistente paso 4. Pruebas y cierre.
+- F3.7 Bibliotecas en red (SMB/NFS): tipo y reconexión sin disco local; «traer a este equipo» en la ficha (copiar por la red → hash → registrar) (#136). **Pruebas obligatorias** de la copia.
+- F3.8 Juegos de PC sueltos (carpeta con el ejecutable) como «lo tengo» de PC (#132).
+- F3.9 Ajustes › Bibliotecas; asistente paso 4. Pruebas y cierre.
 
 ## F4 · Emuladores, ports y Jugar · [milestone](https://github.com/OscarVargas97/otteretro/milestone/6)
 
-- F4.1 Formato de receta (JSON Schema en `recetas/receta.schema.json`) y lector.
+- F4.1 Formato de receta (JSON Schema en `recetas/receta.schema.json`) y lector. **Compartida con Nix** (#135): por versión y por sistema, URL y hash (SRI). `playos` lee las recetas del input `otteretro` y arma un paquete por versión de lo que no está en nixpkgs (AppImage con `appimageTools` o binario con `autoPatchelf`); todas las versiones quedan instaladas. Variantes por juego (texturas, ajustes de rendimiento).
 - F4.2 Recetas: Dolphin, Dusklight, Ryujinx SS4K (instalación propia), Eden, Ryubing, Citron, y los predeterminados de cada consola (Claude investiga las recomendaciones de GordoFriki al escribirlas).
 - F4.3 Instalar desde la fuente oficial, versiones lado a lado, copia previa, migrar partidas y configuración, reescribir rutas internas (ini/json/xml). **Pruebas de reescritura.**
 - F4.4 Mover emuladores, port y texturas de `E:\Consolas` a `Herramientas\`; Dusklight en modo portable en lugar de la junction.
 - F4.5 Herramientas › Sistema (BIOS/keys/firmware con versiones) y avisos.
 - F4.6 Regla de cómo jugar + elección manual. **Pruebas de la regla.**
-- F4.7 `otteretro jugar`: preparar (UPD/DLC en el emulador, regenerar ISO), lanzar, esperar al proceso lanzado (`WaitForSingleObject`), Job Object + comprobación cada 60 s si deja hijos; ventana pequeña solo si prepara o falla.
+- F4.7 `otteretro jugar`: preparar (UPD/DLC en el emulador, regenerar ISO), lanzar, esperar al proceso lanzado (`WaitForSingleObject`; en Linux `pidfd`), Job Object + comprobación cada 60 s si deja hijos (en Linux, grupo de procesos); ventana pequeña solo si prepara o falla. En Linux envuelve con `gamemoderun`, MangoHud y `nvidia-offload` según la GPU de #109, desactivable por juego (#116). Registra la sesión (inicio, fin, duración) (#133).
+- F4.7b Botón Jugar por el dueño (#130): `steam://rungameid/<appid>` para lo de Steam y para lo exportado con SRM (id del acceso no-Steam), `heroic://launch/…`, `lutris:rungameid/…`, itch; si no hay dueño, `otteretro jugar` directo. «Jugar en Torrecita» para lo que no corre en Linux (#112): abre `pc` (Moonlight).
 - F4.8 Portar `E:\Consolas\_Herramientas\Catalogo` (Node) a C#: ports nuevos (Recompendium) y compatibilidad → Inicio › Novedades.
 - F4.9 Pruebas y cierre. **Pedir:** prod.keys y firmware (A2).
 
@@ -174,6 +213,7 @@ Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
 
 - F7.1 SteamKit2: inicio de sesión con Steam Guard una vez, refresh token cifrado, `GenerateAccessTokenForApp`, `IFamilyGroupsService/GetSharedLibraryApps`. **Comprobar T1.**
 - F7.2 Epic (OAuth tipo Legendary; si falla, manifiestos de lo instalado); Xbox y Battle.net instalados.
+- F7.2b En Linux: bibliotecas de Heroic (Epic, GOG, Amazon; archivos de `~/.config/heroic`), Lutris (`pga.db`) e itch (#132).
 - F7.3 IsThereAnyDeal, GamerPower, Game Pass; `tienda_precio`; avisos (#84) solo con la app abierta (#75).
 - F7.4 Ficha › Tiendas, Inicio › Novedades. Pruebas y cierre.
 
@@ -188,7 +228,7 @@ Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
 ## F9 · Descubrir, logros y pulido · [milestone](https://github.com/OscarVargas97/otteretro/milestone/11)
 
 - F9.1 Descubrir (Claude), "no me interesa" 6 meses.
-- F9.2 RetroAchievements en la ficha y en los emuladores compatibles.
+- F9.2 Logros de Steam (`GetPlayerAchievements`) y RetroAchievements en la ficha (#133); RetroAchievements en los emuladores compatibles.
 - F9.3 Evolución: sugerir issues "automatizar" con `gh`.
 - F9.4 Asistente paso 7; repaso de estados vacíos, errores y la nutria. Cierre.
 

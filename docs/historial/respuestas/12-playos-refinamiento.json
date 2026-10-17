@@ -1,0 +1,94 @@
+{
+  "actualizado": "2026-10-16T23:08:12.470Z",
+  "respuestas": {
+    "em1": {
+      "v": "recetas"
+    },
+    "em2": {
+      "v": "todas"
+    },
+    "em3": {
+      "c": "Eso si, deberia poder modificar en el sistema, en caso de que por ejemplo encuentre emuladores configurados para texture pack o que mejoren el rendimiento de un juego",
+      "v": "otteretro"
+    },
+    "g1": {
+      "v": "steamdueño"
+    },
+    "g2": {
+      "c": "El sistema es mas como un graper en el sentido de que me permita ver informacion interesante para mis sesiones de juego como las rutas de las aagas y tal, pero  dispara los sistemas dueños, es decir la tienda que sea la dueña del juego en cuestion",
+      "v": "steam"
+    },
+    "g3": {
+      "v": "lanzador"
+    },
+    "m1": {
+      "v": "espacial"
+    },
+    "m2": {
+      "v": "steam"
+    },
+    "m3": {
+      "v": "menu"
+    },
+    "n1": {
+      "v": "tipo"
+    },
+    "n2": {
+      "v": "otteretro"
+    },
+    "pc1": {
+      "c": "La idea es que las sagas no se repuitan, no es relevante a que sistema esta asociada la sagas, sino que los juegos de la saga estan asociados a los sistemas, ahoea esto es relevante para el scraping, ya que no quiero estar buscando todas las sagas de golpe de pc, por que sino quizas nunca termina el sistema y me agora ",
+      "v": "sagas"
+    },
+    "pc2": {
+      "v": "despues"
+    },
+    "pc3": {
+      "c": "",
+      "v": [
+        "steam",
+        "heroic",
+        "lutris",
+        "itch",
+        "xbox",
+        "sueltos"
+      ]
+    },
+    "pc4": {
+      "v": "consola"
+    },
+    "pl1": {
+      "v": "completo"
+    },
+    "pl2": {
+      "v": "d1"
+    },
+    "sg1": {
+      "v": [
+        "horas",
+        "sesiones",
+        "ultima",
+        "estado",
+        "fechas",
+        "logros",
+        "nota"
+      ]
+    },
+    "sg2": {
+      "v": "steam"
+    }
+  },
+  "encuesta": {
+    "numero": 12,
+    "nombre": "PlayOS · refinamiento",
+    "artifact": "https://claude.ai/artifact/DnCmpEpzFyJPn391h15bkL"
+  },
+  "seguimiento": [
+    {
+      "fecha": "2026-10-16",
+      "pregunta": "pl3",
+      "respuesta": "si",
+      "como": "selector en el chat (había quedado sin responder)"
+    }
+  ]
+}
