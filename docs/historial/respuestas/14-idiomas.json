@@ -1,0 +1,17 @@
+{
+  "actualizado": "2026-10-23",
+  "medio": "selector (3 preguntas)",
+  "contexto": "La persona preguntó cómo tener la app en inglés y español con los textos centralizados, de modo que sumar otro idioma sea fácil, y pidió aplicarlo.",
+  "respuestas": {
+    "fase": {
+      "v": "P0, ahora (recomendada)"
+    },
+    "ingles": {
+      "v": "Completo desde el inicio (recomendada)"
+    },
+    "backend": {
+      "v": "Sí, ahora: la API devuelve códigos y el front traduce (recomendada)"
+    }
+  },
+  "seguimiento": "El idioma se guarda en config.json y no en la tabla setting, porque el asistente de bienvenida corre antes de que exista la base de datos (propia)."
+}

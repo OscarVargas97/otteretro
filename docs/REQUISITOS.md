@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-16, después de la encuesta 12, "PlayOS · refinamiento" (#129 a #138).
+> **Última actualización:** 2026-10-23, después de la encuesta 14, "Idiomas" (#140 a #142), y de la #139 (tablas en inglés).
 
 ## Cómo se mantiene
 
@@ -49,8 +49,8 @@ Otteretro es una app **personal** para:
 ## 3. Stack y repositorio ✅
 
 - **Backend:** C# (.NET 10) con ASP.NET Core y SQLite (Dapper). Detalle en **[arquitectura.md](arquitectura.md)** (#92 a #99). **Interfaz:** Next.js exportado como estático (React). **Ventana:** Photino, que usa WebView2 en Windows y WebKitGTK en Linux.
-- **Idioma y uso:** interfaz en **español**, pensada para escritorio con ratón y teclado. Para la tele se usa Steam Big Picture.
-- **Idioma del código** (#125): identificadores en **inglés**; documentación, comentarios, commits, PRs e issues en español. Los nombres de F0 se renombran al inglés.
+- **Idioma y uso:** interfaz en **español e inglés** (#140 a #142), con los textos en un catálogo por idioma para que sumar otro sea agregar un archivo; se elige en Ajustes y por defecto sigue al sistema. Pensada para escritorio con ratón y teclado. Para la tele se usa Steam Big Picture.
+- **Idioma del código** (#125, #139): identificadores, tablas y columnas en **inglés**; documentación, comentarios, commits, PRs e issues en español.
 - **Repositorio:** `D:\dev\personal\otteretro`, con copia en **GitHub, privado**. Ramas: **`dev`**, donde se trabaja, y **`main`**, que es lo publicado.
 - **Releases:** al fusionar `dev` en `main`, GitHub Actions compila y publica una release.
 - **Instalación y actualización:** con **Velopack**, desde las releases de GitHub. En Windows se instala en `%LocalAppData%\Otteretro`. *En Linux, reemplazado por la #114:* paquete y módulo de Nix, que se actualiza con el sistema. Se actualiza sola y nunca toca la carpeta de datos.
@@ -521,7 +521,7 @@ Cómo se trabaja en Otteretro y en tus demás repos personales. Va en un plugin 
 | Reglas para la IA | `AGENTS.md` (y `CLAUDE.md` que lo importa), adaptaciones por repo, `work/<tarea>/ESTADO.md` para retomar entre sesiones, estado al iniciar sesión, lint después de editar, worktrees con las reglas del LMS, `docs/README.md` como índice, `docs/review-checklist.md`, mapa funcional y badge de la skill (#123) |
 | Guardián | En el plugin, basado en el del LMS, con reglas por repo. En Otteretro bloquea o pide confirmación según la lista de #124. Cambios sin commitear o sin pushear: **avisa, no bloquea** (#124) |
 | Workspace | `otteretro-workspace` en `D:\dev\personal\otteretro` agrupa Otteretro y PlayOS en `repos/<repo>/<rama>`, con `work/`, la configuración del guardián y lo que cruza repos (#128) |
-| Idioma | Código en inglés; el resto en español (#125, §3) |
+| Idioma | Interfaz en español e inglés (#140); código y tablas en inglés; documentación en español (#125, #139, §3) |
 | Skills | `requerimientos`, `issue-solver`, `pr-reviewer` (revisa tus PRs antes de fusionar en `dev`), `repo-docs`, docs entre repos, `fase` y `estado`. Un paso a la vez; commit, push y PR solo cuando los pides (#126) |
 | Puesta en marcha | Primero el plugin; después se aplica a Otteretro en una rama propia, con milestones de todas las fases e issues de la fase en curso. Se instala a nivel usuario (#127) |
 
