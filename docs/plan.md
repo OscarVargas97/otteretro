@@ -32,7 +32,7 @@ Las **acciones tuyas** de cada fase (cuentas y claves, A3) se piden al empezarla
 **Listo cuando:** instalas desde el paquete local, eliges la carpeta de datos, navegas por todas las pantallas, y un segundo paquete local se instala solo como actualización.
 **Tú:** crear el token de GitHub.
 
-## P0 · PlayOS y Linux
+## P0 · PlayOS y Linux (en curso)
 
 **Qué tendrás:** legioncita con PlayOS: al entrar eliges **Work** (tu Hyprland de siempre) o **Play** (la sesión de Steam, con Otteretro arriba a pantalla completa), y Otteretro F0 funcionando en Linux.
 

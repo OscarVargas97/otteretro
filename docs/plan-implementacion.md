@@ -1,6 +1,6 @@
 # Plan de implementación (para la IA que programa)
 
-> **Dónde vamos:** F0 · Esqueleto cerrada. Siguiente: **P0 · PlayOS y Linux** ([milestone](https://github.com/OscarVargas97/otteretro/milestone/2), #117, #137); después **D1 · Diseño** y **F1 · Catálogo** (#138). Última actualización: 2026-10-16.
+> **Dónde vamos:** F0 · Esqueleto cerrada. **En curso: P0 · PlayOS y Linux** ([milestone](https://github.com/OscarVargas97/otteretro/milestone/2), #137), rama `fase/p0-playos` en otteretro y playos. Después **D1 · Diseño** y **F1 · Catálogo** (#138). Última actualización: 2026-10-17.
 >
 > Este archivo guarda el **detalle técnico** de cada fase. El **avance** vive en GitHub: un milestone por fase, solicitudes y tareas como issues y sub-issues, y su estado en el [Project otteretro](https://github.com/users/OscarVargas97/projects/2) (#122). Al abrir o cerrar una fase, actualiza la línea de arriba.
 
