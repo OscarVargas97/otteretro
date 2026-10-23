@@ -2,9 +2,9 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
-## Novedades del proyecto · en revisión
+## Novedades del proyecto · 2026-10-23
 
-`docs/changelog` · PR en revisión
+`docs/changelog` · PR #15
 
 ### Nuevo
 - **Este archivo**: cada cambio de Otteretro cuenta acá qué trae, con lo nuevo, los cambios y los arreglos. Empieza con todo lo que ya se hizo.
