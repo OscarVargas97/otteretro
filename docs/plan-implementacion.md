@@ -66,6 +66,8 @@ Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
 
 ## F0 · Esqueleto · [milestone](https://github.com/OscarVargas97/otteretro/milestone/1)
 
+> Las tareas de F0 quedan como se hicieron, con los nombres en español. En P0.1 (#4) el código, la API y las tablas pasaron al inglés: los nombres vigentes están en `docs/mapa/README.md`.
+
 **Objetivo:** la app se instala, abre su ventana con la navegación del prototipo, guarda en la carpeta de datos elegida y se actualiza con Velopack (paquetes locales).
 
 ### Tareas
@@ -114,12 +116,13 @@ Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
 
 ### Otteretro
 - P0.1 Renombrado al inglés de F0 (#4, #125) antes de tocar nada más, para no mezclar renombres con cambios de Linux.
-- P0.2 Correr en Linux: Photino con WebKitGTK (dependencias en el paquete Nix), config en `$XDG_CONFIG_HOME/otteretro/config.json` y carpeta de datos sugerida `~/Otteretro` (#114); `/api/discos` con los montajes reales (`/`, `/home`, `/run/media/<usuario>/*`, `/mnt/*`), no `DriveType.Fixed`; mudanza: «mismo disco» por punto de montaje y no por raíz (hallazgo #4 de la revisión de F0); una sola instancia comprobada en Linux (mutex con nombre y tubería de .NET).
-- P0.3 `Credentials/` (se adelanta de F1.1): almacén cifrado con DPAPI en Windows y libsecret (Secret Service por D-Bus) en Linux, una clase por SO (#116); tabla `credencial` (si las tablas pasan al inglés se decide en #4); Ajustes › Cuentas y claves (estado válida/falta/vence). Pruebas: cifra y descifra; el valor guardado no es el texto plano.
-- P0.4 Actualización por SO: en Linux (o cuando la app corre desde el store de Nix) el actualizador queda en `NoDisponible` con «Se actualiza con el sistema» y la versión; Velopack solo en Windows (#114).
+- P0.2 Correr en Linux: Photino con WebKitGTK (dependencias en el paquete Nix), config en `$XDG_CONFIG_HOME/otteretro/config.json` y carpeta de datos sugerida `~/Otteretro` (#114); `/api/drives` con los montajes reales (`/`, `/home`, `/run/media/<usuario>/*`, `/mnt/*`), no `DriveType.Fixed`; mudanza: «mismo disco» por punto de montaje y no por raíz (hallazgo #4 de la revisión de F0); una sola instancia comprobada en Linux (mutex con nombre y tubería de .NET).
+- P0.3 `Credentials/` (se adelanta de F1.1): almacén cifrado con DPAPI en Windows y libsecret (Secret Service por D-Bus) en Linux, una clase por SO (#116); tabla `credential` (#139); Ajustes › Cuentas y claves (estado válida/falta/vence). Pruebas: cifra y descifra; el valor guardado no es el texto plano.
+- P0.4 Actualización por SO: en Linux (o cuando la app corre desde el store de Nix) el actualizador queda en `Unavailable` con «Se actualiza con el sistema» y la versión; Velopack solo en Windows (#114).
 - P0.5 `flake.nix` en la raíz de otteretro: `packages.x86_64-linux.default` (front con `buildNpmPackage`, back con `buildDotnetModule` y su `deps.json`; el target `CopiarWeb` se salta con una propiedad y se copia `web/out` ya construido), `nixosModules.default` (`programs.otteretro.enable`, paquete y entrada `.desktop`), `checks` con `dotnet test`. Cómo regenerar `deps.json` y `npmDepsHash`, en el AGENTS.md del repo.
 - P0.6 Modo pantalla completa para la sesión Play (`--fullscreen`, o solo al detectar gamescope) y acción «Ir a Steam» (lo que funcione en la sesión de Steam, ver P0.12).
 - P0.7 Documentación: Linux en `arquitectura.md`, comandos de Linux y Nix en `AGENTS.md` y §0.1b, `docs/mapa/` si cambian endpoints. El contrato Otteretro ↔ PlayOS (módulo, opciones, sesión Play) se documenta en el repo dueño con `otter:docs-compartidos`.
+- P0.14 a P0.16 Idiomas (#16, decisiones #140 a #142): catálogos `web/messages/es.json` y `en.json` con next-intl sin rutas por idioma y formato ICU, `Intl` para fechas y números (#17); el backend devuelve códigos con parámetros y el front los traduce (#18); el idioma se elige en Ajustes y en el asistente, se guarda en `config.json` (`language`) y por defecto sigue al sistema (#19). Una revisión falla si los catálogos no tienen las mismas claves.
 
 ### PlayOS
 - P0.8 Repo `playos`: `flake.nix` con inputs `workos` y `otteretro` (nixpkgs con `follows` de workos), `lib.mkHost` = `workos.lib.mkHost` + `nixosModules.playos`; `README.md`, `AGENTS.md` (mismas invariantes que workos: cero datos personales, todo declarativo), `docs/DECISIONS.md` que remite al registro de Otteretro; host `vm` para evaluar.
@@ -147,9 +150,9 @@ Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
 **Pedir al usuario al empezar:** claves de IGDB (Twitch client id/secret), SteamGridDB, Steam Web API, RAWG.
 
 - F1.1 *(Pasó a P0.3: credenciales con DPAPI y libsecret.)* Navegación espacial con mando en el front: foco, barra de botones y menú rápido según D1 (#134); se usa en cada pantalla de esta fase y de las siguientes.
-- F1.2 `Tareas/`: tabla `tarea`, trabajador en segundo plano (un `BackgroundService` con concurrencia 1 por tipo), estados, progreso publicado por SSE, notificación del sistema al terminar tareas largas. Panel de tareas real en el front.
+- F1.2 `Tasks/`: tabla `task`, trabajador en segundo plano (un `BackgroundService` con concurrencia 1 por tipo), estados, progreso publicado por SSE, notificación del sistema al terminar tareas largas. Panel de tareas real en el front.
 - F1.3 Tabla `cache_api` y cliente HTTP con caché y límite de ritmo por fuente (IGDB: 4 req/s).
-- F1.4 Migración del catálogo: `consola`, `saga`, `juego`, `version`, `version_criterio`, `dato`, `progreso`, `seguir_precio`, `descarte` (ver arquitectura §4; identificadores en inglés, #125). La saga no tiene plataforma: la plataforma va en la versión (#131). `progreso` con estado (pendiente, jugando, terminado, 100 %, abandonado), fechas de inicio y fin, nota y notas; tabla de sesiones (la llena F4) (#133). Semilla de las 23 consolas + PC.
+- F1.4 Migración del catálogo: `console`, `saga`, `game`, `version`, `version_criterion`, `field_value`, `progress`, `price_watch`, `dismissal` (ver arquitectura §4; tablas e identificadores en inglés, #125 y #139). La saga no tiene plataforma: la plataforma va en la versión (#131). `progress` con estado (pending, playing, finished, completed, dropped), fechas de inicio y fin, nota y notas; tabla de sesiones (la llena F4) (#133). Semilla de las 23 consolas + PC.
 - F1.5 Importador IGDB (`Catalogo/Igdb.cs`): franquicias/colecciones → sagas; juegos por plataforma de las 23 consolas y PC, **por partes** (por saga o plataforma, encolado y reanudable, nunca todo PC de golpe) (#131); `version_parent`, remakes, remasters, ports → versiones; nombres alternativos (español); ids externos de Steam.
 - F1.6 Wikidata (relación juego–saga que IGDB no tenga), RAWG (complemento), HowLongToBeat opcional (scraper; si falla, "sin datos"). Prioridad fija por campo en `Catalogo/Prioridad.cs`; lo `manual` nunca se sobrescribe. Prueba de la prioridad.
 - F1.7 SteamGridDB: portadas 2:3, héroes y logos a `cache/imagenes/`; endpoint de imagen local.
@@ -173,7 +176,7 @@ Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
 
 ## F3 · Bibliotecas · [milestone](https://github.com/OscarVargas97/otteretro/milestone/5)
 
-- F3.1 Tabla `biblioteca`; marcador `otteretro-biblioteca.json` `{id, nombre, tipo, creada, formato}`.
+- F3.1 Tabla `library`; marcador `otteretro-biblioteca.json` `{id, nombre, tipo, creada, formato}`.
 - F3.2 Crear, adoptar (incluida la estructura antigua de `E:\Consolas`), renombrar, quitar sin borrar, reconectar (buscar en raíces de discos a 2 niveles).
 - F3.3 Mover/migrar: copiar → hash → actualizar BD → borrar origen; reanudable si se corta. **Pruebas obligatorias.**
 - F3.4 Escaneo por nombre y TitleID/serial; BASE/UPD/DLC (Switch por TitleID).
@@ -199,7 +202,7 @@ Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
 ## F5 · Respaldo · [milestone](https://github.com/OscarVargas97/otteretro/milestone/7)
 
 - F5.1 Repo privado `otteretro-datos` (crearlo con `gh` si no existe); token de GitHub cifrado (#68). **Pedir el token aquí.**
-- F5.2 Export de cada tabla a JSON (salvo `cache_api` y `credencial`), al cambiar y al cerrar.
+- F5.2 Export de cada tabla a JSON (salvo `api_cache` y `credential`), al cambiar y al cerrar.
 - F5.3 Partidas al cerrar el juego (cola), configuración al cambiar, BIOS/keys; Git LFS > 50 MB, presupuesto 0.
 - F5.4 Conflictos (#77) y restaurar; Ajustes › Respaldo; asistente paso 3. **Pruebas obligatorias.**
 

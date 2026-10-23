@@ -1,109 +1,123 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { pedir } from "@/lib/cliente";
-import type { EstadoActualizacion } from "@/lib/tipos";
+import { useFormatter, useTranslations } from "next-intl";
+import { request } from "@/lib/client";
+import { useDynamicT } from "@/lib/i18n";
+import type { UpdateState } from "@/lib/types";
 
-const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Estado de la actualización de la app; llega en vivo por el evento "actualizacion". */
-export const useActualizacion = () =>
-  useQuery({ queryKey: ["actualizacion"], queryFn: () => pedir<EstadoActualizacion>("/api/actualizacion") }).data;
+/** Estado de la actualización de la app; llega en vivo por el evento "update". */
+export const useUpdate = () =>
+  useQuery({ queryKey: ["update"], queryFn: () => request<UpdateState>("/api/update") }).data;
+
+/** Motivo que manda el backend como código (update.reason.*), o null. */
+function useReason() {
+  const t = useDynamicT();
+  return (u?: UpdateState) => (u?.message && t.has(`update.reason.${u.message}`) ? t(`update.reason.${u.message}`) : null);
+}
 
 /** Fila del panel de tareas (TaskRow del sistema de diseño). No muestra nada si no hay actualización en marcha. */
-export function TareaActualizacion() {
-  const a = useActualizacion();
-  if (!a || !["Buscando", "Descargando", "Lista", "Error"].includes(a.fase)) return null;
-  const progreso = Number(a.progreso);
-  const estado: Record<string, string> = {
-    Buscando: "Buscando…",
-    Descargando: `${progreso} %`,
-    Lista: "Lista",
-    Error: "Error",
+export function UpdateTask() {
+  const t = useTranslations("update");
+  const reason = useReason();
+  const u = useUpdate();
+  if (!u || !["Checking", "Downloading", "Ready", "Error"].includes(u.phase)) return null;
+  const progress = Number(u.progress);
+  const version = u.version ?? "";
+  const state: Record<string, string> = {
+    Checking: t("checking"),
+    Downloading: `${progress} %`,
+    Ready: t("ready"),
+    Error: t("error"),
   };
-  const detalle: Record<string, string> = {
-    Buscando: "Comprobando si hay una versión nueva",
-    Descargando: `Descargando la versión ${a.version}`,
-    Lista: `La versión ${a.version} se instalará al cerrar la app`,
-    Error: a.mensaje ?? "No se pudo actualizar",
+  const detail: Record<string, string> = {
+    Checking: t("checkingDetail"),
+    Downloading: t("downloadingDetail", { version }),
+    Ready: t("readyDetail", { version }),
+    Error: reason(u) ?? t("failedFallback"),
   };
   return (
-    <div className={`ot-task${a.fase === "Error" ? " is-error" : ""}`}>
-      <span className="ot-task-title">Actualización de Otteretro</span>
-      <span className="ot-task-state">{estado[a.fase]}</span>
-      {a.fase === "Descargando" && (
-        <div className="ot-progress"><span style={{ width: `${progreso}%` }} /></div>
+    <div className={`ot-task${u.phase === "Error" ? " is-error" : ""}`}>
+      <span className="ot-task-title">{t("taskTitle")}</span>
+      <span className="ot-task-state">{state[u.phase]}</span>
+      {u.phase === "Downloading" && (
+        <div className="ot-progress"><span style={{ width: `${progress}%` }} /></div>
       )}
-      <span className="ot-task-detail">{detalle[a.fase]}</span>
+      <span className="ot-task-detail">{detail[u.phase]}</span>
     </div>
   );
 }
 
 /** Ajustes › Acerca de: versión actual, botón para buscar y el estado de la actualización en el mismo sitio. */
-export function VersionYActualizacion({ version }: { version?: string }) {
+export function VersionAndUpdate({ version }: { version?: string }) {
+  const t = useTranslations("update");
+  const format = useFormatter();
+  const reason = useReason();
   const cache = useQueryClient();
-  const a = useActualizacion();
-  const buscar = useMutation({
+  const u = useUpdate();
+  const check = useMutation({
     // Aunque la comprobación tarde milisegundos, el botón muestra "Buscando…" un instante para que se note.
     mutationFn: async () =>
-      (await Promise.all([pedir<EstadoActualizacion>("/api/actualizacion/buscar", { method: "POST" }), esperar(700)]))[0],
+      (await Promise.all([request<UpdateState>("/api/update/check", { method: "POST" }), wait(700)]))[0],
     // La descarga actualiza su progreso por eventos; no se pisa con la respuesta.
-    onSuccess: (estado) => estado.fase !== "Descargando" && cache.setQueryData(["actualizacion"], estado),
+    onSuccess: (state) => state.phase !== "Downloading" && cache.setQueryData(["update"], state),
   });
-  const reiniciar = useMutation({ mutationFn: () => pedir("/api/actualizacion/reiniciar", { method: "POST" }) });
-  const ocupado = buscar.isPending || a?.fase === "Buscando" || a?.fase === "Descargando";
-  const hora = a?.comprobada ? new Date(a.comprobada).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }) : null;
-  const resultado: Record<string, [string, string, string]> = {
+  const restart = useMutation({ mutationFn: () => request("/api/update/restart", { method: "POST" }) });
+  const busy = check.isPending || u?.phase === "Checking" || u?.phase === "Downloading";
+  const time = u?.checkedAt ? format.dateTime(new Date(u.checkedAt), { hour: "2-digit", minute: "2-digit" }) : "";
+  const newVersion = u?.version ?? "";
+  const results: Record<string, [string, string, string]> = {
     // fase: [clase de la insignia, insignia, texto]
-    NoDisponible: ["ot-badge ot-badge-review", "No disponible", a?.mensaje ?? ""],
-    AlDia: ["ot-badge ot-badge-have", "Estás al día", `Otteretro ${version} es la versión más reciente · comprobado a las ${hora}`],
-    Descargando: ["ot-badge ot-badge-info", `Descargando ${a?.version}`, `${Number(a?.progreso)} % · puedes seguir usando la app`],
-    Lista: ["ot-badge ot-badge-have", `${a?.version} lista`, "Se instalará al cerrar la app, o ahora mismo si reinicias."],
-    Error: ["ot-badge ot-badge-danger", "Error", a?.mensaje ?? "No se pudo actualizar."],
+    Unavailable: ["ot-badge ot-badge-review", t("unavailable"), reason(u) ?? ""],
+    UpToDate: ["ot-badge ot-badge-have", t("upToDate"), t("upToDateText", { version: version ?? "", time })],
+    Downloading: ["ot-badge ot-badge-info", t("downloadingBadge", { version: newVersion }), t("downloadingText", { progress: Number(u?.progress) })],
+    Ready: ["ot-badge ot-badge-have", t("readyBadge", { version: newVersion }), t("readyText")],
+    Error: ["ot-badge ot-badge-danger", t("error"), reason(u) ?? t("failedFallback")],
   };
-  const [clase, insignia, texto] = (!buscar.isPending && a && resultado[a.fase]) || [];
+  const [badgeClass, badge, text] = (!check.isPending && u && results[u.phase]) || [];
   return (
     <div className="panel">
-      <div className="fila-version">
+      <div className="version-row">
         <span>Otteretro {version}</span>
-        {a?.fase === "Lista" ? (
-          <button className="ot-btn ot-btn-primary" type="button" disabled={reiniciar.isPending} onClick={() => reiniciar.mutate()}>
-            {reiniciar.isPending ? "Reiniciando…" : "Reiniciar ahora"}
+        {u?.phase === "Ready" ? (
+          <button className="ot-btn ot-btn-primary" type="button" disabled={restart.isPending} onClick={() => restart.mutate()}>
+            {restart.isPending ? t("restarting") : t("restartNow")}
           </button>
         ) : (
-          <button className="ot-btn" type="button" disabled={ocupado} onClick={() => buscar.mutate()}>
-            {ocupado && <span className="girando" aria-hidden="true" />}
-            {buscar.isPending || a?.fase === "Buscando" ? "Buscando…" : a?.fase === "Descargando" ? "Descargando…" : "Buscar actualización"}
+          <button className="ot-btn" type="button" disabled={busy} onClick={() => check.mutate()}>
+            {busy && <span className="spinner" aria-hidden="true" />}
+            {check.isPending || u?.phase === "Checking" ? t("checking") : u?.phase === "Downloading" ? t("downloadingButton") : t("check")}
           </button>
         )}
       </div>
-      {insignia && (
+      {badge && (
         // key: cada comprobación nueva vuelve a animar el resultado, aunque sea el mismo.
-        <div className="resultado-actualizacion" key={`${a?.fase}-${a?.comprobada}`} role="status">
-          <span className={clase}>{insignia}</span>
-          <span className="small muted">{texto}</span>
+        <div className="result" key={`${u?.phase}-${u?.checkedAt}`} role="status">
+          <span className={badgeClass}>{badge}</span>
+          <span className="small muted">{text}</span>
         </div>
       )}
-      {a?.fase === "Descargando" && (
-        <div className="ot-progress"><span style={{ width: `${Number(a.progreso)}%` }} /></div>
+      {u?.phase === "Downloading" && (
+        <div className="ot-progress"><span style={{ width: `${Number(u.progress)}%` }} /></div>
       )}
     </div>
   );
 }
 
 /** Aviso visible cuando hay una versión descargada lista para instalar. */
-export function AvisoActualizacion() {
-  const a = useActualizacion();
-  const reiniciar = useMutation({ mutationFn: () => pedir("/api/actualizacion/reiniciar", { method: "POST" }) });
-  if (a?.fase !== "Lista") return null;
+export function UpdateNotice() {
+  const t = useTranslations("update");
+  const u = useUpdate();
+  const restart = useMutation({ mutationFn: () => request("/api/update/restart", { method: "POST" }) });
+  if (u?.phase !== "Ready") return null;
   return (
-    <div className="aviso" role="status">
+    <div className="notice" role="status">
       <img src="/nutria.png" alt="" width={32} height={32} />
-      <span>
-        <b>Otteretro {a.version} está lista.</b> Se instalará cuando cierres la app, o ahora mismo si reinicias.
-      </span>
-      <button className="ot-btn ot-btn-primary" type="button" disabled={reiniciar.isPending} onClick={() => reiniciar.mutate()}>
-        {reiniciar.isPending ? "Reiniciando…" : "Reiniciar ahora"}
+      <span>{t.rich("notice", { version: u.version ?? "", b: (chunks) => <b>{chunks}</b> })}</span>
+      <button className="ot-btn ot-btn-primary" type="button" disabled={restart.isPending} onClick={() => restart.mutate()}>
+        {restart.isPending ? t("restarting") : t("restartNow")}
       </button>
     </div>
   );

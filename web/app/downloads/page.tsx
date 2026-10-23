@@ -1,5 +1,7 @@
-import { Proximamente } from "@/componentes/Marco";
+"use client";
 
-export default function Descargas() {
-  return <Proximamente fase={8} titulo="No hay descargas" texto="Aquí verás JDownloader, los megapacks y cada paso de la importación." />;
+import { ComingSoon } from "@/components/Shell";
+
+export default function Downloads() {
+  return <ComingSoon screen="downloads" phase={8} />;
 }

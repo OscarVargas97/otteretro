@@ -1,38 +1,38 @@
-using Otteretro.Inicio;
+using Otteretro.App;
 
 namespace Otteretro.Tests;
 
-public class ModosTests
+public class ModesTests
 {
     [Fact]
-    public void VersionDevuelveCero()
+    public void VersionReturnsZero()
     {
-        var salida = new StringWriter();
-        Assert.Equal(0, ModoCli.Ejecutar(["version"], salida));
-        Assert.Equal(Arranque.Version, salida.ToString().Trim());
+        var output = new StringWriter();
+        Assert.Equal(0, CliMode.Run(["version"], output));
+        Assert.Equal(Startup.Version, output.ToString().Trim());
     }
 
     [Fact]
-    public void ComandoDesconocidoDevuelveUnoYMuestraAyuda()
+    public void UnknownCommandReturnsOneAndShowsHelp()
     {
-        var salida = new StringWriter();
-        Assert.Equal(1, ModoCli.Ejecutar(["volar"], salida));
-        Assert.Contains("Uso: otteretro", salida.ToString());
+        var output = new StringWriter();
+        Assert.Equal(1, CliMode.Run(["volar"], output));
+        Assert.Contains("Uso: otteretro", output.ToString());
     }
 
     [Fact]
-    public void JugarTodaviaNoEstaImplementado() =>
-        Assert.Equal(ModoJugar.NoImplementado, ModoJugar.Ejecutar(["123"]));
+    public void PlayIsNotImplementedYet() =>
+        Assert.Equal(PlayMode.NotImplemented, PlayMode.Run(["123"]));
 
     [Fact]
-    public void OpenApiDescribeLaApi()
+    public void OpenApiDescribesTheApi()
     {
-        using var tmp = new Temporal();
-        var archivo = tmp["openapi.json"];
-        Assert.Equal(0, ModoCli.Ejecutar(["openapi", archivo], new StringWriter()));
-        var json = File.ReadAllText(archivo);
-        Assert.Contains("/api/estado", json);
-        Assert.Contains("/api/carpeta-datos", json);
-        Assert.DoesNotContain("/api/eventos", json);
+        using var tmp = new TempDir();
+        var file = tmp["openapi.json"];
+        Assert.Equal(0, CliMode.Run(["openapi", file], new StringWriter()));
+        var json = File.ReadAllText(file);
+        Assert.Contains("/api/state", json);
+        Assert.Contains("/api/data-folder", json);
+        Assert.DoesNotContain("/api/events", json);
     }
 }

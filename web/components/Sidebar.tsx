@@ -2,45 +2,48 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { rutaNormal } from "./Marco";
+import { useTranslations } from "next-intl";
+import { normalizePath } from "./Shell";
 
-const PRINCIPAL = [
-  { href: "/", texto: "Inicio" },
-  { href: "/sagas/", texto: "Sagas" },
-  { href: "/coleccion/", texto: "Colección" },
-  { href: "/descubrir/", texto: "Descubrir" },
-  { href: "/revisar/", texto: "Revisar" },
-];
-const SECUNDARIA = [
-  { href: "/descargas/", texto: "Descargas" },
-  { href: "/herramientas/", texto: "Herramientas" },
-  { href: "/steam/", texto: "Steam" },
-  { href: "/ajustes/", texto: "Ajustes" },
-];
+// Clave en nav.* de cada entrada.
+const MAIN = [
+  { href: "/", key: "home" },
+  { href: "/sagas/", key: "sagas" },
+  { href: "/collection/", key: "collection" },
+  { href: "/discover/", key: "discover" },
+  { href: "/review/", key: "review" },
+] as const;
+const SECONDARY = [
+  { href: "/downloads/", key: "downloads" },
+  { href: "/tools/", key: "tools" },
+  { href: "/steam/", key: "steam" },
+  { href: "/settings/", key: "settings" },
+] as const;
 
 /** Barra lateral (componente NavItem del sistema de diseño). Los contadores llegan con cada módulo. */
-export function Barra() {
-  const actual = rutaNormal(usePathname());
-  const activa = (href: string) => {
-    const destino = rutaNormal(href);
-    return destino === actual || (destino !== "/" && actual.startsWith(destino)) ? "page" : undefined;
+export function Sidebar() {
+  const t = useTranslations("nav");
+  const current = normalizePath(usePathname());
+  const isActive = (href: string) => {
+    const target = normalizePath(href);
+    return target === current || (target !== "/" && current.startsWith(target)) ? "page" : undefined;
   };
-  const entrada = (e: { href: string; texto: string }) => (
-    <Link key={e.href} className="ot-nav-item" href={e.href} aria-current={activa(e.href)}>
-      {e.texto}
+  const item = (e: (typeof MAIN)[number] | (typeof SECONDARY)[number]) => (
+    <Link key={e.href} className="ot-nav-item" href={e.href} aria-current={isActive(e.href)}>
+      {t(e.key)}
     </Link>
   );
 
   return (
-    <aside className="barra">
-      <Link href="/" className="barra-logo">
+    <aside className="sidebar">
+      <Link href="/" className="sidebar-logo">
         <img src="/nutria.png" alt="" width={32} height={32} />
         <span>otteretro</span>
       </Link>
-      <nav className="ot-nav barra-nav" aria-label="Principal">
-        {PRINCIPAL.map(entrada)}
+      <nav className="ot-nav sidebar-nav" aria-label={t("label")}>
+        {MAIN.map(item)}
         <div className="ot-nav-sep" />
-        {SECUNDARIA.map(entrada)}
+        {SECONDARY.map(item)}
       </nav>
     </aside>
   );

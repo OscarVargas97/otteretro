@@ -1,50 +1,51 @@
 using System.IO.Pipes;
 
-namespace Otteretro.Inicio;
+namespace Otteretro.App;
 
 /// <summary>
 /// Solo una ventana de Otteretro a la vez. Si se abre otra, avisa a la que ya existe
 /// (por una tubería con nombre) para que se traiga al frente, y termina.
 /// </summary>
-public sealed class UnaInstancia : IDisposable
+public sealed class SingleInstance : IDisposable
 {
-    const string Nombre = "Otteretro-instancia";
+    // El nombre no cambia: así una versión vieja y una nueva siguen viéndose.
+    const string Name = "Otteretro-instancia";
     readonly Mutex mutex;
 
     /// <summary>Se dispara (en un hilo de fondo) cuando otra instancia pide traer la ventana al frente.</summary>
-    public event Action? Activar;
+    public event Action? Activated;
 
-    UnaInstancia(Mutex mutex) => this.mutex = mutex;
+    SingleInstance(Mutex mutex) => this.mutex = mutex;
 
-    public static UnaInstancia? Tomar()
+    public static SingleInstance? TryAcquire()
     {
-        var mutex = new Mutex(true, @"Local\" + Nombre, out var esNueva);
-        if (!esNueva)
+        var mutex = new Mutex(true, @"Local\" + Name, out var createdNew);
+        if (!createdNew)
         {
             mutex.Dispose();
             return null;
         }
-        var instancia = new UnaInstancia(mutex);
-        instancia.Escuchar();
-        return instancia;
+        var instance = new SingleInstance(mutex);
+        instance.Listen();
+        return instance;
     }
 
-    void Escuchar() => Task.Run(async () =>
+    void Listen() => Task.Run(async () =>
     {
         while (true)
         {
-            await using var tuberia = new NamedPipeServerStream(Nombre, PipeDirection.In);
-            await tuberia.WaitForConnectionAsync();
-            Activar?.Invoke();
+            await using var pipe = new NamedPipeServerStream(Name, PipeDirection.In);
+            await pipe.WaitForConnectionAsync();
+            Activated?.Invoke();
         }
     });
 
-    public static void AvisarALaQueExiste()
+    public static void NotifyExisting()
     {
         try
         {
-            using var tuberia = new NamedPipeClientStream(".", Nombre, PipeDirection.Out);
-            tuberia.Connect(2000);
+            using var pipe = new NamedPipeClientStream(".", Name, PipeDirection.Out);
+            pipe.Connect(2000);
         }
         catch (TimeoutException) { }
     }

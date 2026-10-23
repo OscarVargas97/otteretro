@@ -1,96 +1,97 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
-import { urlEventos } from "@/lib/cliente";
-import { TareaActualizacion, useActualizacion } from "./Actualizacion";
-import { TareaMudanza, useMudanza } from "./CarpetaDatos";
-import { Vacio } from "./Marco";
+import { eventsUrl } from "@/lib/client";
+import { UpdateTask, useUpdate } from "./Update";
+import { MoveTask, useMove } from "./DataFolder";
+import { Empty } from "./Shell";
 
 /** Título de la pantalla, búsqueda global (Ctrl+K) y panel de tareas en segundo plano. */
-export function BarraSuperior({ titulo }: { titulo: string }) {
-  const [buscando, setBuscando] = useState(false);
-  const [tareas, setTareas] = useState(false);
-  const conectado = useEventos();
-  const actualizacion = useActualizacion();
-  const mudanza = useMudanza();
-  const enMudanza = !!mudanza?.enCurso;
-  const hayTareas = (!!actualizacion && ["Buscando", "Descargando", "Lista", "Error"].includes(actualizacion.fase)) || (!!mudanza && (mudanza.enCurso || ["Listo", "Error"].includes(mudanza.paso)));
-  const activas = Number(actualizacion?.fase === "Buscando" || actualizacion?.fase === "Descargando") + Number(enMudanza);
-  const trabajando = activas > 0;
+export function TopBar({ title }: { title: string }) {
+  const t = useTranslations("topBar");
+  const [searching, setSearching] = useState(false);
+  const [tasksOpen, setTasksOpen] = useState(false);
+  const connected = useEvents();
+  const update = useUpdate();
+  const move = useMove();
+  const moving = !!move?.running;
+  const hasTasks = (!!update && ["Checking", "Downloading", "Ready", "Error"].includes(update.phase)) || (!!move && (move.running || ["done", "error"].includes(move.step)));
+  const active = Number(update?.phase === "Checking" || update?.phase === "Downloading") + Number(moving);
+  const busy = active > 0;
 
   useEffect(() => {
-    const alPulsar = (e: KeyboardEvent) => {
+    const onKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setBuscando(true);
+        setSearching(true);
       }
       if (e.key === "Escape") {
-        setBuscando(false);
-        setTareas(false);
+        setSearching(false);
+        setTasksOpen(false);
       }
     };
-    window.addEventListener("keydown", alPulsar);
-    return () => window.removeEventListener("keydown", alPulsar);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
   return (
     <header className="top">
-      <h1>{titulo}</h1>
-      <button className="search" type="button" onClick={() => setBuscando(true)}>
+      <h1>{title}</h1>
+      <button className="search" type="button" onClick={() => setSearching(true)}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
           <circle cx="11" cy="11" r="7" />
           <path d="M20 20l-4-4" />
         </svg>
-        Buscar sagas, juegos, emuladores…
-        <span className="kbd">CTRL K</span>
+        {t("search")}
+        <span className="kbd">{t("shortcut")}</span>
       </button>
-      <button className="ot-btn" type="button" aria-expanded={tareas} onClick={() => setTareas(!tareas)}>
-        <span className="dot" data-conectado={conectado} data-trabajando={trabajando} />
-        {activas === 0 ? "Tareas" : activas === 1 ? "1 tarea" : `${activas} tareas`}
+      <button className="ot-btn" type="button" aria-expanded={tasksOpen} onClick={() => setTasksOpen(!tasksOpen)}>
+        <span className="dot" data-connected={connected} data-busy={busy} />
+        {t("tasks", { count: active })}
       </button>
 
-      {tareas && (
-        <div className="ot-tasks panel-tareas" role="dialog" aria-label="Tareas en segundo plano">
-          <TareaActualizacion />
-          <TareaMudanza />
-          {!hayTareas && (
-            <Vacio titulo="No hay tareas en curso" texto="Aquí verás escaneos, descargas, respaldos y el trabajo de Claude." />
-          )}
-          <p className="small muted panel-tareas-pie">{conectado ? "Conectado a la app" : "Reconectando…"}</p>
+      {tasksOpen && (
+        <div className="ot-tasks tasks-panel" role="dialog" aria-label={t("tasksPanel")}>
+          <UpdateTask />
+          <MoveTask />
+          {!hasTasks && <Empty title={t("noTasksTitle")} text={t("noTasksText")} />}
+          <p className="small muted tasks-panel-footer">{connected ? t("connected") : t("reconnecting")}</p>
         </div>
       )}
 
-      {buscando && <Busqueda alCerrar={() => setBuscando(false)} />}
+      {searching && <Search onClose={() => setSearching(false)} />}
     </header>
   );
 }
 
-function Busqueda({ alCerrar }: { alCerrar: () => void }) {
-  const campo = useRef<HTMLInputElement>(null);
-  useEffect(() => campo.current?.focus(), []);
+function Search({ onClose }: { onClose: () => void }) {
+  const t = useTranslations("topBar");
+  const field = useRef<HTMLInputElement>(null);
+  useEffect(() => field.current?.focus(), []);
   return (
-    <div className="velo" onClick={alCerrar}>
-      <div className="busqueda" role="dialog" aria-label="Buscar" onClick={(e) => e.stopPropagation()}>
-        <label htmlFor="buscar" className="small muted">Buscar</label>
-        <input id="buscar" ref={campo} placeholder="Sagas, juegos, emuladores, ajustes…" />
-        <p className="small muted">La búsqueda funciona desde la fase 1, cuando haya catálogo.</p>
+    <div className="overlay" onClick={onClose}>
+      <div className="search-dialog" role="dialog" aria-label={t("searchLabel")} onClick={(e) => e.stopPropagation()}>
+        <label htmlFor="search" className="small muted">{t("searchLabel")}</label>
+        <input id="search" ref={field} placeholder={t("searchPlaceholder")} />
+        <p className="small muted">{t("searchLater")}</p>
       </div>
     </div>
   );
 }
 
 /** Conexión de Server-Sent Events con la app; el navegador reconecta solo. */
-function useEventos() {
-  const [conectado, setConectado] = useState(false);
+function useEvents() {
+  const [connected, setConnected] = useState(false);
   const cache = useQueryClient();
   useEffect(() => {
-    const fuente = new EventSource(urlEventos());
-    fuente.onopen = () => setConectado(true);
-    fuente.onerror = () => setConectado(false);
-    fuente.addEventListener("actualizacion", (e) => cache.setQueryData(["actualizacion"], JSON.parse(e.data)));
-    fuente.addEventListener("mudanza", (e) => cache.setQueryData(["mudanza"], JSON.parse(e.data)));
-    return () => fuente.close();
+    const source = new EventSource(eventsUrl());
+    source.onopen = () => setConnected(true);
+    source.onerror = () => setConnected(false);
+    source.addEventListener("update", (e) => cache.setQueryData(["update"], JSON.parse(e.data)));
+    source.addEventListener("move", (e) => cache.setQueryData(["move"], JSON.parse(e.data)));
+    return () => source.close();
   }, [cache]);
-  return conectado;
+  return connected;
 }

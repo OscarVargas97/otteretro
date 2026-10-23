@@ -1,27 +1,35 @@
-// Conexión con la API local. La ventana abre la app con ?clave=… (y en desarrollo ?api=…);
+// Conexión con la API local. La ventana abre la app con ?key=… (y en desarrollo ?api=…);
 // se guardan para la sesión porque la navegación interna ya no los lleva en la URL.
+import type { ApiError } from "./types";
 
-function leer(nombre: string, parametro: string): string {
+function read(storageKey: string, param: string): string {
   if (typeof window === "undefined") return "";
-  const enUrl = new URLSearchParams(window.location.search).get(parametro);
-  if (enUrl) sessionStorage.setItem(nombre, enUrl);
-  return sessionStorage.getItem(nombre) ?? "";
+  const fromUrl = new URLSearchParams(window.location.search).get(param);
+  if (fromUrl) sessionStorage.setItem(storageKey, fromUrl);
+  return sessionStorage.getItem(storageKey) ?? "";
 }
 
-const clave = () => leer("otteretro.clave", "clave");
-const baseApi = () => leer("otteretro.api", "api");
+const key = () => read("otteretro.key", "key");
+const apiBase = () => read("otteretro.api", "api");
 
-export async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
-  const respuesta = await fetch(baseApi() + ruta, {
-    ...init,
-    headers: { "Content-Type": "application/json", "X-Otteretro-Clave": clave(), ...init?.headers },
-  });
-  if (!respuesta.ok) {
-    const problema = await respuesta.json().catch(() => null);
-    throw new Error(problema?.mensaje ?? `La app respondió con un error (${respuesta.status}).`);
+/** Error de la API como código: lo traduce useDescribeError (#142). */
+export class ApiRequestError extends Error {
+  constructor(readonly error: ApiError) {
+    super(error.code);
   }
-  return respuesta.json() as Promise<T>;
+}
+
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(apiBase() + path, {
+    ...init,
+    headers: { "Content-Type": "application/json", "X-Otteretro-Key": key(), ...init?.headers },
+  });
+  if (!response.ok) {
+    const body: ApiError | null = await response.json().catch(() => null);
+    throw new ApiRequestError(body?.code ? body : { code: "http", params: { status: String(response.status) } });
+  }
+  return response.json() as Promise<T>;
 }
 
 /** EventSource no admite cabeceras, así que la clave va en la URL. */
-export const urlEventos = () => `${baseApi()}/api/eventos?clave=${encodeURIComponent(clave())}`;
+export const eventsUrl = () => `${apiBase()}/api/events?key=${encodeURIComponent(key())}`;

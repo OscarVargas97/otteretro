@@ -1,6 +1,6 @@
 using Velopack;
 
-namespace Otteretro.Inicio;
+namespace Otteretro.App;
 
 /// <summary>Punto de entrada: el mismo ejecutable es la app, el lanzador de juegos y la CLI.</summary>
 public static class Program
@@ -11,9 +11,9 @@ public static class Program
         VelopackApp.Build().Run();
         return args switch
         {
-            [] => ModoApp.Ejecutar(),
-            ["jugar", .. var resto] => ModoJugar.Ejecutar(resto),
-            _ => ModoCli.Ejecutar(args),
+            [] => AppMode.Run(),
+            ["jugar", .. var rest] => PlayMode.Run(rest),
+            _ => CliMode.Run(args),
         };
     }
 }

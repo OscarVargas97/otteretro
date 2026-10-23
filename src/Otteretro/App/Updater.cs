@@ -3,113 +3,114 @@ using Otteretro.Api;
 using Velopack;
 using Velopack.Sources;
 
-namespace Otteretro.Inicio;
+namespace Otteretro.App;
 
-[JsonConverter(typeof(JsonStringEnumConverter<FaseActualizacion>))]
-public enum FaseActualizacion { Ninguna, NoDisponible, Buscando, AlDia, Descargando, Lista, Error }
+[JsonConverter(typeof(JsonStringEnumConverter<UpdatePhase>))]
+public enum UpdatePhase { None, Unavailable, Checking, UpToDate, Downloading, Ready, Error }
 
-/// <param name="Comprobada">Cuándo terminó la última comprobación (para mostrar "comprobado a las …").</param>
-public record EstadoActualizacion(FaseActualizacion Fase, string? Version, int Progreso, string? Mensaje, DateTimeOffset? Comprobada);
+/// <param name="CheckedAt">Cuándo terminó la última comprobación (para mostrar "comprobado a las …").</param>
+/// <param name="Message">Código del motivo (clave `update.*` del catálogo del front, #142).</param>
+public record UpdateState(UpdatePhase Phase, string? Version, int Progress, string? Message, DateTimeOffset? CheckedAt);
 
 /// <summary>
 /// Busca una versión nueva, la descarga y avisa a la interfaz en cada paso (panel de tareas y aviso de "lista").
 /// Se instala al cerrar la app o al pulsar "Reiniciar ahora".
 /// Mientras no haya releases en GitHub (#101) el origen es una carpeta local (config.json → origenActualizaciones).
 /// </summary>
-public sealed class Actualizador(ContextoApp contexto, Eventos eventos)
+public sealed class Updater(AppSession session, Events events)
 {
-    UpdateManager? gestor;
-    VelopackAsset? lista;
-    int ocupado;
+    UpdateManager? manager;
+    VelopackAsset? ready;
+    int busy;
 
-    public EstadoActualizacion Estado { get; private set; } = new(FaseActualizacion.Ninguna, null, 0, null, null);
-    DateTimeOffset? comprobada;
+    public UpdateState State { get; private set; } = new(UpdatePhase.None, null, 0, null, null);
+    DateTimeOffset? checkedAt;
 
     /// <summary>
     /// Se llama al abrir la app y desde el botón "Buscar actualización". Termina cuando acaba la comprobación;
     /// si hay versión nueva, la descarga sigue en segundo plano. No hace nada si ya está buscando o hay una lista.
     /// </summary>
-    public async Task Buscar()
+    public async Task Check()
     {
         // Una sola búsqueda o descarga a la vez (el arranque y el botón pueden coincidir).
-        if (Estado.Fase == FaseActualizacion.Lista || Interlocked.CompareExchange(ref ocupado, 1, 0) != 0) return;
-        var descargando = false;
+        if (State.Phase == UpdatePhase.Ready || Interlocked.CompareExchange(ref busy, 1, 0) != 0) return;
+        var downloading = false;
         try
         {
-            var origen = contexto.Config.OrigenActualizaciones;
-            if (string.IsNullOrEmpty(origen))
+            var source = session.Config.UpdateSource;
+            if (string.IsNullOrEmpty(source))
             {
-                Cambiar(FaseActualizacion.NoDisponible, null, 0, "No hay un origen de actualizaciones configurado.");
+                Set(UpdatePhase.Unavailable, null, 0, "noSource");
                 return;
             }
-            gestor = new UpdateManager(new SimpleFileSource(new DirectoryInfo(origen)));
-            if (!gestor.IsInstalled)
+            manager = new UpdateManager(new SimpleFileSource(new DirectoryInfo(source)));
+            if (!manager.IsInstalled)
             {
-                Cambiar(FaseActualizacion.NoDisponible, null, 0, "Las actualizaciones solo funcionan en la app instalada.");
+                Set(UpdatePhase.Unavailable, null, 0, "notInstalled");
                 return;
             }
-            Cambiar(FaseActualizacion.Buscando, null, 0);
+            Set(UpdatePhase.Checking, null, 0);
             // Un origen en una unidad de red caída no debe dejar el botón colgado en "Buscando".
-            var info = await gestor.CheckForUpdatesAsync().WaitAsync(TimeSpan.FromMinutes(1));
-            comprobada = DateTimeOffset.Now;
+            var info = await manager.CheckForUpdatesAsync().WaitAsync(TimeSpan.FromMinutes(1));
+            checkedAt = DateTimeOffset.Now;
             if (info is null)
             {
-                Cambiar(FaseActualizacion.AlDia, null, 0);
+                Set(UpdatePhase.UpToDate, null, 0);
                 return;
             }
-            Cambiar(FaseActualizacion.Descargando, info.TargetFullRelease.Version.ToString(), 0);
-            descargando = true;
-            _ = Descargar(gestor, info);
+            Set(UpdatePhase.Downloading, info.TargetFullRelease.Version.ToString(), 0);
+            downloading = true;
+            _ = Download(manager, info);
         }
         catch (Exception e)
         {
-            Fallo(e);
+            Fail(e);
         }
         finally
         {
-            if (!descargando) Volatile.Write(ref ocupado, 0);
+            if (!downloading) Volatile.Write(ref busy, 0);
         }
     }
 
-    async Task Descargar(UpdateManager gestor, UpdateInfo info)
+    async Task Download(UpdateManager manager, UpdateInfo info)
     {
         var version = info.TargetFullRelease.Version.ToString();
         try
         {
-            await gestor.DownloadUpdatesAsync(info, p => Cambiar(FaseActualizacion.Descargando, version, p));
-            lista = info.TargetFullRelease;
+            await manager.DownloadUpdatesAsync(info, p => Set(UpdatePhase.Downloading, version, p));
+            ready = info.TargetFullRelease;
             // Si no se reinicia antes, se instala al cerrar la app.
-            gestor.WaitExitThenApplyUpdates(lista, silent: true, restart: false);
-            Cambiar(FaseActualizacion.Lista, version, 100);
-            RegistroArchivo.Escribir(LogLevel.Information, "Actualizador", $"Versión {version} descargada; se instala al cerrar la app.");
+            manager.WaitExitThenApplyUpdates(ready, silent: true, restart: false);
+            Set(UpdatePhase.Ready, version, 100);
+            FileLog.Write(LogLevel.Information, "Updater", $"Versión {version} descargada; se instala al cerrar la app.");
         }
         catch (Exception e)
         {
-            Fallo(e);
+            Fail(e);
         }
         finally
         {
-            Volatile.Write(ref ocupado, 0);
+            Volatile.Write(ref busy, 0);
         }
     }
 
-    void Fallo(Exception e)
+    void Fail(Exception e)
     {
-        Cambiar(FaseActualizacion.Error, Estado.Version, 0, "No se pudo buscar o descargar la actualización. El detalle está en el registro.");
-        RegistroArchivo.Escribir(LogLevel.Error, "Actualizador", e.ToString());
+        Set(UpdatePhase.Error, State.Version, 0, "failed");
+        FileLog.Write(LogLevel.Error, "Updater", e.ToString());
     }
 
     /// <summary>Instala la versión descargada y vuelve a abrir la app. Devuelve false si no hay ninguna lista.</summary>
-    public bool ReiniciarAhora()
+    public bool RestartNow()
     {
-        if (gestor is null || lista is null) return false;
-        gestor.ApplyUpdatesAndRestart(lista);
+        if (manager is null || ready is null) return false;
+        manager.ApplyUpdatesAndRestart(ready);
         return true;
     }
 
-    void Cambiar(FaseActualizacion fase, string? version, int progreso, string? mensaje = null)
+    void Set(UpdatePhase phase, string? version, int progress, string? message = null)
     {
-        Estado = new(fase, version, progreso, mensaje, comprobada);
-        eventos.Publicar("actualizacion", Estado);
+        State = new(phase, version, progress, message, checkedAt);
+        events.Publish("update", State);
     }
 }

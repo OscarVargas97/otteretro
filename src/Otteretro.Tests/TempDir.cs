@@ -1,17 +1,17 @@
 namespace Otteretro.Tests;
 
 /// <summary>Carpeta temporal que se borra al terminar la prueba.</summary>
-sealed class Temporal : IDisposable
+sealed class TempDir : IDisposable
 {
-    public string Ruta { get; } = Path.Combine(Path.GetTempPath(), "otteretro-pruebas", Guid.NewGuid().ToString("N"));
+    public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "otteretro-pruebas", Guid.NewGuid().ToString("N"));
 
-    public Temporal() => Directory.CreateDirectory(Ruta);
+    public TempDir() => Directory.CreateDirectory(Path);
 
-    public string this[string relativa] => Path.Combine(Ruta, relativa);
+    public string this[string relative] => System.IO.Path.Combine(Path, relative);
 
     public void Dispose()
     {
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-        try { Directory.Delete(Ruta, true); } catch (IOException) { }
+        try { Directory.Delete(Path, true); } catch (IOException) { }
     }
 }

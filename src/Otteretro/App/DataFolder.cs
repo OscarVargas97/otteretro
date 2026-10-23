@@ -1,32 +1,35 @@
-namespace Otteretro.Inicio;
+using Otteretro.Api;
+
+namespace Otteretro.App;
 
 /// <summary>La carpeta de datos que elige el usuario: base de datos, Herramientas, caché y logs (P1, S7).</summary>
-public static class CarpetaDatos
+public static class DataFolder
 {
-    public static readonly string[] Subcarpetas = ["data", Path.Combine("cache", "imagenes"), "Herramientas", "logs"];
+    // Los nombres de las subcarpetas son datos del usuario: no se traducen.
+    public static readonly string[] Subfolders = ["data", Path.Combine("cache", "imagenes"), "Herramientas", "logs"];
 
-    /// <summary>Crea la carpeta y sus subcarpetas. Devuelve un mensaje de error o null si quedó lista.</summary>
-    public static string? Preparar(string? ruta)
+    /// <summary>Crea la carpeta y sus subcarpetas. Devuelve el error o null si quedó lista.</summary>
+    public static ApiError? Prepare(string? path)
     {
-        if (string.IsNullOrWhiteSpace(ruta) || !Path.IsPathFullyQualified(ruta))
-            return "La ruta tiene que ser completa, por ejemplo E:\\Otteretro.";
-        if (File.Exists(ruta))
-            return "Esa ruta es un archivo, no una carpeta.";
+        if (string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path))
+            return ApiError.Of("path.notAbsolute");
+        if (File.Exists(path))
+            return ApiError.Of("path.isFile");
         try
         {
-            foreach (var sub in Subcarpetas)
-                Directory.CreateDirectory(Path.Combine(ruta, sub));
+            foreach (var sub in Subfolders)
+                Directory.CreateDirectory(Path.Combine(path, sub));
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            return $"No se pudo crear la carpeta: {e.Message}";
+            return ApiError.Of("folder.createFailed", ("detail", e.Message));
         }
         return null;
     }
 
-    public static bool EstaLista(string? ruta) =>
-        ruta is not null && Subcarpetas.All(sub => Directory.Exists(Path.Combine(ruta, sub)));
+    public static bool IsReady(string? path) =>
+        path is not null && Subfolders.All(sub => Directory.Exists(Path.Combine(path, sub)));
 
-    public static string RutaBd(string carpeta) => Path.Combine(carpeta, "data", "otteretro.db");
-    public static string RutaLogs(string carpeta) => Path.Combine(carpeta, "logs");
+    public static string DatabasePath(string folder) => Path.Combine(folder, "data", "otteretro.db");
+    public static string LogsPath(string folder) => Path.Combine(folder, "logs");
 }

@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/api/estado": {
+    "/api/state": {
         parameters: {
             query?: never;
             header?: never;
@@ -26,7 +26,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["EstadoApp"];
+                        "application/json": components["schemas"]["AppState"];
                     };
                 };
             };
@@ -39,7 +39,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/carpeta-datos": {
+    "/api/data-folder": {
         parameters: {
             query?: never;
             header?: never;
@@ -61,7 +61,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["InfoCarpeta"];
+                        "application/json": components["schemas"]["FolderInfo"];
                     };
                 };
             };
@@ -76,7 +76,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["PedidoCarpeta"];
+                    "application/json": components["schemas"]["FolderRequest"];
                 };
             };
             responses: {
@@ -86,7 +86,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["EstadoApp"];
+                        "application/json": components["schemas"]["AppState"];
                     };
                 };
                 /** @description Bad Request */
@@ -95,7 +95,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Problema"];
+                        "application/json": components["schemas"]["ApiError"];
                     };
                 };
                 /** @description Conflict */
@@ -104,7 +104,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Problema"];
+                        "application/json": components["schemas"]["ApiError"];
                     };
                 };
             };
@@ -115,7 +115,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/carpeta-datos/mudanza": {
+    "/api/data-folder/move": {
         parameters: {
             query?: never;
             header?: never;
@@ -137,27 +137,11 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["EstadoMudanza"];
+                        "application/json": components["schemas"]["MoveState"];
                     };
                 };
             };
         };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/carpeta-datos/mover": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
         put?: never;
         post: {
             parameters: {
@@ -168,7 +152,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["PedidoCarpeta"];
+                    "application/json": components["schemas"]["FolderRequest"];
                 };
             };
             responses: {
@@ -178,7 +162,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["EstadoMudanza"];
+                        "application/json": components["schemas"]["MoveState"];
                     };
                 };
                 /** @description Bad Request */
@@ -187,7 +171,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Problema"];
+                        "application/json": components["schemas"]["ApiError"];
                     };
                 };
             };
@@ -198,7 +182,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/discos": {
+    "/api/language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LanguageRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AppState"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/drives": {
         parameters: {
             query?: never;
             header?: never;
@@ -220,7 +252,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Disco"][];
+                        "application/json": components["schemas"]["Drive"][];
                     };
                 };
             };
@@ -233,7 +265,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/actualizacion": {
+    "/api/update": {
         parameters: {
             query?: never;
             header?: never;
@@ -255,7 +287,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["EstadoActualizacion"];
+                        "application/json": components["schemas"]["UpdateState"];
                     };
                 };
             };
@@ -268,7 +300,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/actualizacion/buscar": {
+    "/api/update/check": {
         parameters: {
             query?: never;
             header?: never;
@@ -292,7 +324,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["EstadoActualizacion"];
+                        "application/json": components["schemas"]["UpdateState"];
                     };
                 };
             };
@@ -303,7 +335,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/actualizacion/reiniciar": {
+    "/api/update/restart": {
         parameters: {
             query?: never;
             header?: never;
@@ -334,7 +366,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Problema"];
+                        "application/json": components["schemas"]["ApiError"];
                     };
                 };
             };
@@ -349,52 +381,59 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        Disco: {
-            nombre: string;
-            /** Format: int64 */
-            libre: number | string;
-            /** Format: int64 */
-            total: number | string;
+        ApiError: {
+            code: string;
+            params?: null | {
+                [key: string]: string;
+            };
         };
-        EstadoActualizacion: {
-            fase: components["schemas"]["FaseActualizacion"];
-            version: null | string;
-            /** Format: int32 */
-            progreso: number | string;
-            mensaje: null | string;
-            /** Format: date-time */
-            comprobada: null | string;
-        };
-        EstadoApp: {
+        AppState: {
             version: string;
-            carpetaDatos: null | string;
-            configurada: boolean;
+            dataFolder: null | string;
+            configured: boolean;
+            language: string;
         };
-        EstadoMudanza: {
-            paso: string;
+        Drive: {
+            name: string;
             /** Format: int64 */
-            hecho: number | string;
+            free: number | string;
             /** Format: int64 */
             total: number | string;
-            enCurso: boolean;
-            destino: null | string;
-            error: null | string;
-            aviso: null | string;
+        };
+        FolderInfo: {
+            path: null | string;
+            /** Format: int64 */
+            used: number | string;
+            /** Format: int64 */
+            freeOnDrive: number | string;
+        };
+        FolderRequest: {
+            path: string;
+        };
+        LanguageRequest: {
+            language: string;
+        };
+        MoveState: {
+            step: string;
+            /** Format: int64 */
+            done: number | string;
+            /** Format: int64 */
+            total: number | string;
+            running: boolean;
+            destination: null | string;
+            error: null | components["schemas"]["ApiError"];
+            warning: null | components["schemas"]["ApiError"];
         };
         /** @enum {unknown} */
-        FaseActualizacion: "Ninguna" | "NoDisponible" | "Buscando" | "AlDia" | "Descargando" | "Lista" | "Error";
-        InfoCarpeta: {
-            ruta: null | string;
-            /** Format: int64 */
-            ocupado: number | string;
-            /** Format: int64 */
-            libreEnDisco: number | string;
-        };
-        PedidoCarpeta: {
-            ruta: string;
-        };
-        Problema: {
-            mensaje: string;
+        UpdatePhase: "None" | "Unavailable" | "Checking" | "UpToDate" | "Downloading" | "Ready" | "Error";
+        UpdateState: {
+            phase: components["schemas"]["UpdatePhase"];
+            version: null | string;
+            /** Format: int32 */
+            progress: number | string;
+            message: null | string;
+            /** Format: date-time */
+            checkedAt: null | string;
         };
     };
     responses: never;

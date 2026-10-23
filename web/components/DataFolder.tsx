@@ -1,131 +1,146 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { pedir } from "@/lib/cliente";
-import { gb } from "@/lib/formato";
-import type { Disco, EstadoApp, EstadoMudanza, InfoCarpeta, PedidoCarpeta } from "@/lib/tipos";
+import { request } from "@/lib/client";
+import { gb } from "@/lib/format";
+import { useDescribeError, useDynamicT } from "@/lib/i18n";
+import type { AppState, Drive, FolderInfo, FolderRequest, MoveState } from "@/lib/types";
 
-/** Estado de la mudanza de la carpeta de datos; llega en vivo por el evento "mudanza". */
-export const useMudanza = () =>
-  useQuery({ queryKey: ["mudanza"], queryFn: () => pedir<EstadoMudanza>("/api/carpeta-datos/mudanza") }).data;
+/** Estado de la mudanza de la carpeta de datos; llega en vivo por el evento "move". */
+export const useMove = () =>
+  useQuery({ queryKey: ["move"], queryFn: () => request<MoveState>("/api/data-folder/move") }).data;
 
-const porcentaje = (m: EstadoMudanza) => (Number(m.total) > 0 ? Math.round((Number(m.hecho) / Number(m.total)) * 100) : 0);
+const percent = (m: MoveState) => (Number(m.total) > 0 ? Math.round((Number(m.done) / Number(m.total)) * 100) : 0);
+
+/** Nombre del paso en el idioma activo; el backend manda su código (move.step.*). */
+function useStepName() {
+  const t = useDynamicT();
+  return (step: string) => (t.has(`move.step.${step}`) ? t(`move.step.${step}`) : step);
+}
 
 /** Fila del panel de tareas mientras se mueve la carpeta de datos (o con su resultado). */
-export function TareaMudanza() {
-  const m = useMudanza();
-  if (!m || !(m.enCurso || m.paso === "Listo" || m.paso === "Error")) return null;
+export function MoveTask() {
+  const t = useTranslations("dataFolder");
+  const describe = useDescribeError();
+  const stepName = useStepName();
+  const m = useMove();
+  if (!m || !(m.running || m.step === "done" || m.step === "error")) return null;
+  const destination = m.destination ?? "";
   return (
     <div className={`ot-task${m.error ? " is-error" : ""}`}>
-      <span className="ot-task-title">Mover la carpeta de datos</span>
-      <span className="ot-task-state">{m.enCurso ? `${porcentaje(m)} %` : m.error ? "Error" : "Listo"}</span>
-      {m.enCurso && <div className="ot-progress"><span style={{ width: `${porcentaje(m)}%` }} /></div>}
-      <span className="ot-task-detail">{m.error ?? (m.enCurso ? `${m.paso} · hacia ${m.destino}` : `Ahora está en ${m.destino}`)}</span>
+      <span className="ot-task-title">{t("taskTitle")}</span>
+      <span className="ot-task-state">{m.running ? `${percent(m)} %` : m.error ? t("error") : t("taskDone")}</span>
+      {m.running && <div className="ot-progress"><span style={{ width: `${percent(m)}%` }} /></div>}
+      <span className="ot-task-detail">
+        {m.error ? describe(m.error) : m.running ? t("progress", { step: stepName(m.step), destination }) : t("taskNowIn", { destination })}
+      </span>
     </div>
   );
 }
 
 /** Ajustes › Carpeta de datos: dónde está, cuánto ocupa, y moverla o usar otra (S7). */
-export function AjustesCarpetaDatos() {
+export function DataFolderSettings() {
+  const t = useTranslations("dataFolder");
+  const locale = useLocale();
+  const describe = useDescribeError();
+  const stepName = useStepName();
   const cache = useQueryClient();
-  const info = useQuery({ queryKey: ["carpeta"], queryFn: () => pedir<InfoCarpeta>("/api/carpeta-datos") }).data;
-  const discos = useQuery({ queryKey: ["discos"], queryFn: () => pedir<Disco[]>("/api/discos") }).data;
-  const m = useMudanza();
-  const [modo, setModo] = useState<"mover" | "usar" | null>(null);
-  const [ruta, setRuta] = useState("");
+  const info = useQuery({ queryKey: ["folder"], queryFn: () => request<FolderInfo>("/api/data-folder") }).data;
+  const drives = useQuery({ queryKey: ["drives"], queryFn: () => request<Drive[]>("/api/drives") }).data;
+  const m = useMove();
+  const [mode, setMode] = useState<"move" | "use" | null>(null);
+  const [path, setPath] = useState("");
 
-  const refrescar = () => {
-    cache.invalidateQueries({ queryKey: ["estado"] });
-    cache.invalidateQueries({ queryKey: ["carpeta"] });
+  const refresh = () => {
+    cache.invalidateQueries({ queryKey: ["state"] });
+    cache.invalidateQueries({ queryKey: ["folder"] });
   };
-  const mover = useMutation({
-    mutationFn: (p: PedidoCarpeta) => pedir<EstadoMudanza>("/api/carpeta-datos/mover", { method: "POST", body: JSON.stringify(p) }),
-    onSuccess: (estado) => {
-      cache.setQueryData(["mudanza"], estado);
-      setModo(null);
+  const move = useMutation({
+    mutationFn: (body: FolderRequest) => request<MoveState>("/api/data-folder/move", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: (state) => {
+      cache.setQueryData(["move"], state);
+      setMode(null);
     },
   });
-  const usar = useMutation({
-    mutationFn: (p: PedidoCarpeta) => pedir<EstadoApp>("/api/carpeta-datos", { method: "POST", body: JSON.stringify(p) }),
+  const switchTo = useMutation({
+    mutationFn: (body: FolderRequest) => request<AppState>("/api/data-folder", { method: "POST", body: JSON.stringify(body) }),
     onSuccess: () => {
-      refrescar();
-      setModo(null);
+      refresh();
+      setMode(null);
     },
   });
-  const accion = modo === "mover" ? mover : usar;
+  const action = mode === "move" ? move : switchTo;
 
   // Al terminar la mudanza, la ruta mostrada pasa a ser la nueva.
-  const terminada = m?.paso === "Listo" ? m.destino : null;
+  const finishedAt = m?.step === "done" ? m.destination : null;
   useEffect(() => {
-    if (terminada) {
-      cache.invalidateQueries({ queryKey: ["estado"] });
-      cache.invalidateQueries({ queryKey: ["carpeta"] });
+    if (finishedAt) {
+      cache.invalidateQueries({ queryKey: ["state"] });
+      cache.invalidateQueries({ queryKey: ["folder"] });
     }
-  }, [terminada, cache]);
+  }, [finishedAt, cache]);
 
+  const destination = m?.destination ?? "";
   return (
     <div className="panel">
-      <div className="fila-version">
+      <div className="version-row">
         <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-          <span>{info?.ruta}</span>
-          {info && <span className="small muted">Ocupa {gb(info.ocupado)} · {gb(info.libreEnDisco)} libres en ese disco</span>}
+          <span>{info?.path}</span>
+          {info && <span className="small muted">{t("usage", { used: gb(info.used, locale), free: gb(info.freeOnDrive, locale) })}</span>}
         </div>
-        {!m?.enCurso && !modo && (
+        {!m?.running && !mode && (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button className="ot-btn" type="button" onClick={() => { setModo("mover"); setRuta(""); accion.reset(); }}>Mover a otra carpeta…</button>
-            <button className="ot-btn ot-btn-ghost" type="button" onClick={() => { setModo("usar"); setRuta(""); accion.reset(); }}>Usar otra carpeta…</button>
+            <button className="ot-btn" type="button" onClick={() => { setMode("move"); setPath(""); action.reset(); }}>{t("moveButton")}</button>
+            <button className="ot-btn ot-btn-ghost" type="button" onClick={() => { setMode("use"); setPath(""); action.reset(); }}>{t("useButton")}</button>
           </div>
         )}
       </div>
-      <span className="small muted">Base de datos, Herramientas, caché de imágenes y registro de errores.</span>
+      <span className="small muted">{t("contents")}</span>
 
-      {modo && (
-        <div className="formulario">
-          <p className="small" style={{ margin: 0 }}>
-            {modo === "mover"
-              ? "Se copiará todo a la carpeta nueva, se comprobará cada archivo y solo entonces se borrará la actual. En el mismo disco se mueve al instante. La carpeta nueva tiene que estar vacía o no existir."
-              : "La app empezará a usar esa carpeta (por ejemplo, una que traes de otro PC). La actual no se mueve ni se borra. Si la carpeta elegida está vacía, empezarás de cero."}
-          </p>
+      {mode && (
+        <div className="form-block">
+          <p className="small" style={{ margin: 0 }}>{mode === "move" ? t("moveHelp") : t("useHelp")}</p>
           <div className="chips">
-            {discos?.map((d) => (
-              <button key={d.nombre} className="chip" type="button" onClick={() => setRuta(`${d.nombre}Otteretro`)}>
-                {d.nombre}Otteretro · {gb(d.libre)} libres
+            {drives?.map((d) => (
+              <button key={d.name} className="chip" type="button" onClick={() => setPath(`${d.name}Otteretro`)}>
+                {t("driveChip", { path: `${d.name}Otteretro`, free: gb(d.free, locale) })}
               </button>
             ))}
           </div>
-          <label className="small muted" htmlFor="nueva-ruta">Carpeta</label>
-          <input id="nueva-ruta" value={ruta} onChange={(e) => setRuta(e.target.value)} placeholder="Por ejemplo E:\Otteretro" />
-          {accion.isError && <p className="error small" style={{ margin: 0 }}>{accion.error.message}</p>}
+          <label className="small muted" htmlFor="new-path">{t("folderLabel")}</label>
+          <input id="new-path" value={path} onChange={(e) => setPath(e.target.value)} placeholder={t("placeholder")} />
+          {action.isError && <p className="error small" style={{ margin: 0 }}>{describe(action.error)}</p>}
           <div style={{ display: "flex", gap: 8 }}>
-            <button className="ot-btn" type="button" onClick={() => setModo(null)}>Cancelar</button>
-            <button className="ot-btn ot-btn-primary" type="button" disabled={!ruta || accion.isPending} onClick={() => accion.mutate({ ruta })}>
-              {modo === "mover" ? "Mover" : "Usar esta carpeta"}
+            <button className="ot-btn" type="button" onClick={() => setMode(null)}>{t("cancel")}</button>
+            <button className="ot-btn ot-btn-primary" type="button" disabled={!path || action.isPending} onClick={() => action.mutate({ path })}>
+              {mode === "move" ? t("move") : t("useThis")}
             </button>
           </div>
         </div>
       )}
 
-      {m?.enCurso && (
-        <div className="formulario" role="status">
-          <div className="fila-version">
-            <span><span className="girando" aria-hidden="true" style={{ display: "inline-block", marginRight: 8 }} />{m.paso} hacia {m.destino}</span>
-            <span className="small muted">{porcentaje(m)} %</span>
+      {m?.running && (
+        <div className="form-block" role="status">
+          <div className="version-row">
+            <span><span className="spinner" aria-hidden="true" style={{ display: "inline-block", marginRight: 8 }} />{t("progress", { step: stepName(m.step), destination })}</span>
+            <span className="small muted">{percent(m)} %</span>
           </div>
-          <div className="ot-progress"><span style={{ width: `${porcentaje(m)}%` }} /></div>
-          <span className="small muted">No cierres la app hasta que termine.</span>
+          <div className="ot-progress"><span style={{ width: `${percent(m)}%` }} /></div>
+          <span className="small muted">{t("dontClose")}</span>
         </div>
       )}
-      {!m?.enCurso && m?.paso === "Listo" && (
-        <div className="resultado-actualizacion" role="status">
-          <span className="ot-badge ot-badge-have">Movida</span>
-          <span className="small muted">{m.aviso ?? `Tus datos ahora están en ${m.destino}.`}</span>
+      {!m?.running && m?.step === "done" && (
+        <div className="result" role="status">
+          <span className="ot-badge ot-badge-have">{t("moved")}</span>
+          <span className="small muted">{m.warning ? describe(m.warning) : t("nowIn", { destination })}</span>
         </div>
       )}
-      {!m?.enCurso && m?.error && (
-        <div className="resultado-actualizacion" role="status">
-          <span className="ot-badge ot-badge-danger">Error</span>
-          <span className="small muted">{m.error}</span>
+      {!m?.running && m?.error && (
+        <div className="result" role="status">
+          <span className="ot-badge ot-badge-danger">{t("error")}</span>
+          <span className="small muted">{describe(m.error)}</span>
         </div>
       )}
     </div>

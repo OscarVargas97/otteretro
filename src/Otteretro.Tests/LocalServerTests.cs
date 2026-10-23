@@ -3,112 +3,140 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
 using Otteretro.Api;
-using Otteretro.Inicio;
+using Otteretro.App;
 
 namespace Otteretro.Tests;
 
-public class ServidorTests : IDisposable
+public class LocalServerTests : IDisposable
 {
-    readonly Temporal tmp = new();
+    readonly TempDir tmp = new();
     readonly WebApplication app;
-    readonly HttpClient cliente;
-    readonly ContextoApp contexto;
+    readonly HttpClient client;
+    readonly AppSession session;
 
-    public ServidorTests()
+    public LocalServerTests()
     {
-        contexto = new ContextoApp(new Configuracion(), tmp["config.json"], Servidor.NuevaClave());
-        app = Servidor.Crear(contexto, b => b.WebHost.UseTestServer());
+        session = new AppSession(new AppConfig(), tmp["config.json"], LocalServer.NewKey());
+        app = LocalServer.Create(session, b => b.WebHost.UseTestServer());
         app.StartAsync().GetAwaiter().GetResult();
-        cliente = app.GetTestClient();
-        cliente.BaseAddress = new Uri("http://127.0.0.1/");
+        client = app.GetTestClient();
+        client.BaseAddress = new Uri("http://127.0.0.1/");
     }
 
     [Fact]
-    public async Task SinClaveDa401()
+    public async Task WithoutKeyReturns401()
     {
-        var r = await cliente.GetAsync("/api/estado");
+        var r = await client.GetAsync("/api/state");
         Assert.Equal(HttpStatusCode.Unauthorized, r.StatusCode);
     }
 
     [Fact]
-    public async Task ClaveIncorrectaDa401()
+    public async Task WrongKeyReturns401()
     {
-        cliente.DefaultRequestHeaders.Add(Servidor.CabeceraClave, "otra");
-        var r = await cliente.GetAsync("/api/estado");
+        client.DefaultRequestHeaders.Add(LocalServer.KeyHeader, "otra");
+        var r = await client.GetAsync("/api/state");
         Assert.Equal(HttpStatusCode.Unauthorized, r.StatusCode);
     }
 
     [Fact]
-    public async Task ConClaveResponde()
+    public async Task WithKeyResponds()
     {
-        cliente.DefaultRequestHeaders.Add(Servidor.CabeceraClave, contexto.Clave);
-        var estado = await cliente.GetFromJsonAsync<EstadoApp>("/api/estado");
-        Assert.NotNull(estado);
-        Assert.False(estado.Configurada);
+        client.DefaultRequestHeaders.Add(LocalServer.KeyHeader, session.Key);
+        var state = await client.GetFromJsonAsync<AppState>("/api/state");
+        Assert.NotNull(state);
+        Assert.False(state.Configured);
     }
 
     [Fact]
-    public async Task ClaveEnLaUrlTambienVale()
+    public async Task KeyInTheUrlAlsoWorks()
     {
-        var r = await cliente.GetAsync($"/api/estado?clave={contexto.Clave}");
+        var r = await client.GetAsync($"/api/state?key={session.Key}");
         Assert.Equal(HttpStatusCode.OK, r.StatusCode);
     }
 
     [Fact]
-    public async Task HostAjenoDa400()
+    public async Task ForeignHostReturns400()
     {
-        var pedido = new HttpRequestMessage(HttpMethod.Get, "/api/estado");
-        pedido.Headers.Host = "pagina-maliciosa.com";
-        pedido.Headers.Add(Servidor.CabeceraClave, contexto.Clave);
-        var r = await cliente.SendAsync(pedido);
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/state");
+        request.Headers.Host = "pagina-maliciosa.com";
+        request.Headers.Add(LocalServer.KeyHeader, session.Key);
+        var r = await client.SendAsync(request);
         Assert.Equal(HttpStatusCode.BadRequest, r.StatusCode);
     }
 
     [Fact]
-    public async Task ElegirCarpetaDeDatosLaPreparaYGuarda()
+    public async Task ChoosingTheDataFolderPreparesAndSavesIt()
     {
-        cliente.DefaultRequestHeaders.Add(Servidor.CabeceraClave, contexto.Clave);
-        var carpeta = tmp["datos"];
-        var r = await cliente.PostAsJsonAsync("/api/carpeta-datos", new PedidoCarpeta(carpeta));
+        client.DefaultRequestHeaders.Add(LocalServer.KeyHeader, session.Key);
+        var folder = tmp["datos"];
+        var r = await client.PostAsJsonAsync("/api/data-folder", new FolderRequest(folder));
         Assert.Equal(HttpStatusCode.OK, r.StatusCode);
-        Assert.True(CarpetaDatos.EstaLista(carpeta));
-        Assert.True(File.Exists(CarpetaDatos.RutaBd(carpeta)));
-        Assert.Equal(carpeta, Configuracion.Cargar(tmp["config.json"]).CarpetaDatos);
+        Assert.True(DataFolder.IsReady(folder));
+        Assert.True(File.Exists(DataFolder.DatabasePath(folder)));
+        Assert.Equal(folder, AppConfig.Load(tmp["config.json"]).DataFolder);
     }
 
     [Fact]
-    public async Task SinActualizacionNoSePuedeReiniciar()
+    public async Task WithoutUpdateCannotRestart()
     {
-        cliente.DefaultRequestHeaders.Add(Servidor.CabeceraClave, contexto.Clave);
-        var estado = await cliente.GetFromJsonAsync<EstadoActualizacion>("/api/actualizacion");
-        Assert.Equal(FaseActualizacion.Ninguna, estado!.Fase);
-        var r = await cliente.PostAsync("/api/actualizacion/reiniciar", null);
+        client.DefaultRequestHeaders.Add(LocalServer.KeyHeader, session.Key);
+        var state = await client.GetFromJsonAsync<UpdateState>("/api/update");
+        Assert.Equal(UpdatePhase.None, state!.Phase);
+        var r = await client.PostAsync("/api/update/restart", null);
         Assert.Equal(HttpStatusCode.Conflict, r.StatusCode);
     }
 
     [Fact]
-    public async Task BuscarSinOrigenDiceQueNoEstaDisponible()
+    public async Task CheckingWithoutSourceSaysUnavailable()
     {
-        cliente.DefaultRequestHeaders.Add(Servidor.CabeceraClave, contexto.Clave);
-        var r = await cliente.PostAsync("/api/actualizacion/buscar", null);
-        var estado = await r.Content.ReadFromJsonAsync<EstadoActualizacion>();
-        Assert.Equal(FaseActualizacion.NoDisponible, estado!.Fase);
-        Assert.NotNull(estado.Mensaje);
+        client.DefaultRequestHeaders.Add(LocalServer.KeyHeader, session.Key);
+        var r = await client.PostAsync("/api/update/check", null);
+        var state = await r.Content.ReadFromJsonAsync<UpdateState>();
+        Assert.Equal(UpdatePhase.Unavailable, state!.Phase);
+        Assert.NotNull(state.Message);
     }
 
     [Fact]
-    public async Task CarpetaInvalidaDa400()
+    public async Task InvalidFolderReturns400()
     {
-        cliente.DefaultRequestHeaders.Add(Servidor.CabeceraClave, contexto.Clave);
-        var r = await cliente.PostAsJsonAsync("/api/carpeta-datos", new PedidoCarpeta("relativa"));
+        client.DefaultRequestHeaders.Add(LocalServer.KeyHeader, session.Key);
+        var r = await client.PostAsJsonAsync("/api/data-folder", new FolderRequest("relativa"));
         Assert.Equal(HttpStatusCode.BadRequest, r.StatusCode);
+        // El backend no manda textos: el front traduce el código (#142).
+        Assert.Equal("path.notAbsolute", (await r.Content.ReadFromJsonAsync<ApiError>())!.Code);
+    }
+
+    [Fact]
+    public async Task ChangingTheLanguageIsSaved()
+    {
+        client.DefaultRequestHeaders.Add(LocalServer.KeyHeader, session.Key);
+        var r = await client.PutAsJsonAsync("/api/language", new LanguageRequest("en"));
+        Assert.Equal("en", (await r.Content.ReadFromJsonAsync<AppState>())!.Language);
+        Assert.Equal("en", AppConfig.Load(tmp["config.json"]).Language);
+
+        var bad = await client.PutAsJsonAsync("/api/language", new LanguageRequest("xx"));
+        Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
+    }
+
+    [Fact]
+    public void FindsThePrefetchFileWhereTheExportWritesIt()
+    {
+        var root = tmp["wwwroot"];
+        Directory.CreateDirectory(Path.Combine(root, "sagas", "__next.sagas"));
+        File.WriteAllText(Path.Combine(root, "sagas", "__next.sagas", "__PAGE__.txt"), "x");
+        File.WriteAllText(Path.Combine(root, "__next.__PAGE__.txt"), "x");
+
+        Assert.Equal("/sagas/__next.sagas/__PAGE__.txt", LocalServer.FindPrefetchFile(root, "/sagas/__next.sagas.__PAGE__.txt"));
+        Assert.Null(LocalServer.FindPrefetchFile(root, "/__next.__PAGE__.txt"));        // existe tal cual
+        Assert.Null(LocalServer.FindPrefetchFile(root, "/steam/__next.steam.__PAGE__.txt")); // no existe de ninguna forma
+        Assert.Null(LocalServer.FindPrefetchFile(root, "/sagas/index.txt"));              // no es de precarga
     }
 
     public void Dispose()
     {
         app.StopAsync().GetAwaiter().GetResult();
         ((IDisposable)app).Dispose();
-        RegistroArchivo.Directorio = Path.Combine(Path.GetTempPath(), "otteretro-pruebas", "logs");
+        FileLog.Folder = Path.Combine(Path.GetTempPath(), "otteretro-pruebas", "logs");
         tmp.Dispose();
     }
 }

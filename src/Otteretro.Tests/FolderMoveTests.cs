@@ -1,130 +1,130 @@
 using Dapper;
-using Otteretro.Datos;
-using Otteretro.Inicio;
+using Otteretro.App;
+using Otteretro.Data;
 
 namespace Otteretro.Tests;
 
-public class MudanzaTests
+public class FolderMoveTests
 {
     /// <summary>Una carpeta de datos con base de datos real y un archivo en Herramientas.</summary>
-    static string CrearCarpeta(Temporal tmp)
+    static string CreateFolder(TempDir tmp)
     {
-        var origen = tmp["origen"];
-        CarpetaDatos.Preparar(origen);
-        var bd = new Bd(CarpetaDatos.RutaBd(origen));
-        Migraciones.Aplicar(bd);
-        Migraciones.RegistrarEquipo(bd, "pc-prueba");
-        File.WriteAllBytes(Path.Combine(origen, "Herramientas", "emulador.bin"), Enumerable.Range(0, 100_000).Select(i => (byte)i).ToArray());
-        return origen;
+        var source = tmp["origen"];
+        DataFolder.Prepare(source);
+        var db = new Database(DataFolder.DatabasePath(source));
+        Migrations.Apply(db);
+        Migrations.RegisterMachine(db, "pc-prueba");
+        File.WriteAllBytes(Path.Combine(source, "Herramientas", "emulador.bin"), Enumerable.Range(0, 100_000).Select(i => (byte)i).ToArray());
+        return source;
     }
 
     [Fact]
-    public void CopiaVerificaYConservaLaBaseDeDatos()
+    public void CopiesVerifiesAndKeepsTheDatabase()
     {
-        using var tmp = new Temporal();
-        var origen = CrearCarpeta(tmp);
-        var destino = tmp["destino"];
-        var pasos = new List<string>();
+        using var tmp = new TempDir();
+        var source = CreateFolder(tmp);
+        var destination = tmp["destino"];
+        var steps = new List<string>();
 
-        Mudanza.CopiarYVerificar(origen, destino, p => pasos.Add(p.Paso), copiar: true);
+        FolderMove.CopyAndVerify(source, destination, p => steps.Add(p.Step), forceCopy: true);
 
-        Assert.Contains("Copiando", pasos);
-        Assert.Contains("Verificando", pasos);
-        Assert.True(CarpetaDatos.EstaLista(destino));
-        Assert.Equal(File.ReadAllBytes(Path.Combine(origen, "Herramientas", "emulador.bin")),
-                     File.ReadAllBytes(Path.Combine(destino, "Herramientas", "emulador.bin")));
-        using (var c = new Bd(CarpetaDatos.RutaBd(destino)).Abrir())
-            Assert.Equal("pc-prueba", c.ExecuteScalar<string>("SELECT id FROM equipo"));
-        Assert.True(Directory.Exists(origen)); // el origen no se toca hasta BorrarOrigen
+        Assert.Contains("copying", steps);
+        Assert.Contains("verifying", steps);
+        Assert.True(DataFolder.IsReady(destination));
+        Assert.Equal(File.ReadAllBytes(Path.Combine(source, "Herramientas", "emulador.bin")),
+                     File.ReadAllBytes(Path.Combine(destination, "Herramientas", "emulador.bin")));
+        using (var c = new Database(DataFolder.DatabasePath(destination)).Open())
+            Assert.Equal("pc-prueba", c.ExecuteScalar<string>("SELECT id FROM machine"));
+        Assert.True(Directory.Exists(source)); // el origen no se toca hasta DeleteSource
 
-        Assert.Null(Mudanza.BorrarOrigen(origen));
-        Assert.False(Directory.Exists(origen));
+        Assert.Null(FolderMove.DeleteSource(source));
+        Assert.False(Directory.Exists(source));
     }
 
     [Fact]
-    public void EnElMismoDiscoMueveSinCopiar()
+    public void OnTheSameDriveMovesWithoutCopying()
     {
-        using var tmp = new Temporal();
-        var origen = CrearCarpeta(tmp);
-        var destino = tmp["otra\\carpeta"];
+        using var tmp = new TempDir();
+        var source = CreateFolder(tmp);
+        var destination = tmp["otra\\carpeta"];
 
-        Mudanza.CopiarYVerificar(origen, destino, _ => { });
+        FolderMove.CopyAndVerify(source, destination, _ => { });
 
-        Assert.False(Directory.Exists(origen));
-        Assert.True(CarpetaDatos.EstaLista(destino));
+        Assert.False(Directory.Exists(source));
+        Assert.True(DataFolder.IsReady(destination));
     }
 
     [Fact]
-    public async Task DosMudanzasALaVezSoloArrancaUna()
+    public async Task TwoMovesAtOnceStartOnlyOne()
     {
-        using var tmp = new Temporal();
-        var origen = CrearCarpeta(tmp);
-        var destino = tmp["destino"];
-        var config = new Configuracion { CarpetaDatos = origen };
-        using var eventos = new Otteretro.Api.Eventos();
-        var servicio = new ServicioMudanza(new ContextoApp(config, tmp["config.json"], "clave"), eventos);
+        using var tmp = new TempDir();
+        var source = CreateFolder(tmp);
+        var destination = tmp["destino"];
+        var config = new AppConfig { DataFolder = source };
+        using var events = new Otteretro.Api.Events();
+        var service = new FolderMoveService(new AppSession(config, tmp["config.json"], "clave"), events);
 
-        var respuestas = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(() => servicio.Iniciar(destino))));
-        for (var i = 0; i < 200 && servicio.Estado.EnCurso; i++) await Task.Delay(50);
+        var answers = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(() => service.Start(destination))));
+        for (var i = 0; i < 200 && service.State.Running; i++) await Task.Delay(50);
 
-        Assert.Single(respuestas, r => r is null);
-        Assert.Equal("Listo", servicio.Estado.Paso);
-        Assert.True(CarpetaDatos.EstaLista(destino));
-        Assert.Equal(destino, Configuracion.Cargar(tmp["config.json"]).CarpetaDatos);
+        Assert.Single(answers, r => r is null);
+        Assert.Equal("done", service.State.Step);
+        Assert.True(DataFolder.IsReady(destination));
+        Assert.Equal(destination, AppConfig.Load(tmp["config.json"]).DataFolder);
     }
 
     [Fact]
-    public void DeshacerUnaCopiaSoloBorraLoCopiado()
+    public void UndoingACopyDeletesOnlyWhatWasCopied()
     {
-        using var tmp = new Temporal();
-        var origen = CrearCarpeta(tmp);
-        var destino = tmp["destino"];
-        Mudanza.CopiarYVerificar(origen, destino, _ => { }, copiar: true);
-        File.WriteAllText(Path.Combine(destino, "ajeno.txt"), "de otra persona");
+        using var tmp = new TempDir();
+        var source = CreateFolder(tmp);
+        var destination = tmp["destino"];
+        FolderMove.CopyAndVerify(source, destination, _ => { }, forceCopy: true);
+        File.WriteAllText(Path.Combine(destination, "ajeno.txt"), "de otra persona");
 
-        Mudanza.Deshacer(origen, destino);
+        FolderMove.Undo(source, destination);
 
-        Assert.True(CarpetaDatos.EstaLista(origen));
-        Assert.Equal(["ajeno.txt"], Directory.EnumerateFileSystemEntries(destino).Select(Path.GetFileName));
+        Assert.True(DataFolder.IsReady(source));
+        Assert.Equal(["ajeno.txt"], Directory.EnumerateFileSystemEntries(destination).Select(Path.GetFileName));
     }
 
     [Fact]
-    public void DeshacerUnMovimientoDevuelveLaCarpeta()
+    public void UndoingAMoveReturnsTheFolder()
     {
-        using var tmp = new Temporal();
-        var origen = CrearCarpeta(tmp);
-        var destino = tmp["otra\\carpeta"];
-        Mudanza.CopiarYVerificar(origen, destino, _ => { });
+        using var tmp = new TempDir();
+        var source = CreateFolder(tmp);
+        var destination = tmp["otra\\carpeta"];
+        FolderMove.CopyAndVerify(source, destination, _ => { });
 
-        Mudanza.Deshacer(origen, destino);
+        FolderMove.Undo(source, destination);
 
-        Assert.True(CarpetaDatos.EstaLista(origen));
-        Assert.False(Directory.Exists(destino));
+        Assert.True(DataFolder.IsReady(source));
+        Assert.False(Directory.Exists(destination));
     }
 
     [Fact]
-    public void AceptaUnaCarpetaVaciaQueYaExiste()
+    public void AcceptsAnEmptyFolderThatAlreadyExists()
     {
-        using var tmp = new Temporal();
-        var origen = CrearCarpeta(tmp);
+        using var tmp = new TempDir();
+        var source = CreateFolder(tmp);
         Directory.CreateDirectory(tmp["vacia"]);
-        Assert.Null(Mudanza.Validar(origen, tmp["vacia"]));
+        Assert.Null(FolderMove.Validate(source, tmp["vacia"]));
     }
 
     [Fact]
-    public void RechazaDestinosPeligrosos()
+    public void RejectsDangerousDestinations()
     {
-        using var tmp = new Temporal();
-        var origen = CrearCarpeta(tmp);
-        var ocupada = tmp["ocupada"];
-        Directory.CreateDirectory(ocupada);
-        File.WriteAllText(Path.Combine(ocupada, "algo.txt"), "x");
+        using var tmp = new TempDir();
+        var source = CreateFolder(tmp);
+        var busy = tmp["ocupada"];
+        Directory.CreateDirectory(busy);
+        File.WriteAllText(Path.Combine(busy, "algo.txt"), "x");
 
-        Assert.NotNull(Mudanza.Validar(origen, origen));                              // la misma
-        Assert.NotNull(Mudanza.Validar(origen, origen + "\\"));                       // la misma, con barra final
-        Assert.NotNull(Mudanza.Validar(origen, Path.Combine(origen, "dentro")));      // dentro de la actual
-        Assert.NotNull(Mudanza.Validar(origen, ocupada));                             // con contenido
-        Assert.NotNull(Mudanza.Validar(origen, "relativa"));                          // incompleta
-        Assert.NotNull(Mudanza.Validar(origen, Path.Combine(ocupada, "algo.txt")));   // un archivo
+        Assert.NotNull(FolderMove.Validate(source, source));                              // la misma
+        Assert.NotNull(FolderMove.Validate(source, source + "\\"));                       // la misma, con barra final
+        Assert.NotNull(FolderMove.Validate(source, Path.Combine(source, "dentro")));      // dentro de la actual
+        Assert.NotNull(FolderMove.Validate(source, busy));                                // con contenido
+        Assert.NotNull(FolderMove.Validate(source, "relativa"));                          // incompleta
+        Assert.NotNull(FolderMove.Validate(source, Path.Combine(busy, "algo.txt")));      // un archivo
     }
 }

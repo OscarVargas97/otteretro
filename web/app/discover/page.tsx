@@ -1,5 +1,7 @@
-import { Proximamente } from "@/componentes/Marco";
+"use client";
 
-export default function Descubrir() {
-  return <Proximamente fase={9} titulo="Nada que recomendar todavía" texto="Claude te recomendará sagas según lo que te gusta y te dirá por qué." />;
+import { ComingSoon } from "@/components/Shell";
+
+export default function Discover() {
+  return <ComingSoon screen="discover" phase={9} />;
 }

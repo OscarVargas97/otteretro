@@ -29,7 +29,8 @@ Desde un **espacio** de [ia-workspace](https://github.com/OscarVargas97/ia-works
 - Claude se usa a través del Claude Code del usuario (`claude -p`), **nunca con la API de Anthropic**.
 - Claude decide y los scripts repiten: lo repetitivo y determinista se automatiza para no gastar tokens. Las tareas de automatización llegan como issues con la etiqueta `automatizar`.
 - No borrar nunca versiones viejas de emuladores ni actualizaciones de juegos. Mover es copiar, verificar y recién entonces borrar.
-- Idioma: **identificadores en inglés** (#125); interfaz, documentación, comentarios, commits, PRs e issues en español neutro. Los nombres de F0 todavía están en español y se renombran al inglés (issue propio).
+- Idioma: **identificadores en inglés** (#125), también las tablas y columnas de SQLite (#139); interfaz, documentación, comentarios, commits, PRs e issues en español neutro. Lo que ve o guarda la persona no se traduce: textos, comandos de la CLI, claves de `config.json` y nombres de carpetas de datos.
+- Interfaz en español e inglés (#140): los textos viven en `web/messages/<idioma>.json`, nunca escritos en los componentes; el backend devuelve códigos y el front los traduce (#142). Cada texto nuevo va en los dos catálogos.
 - Código mínimo: sin abstracciones de una sola implementación ni andamiaje "para después". Lo propio de cada sistema operativo, detrás de su clase (Windows y Linux/PlayOS).
 - Credenciales y datos del usuario nunca en el repo ni en logs.
 
@@ -39,6 +40,7 @@ Desde un **espacio** de [ia-workspace](https://github.com/OscarVargas97/ia-works
 |---|---|
 | Pruebas | `dotnet test` |
 | Compilar todo (incluye el front) | `dotnet build src/Otteretro -c Release` |
-| Revisar tipos del front | `npm --prefix web run revisar` |
+| Revisar tipos y catálogos del front | `npm --prefix web run revisar` |
+| Pruebas de interfaz (Playwright con el Chrome instalado, en español e inglés) | `npm --prefix web run e2e` |
 | Regenerar los tipos del front tras cambiar la API | `cd web && npm run tipos` |
 | Más (modo servidor, front en caliente, instalador) | `docs/plan-implementacion.md` §0.1b |

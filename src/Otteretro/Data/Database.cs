@@ -1,23 +1,23 @@
 using Dapper;
 using Microsoft.Data.Sqlite;
 
-namespace Otteretro.Datos;
+namespace Otteretro.Data;
 
 /// <summary>La base SQLite en modo WAL: la app, el lanzador y la CLI pueden usarla a la vez.</summary>
-public sealed class Bd(string ruta)
+public sealed class Database(string filePath)
 {
-    public string Ruta { get; } = ruta;
+    public string FilePath { get; } = filePath;
 
-    public SqliteConnection Abrir()
+    public SqliteConnection Open()
     {
-        var conexion = new SqliteConnection(new SqliteConnectionStringBuilder
+        var connection = new SqliteConnection(new SqliteConnectionStringBuilder
         {
-            DataSource = Ruta,
+            DataSource = FilePath,
             ForeignKeys = true,
             DefaultTimeout = 5,
         }.ToString());
-        conexion.Open();
-        conexion.Execute("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;");
-        return conexion;
+        connection.Open();
+        connection.Execute("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;");
+        return connection;
     }
 }

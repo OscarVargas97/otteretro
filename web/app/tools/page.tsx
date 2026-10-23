@@ -1,5 +1,7 @@
-import { Proximamente } from "@/componentes/Marco";
+"use client";
 
-export default function Herramientas() {
-  return <Proximamente fase={4} titulo="Aún no hay emuladores ni ports" texto="Aquí se instalarán y actualizarán emuladores, ports, complementos y archivos de sistema." />;
+import { ComingSoon } from "@/components/Shell";
+
+export default function Tools() {
+  return <ComingSoon screen="tools" phase={4} />;
 }

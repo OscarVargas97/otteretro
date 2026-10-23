@@ -1,0 +1,196 @@
+{
+  "languageName": "Español",
+  "app": {
+    "unreachable": "No se pudo hablar con la app: {detail}. Ciérrala y vuelve a abrirla."
+  },
+  "nav": {
+    "label": "Principal",
+    "home": "Inicio",
+    "sagas": "Sagas",
+    "saga": "Saga",
+    "collection": "Colección",
+    "game": "Juego",
+    "discover": "Descubrir",
+    "review": "Revisar",
+    "downloads": "Descargas",
+    "tools": "Herramientas",
+    "steam": "Steam",
+    "settings": "Ajustes"
+  },
+  "topBar": {
+    "search": "Buscar sagas, juegos, emuladores…",
+    "shortcut": "CTRL K",
+    "tasks": "{count, plural, =0 {Tareas} one {1 tarea} other {# tareas}}",
+    "tasksPanel": "Tareas en segundo plano",
+    "noTasksTitle": "No hay tareas en curso",
+    "noTasksText": "Aquí verás escaneos, descargas, respaldos y el trabajo de Claude.",
+    "connected": "Conectado a la app",
+    "reconnecting": "Reconectando…",
+    "searchLabel": "Buscar",
+    "searchPlaceholder": "Sagas, juegos, emuladores, ajustes…",
+    "searchLater": "La búsqueda funciona desde la fase 1, cuando haya catálogo."
+  },
+  "comingSoon": {
+    "badge": "Llega en la fase {phase}",
+    "home": {
+      "title": "Todavía no hay nada que mostrar",
+      "text": "Cuando se cargue el catálogo verás aquí el siguiente juego de cada ruta, lo pendiente de revisar y las novedades."
+    },
+    "sagas": {
+      "title": "Aún no hay sagas",
+      "text": "Las sagas y sus juegos se cargan desde IGDB."
+    },
+    "saga": {
+      "title": "Elige una saga",
+      "text": "Aquí verás la línea de tiempo de la saga con la ruta que sigas."
+    },
+    "collection": {
+      "title": "Tu colección está vacía",
+      "text": "Primero aparecerá lo que tienes en Steam (fase 1) y después los juegos de tus bibliotecas (fase 3)."
+    },
+    "game": {
+      "title": "Elige un juego",
+      "text": "Aquí verás cómo jugarlo, sus versiones, archivos y tu progreso."
+    },
+    "discover": {
+      "title": "Nada que recomendar todavía",
+      "text": "Claude te recomendará sagas según lo que te gusta y te dirá por qué."
+    },
+    "review": {
+      "title": "Nada que revisar",
+      "text": "Aquí aparecerá lo que la app decidió con dudas: identificaciones, rutas por aprobar y aprendizajes de Claude."
+    },
+    "downloads": {
+      "title": "No hay descargas",
+      "text": "Aquí verás JDownloader, los megapacks y cada paso de la importación."
+    },
+    "tools": {
+      "title": "Aún no hay emuladores ni ports",
+      "text": "Aquí se instalarán y actualizarán emuladores, ports, complementos y archivos de sistema."
+    },
+    "steam": {
+      "title": "Nada que exportar",
+      "text": "Aquí verás qué juegos se llevan a Steam, con su categoría por saga y su arte."
+    }
+  },
+  "welcome": {
+    "steps": {
+      "welcome": "Bienvenida",
+      "dataFolder": "Carpeta de datos",
+      "backup": "Respaldo",
+      "libraries": "Bibliotecas",
+      "steam": "Steam",
+      "keys": "Claves",
+      "initialLoad": "Carga inicial"
+    },
+    "phase": "Fase {phase}",
+    "stepOf": "Paso {step} de {total}",
+    "intro": "Cataloga tus sagas, organiza tus juegos, emuladores y ports en cualquier disco, y llévalo todo a Steam. Esto toma unos minutos.",
+    "start": "Empezar",
+    "chooseTitle": "Elige la carpeta de datos",
+    "chooseText": "Aquí van la base de datos, las Herramientas (emuladores, ports, BIOS) y la caché de imágenes. Ocupa bastante: elige un disco con espacio. Para cambiar de PC basta con mover esta carpeta.",
+    "freeOf": "{free} libres de {total}",
+    "otherPath": "O escribe otra ruta",
+    "back": "Atrás",
+    "preparing": "Preparando…",
+    "use": "Usar {path}",
+    "nextSteps": "Los pasos siguientes (respaldo, bibliotecas, Steam, claves y carga inicial) se activan con su fase."
+  },
+  "settings": {
+    "dataFolder": "Carpeta de datos",
+    "about": "Acerca de",
+    "language": "Idioma",
+    "later": "Bibliotecas, cuentas y claves, respaldo y el resto de ajustes llegan con su fase."
+  },
+  "dataFolder": {
+    "usage": "Ocupa {used} · {free} libres en ese disco",
+    "moveButton": "Mover a otra carpeta…",
+    "useButton": "Usar otra carpeta…",
+    "contents": "Base de datos, Herramientas, caché de imágenes y registro de errores.",
+    "moveHelp": "Se copiará todo a la carpeta nueva, se comprobará cada archivo y solo entonces se borrará la actual. En el mismo disco se mueve al instante. La carpeta nueva tiene que estar vacía o no existir.",
+    "useHelp": "La app empezará a usar esa carpeta (por ejemplo, una que traes de otro PC). La actual no se mueve ni se borra. Si la carpeta elegida está vacía, empezarás de cero.",
+    "driveChip": "{path} · {free} libres",
+    "folderLabel": "Carpeta",
+    "placeholder": "Por ejemplo E:\\Otteretro",
+    "cancel": "Cancelar",
+    "move": "Mover",
+    "useThis": "Usar esta carpeta",
+    "progress": "{step} hacia {destination}",
+    "dontClose": "No cierres la app hasta que termine.",
+    "moved": "Movida",
+    "nowIn": "Tus datos ahora están en {destination}.",
+    "error": "Error",
+    "taskTitle": "Mover la carpeta de datos",
+    "taskDone": "Listo",
+    "taskNowIn": "Ahora está en {destination}"
+  },
+  "move": {
+    "step": {
+      "preparing": "Preparando",
+      "moving": "Moviendo",
+      "copying": "Copiando",
+      "verifying": "Verificando",
+      "deletingSource": "Borrando la carpeta anterior",
+      "done": "Listo",
+      "error": "Error"
+    }
+  },
+  "update": {
+    "taskTitle": "Actualización de Otteretro",
+    "checking": "Buscando…",
+    "ready": "Lista",
+    "error": "Error",
+    "checkingDetail": "Comprobando si hay una versión nueva",
+    "downloadingDetail": "Descargando la versión {version}",
+    "readyDetail": "La versión {version} se instalará al cerrar la app",
+    "failedFallback": "No se pudo actualizar.",
+    "unavailable": "No disponible",
+    "upToDate": "Estás al día",
+    "upToDateText": "Otteretro {version} es la versión más reciente · comprobado a las {time}",
+    "downloadingBadge": "Descargando {version}",
+    "downloadingText": "{progress} % · puedes seguir usando la app",
+    "readyBadge": "{version} lista",
+    "readyText": "Se instalará al cerrar la app, o ahora mismo si reinicias.",
+    "restarting": "Reiniciando…",
+    "restartNow": "Reiniciar ahora",
+    "downloadingButton": "Descargando…",
+    "check": "Buscar actualización",
+    "notice": "<b>Otteretro {version} está lista.</b> Se instalará cuando cierres la app, o ahora mismo si reinicias.",
+    "reason": {
+      "noSource": "No hay un origen de actualizaciones configurado.",
+      "notInstalled": "Las actualizaciones solo funcionan en la app instalada.",
+      "failed": "No se pudo buscar o descargar la actualización. El detalle está en el registro."
+    }
+  },
+  "errors": {
+    "http": "La app respondió con un error ({status}).",
+    "unknown": "Algo salió mal ({code}).",
+    "path": {
+      "notAbsolute": "La ruta tiene que ser completa, por ejemplo E:\\Otteretro.",
+      "isFile": "Esa ruta es un archivo, no una carpeta."
+    },
+    "folder": {
+      "createFailed": "No se pudo crear la carpeta: {detail}"
+    },
+    "move": {
+      "inProgress": "Espera a que termine la mudanza de la carpeta de datos.",
+      "noDataFolder": "No hay carpeta de datos.",
+      "sameFolder": "Es la misma carpeta que la actual.",
+      "insideCurrent": "La nueva carpeta no puede estar dentro de la actual.",
+      "destinationNotEmpty": "La carpeta de destino tiene que estar vacía.",
+      "driveNotFound": "No se encuentra el disco {drive}.",
+      "notEnoughSpace": "No hay espacio en {drive}: hacen falta {needed} y hay {free} libres.",
+      "driveUnavailable": "No se puede usar {drive}: {detail}",
+      "failedNothingMoved": "No se movió nada; tus datos siguen en {path}. {detail}",
+      "copyMismatch": "No se movió nada; tus datos siguen en {path}. El archivo {detail} no se copió bien.",
+      "failedDataAt": "La mudanza se cortó y tus datos quedaron en {path}. Usa «Usar otra carpeta» con esa ruta. {detail}",
+      "sourceNotDeleted": "Los datos ya están en la carpeta nueva, pero no se pudo borrar del todo {path}: {detail} Puedes borrarla a mano."
+    },
+    "update": {
+      "nothingDownloaded": "No hay ninguna actualización descargada."
+    },
+    "language": {
+      "unsupported": "Ese idioma no está disponible: {language}."
+    }
+  }
+}

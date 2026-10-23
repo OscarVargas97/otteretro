@@ -1,23 +1,28 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { VersionYActualizacion } from "@/componentes/Actualizacion";
-import { AjustesCarpetaDatos } from "@/componentes/CarpetaDatos";
-import { pedir } from "@/lib/cliente";
-import type { EstadoApp } from "@/lib/tipos";
+import { useTranslations } from "next-intl";
+import { DataFolderSettings } from "@/components/DataFolder";
+import { LanguagePicker } from "@/components/LanguagePicker";
+import { useAppState } from "@/components/Shell";
+import { VersionAndUpdate } from "@/components/Update";
 
-export default function Ajustes() {
-  const { data } = useQuery({ queryKey: ["estado"], queryFn: () => pedir<EstadoApp>("/api/estado") });
+export default function Settings() {
+  const t = useTranslations("settings");
+  const { data } = useAppState();
   return (
     <div className="content">
       <section className="sec">
-        <div className="sec-h"><h2>Carpeta de datos</h2></div>
-        <AjustesCarpetaDatos />
+        <div className="sec-h"><h2>{t("dataFolder")}</h2></div>
+        <DataFolderSettings />
       </section>
       <section className="sec">
-        <div className="sec-h"><h2>Acerca de</h2></div>
-        <VersionYActualizacion version={data?.version} />
-        <p className="small muted" style={{ margin: 0 }}>Bibliotecas, cuentas y claves, respaldo y el resto de ajustes llegan con su fase.</p>
+        <div className="sec-h"><h2>{t("language")}</h2></div>
+        <div className="panel"><LanguagePicker /></div>
+      </section>
+      <section className="sec">
+        <div className="sec-h"><h2>{t("about")}</h2></div>
+        <VersionAndUpdate version={data?.version} />
+        <p className="small muted" style={{ margin: 0 }}>{t("later")}</p>
       </section>
     </div>
   );

@@ -1,58 +1,58 @@
 using System.Runtime.InteropServices;
 
-namespace Otteretro.Inicio;
+namespace Otteretro.App;
 
 /// <summary>Modo APP: servidor local + ventana.</summary>
-public static class ModoApp
+public static class AppMode
 {
-    public static int Ejecutar()
+    public static int Run()
     {
-        using var instancia = UnaInstancia.Tomar();
-        if (instancia is null)
+        using var instance = SingleInstance.TryAcquire();
+        if (instance is null)
         {
-            UnaInstancia.AvisarALaQueExiste();
+            SingleInstance.NotifyExisting();
             return 0;
         }
 
-        var rutaConfig = Configuracion.RutaPorDefecto;
-        var config = Configuracion.Cargar(rutaConfig);
-        if (CarpetaDatos.EstaLista(config.CarpetaDatos))
-            Arranque.PrepararDatos(config);
+        var configPath = AppConfig.DefaultPath;
+        var config = AppConfig.Load(configPath);
+        if (DataFolder.IsReady(config.DataFolder))
+            Startup.PrepareData(config);
 
-        var contexto = new ContextoApp(config, rutaConfig, Servidor.NuevaClave());
-        var app = Servidor.Crear(contexto);
+        var session = new AppSession(config, configPath, LocalServer.NewKey());
+        var app = LocalServer.Create(session);
         app.StartAsync().GetAwaiter().GetResult();
-        var api = Servidor.Direccion(app);
+        var api = LocalServer.Address(app);
 
         // En desarrollo la interfaz viene de `next dev` y se le dice dónde está la API.
         var web = Environment.GetEnvironmentVariable("OTTERETRO_DEV_WEB");
         var url = web is null
-            ? $"{api}/?clave={contexto.Clave}"
-            : $"{web}/?clave={contexto.Clave}&api={Uri.EscapeDataString(api)}";
+            ? $"{api}/?key={session.Key}"
+            : $"{web}/?key={session.Key}&api={Uri.EscapeDataString(api)}";
 
-        _ = app.Services.GetRequiredService<Actualizador>().Buscar();
-        Ventana.Mostrar(url, instancia);
+        _ = app.Services.GetRequiredService<Updater>().Check();
+        MainWindow.Show(url, instance);
         app.StopAsync().GetAwaiter().GetResult();
         return 0;
     }
 }
 
 /// <summary>Modo JUGAR: `otteretro jugar &lt;id&gt;`. Llega en la fase 4.</summary>
-public static class ModoJugar
+public static class PlayMode
 {
-    public const int NoImplementado = 2;
+    public const int NotImplemented = 2;
 
-    public static int Ejecutar(string[] args)
+    public static int Run(string[] args)
     {
-        RegistroArchivo.Escribir(LogLevel.Warning, "Jugar", $"`jugar {string.Join(' ', args)}` todavía no está implementado (fase 4).");
-        return NoImplementado;
+        FileLog.Write(LogLevel.Warning, "Play", $"`jugar {string.Join(' ', args)}` todavía no está implementado (fase 4).");
+        return NotImplemented;
     }
 }
 
-/// <summary>Modo CLI: `otteretro &lt;tarea&gt;`.</summary>
-public static class ModoCli
+/// <summary>Modo CLI: `otteretro &lt;tarea&gt;`. Los comandos son la interfaz de la CLI y siguen en español.</summary>
+public static class CliMode
 {
-    public const string Ayuda = """
+    public const string Help = """
         Uso: otteretro [comando]
 
           (sin comando)          Abre la app.
@@ -63,68 +63,68 @@ public static class ModoCli
           ayuda                  Muestra esta ayuda.
         """;
 
-    public static int Ejecutar(string[] args, TextWriter? salida = null)
+    public static int Run(string[] args, TextWriter? output = null)
     {
-        if (salida is null)
+        if (output is null)
         {
-            EngancharConsola();
-            salida = Console.Out;
+            AttachToConsole();
+            output = Console.Out;
         }
         switch (args)
         {
             case ["version"]:
-                salida.WriteLine(Arranque.Version);
+                output.WriteLine(Startup.Version);
                 return 0;
             case ["ayuda"] or ["--help"] or ["-h"]:
-                salida.WriteLine(Ayuda);
+                output.WriteLine(Help);
                 return 0;
-            case ["openapi", var archivo]:
-                EscribirOpenApi(archivo).GetAwaiter().GetResult();
-                salida.WriteLine($"Contrato escrito en {archivo}");
+            case ["openapi", var file]:
+                WriteOpenApi(file).GetAwaiter().GetResult();
+                output.WriteLine($"Contrato escrito en {file}");
                 return 0;
             case ["servidor"]:
-                Servir(salida);
+                Serve(output);
                 return 0;
             default:
-                salida.WriteLine($"Comando desconocido: {string.Join(' ', args)}");
-                salida.WriteLine(Ayuda);
+                output.WriteLine($"Comando desconocido: {string.Join(' ', args)}");
+                output.WriteLine(Help);
                 return 1;
         }
     }
 
-    static void Servir(TextWriter salida)
+    static void Serve(TextWriter output)
     {
-        var rutaConfig = Configuracion.RutaPorDefecto;
-        var config = Configuracion.Cargar(rutaConfig);
-        if (CarpetaDatos.EstaLista(config.CarpetaDatos))
-            Arranque.PrepararDatos(config);
-        var contexto = new ContextoApp(config, rutaConfig, Servidor.NuevaClave());
-        var app = Servidor.Crear(contexto);
+        var configPath = AppConfig.DefaultPath;
+        var config = AppConfig.Load(configPath);
+        if (DataFolder.IsReady(config.DataFolder))
+            Startup.PrepareData(config);
+        var session = new AppSession(config, configPath, LocalServer.NewKey());
+        var app = LocalServer.Create(session);
         app.StartAsync().GetAwaiter().GetResult();
-        salida.WriteLine($"Configuración: {rutaConfig}");
-        salida.WriteLine($"Abre {Servidor.Direccion(app)}/?clave={contexto.Clave}");
-        salida.WriteLine("Ctrl+C para terminar.");
+        output.WriteLine($"Configuración: {configPath}");
+        output.WriteLine($"Abre {LocalServer.Address(app)}/?key={session.Key}");
+        output.WriteLine("Ctrl+C para terminar.");
         app.WaitForShutdownAsync().GetAwaiter().GetResult();
     }
 
-    static async Task EscribirOpenApi(string archivo)
+    static async Task WriteOpenApi(string file)
     {
-        var contexto = new ContextoApp(new Configuracion(), Path.GetTempFileName(), Servidor.NuevaClave());
-        await using var app = Servidor.Crear(contexto);
+        var session = new AppSession(new AppConfig(), Path.GetTempFileName(), LocalServer.NewKey());
+        await using var app = LocalServer.Create(session);
         await app.StartAsync();
         using var http = new HttpClient();
-        var json = await http.GetStringAsync($"{Servidor.Direccion(app)}/openapi/v1.json");
-        await File.WriteAllTextAsync(archivo, json);
+        var json = await http.GetStringAsync($"{LocalServer.Address(app)}/openapi/v1.json");
+        await File.WriteAllTextAsync(file, json);
         await app.StopAsync();
     }
 
     // El ejecutable es WinExe (sin consola); al usarlo desde una terminal se engancha a ella.
-    static void EngancharConsola()
+    static void AttachToConsole()
     {
         if (OperatingSystem.IsWindows()) AttachConsole(-1);
         Console.OutputEncoding = System.Text.Encoding.UTF8;
     }
 
     [DllImport("kernel32.dll")]
-    static extern bool AttachConsole(int idProceso);
+    static extern bool AttachConsole(int processId);
 }

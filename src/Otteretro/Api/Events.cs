@@ -4,47 +4,47 @@ using System.Threading.Channels;
 namespace Otteretro.Api;
 
 /// <summary>Progreso en vivo hacia la interfaz con Server-Sent Events (A2). Cualquier módulo publica aquí.</summary>
-public sealed class Eventos : IDisposable
+public sealed class Events : IDisposable
 {
-    readonly List<Channel<string>> suscriptores = [];
-    readonly Lock cerrojo = new();
-    readonly Timer latido;
+    readonly List<Channel<string>> subscribers = [];
+    readonly Lock gate = new();
+    readonly Timer heartbeat;
 
-    public Eventos() =>
+    public Events() =>
         // Mantiene viva la conexión aunque no pase nada.
-        latido = new Timer(_ => Publicar("latido", new { }), null, TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(15));
+        heartbeat = new Timer(_ => Publish("heartbeat", new { }), null, TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(15));
 
-    public void Publicar(string tipo, object datos)
+    public void Publish(string type, object data)
     {
-        var mensaje = $"event: {tipo}\ndata: {JsonSerializer.Serialize(datos, JsonSerializerOptions.Web)}\n\n";
-        lock (cerrojo)
-            foreach (var s in suscriptores)
-                s.Writer.TryWrite(mensaje);
+        var message = $"event: {type}\ndata: {JsonSerializer.Serialize(data, JsonSerializerOptions.Web)}\n\n";
+        lock (gate)
+            foreach (var s in subscribers)
+                s.Writer.TryWrite(message);
     }
 
-    public async Task Atender(HttpContext http)
+    public async Task Serve(HttpContext http)
     {
         http.Response.ContentType = "text/event-stream";
         http.Response.Headers.CacheControl = "no-cache";
-        var canal = Channel.CreateBounded<string>(new BoundedChannelOptions(256) { FullMode = BoundedChannelFullMode.DropOldest });
-        lock (cerrojo) suscriptores.Add(canal);
+        var channel = Channel.CreateBounded<string>(new BoundedChannelOptions(256) { FullMode = BoundedChannelFullMode.DropOldest });
+        lock (gate) subscribers.Add(channel);
         try
         {
-            var fin = http.RequestAborted;
-            await http.Response.WriteAsync(": conectado\n\n", fin);
-            await http.Response.Body.FlushAsync(fin);
-            await foreach (var mensaje in canal.Reader.ReadAllAsync(fin))
+            var aborted = http.RequestAborted;
+            await http.Response.WriteAsync(": connected\n\n", aborted);
+            await http.Response.Body.FlushAsync(aborted);
+            await foreach (var message in channel.Reader.ReadAllAsync(aborted))
             {
-                await http.Response.WriteAsync(mensaje, fin);
-                await http.Response.Body.FlushAsync(fin);
+                await http.Response.WriteAsync(message, aborted);
+                await http.Response.Body.FlushAsync(aborted);
             }
         }
         catch (OperationCanceledException) { }
         finally
         {
-            lock (cerrojo) suscriptores.Remove(canal);
+            lock (gate) subscribers.Remove(channel);
         }
     }
 
-    public void Dispose() => latido.Dispose();
+    public void Dispose() => heartbeat.Dispose();
 }

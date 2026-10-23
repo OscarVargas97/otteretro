@@ -4,22 +4,22 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Otteretro.Api;
 
-namespace Otteretro.Inicio;
+namespace Otteretro.App;
 
 /// <summary>Lo que comparten la ventana y la API durante una sesión.</summary>
-public sealed record ContextoApp(Configuracion Config, string RutaConfig, string Clave);
+public sealed record AppSession(AppConfig Config, string ConfigPath, string Key);
 
 /// <summary>
 /// Servidor local: solo 127.0.0.1, puerto aleatorio y una clave por sesión que solo conoce la ventana.
 /// Así ningún otro programa ni página web del PC puede usar la API.
 /// </summary>
-public static class Servidor
+public static class LocalServer
 {
-    public const string CabeceraClave = "X-Otteretro-Clave";
+    public const string KeyHeader = "X-Otteretro-Key";
 
-    public static string NuevaClave() => Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+    public static string NewKey() => Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
 
-    public static WebApplication Crear(ContextoApp contexto, Action<WebApplicationBuilder>? ajustar = null)
+    public static WebApplication Create(AppSession session, Action<WebApplicationBuilder>? configure = null)
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
@@ -27,24 +27,24 @@ public static class Servidor
             WebRootPath = Path.Combine(AppContext.BaseDirectory, "wwwroot"),
         });
         builder.Logging.ClearProviders();
-        builder.Logging.AddProvider(new RegistroArchivo());
+        builder.Logging.AddProvider(new FileLog());
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Services.AddOpenApi();
-        builder.Services.AddSingleton(contexto);
-        builder.Services.AddSingleton<Eventos>();
-        builder.Services.AddSingleton<Actualizador>();
-        builder.Services.AddSingleton<ServicioMudanza>();
+        builder.Services.AddSingleton(session);
+        builder.Services.AddSingleton<Events>();
+        builder.Services.AddSingleton<Updater>();
+        builder.Services.AddSingleton<FolderMoveService>();
 
         // Solo en desarrollo: la interfaz corre en `next dev` en otro origen.
-        var origenDev = Environment.GetEnvironmentVariable("OTTERETRO_DEV_WEB");
-        if (origenDev is not null)
-            builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(origenDev).AllowAnyHeader().AllowAnyMethod()));
+        var devOrigin = Environment.GetEnvironmentVariable("OTTERETRO_DEV_WEB");
+        if (devOrigin is not null)
+            builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(devOrigin).AllowAnyHeader().AllowAnyMethod()));
 
-        ajustar?.Invoke(builder);
+        configure?.Invoke(builder);
         var app = builder.Build();
 
-        if (origenDev is not null) app.UseCors();
-        app.Use(async (http, siguiente) =>
+        if (devOrigin is not null) app.UseCors();
+        app.Use(async (http, next) =>
         {
             // Un Host distinto delata una página web que intenta llegar a la API (DNS rebinding).
             if (http.Request.Host.Host != "127.0.0.1")
@@ -53,28 +53,57 @@ public static class Servidor
                 return;
             }
             if (http.Request.Path.StartsWithSegments("/api") && !http.Request.Method.Equals("OPTIONS", StringComparison.Ordinal)
-                && !ClaveValida(http, contexto.Clave))
+                && !IsValidKey(http, session.Key))
             {
                 http.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 return;
             }
-            await siguiente();
+            await next();
+        });
+        app.Use(async (http, next) =>
+        {
+            if (FindPrefetchFile(app.Environment.WebRootPath, http.Request.Path.Value) is { } file) http.Request.Path = file;
+            await next();
         });
         app.UseDefaultFiles();
         app.UseStaticFiles();
         app.MapOpenApi();
-        Endpoints.Mapear(app);
+        Endpoints.Map(app);
         return app;
     }
 
-    /// <summary>La clave llega en la cabecera o, para EventSource que no admite cabeceras, en ?clave=.</summary>
-    static bool ClaveValida(HttpContext http, string clave)
+    /// <summary>La clave llega en la cabecera o, para EventSource que no admite cabeceras, en ?key=.</summary>
+    static bool IsValidKey(HttpContext http, string key)
     {
-        var dada = http.Request.Headers[CabeceraClave].FirstOrDefault() ?? http.Request.Query["clave"].FirstOrDefault();
-        return dada is not null && CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(dada), Encoding.UTF8.GetBytes(clave));
+        var given = http.Request.Headers[KeyHeader].FirstOrDefault() ?? http.Request.Query["key"].FirstOrDefault();
+        return given is not null && CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(given), Encoding.UTF8.GetBytes(key));
+    }
+
+    /// <summary>
+    /// Next 16 pide la precarga de cada pantalla como `sagas/__next.sagas.__PAGE__.txt`, pero la exportación
+    /// estática la escribe como `sagas/__next.sagas/__PAGE__.txt`. Si el pedido no existe, se prueba cada forma
+    /// de cambiar los puntos finales por carpetas y se devuelve la que existe (o null).
+    /// </summary>
+    // ponytail: arreglo del lado del servidor; quitarlo cuando Next exporte con los mismos nombres que pide.
+    public static string? FindPrefetchFile(string? webRoot, string? requestPath)
+    {
+        if (webRoot is null || requestPath is null) return null;
+        var slash = requestPath.LastIndexOf('/');
+        var name = requestPath[(slash + 1)..];
+        if (!name.StartsWith("__next.", StringComparison.Ordinal) || !name.EndsWith(".txt", StringComparison.Ordinal)) return null;
+        var folder = requestPath[..(slash + 1)];
+        if (File.Exists(Path.Join(webRoot, requestPath))) return null;
+
+        var parts = name[..^4].Split('.');
+        for (var dots = parts.Length - 1; dots >= 1; dots--)
+        {
+            var candidate = folder + string.Join('.', parts[..dots]) + "/" + string.Join('/', parts[dots..]) + ".txt";
+            if (File.Exists(Path.Join(webRoot, candidate))) return candidate;
+        }
+        return null;
     }
 
     /// <summary>La dirección real (con el puerto elegido por el sistema) después de StartAsync.</summary>
-    public static string Direccion(WebApplication app) =>
+    public static string Address(WebApplication app) =>
         app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.First();
 }

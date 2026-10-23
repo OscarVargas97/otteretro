@@ -2,6 +2,16 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
+## Otteretro en Linux y PlayOS (en curso) · 2026-10-23
+
+`fase/p0-playos` · PR —
+
+### Nuevo
+- **Otteretro en inglés**: elige el idioma en Ajustes o en el primer paso del asistente; la interfaz cambia al momento y la próxima vez abre en el mismo. La primera vez usa el idioma de tu sistema. Todos los textos, también los errores, salen en el idioma elegido.
+
+### Cambios
+- **Código en inglés**: el código, la API y las tablas de la base de datos pasaron al inglés. La app se ve y funciona igual. Al abrir la versión nueva, la base de datos de tu carpeta de datos se actualiza sola y conserva todo, y la configuración se lee como antes.
+
 ## Novedades del proyecto · 2026-10-23
 
 `docs/changelog` · PR #15

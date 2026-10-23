@@ -1,38 +1,58 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
-namespace Otteretro.Inicio;
+namespace Otteretro.App;
 
 /// <summary>
 /// Lo único que vive fuera de la carpeta de datos (en %LocalAppData%\Otteretro\config.json):
 /// dónde está esa carpeta, de dónde llegan las actualizaciones y la identidad de este equipo.
+/// Las claves del JSON no cambian: los config.json de F0 se siguen leyendo igual.
 /// </summary>
-public sealed class Configuracion
+public sealed class AppConfig
 {
-    public string? CarpetaDatos { get; set; }
-    public string? OrigenActualizaciones { get; set; }
-    public string EquipoId { get; set; } = Guid.NewGuid().ToString();
+    [JsonPropertyName("carpetaDatos")]
+    public string? DataFolder { get; set; }
+
+    [JsonPropertyName("origenActualizaciones")]
+    public string? UpdateSource { get; set; }
+
+    [JsonPropertyName("equipoId")]
+    public string MachineId { get; set; } = Guid.NewGuid().ToString();
+
+    /// <summary>Idioma elegido en Ajustes; null = el del sistema (#140). Va acá y no en la base porque el asistente corre antes de que exista.</summary>
+    public string? Language { get; set; }
+
+    /// <summary>Idiomas con catálogo en web/messages. El primero es el base.</summary>
+    public static readonly string[] Languages = ["es", "en"];
+
+    [JsonIgnore]
+    public string EffectiveLanguage => Language is { } l && Languages.Contains(l) ? l : SystemLanguage();
+
+    /// <summary>Español si el sistema está en español; si no, inglés.</summary>
+    public static string SystemLanguage() =>
+        System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "es" ? "es" : "en";
 
     static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
     /// <summary>OTTERETRO_CONFIG permite usar otra configuración (desarrollo y pruebas) sin tocar la real.</summary>
-    public static string RutaPorDefecto => Environment.GetEnvironmentVariable("OTTERETRO_CONFIG") ?? Path.Combine(
+    public static string DefaultPath => Environment.GetEnvironmentVariable("OTTERETRO_CONFIG") ?? Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Otteretro", "config.json");
 
-    public static Configuracion Cargar(string ruta)
+    public static AppConfig Load(string path)
     {
-        if (File.Exists(ruta))
-            return JsonSerializer.Deserialize<Configuracion>(File.ReadAllText(ruta), Json) ?? new();
-        var nueva = new Configuracion();
-        nueva.Guardar(ruta);
-        return nueva;
+        if (File.Exists(path))
+            return JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(path), Json) ?? new();
+        var config = new AppConfig();
+        config.Save(path);
+        return config;
     }
 
-    public void Guardar(string ruta)
+    public void Save(string path)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(ruta)!);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         // Escribir aparte y reemplazar: un corte a mitad nunca deja config.json roto.
-        var temporal = ruta + ".tmp";
-        File.WriteAllText(temporal, JsonSerializer.Serialize(this, Json));
-        File.Move(temporal, ruta, overwrite: true);
+        var temp = path + ".tmp";
+        File.WriteAllText(temp, JsonSerializer.Serialize(this, Json));
+        File.Move(temp, path, overwrite: true);
     }
 }

@@ -2,75 +2,78 @@ using System.Security.Cryptography;
 using Microsoft.Data.Sqlite;
 using Otteretro.Api;
 
-namespace Otteretro.Inicio;
+namespace Otteretro.App;
 
-public record EstadoMudanza(string Paso, long Hecho, long Total, bool EnCurso, string? Destino, string? Error, string? Aviso);
+/// <param name="Step">Código del paso: preparing, moving, copying, verifying, deletingSource, done o error (clave `move.step.*` del front, #142).</param>
+public record MoveState(string Step, long Done, long Total, bool Running, string? Destination, ApiError? Error, ApiError? Warning);
 
-/// <summary>Ejecuta la mudanza en segundo plano y la publica como evento "mudanza" (panel de tareas y Ajustes).</summary>
-public sealed class ServicioMudanza(ContextoApp contexto, Eventos eventos)
+/// <summary>Ejecuta la mudanza en segundo plano y la publica como evento "move" (panel de tareas y Ajustes).</summary>
+public sealed class FolderMoveService(AppSession session, Events events)
 {
-    public EstadoMudanza Estado { get; private set; } = new("", 0, 0, false, null, null, null);
-    readonly Lock cerrojo = new();
+    public MoveState State { get; private set; } = new("", 0, 0, false, null, null, null);
+    readonly Lock gate = new();
 
     /// <summary>Devuelve un error si no puede empezar; si empieza, el resultado llega por eventos.</summary>
-    public string? Iniciar(string destino)
+    public ApiError? Start(string destination)
     {
-        string origen;
+        string source;
         // Comprobar y marcar "en curso" de una vez: dos mudanzas a la vez pueden borrar origen y destino.
-        lock (cerrojo)
+        lock (gate)
         {
-            if (Estado.EnCurso) return "Ya hay una mudanza en curso.";
-            if (contexto.Config.CarpetaDatos is not { } actual) return "No hay carpeta de datos.";
-            origen = actual;
-            var error = Mudanza.Validar(origen, destino);
+            if (State.Running) return ApiError.Of("move.inProgress");
+            if (session.Config.DataFolder is not { } current) return ApiError.Of("move.noDataFolder");
+            source = current;
+            var error = FolderMove.Validate(source, destination);
             if (error is not null) return error;
-            destino = Path.TrimEndingDirectorySeparator(Path.GetFullPath(destino));
-            Cambiar(new("Preparando", 0, 0, true, destino, null, null));
+            destination = Path.TrimEndingDirectorySeparator(Path.GetFullPath(destination));
+            Set(new("preparing", 0, 0, true, destination, null, null));
         }
         // ponytail: en F0 nada más escribe en la carpeta de datos; cuando haya tareas que la usen, pausarlas antes de mudarse.
         _ = Task.Run(() =>
         {
-            RegistroArchivo.Directorio = Path.Combine(Path.GetDirectoryName(Configuracion.RutaPorDefecto)!, "logs");
+            FileLog.Folder = Path.Combine(Path.GetDirectoryName(AppConfig.DefaultPath)!, "logs");
             try
             {
-                Mudanza.CopiarYVerificar(origen, destino, p => Cambiar(Estado with { Paso = p.Paso, Hecho = p.Hecho, Total = p.Total }));
+                FolderMove.CopyAndVerify(source, destination, p => Set(State with { Step = p.Step, Done = p.Done, Total = p.Total }));
                 try
                 {
-                    contexto.Config.CarpetaDatos = destino;
-                    contexto.Config.Guardar(contexto.RutaConfig);
+                    session.Config.DataFolder = destination;
+                    session.Config.Save(session.ConfigPath);
                 }
                 catch
                 {
                     // config.json sigue apuntando al origen (se escribe de forma atómica): se deshace la copia o el movimiento.
-                    contexto.Config.CarpetaDatos = origen;
-                    Mudanza.Deshacer(origen, destino);
+                    session.Config.DataFolder = source;
+                    FolderMove.Undo(source, destination);
                     throw;
                 }
-                Cambiar(Estado with { Paso = "Borrando la carpeta anterior" });
-                var aviso = Mudanza.BorrarOrigen(origen);
-                RegistroArchivo.Directorio = CarpetaDatos.RutaLogs(destino);
-                RegistroArchivo.Escribir(LogLevel.Information, "Mudanza", $"Carpeta de datos movida de {origen} a {destino}.");
-                Cambiar(Estado with { Paso = "Listo", EnCurso = false, Aviso = aviso });
+                Set(State with { Step = "deletingSource" });
+                var warning = FolderMove.DeleteSource(source);
+                FileLog.Folder = DataFolder.LogsPath(destination);
+                FileLog.Write(LogLevel.Information, "FolderMove", $"Carpeta de datos movida de {source} a {destination}.");
+                Set(State with { Step = "done", Running = false, Warning = warning });
             }
             catch (Exception e)
             {
                 // Si algo falló al deshacer, se dice dónde quedaron de verdad los datos.
-                var donde = CarpetaDatos.EstaLista(origen) ? origen : destino;
-                RegistroArchivo.Directorio = CarpetaDatos.RutaLogs(donde);
-                RegistroArchivo.Escribir(LogLevel.Error, "Mudanza", e.ToString());
-                var texto = donde == origen
-                    ? $"No se movió nada; tus datos siguen en {origen}."
-                    : $"La mudanza se cortó y tus datos quedaron en {destino}. Usa «Usar otra carpeta» con esa ruta.";
-                Cambiar(Estado with { Paso = "Error", EnCurso = false, Error = $"{texto} {e.Message}" });
+                var where = DataFolder.IsReady(source) ? source : destination;
+                FileLog.Folder = DataFolder.LogsPath(where);
+                FileLog.Write(LogLevel.Error, "FolderMove", e.ToString());
+                var mismatch = e as FolderMove.CopyMismatchException;
+                var detail = mismatch?.RelativePath ?? e.Message;
+                var error = where == source
+                    ? ApiError.Of(mismatch is null ? "move.failedNothingMoved" : "move.copyMismatch", ("path", source), ("detail", detail))
+                    : ApiError.Of("move.failedDataAt", ("path", destination), ("detail", detail));
+                Set(State with { Step = "error", Running = false, Error = error });
             }
         });
         return null;
     }
 
-    void Cambiar(EstadoMudanza estado)
+    void Set(MoveState state)
     {
-        Estado = estado;
-        eventos.Publicar("mudanza", estado);
+        State = state;
+        events.Publish("move", state);
     }
 }
 
@@ -79,162 +82,168 @@ public sealed class ServicioMudanza(ContextoApp contexto, Eventos eventos)
 /// copiar → verificar cada archivo por hash → (quien llama cambia la configuración) → borrar el origen.
 /// En el mismo disco se mueve sin copiar.
 /// </summary>
-public static class Mudanza
+public static class FolderMove
 {
-    public record Progreso(string Paso, long Hecho, long Total);
-
-    static readonly StringComparison SinMayusculas = StringComparison.OrdinalIgnoreCase;
-
-    /// <summary>Devuelve un mensaje de error o null si se puede mover de <paramref name="origen"/> a <paramref name="destino"/>.</summary>
-    public static string? Validar(string origen, string? destino)
+    /// <summary>Un archivo copiado no coincide con el original al compararlos por hash.</summary>
+    public sealed class CopyMismatchException(string relativePath) : IOException(relativePath)
     {
-        if (string.IsNullOrWhiteSpace(destino) || !Path.IsPathFullyQualified(destino))
-            return "La ruta tiene que ser completa, por ejemplo E:\\Otteretro.";
-        var o = Normalizar(origen);
-        var d = Normalizar(destino);
-        if (string.Equals(o, d, SinMayusculas))
-            return "Es la misma carpeta que la actual.";
-        if (d.StartsWith(o + Path.DirectorySeparatorChar, SinMayusculas))
-            return "La nueva carpeta no puede estar dentro de la actual.";
+        public string RelativePath { get; } = relativePath;
+    }
+
+    public record MoveProgress(string Step, long Done, long Total);
+
+    static readonly StringComparison IgnoreCase = StringComparison.OrdinalIgnoreCase;
+
+    /// <summary>Devuelve el error o null si se puede mover de <paramref name="source"/> a <paramref name="destination"/>.</summary>
+    public static ApiError? Validate(string source, string? destination)
+    {
+        if (string.IsNullOrWhiteSpace(destination) || !Path.IsPathFullyQualified(destination))
+            return ApiError.Of("path.notAbsolute");
+        var s = Normalize(source);
+        var d = Normalize(destination);
+        if (string.Equals(s, d, IgnoreCase))
+            return ApiError.Of("move.sameFolder");
+        if (d.StartsWith(s + Path.DirectorySeparatorChar, IgnoreCase))
+            return ApiError.Of("move.insideCurrent");
         if (File.Exists(d))
-            return "Esa ruta es un archivo, no una carpeta.";
+            return ApiError.Of("path.isFile");
         if (Directory.Exists(d) && Directory.EnumerateFileSystemEntries(d).Any())
-            return "La carpeta de destino tiene que estar vacía.";
-        if (!MismoDisco(o, d))
+            return ApiError.Of("move.destinationNotEmpty");
+        if (!SameDrive(s, d))
         {
-            var raiz = Path.GetPathRoot(d)!;
-            if (!Directory.Exists(raiz)) return $"No se encuentra el disco {raiz}.";
+            var root = Path.GetPathRoot(d)!;
+            if (!Directory.Exists(root)) return ApiError.Of("move.driveNotFound", ("drive", root));
             try
             {
-                var libre = new DriveInfo(raiz).AvailableFreeSpace;
-                var necesario = Tamano(o);
-                if (libre < necesario)
-                    return $"No hay espacio en {raiz}: hacen falta {Gb(necesario)} y hay {Gb(libre)} libres.";
+                var free = new DriveInfo(root).AvailableFreeSpace;
+                var needed = Size(s);
+                if (free < needed)
+                    return ApiError.Of("move.notEnoughSpace", ("drive", root), ("needed", needed.ToString()), ("free", free.ToString()));
             }
             catch (Exception e) when (e is ArgumentException or IOException or UnauthorizedAccessException)
             {
                 // Rutas de red (\\nas\carpeta) o discos sin acceso.
-                return $"No se puede usar {raiz}: {e.Message}";
+                return ApiError.Of("move.driveUnavailable", ("drive", root), ("detail", e.Message));
             }
         }
         return null;
     }
 
     /// <summary>Copia (o mueve, en el mismo disco) y verifica. El origen sigue intacto salvo en el movimiento del mismo disco.</summary>
-    /// <param name="copiar">Forzar la copia aunque sea el mismo disco (las pruebas lo usan para probar la copia).</param>
-    public static void CopiarYVerificar(string origen, string destino, Action<Progreso> avisar, bool copiar = false)
+    /// <param name="forceCopy">Forzar la copia aunque sea el mismo disco (las pruebas lo usan para probar la copia).</param>
+    public static void CopyAndVerify(string source, string destination, Action<MoveProgress> report, bool forceCopy = false)
     {
-        CerrarBaseDeDatos(origen);
+        CloseDatabase(source);
 
-        if (!copiar && MismoDisco(origen, destino))
+        if (!forceCopy && SameDrive(source, destination))
         {
-            avisar(new("Moviendo", 0, 1));
-            if (Directory.Exists(destino)) Directory.Delete(destino); // está vacía (lo garantiza Validar)
-            Directory.CreateDirectory(Path.GetDirectoryName(Normalizar(destino))!);
-            Directory.Move(origen, destino);
-            avisar(new("Moviendo", 1, 1));
+            report(new("moving", 0, 1));
+            if (Directory.Exists(destination)) Directory.Delete(destination); // está vacía (lo garantiza Validate)
+            Directory.CreateDirectory(Path.GetDirectoryName(Normalize(destination))!);
+            Directory.Move(source, destination);
+            report(new("moving", 1, 1));
             return;
         }
 
-        var archivos = Directory.EnumerateFiles(origen, "*", SearchOption.AllDirectories)
-            .Select(f => (relativa: Path.GetRelativePath(origen, f), tamano: new FileInfo(f).Length))
+        var files = Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories)
+            .Select(f => (relative: Path.GetRelativePath(source, f), size: new FileInfo(f).Length))
             .ToList();
-        var total = archivos.Sum(a => a.tamano);
+        var total = files.Sum(f => f.size);
         try
         {
-            foreach (var carpeta in Directory.EnumerateDirectories(origen, "*", SearchOption.AllDirectories))
-                Directory.CreateDirectory(Path.Combine(destino, Path.GetRelativePath(origen, carpeta)));
+            foreach (var folder in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories))
+                Directory.CreateDirectory(Path.Combine(destination, Path.GetRelativePath(source, folder)));
 
-            long hecho = 0;
-            foreach (var (relativa, tamano) in archivos)
+            long done = 0;
+            foreach (var (relative, size) in files)
             {
-                var hacia = Path.Combine(destino, relativa);
-                Directory.CreateDirectory(Path.GetDirectoryName(hacia)!);
-                File.Copy(Path.Combine(origen, relativa), hacia);
-                AlDisco(hacia);
-                avisar(new("Copiando", hecho += tamano, total));
+                var target = Path.Combine(destination, relative);
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                File.Copy(Path.Combine(source, relative), target);
+                FlushToDisk(target);
+                report(new("copying", done += size, total));
             }
 
-            hecho = 0;
-            foreach (var (relativa, tamano) in archivos)
+            done = 0;
+            foreach (var (relative, size) in files)
             {
-                if (!Iguales(Path.Combine(origen, relativa), Path.Combine(destino, relativa)))
-                    throw new IOException($"El archivo {relativa} no se copió bien.");
-                avisar(new("Verificando", hecho += tamano, total));
+                if (!SameContent(Path.Combine(source, relative), Path.Combine(destination, relative)))
+                    throw new CopyMismatchException(relative);
+                report(new("verifying", done += size, total));
             }
         }
         catch
         {
-            try { Deshacer(origen, destino); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+            try { Undo(source, destination); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
             throw;
         }
     }
 
     /// <summary>
-    /// Deja todo como antes de <see cref="CopiarYVerificar"/>: si se movió (mismo disco) la devuelve a su sitio;
+    /// Deja todo como antes de <see cref="CopyAndVerify"/>: si se movió (mismo disco) la devuelve a su sitio;
     /// si se copió, borra del destino solo lo copiado y las carpetas que quedan vacías, nunca otra cosa.
     /// </summary>
-    public static void Deshacer(string origen, string destino)
+    public static void Undo(string source, string destination)
     {
-        if (!Directory.Exists(destino)) return;
-        if (!Directory.Exists(origen))
+        if (!Directory.Exists(destination)) return;
+        if (!Directory.Exists(source))
         {
-            Directory.Move(destino, origen);
+            Directory.Move(destination, source);
             return;
         }
-        foreach (var f in Directory.EnumerateFiles(origen, "*", SearchOption.AllDirectories))
+        foreach (var f in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
         {
-            var copia = Path.Combine(destino, Path.GetRelativePath(origen, f));
-            if (!File.Exists(copia)) continue;
-            File.SetAttributes(copia, FileAttributes.Normal);
-            File.Delete(copia);
+            var copy = Path.Combine(destination, Path.GetRelativePath(source, f));
+            if (!File.Exists(copy)) continue;
+            File.SetAttributes(copy, FileAttributes.Normal);
+            File.Delete(copy);
         }
-        var carpetas = Directory.EnumerateDirectories(origen, "*", SearchOption.AllDirectories)
-            .Select(c => Path.Combine(destino, Path.GetRelativePath(origen, c)))
-            .Append(destino)
+        var folders = Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories)
+            .Select(c => Path.Combine(destination, Path.GetRelativePath(source, c)))
+            .Append(destination)
             .OrderByDescending(c => c.Length);
-        foreach (var c in carpetas)
+        foreach (var c in folders)
             if (Directory.Exists(c) && !Directory.EnumerateFileSystemEntries(c).Any())
                 Directory.Delete(c);
     }
 
     /// <summary>Obliga a Windows a escribir el archivo en el disco: sin esto, la verificación puede leer la caché y se borraría el origen antes de tiempo.</summary>
-    static void AlDisco(string ruta)
+    static void FlushToDisk(string path)
     {
-        var atributos = File.GetAttributes(ruta);
-        if (atributos.HasFlag(FileAttributes.ReadOnly)) File.SetAttributes(ruta, atributos & ~FileAttributes.ReadOnly);
-        using (var f = new FileStream(ruta, FileMode.Open, FileAccess.Write))
+        var attributes = File.GetAttributes(path);
+        if (attributes.HasFlag(FileAttributes.ReadOnly)) File.SetAttributes(path, attributes & ~FileAttributes.ReadOnly);
+        using (var f = new FileStream(path, FileMode.Open, FileAccess.Write))
             f.Flush(flushToDisk: true);
-        File.SetAttributes(ruta, atributos);
+        File.SetAttributes(path, attributes);
     }
 
     /// <summary>Borra la carpeta anterior. Si algo queda bloqueado, devuelve un aviso en vez de fallar: los datos ya están en el destino.</summary>
-    public static string? BorrarOrigen(string origen)
+    public static ApiError? DeleteSource(string source)
     {
-        if (!Directory.Exists(origen)) return null;
+        if (!Directory.Exists(source)) return null;
         try
         {
-            Directory.Delete(origen, true);
+            Directory.Delete(source, true);
             return null;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            return $"Los datos ya están en la carpeta nueva, pero no se pudo borrar del todo {origen}: {e.Message} Puedes borrarla a mano.";
+            return ApiError.Of("move.sourceNotDeleted", ("path", source), ("detail", e.Message));
         }
     }
 
-    public static long Tamano(string carpeta) =>
-        Directory.Exists(carpeta)
-            ? Directory.EnumerateFiles(carpeta, "*", SearchOption.AllDirectories).Sum(f => new FileInfo(f).Length)
+    public static long Size(string folder) =>
+        Directory.Exists(folder)
+            ? Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories).Sum(f => new FileInfo(f).Length)
             : 0;
 
     /// <summary>Vuelca el WAL a la base y suelta las conexiones, para copiar o mover el archivo sin que esté en uso.</summary>
-    static void CerrarBaseDeDatos(string carpeta)
+    static void CloseDatabase(string folder)
     {
-        var ruta = CarpetaDatos.RutaBd(carpeta);
-        if (File.Exists(ruta))
+        var path = DataFolder.DatabasePath(folder);
+        if (File.Exists(path))
         {
-            using var c = new SqliteConnection($"Data Source={ruta}");
+            using var c = new SqliteConnection($"Data Source={path}");
             c.Open();
             using var cmd = c.CreateCommand();
             cmd.CommandText = "PRAGMA wal_checkpoint(TRUNCATE);";
@@ -243,7 +252,7 @@ public static class Mudanza
         SqliteConnection.ClearAllPools();
     }
 
-    static bool Iguales(string a, string b)
+    static bool SameContent(string a, string b)
     {
         if (new FileInfo(a).Length != new FileInfo(b).Length) return false;
         using var fa = File.OpenRead(a);
@@ -251,7 +260,6 @@ public static class Mudanza
         return SHA256.HashData(fa).AsSpan().SequenceEqual(SHA256.HashData(fb));
     }
 
-    static bool MismoDisco(string a, string b) => string.Equals(Path.GetPathRoot(a), Path.GetPathRoot(b), SinMayusculas);
-    static string Normalizar(string ruta) => Path.TrimEndingDirectorySeparator(Path.GetFullPath(ruta));
-    static string Gb(long bytes) => $"{bytes / 1024d / 1024 / 1024:0.#} GB";
+    static bool SameDrive(string a, string b) => string.Equals(Path.GetPathRoot(a), Path.GetPathRoot(b), IgnoreCase);
+    static string Normalize(string path) => Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
 }

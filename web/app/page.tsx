@@ -1,11 +1,7 @@
-import { Proximamente } from "@/componentes/Marco";
+"use client";
 
-export default function Inicio() {
-  return (
-    <Proximamente
-      fase={1}
-      titulo="Todavía no hay nada que mostrar"
-      texto="Cuando se cargue el catálogo verás aquí el siguiente juego de cada ruta, lo pendiente de revisar y las novedades."
-    />
-  );
+import { ComingSoon } from "@/components/Shell";
+
+export default function Home() {
+  return <ComingSoon screen="home" phase={1} />;
 }

@@ -1,52 +1,52 @@
-namespace Otteretro.Inicio;
+namespace Otteretro.App;
 
 /// <summary>Registro de errores en archivo: uno por día, se guardan 30 días (A5).</summary>
-public sealed class RegistroArchivo : ILoggerProvider
+public sealed class FileLog : ILoggerProvider
 {
     /// <summary>Hasta elegir la carpeta de datos, los logs van junto a config.json.</summary>
-    public static string Directorio { get; set; } = Path.Combine(
+    public static string Folder { get; set; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Otteretro", "logs");
 
-    static readonly Lock Cerrojo = new();
+    static readonly Lock Gate = new();
 
-    public ILogger CreateLogger(string categoria) => new Registrador(categoria);
+    public ILogger CreateLogger(string category) => new FileLogger(category);
     public void Dispose() { }
 
-    public static void Escribir(LogLevel nivel, string categoria, string mensaje)
+    public static void Write(LogLevel level, string category, string message)
     {
-        lock (Cerrojo)
+        lock (Gate)
         {
             // Escribir el registro nunca puede romper lo que se está registrando.
             try
             {
-                Directory.CreateDirectory(Directorio);
-                File.AppendAllText(Path.Combine(Directorio, $"otteretro-{DateTime.Now:yyyy-MM-dd}.log"),
-                    $"{DateTime.Now:HH:mm:ss.fff} [{nivel}] {categoria}: {mensaje}{Environment.NewLine}");
+                Directory.CreateDirectory(Folder);
+                File.AppendAllText(Path.Combine(Folder, $"otteretro-{DateTime.Now:yyyy-MM-dd}.log"),
+                    $"{DateTime.Now:HH:mm:ss.fff} [{level}] {category}: {message}{Environment.NewLine}");
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         }
     }
 
-    public static void Limpiar(int dias = 30)
+    public static void Prune(int days = 30)
     {
-        if (!Directory.Exists(Directorio)) return;
-        foreach (var archivo in Directory.EnumerateFiles(Directorio, "otteretro-*.log"))
-            if (File.GetLastWriteTime(archivo) < DateTime.Now.AddDays(-dias))
-                File.Delete(archivo);
+        if (!Directory.Exists(Folder)) return;
+        foreach (var file in Directory.EnumerateFiles(Folder, "otteretro-*.log"))
+            if (File.GetLastWriteTime(file) < DateTime.Now.AddDays(-days))
+                File.Delete(file);
     }
 
-    sealed class Registrador(string categoria) : ILogger
+    sealed class FileLogger(string category) : ILogger
     {
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
 
         // Lo de ASP.NET solo a partir de avisos; lo nuestro desde información.
-        public bool IsEnabled(LogLevel nivel) =>
-            nivel >= (categoria.StartsWith("Microsoft", StringComparison.Ordinal) ? LogLevel.Warning : LogLevel.Information);
+        public bool IsEnabled(LogLevel level) =>
+            level >= (category.StartsWith("Microsoft", StringComparison.Ordinal) ? LogLevel.Warning : LogLevel.Information);
 
-        public void Log<TState>(LogLevel nivel, EventId id, TState estado, Exception? error, Func<TState, Exception?, string> formato)
+        public void Log<TState>(LogLevel level, EventId id, TState state, Exception? error, Func<TState, Exception?, string> formatter)
         {
-            if (!IsEnabled(nivel)) return;
-            Escribir(nivel, categoria, formato(estado, error) + (error is null ? "" : Environment.NewLine + error));
+            if (!IsEnabled(level)) return;
+            Write(level, category, formatter(state, error) + (error is null ? "" : Environment.NewLine + error));
         }
     }
 }

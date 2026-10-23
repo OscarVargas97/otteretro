@@ -1,110 +1,117 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { pedir } from "@/lib/cliente";
-import { gb } from "@/lib/formato";
-import type { Disco, EstadoApp, PedidoCarpeta } from "@/lib/tipos";
+import { LanguagePicker } from "@/components/LanguagePicker";
+import { request } from "@/lib/client";
+import { gb } from "@/lib/format";
+import { useDescribeError } from "@/lib/i18n";
+import type { AppState, Drive, FolderRequest } from "@/lib/types";
 
-const PASOS = [
-  { titulo: "Bienvenida" },
-  { titulo: "Carpeta de datos" },
-  { titulo: "Respaldo", fase: 5 },
-  { titulo: "Bibliotecas", fase: 3 },
-  { titulo: "Steam", fase: 6 },
-  { titulo: "Claves", fase: 1 },
-  { titulo: "Carga inicial", fase: 2 },
-];
-
+// Clave en welcome.steps.* y fase en que se activa cada paso.
+const STEPS = [
+  { key: "welcome" },
+  { key: "dataFolder" },
+  { key: "backup", phase: 5 },
+  { key: "libraries", phase: 3 },
+  { key: "steam", phase: 6 },
+  { key: "keys", phase: 1 },
+  { key: "initialLoad", phase: 2 },
+] as const;
 
 /** Asistente de primer arranque (pantallas.md §1). En F0 funcionan los pasos 1 y 2. */
-export default function Bienvenida() {
-  const [paso, setPaso] = useState(1);
+export default function Welcome() {
+  const t = useTranslations("welcome");
+  const [step, setStep] = useState(1);
   return (
-    <div className="asistente">
-      <aside className="asistente-pasos">
-        <span className="barra-logo" style={{ padding: 0 }}>
+    <div className="wizard">
+      <aside className="wizard-steps">
+        <span className="sidebar-logo" style={{ padding: 0 }}>
           <span>otteretro</span>
         </span>
         <ol>
-          {PASOS.map((p, i) => (
-            <li key={p.titulo} className="ot-nav-item" aria-current={i + 1 === paso ? "page" : undefined} aria-disabled={p.fase ? "true" : undefined}>
-              <span>{i + 1}. {p.titulo}</span>
-              <span className="small">{i + 1 < paso ? "✓" : p.fase ? `Fase ${p.fase}` : ""}</span>
-            </li>
-          ))}
+          {STEPS.map((s, i) => {
+            const phase = "phase" in s ? s.phase : undefined;
+            return (
+              <li key={s.key} className="ot-nav-item" aria-current={i + 1 === step ? "page" : undefined} aria-disabled={phase ? "true" : undefined}>
+                <span>{i + 1}. {t(`steps.${s.key}`)}</span>
+                <span className="small">{i + 1 < step ? "✓" : phase ? t("phase", { phase }) : ""}</span>
+              </li>
+            );
+          })}
         </ol>
       </aside>
-      <main className="asistente-cuerpo">
-        <span className="small muted">Paso {paso} de {PASOS.length}</span>
-        {paso === 1 ? <PasoBienvenida alSeguir={() => setPaso(2)} /> : <PasoCarpeta alVolver={() => setPaso(1)} />}
+      <main className="wizard-body">
+        <span className="small muted">{t("stepOf", { step, total: STEPS.length })}</span>
+        {step === 1 ? <WelcomeStep onNext={() => setStep(2)} /> : <FolderStep onBack={() => setStep(1)} />}
       </main>
     </div>
   );
 }
 
-function PasoBienvenida({ alSeguir }: { alSeguir: () => void }) {
+function WelcomeStep({ onNext }: { onNext: () => void }) {
+  const t = useTranslations("welcome");
   return (
     <>
       <h1>Otteretro</h1>
-      <p className="muted">
-        Cataloga tus sagas, organiza tus juegos, emuladores y ports en cualquier disco, y llévalo todo a Steam. Esto toma unos minutos.
-      </p>
+      <p className="muted">{t("intro")}</p>
+      <LanguagePicker />
       <div>
-        <button className="ot-btn ot-btn-primary" type="button" onClick={alSeguir}>Empezar</button>
+        <button className="ot-btn ot-btn-primary" type="button" onClick={onNext}>{t("start")}</button>
       </div>
     </>
   );
 }
 
-function PasoCarpeta({ alVolver }: { alVolver: () => void }) {
+function FolderStep({ onBack }: { onBack: () => void }) {
+  const t = useTranslations("welcome");
+  const locale = useLocale();
+  const describe = useDescribeError();
   const router = useRouter();
   const cache = useQueryClient();
-  const discos = useQuery({ queryKey: ["discos"], queryFn: () => pedir<Disco[]>("/api/discos") });
-  const [ruta, setRuta] = useState("");
+  const drives = useQuery({ queryKey: ["drives"], queryFn: () => request<Drive[]>("/api/drives") });
+  const [path, setPath] = useState("");
   // Por defecto, el disco con más espacio libre (normalmente no el del sistema).
-  const mayor = discos.data?.reduce((a, b) => (Number(b.libre) > Number(a.libre) ? b : a), discos.data[0]);
-  const elegida = ruta || (mayor ? `${mayor.nombre}Otteretro` : "");
+  const largest = drives.data?.reduce((a, b) => (Number(b.free) > Number(a.free) ? b : a), drives.data[0]);
+  const chosen = path || (largest ? `${largest.name}Otteretro` : "");
 
-  const guardar = useMutation({
-    mutationFn: (pedido: PedidoCarpeta) => pedir<EstadoApp>("/api/carpeta-datos", { method: "POST", body: JSON.stringify(pedido) }),
-    onSuccess: (estado) => {
-      cache.setQueryData(["estado"], estado);
+  const save = useMutation({
+    mutationFn: (body: FolderRequest) => request<AppState>("/api/data-folder", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: (state) => {
+      cache.setQueryData(["state"], state);
       router.replace("/");
     },
   });
 
   return (
     <>
-      <h1>Elige la carpeta de datos</h1>
-      <p className="muted">
-        Aquí van la base de datos, las Herramientas (emuladores, ports, BIOS) y la caché de imágenes. Ocupa bastante: elige un disco con espacio.
-        Para cambiar de PC basta con mover esta carpeta.
-      </p>
+      <h1>{t("chooseTitle")}</h1>
+      <p className="muted">{t("chooseText")}</p>
       <div className="panel" style={{ gap: 0, padding: "0 16px" }}>
-        {discos.data?.map((d) => {
-          const opcion = `${d.nombre}Otteretro`;
+        {drives.data?.map((d) => {
+          const option = `${d.name}Otteretro`;
           return (
-            <label key={d.nombre} className="opcion-disco">
+            <label key={d.name} className="drive-option">
               <span>
-                <input type="radio" name="disco" checked={elegida === opcion} onChange={() => setRuta(opcion)} /> <b>{opcion}</b>
+                <input type="radio" name="drive" checked={chosen === option} onChange={() => setPath(option)} /> <b>{option}</b>
               </span>
-              <span className="small muted">{gb(d.libre)} libres de {gb(d.total)}</span>
+              <span className="small muted">{t("freeOf", { free: gb(d.free, locale), total: gb(d.total, locale) })}</span>
             </label>
           );
         })}
       </div>
-      <label className="small muted" htmlFor="ruta">O escribe otra ruta</label>
-      <input id="ruta" value={elegida} onChange={(e) => setRuta(e.target.value)} />
-      {guardar.isError && <p className="error">{guardar.error.message}</p>}
+      <label className="small muted" htmlFor="path">{t("otherPath")}</label>
+      <input id="path" value={chosen} onChange={(e) => setPath(e.target.value)} />
+      {save.isError && <p className="error">{describe(save.error)}</p>}
       <div style={{ display: "flex", gap: 8 }}>
-        <button className="ot-btn" type="button" onClick={alVolver}>Atrás</button>
-        <button className="ot-btn ot-btn-primary" type="button" disabled={!elegida || guardar.isPending} onClick={() => guardar.mutate({ ruta: elegida })}>
-          {guardar.isPending ? "Preparando…" : `Usar ${elegida}`}
+        <button className="ot-btn" type="button" onClick={onBack}>{t("back")}</button>
+        <button className="ot-btn ot-btn-primary" type="button" disabled={!chosen || save.isPending} onClick={() => save.mutate({ path: chosen })}>
+          {save.isPending ? t("preparing") : t("use", { path: chosen })}
         </button>
       </div>
-      <p className="small muted">Los pasos siguientes (respaldo, bibliotecas, Steam, claves y carga inicial) se activan con su fase.</p>
+      <p className="small muted">{t("nextSteps")}</p>
     </>
   );
 }

@@ -1,14 +1,14 @@
 using Photino.NET;
 
-namespace Otteretro.Inicio;
+namespace Otteretro.App;
 
 /// <summary>La ventana de la app: Photino (WebView2 en Windows, WebKitGTK en Linux) cargando la interfaz local.</summary>
-public static class Ventana
+public static class MainWindow
 {
     /// <summary>Muestra la ventana y bloquea hasta que se cierra.</summary>
-    public static void Mostrar(string url, UnaInstancia instancia)
+    public static void Show(string url, SingleInstance instance)
     {
-        var ventana = new PhotinoWindow()
+        var window = new PhotinoWindow()
             .SetTitle("Otteretro")
             .SetUseOsDefaultSize(false)
             .SetSize(1440, 900)
@@ -17,13 +17,13 @@ public static class Ventana
             .SetIconFile(Path.Combine(AppContext.BaseDirectory, "nutria.ico"))
             .Load(new Uri(url));
 
-        instancia.Activar += () => ventana.Invoke(() =>
+        instance.Activated += () => window.Invoke(() =>
         {
-            ventana.SetMinimized(false);
-            ventana.SetTopMost(true);
-            ventana.SetTopMost(false);
+            window.SetMinimized(false);
+            window.SetTopMost(true);
+            window.SetTopMost(false);
         });
 
-        ventana.WaitForClose();
+        window.WaitForClose();
     }
 }

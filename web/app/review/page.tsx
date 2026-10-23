@@ -1,5 +1,7 @@
-import { Proximamente } from "@/componentes/Marco";
+"use client";
 
-export default function Revisar() {
-  return <Proximamente fase={2} titulo="Nada que revisar" texto="Aquí aparecerá lo que la app decidió con dudas: identificaciones, rutas por aprobar y aprendizajes de Claude." />;
+import { ComingSoon } from "@/components/Shell";
+
+export default function Review() {
+  return <ComingSoon screen="review" phase={2} />;
 }
