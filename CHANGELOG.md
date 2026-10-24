@@ -2,6 +2,13 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
+## La arquitectura dice que el código va en inglés · en revisión
+
+`docs/27-idioma-arquitectura` · PR por abrir
+
+### Arreglos
+- **Idioma del código**: la arquitectura todavía decía que las clases y carpetas iban en español. Ahora dice lo que ya se decidió: el código, las tablas y las columnas van en inglés, y la interfaz y la documentación en español. No cambia nada en la app.
+
 ## Novedades del proyecto · 2026-10-23
 
 `docs/changelog` · PR #15

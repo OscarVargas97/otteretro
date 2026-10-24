@@ -169,4 +169,4 @@ Claude escribe la primera receta de algo nuevo; desde ahí la usa el script.
 | Pruebas | **Lo delicado** (mover, verificar hashes, respaldar, reescribir rutas internas, la regla de cómo jugar) **más una prueba de cada flujo clave** de §6. (A4) |
 | Front: datos | Las pantallas piden datos a la API con TanStack Query (caché y refresco). (propia) |
 | Front: estilo | El CSS del sistema de diseño (`bundle.css` y tokens) se copia a `web/` tal cual; los componentes del prototipo pasan a componentes React con las mismas clases `ot-`. (propia) |
-| Idioma del código | Nombres de clases y carpetas en español, como en este documento; los términos técnicos estándar (API, token, hash) se quedan como son. (propia) |
+| Idioma del código | Identificadores (clases, carpetas, métodos), tablas y columnas en inglés; interfaz, documentación, comentarios y commits en español. Los nombres de F0 que siguen en español se renombran en P0.1. (#125, #139) |
