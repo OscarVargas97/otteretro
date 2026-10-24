@@ -4,7 +4,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## El plan se ve en GitHub · en revisión
 
-`docs/21-plan-en-github` · PR por abrir (apilado sobre `fase/p0-playos`)
+`docs/21-plan-en-github` · PR #26 (apilado sobre `fase/p0-playos`)
 
 ### Cambios
 - **El plan está en el Project**: cada fase es un milestone con lo que trae, lo que se te pide y su «Listo cuando», y lo que viene en cada fase son tarjetas del Project otteretro agrupables por `Fase` (vista «Plan»). Se pueden cambiar o borrar mientras la fase no empieza.
