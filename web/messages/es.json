@@ -20,7 +20,7 @@
   "topBar": {
     "search": "Buscar sagas y juegos…",
     "shortcut": "CTRL K",
-    "tasks": "{count, plural, =0 {Tareas} one {1 tarea} other {# tareas}}",
+    "tasks": "Tareas",
     "tasksPanel": "Tareas en segundo plano",
     "noTasksTitle": "No hay tareas en curso",
     "noTasksText": "Aquí verás escaneos, descargas, respaldos y el trabajo de Claude.",
@@ -151,9 +151,7 @@
     "downloadingText": "{progress} % · puedes seguir usando la app",
     "readyBadge": "{version} lista",
     "readyText": "Se instalará al cerrar la app, o ahora mismo si reinicias.",
-    "restarting": "Reiniciando…",
     "restartNow": "Reiniciar ahora",
-    "downloadingButton": "Descargando…",
     "check": "Buscar actualización",
     "notice": "<b>Otteretro {version} está lista.</b> Se instalará cuando cierres la app, o ahora mismo si reinicias.",
     "reason": {

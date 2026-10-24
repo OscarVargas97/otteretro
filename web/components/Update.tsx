@@ -58,7 +58,7 @@ export function VersionAndUpdate({ version }: { version?: string }) {
   const cache = useQueryClient();
   const u = useUpdate();
   const check = useMutation({
-    // Aunque la comprobación tarde milisegundos, el botón muestra "Buscando…" un instante para que se note.
+    // Aunque la comprobación tarde milisegundos, el botón muestra la ruedita un instante para que se note.
     mutationFn: async () =>
       (await Promise.all([request<UpdateState>("/api/update/check", { method: "POST" }), wait(700)]))[0],
     // La descarga actualiza su progreso por eventos; no se pisa con la respuesta.
@@ -82,13 +82,14 @@ export function VersionAndUpdate({ version }: { version?: string }) {
       <div className="version-row">
         <span>Otteretro {version}</span>
         {u?.phase === "Ready" ? (
-          <button className="ot-btn ot-btn-primary" type="button" disabled={restart.isPending} onClick={() => restart.mutate()}>
-            {restart.isPending ? t("restarting") : t("restartNow")}
+          <button className="ot-btn ot-btn-primary" type="button" disabled={restart.isPending} aria-busy={restart.isPending} onClick={() => restart.mutate()}>
+            {restart.isPending && <span className="spinner" aria-hidden="true" />}
+            {t("restartNow")}
           </button>
         ) : (
-          <button className="ot-btn" type="button" disabled={busy} onClick={() => check.mutate()}>
+          <button className="ot-btn" type="button" disabled={busy} aria-busy={busy} onClick={() => check.mutate()}>
             {busy && <span className="spinner" aria-hidden="true" />}
-            {check.isPending || u?.phase === "Checking" ? t("checking") : u?.phase === "Downloading" ? t("downloadingButton") : t("check")}
+            {t("check")}
           </button>
         )}
       </div>
@@ -116,8 +117,9 @@ export function UpdateNotice() {
     <div className="notice" role="status">
       <img src="/nutria.png" alt="" width={32} height={32} />
       <span>{t.rich("notice", { version: u.version ?? "", b: (chunks) => <b>{chunks}</b> })}</span>
-      <button className="ot-btn ot-btn-primary" type="button" disabled={restart.isPending} onClick={() => restart.mutate()}>
-        {restart.isPending ? t("restarting") : t("restartNow")}
+      <button className="ot-btn ot-btn-primary" type="button" disabled={restart.isPending} aria-busy={restart.isPending} onClick={() => restart.mutate()}>
+        {restart.isPending && <span className="spinner" aria-hidden="true" />}
+        {t("restartNow")}
       </button>
     </div>
   );

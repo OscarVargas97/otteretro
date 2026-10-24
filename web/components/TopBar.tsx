@@ -49,7 +49,8 @@ export function TopBar({ title }: { title: string }) {
       </button>
       <button className="ot-btn" type="button" aria-expanded={tasksOpen} onClick={() => setTasksOpen(!tasksOpen)}>
         <span className="dot" data-connected={connected} data-busy={busy} />
-        {t("tasks", { count: active })}
+        {t("tasks")}
+        <span className="ot-count">{active}</span>
       </button>
 
       {tasksOpen && (

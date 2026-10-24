@@ -2,12 +2,17 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
-## El buscador muestra su texto entero · en desarrollo
+## Botones y buscador que no se mueven · en desarrollo
 
 `fix/20-buscador` · PR — (apilado sobre `fase/p0-playos`)
 
 ### Arreglos
 - **El buscador se lee entero en los dos idiomas**: el texto de ejemplo ahora es corto («Buscar sagas y juegos…» / «Search sagas and games…») y cabe en el buscador; si algún día no cabe, se corta con «…». La lupa y el atajo ya no se achican.
+- **Los botones no cambian de tamaño al usarlos**: «Buscar actualización» y «Reiniciar ahora» muestran la ruedita en su lugar mientras trabajan, en vez de cambiar de texto, así no mueven lo que tienen al lado.
+- **Tareas**: el botón dice siempre «Tareas» y el número va en un contador aparte, también con 0.
+
+### Cambios
+- **Botones parejos**: todos los botones miden al menos 96 px de ancho.
 
 ## El plan se ve en GitHub · en revisión
 

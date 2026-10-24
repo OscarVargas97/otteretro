@@ -45,6 +45,19 @@ async function expectSearchFits() {
   expect(await text.evaluate((e) => e.scrollWidth <= e.clientWidth), "el texto del buscador no cabe").toBe(true);
 }
 
+/** Ningún texto se sale de su botón, enlace o título (#20). Los cortes con «…» son a propósito y no cuentan. */
+async function expectTextFits() {
+  const overflowing = await page.locator("button, a, h1, h2, h3, .ot-badge").evaluateAll((els) =>
+    els
+      .filter((e) => {
+        const s = getComputedStyle(e);
+        return s.display !== "inline" && s.textOverflow !== "ellipsis" && (e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1);
+      })
+      .map((e) => e.textContent?.trim()),
+  );
+  expect(overflowing, "textos que no caben").toEqual([]);
+}
+
 test("sin carpeta de datos, abre el asistente en español", async () => {
   await page.goto(url());
   await expect(page).toHaveURL(/\/welcome\//);
@@ -78,6 +91,7 @@ test("elegir la carpeta de datos lleva al inicio", async () => {
   await expect(page.getByText(en.comingSoon.home.title)).toBeVisible();
   await expectNoRawKeys();
   await expectSearchFits();
+  await expectTextFits();
   await page.screenshot({ path: "e2e-results/3-home-en.png" });
 });
 
@@ -88,11 +102,12 @@ test("todas las pantallas se ven en inglés", async () => {
     await expect(page.getByRole("heading", { level: 1, name: en.nav[screen] })).toBeVisible();
     await expect(page.getByText(en.comingSoon[screen].title)).toBeVisible();
     await expectNoRawKeys();
+    await expectTextFits();
   }
 });
 
 test("el panel de tareas y la búsqueda están traducidos", async () => {
-  await page.getByRole("button", { name: en.topBar.tasks.replace(/.*=0 \{(\w+)\}.*/, "$1") }).click();
+  await page.getByRole("button", { name: en.topBar.tasks }).click();
   await expect(page.getByText(en.topBar.noTasksTitle)).toBeVisible();
   await page.keyboard.press("Escape");
   await page.keyboard.press("Control+K");
@@ -104,10 +119,17 @@ test("Ajustes en inglés: carpeta, idioma y actualización", async () => {
   await page.goto(`${base()}/settings/`);
   await expect(page.getByRole("heading", { level: 1, name: en.nav.settings })).toBeVisible();
   await expect(page.getByText(dataDir("data"))).toBeVisible();
-  await page.getByRole("button", { name: en.update.check }).click();
+  // El botón no cambia de ancho mientras busca (#20).
+  const check = page.getByRole("button", { name: en.update.check });
+  const idle = (await check.boundingBox())!.width;
+  await check.click();
+  await expect(check).toHaveAttribute("aria-busy", "true");
+  expect((await check.boundingBox())!.width).toBe(idle);
   // Sin origen de actualizaciones: el motivo llega como código y se traduce.
   await expect(page.getByText(en.update.reason.noSource)).toBeVisible();
+  expect((await check.boundingBox())!.width).toBe(idle);
   await expectNoRawKeys();
+  await expectTextFits();
   await page.screenshot({ path: "e2e-results/4-settings-en.png", fullPage: true });
 });
 
@@ -128,5 +150,6 @@ test("volver a español en Ajustes cambia todo y se mantiene al recargar", async
   await expect(page.getByRole("link", { name: es.nav.collection })).toBeVisible();
   await expectNoRawKeys();
   await expectSearchFits();
+  await expectTextFits();
   await page.screenshot({ path: "e2e-results/5-settings-es.png", fullPage: true });
 });
