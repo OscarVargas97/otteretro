@@ -63,6 +63,8 @@ otteretro/
 └── .github/workflows/release.yml  ← compila y publica la release con Velopack al fusionar en main (A6)
 ```
 
+Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
+
 ## 3. Módulos
 
 | Módulo | Responsabilidad | Usa |
@@ -171,3 +173,18 @@ Claude escribe la primera receta de algo nuevo; desde ahí la usa el script.
 | Front: datos | Las pantallas piden datos a la API con TanStack Query (caché y refresco). (propia) |
 | Front: estilo | El CSS del sistema de diseño (`bundle.css` y tokens) se copia a `web/` tal cual; los componentes del prototipo pasan a componentes React con las mismas clases `ot-`. (propia) |
 | Idioma del código | Nombres de clases y carpetas en español, como en este documento; los términos técnicos estándar (API, token, hash) se quedan como son. (propia) |
+
+## 8. Stack fijado
+
+| Pieza | Elección |
+|---|---|
+| Runtime | .NET 10 (LTS), un solo proyecto `src/Otteretro` (A7, A8) |
+| Servidor | ASP.NET Core minimal API en Kestrel, `127.0.0.1`, puerto aleatorio, clave por sesión |
+| Ventana | Photino.NET (WebView2 / WebKitGTK) |
+| Base de datos | SQLite (`Microsoft.Data.Sqlite`) en WAL + Dapper; migraciones `.sql` numeradas (A1) |
+| Progreso en vivo | Server-Sent Events (A2) |
+| Contrato | OpenAPI de ASP.NET Core → tipos TS con `openapi-typescript` (A3) |
+| Front | Next.js con `output: "export"`, React, TanStack Query; CSS del sistema de diseño |
+| Logs | Archivo diario en `<carpeta de datos>\logs\`, 30 días (A5) |
+| Instalación | Velopack (`vpk`), paquetes locales mientras no haya `main` (#101) |
+| Pruebas | xUnit |

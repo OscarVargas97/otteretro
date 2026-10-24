@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-23, después de la encuesta 14, "Idiomas" (#140 a #142), y de la #139 (tablas en inglés).
+> **Última actualización:** 2026-10-23, después de la encuesta 14, "Idiomas" (#140 a #142), de la #139 (tablas en inglés) y de las #143 y #144 (plan y estado en GitHub).
 
 ## Cómo se mantiene
 
@@ -517,8 +517,8 @@ Cómo se trabaja en Otteretro y en tus demás repos personales. Va en un plugin 
 |---|---|
 | Requerimientos | Las encuestas levantan los requerimientos y de ahí salen las tareas. Skill `requerimientos`: idea → encuesta → decisiones y requisitos → **una solicitud por tema** con sus sub-issues, creados cuando dices que sí. Criterios de aceptación derivados de las respuestas; lo que no queda claro y las preguntas que aparecen al implementar van a una mini-encuesta. Selector para 1 a 3 preguntas, artifact para más (#121) |
 | Tareas en GitHub | Solicitud = issue `solicitud`; tareas = sub-issues; estado en un GitHub Project (Pendiente → En desarrollo → En revisión → Hecho, Descartado); etiquetas de tipo y prioridad, `solicitud` y `automatizar`; un milestone por fase; se identifica con el número del issue. Sin Notion (#120) |
-| Decisiones y plan | Las decisiones siguen en `historial/decisiones.md` y los issues las citan. El estado de las tareas vive en issues y milestones; `plan-implementacion.md` queda con el detalle técnico de cada fase, sin marcar avance (#122) |
-| Reglas para la IA | `AGENTS.md` (y `CLAUDE.md` que lo importa), adaptaciones por repo, `work/<tarea>/ESTADO.md` para retomar entre sesiones, estado al iniciar sesión, lint después de editar, worktrees con las reglas del LMS, `docs/README.md` como índice, `docs/review-checklist.md`, mapa funcional y badge de la skill (#123) |
+| Decisiones y plan | Las decisiones siguen en `historial/decisiones.md` y los issues las citan. El plan vive en GitHub: cada fase es un milestone, sus partes futuras son borradores del Project con el campo `Fase` y la fase en curso tiene su issue «Fase N»; en `docs/` queda solo `plan.md` con el orden de las fases (#122, #143) |
+| Reglas para la IA | `AGENTS.md` (y `CLAUDE.md` que lo importa), adaptaciones por repo, el issue de cada tarea para retomar entre sesiones (`## Estado` y comentarios, #144), estado al iniciar sesión, lint después de editar, worktrees con las reglas del LMS, `docs/README.md` como índice, `docs/review-checklist.md`, mapa funcional y badge de la skill (#123) |
 | Guardián | En el plugin, basado en el del LMS, con reglas por repo. En Otteretro bloquea o pide confirmación según la lista de #124. Cambios sin commitear o sin pushear: **avisa, no bloquea** (#124) |
 | Workspace | `otteretro-workspace` en `D:\dev\personal\otteretro` agrupa Otteretro y PlayOS en `repos/<repo>/<rama>`, con `work/`, la configuración del guardián y lo que cruza repos (#128) |
 | Idioma | Interfaz en español e inglés (#140); código y tablas en inglés; documentación en español (#125, #139, §3) |
