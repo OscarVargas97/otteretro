@@ -77,6 +77,8 @@ export function VersionAndUpdate({ version }: { version?: string }) {
     Error: ["ot-badge ot-badge-danger", t("error"), reason(u) ?? t("failedFallback")],
   };
   const [badgeClass, badge, text] = (!check.isPending && u && results[u.phase]) || [];
+  // El botón solo muestra la ruedita: lo que está pasando se dice acá, también al lector de pantalla.
+  const checking = busy && u?.phase !== "Downloading";
   return (
     <div className="panel">
       <div className="version-row">
@@ -93,6 +95,11 @@ export function VersionAndUpdate({ version }: { version?: string }) {
           </button>
         )}
       </div>
+      {checking && (
+        <div className="result" role="status">
+          <span className="small muted">{t("checkingDetail")}</span>
+        </div>
+      )}
       {badge && (
         // key: cada comprobación nueva vuelve a animar el resultado, aunque sea el mismo.
         <div className="result" key={`${u?.phase}-${u?.checkedAt}`} role="status">

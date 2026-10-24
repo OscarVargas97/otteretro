@@ -107,7 +107,17 @@ test("todas las pantallas se ven en inglés", async () => {
 });
 
 test("el panel de tareas y la búsqueda están traducidos", async () => {
-  await page.getByRole("button", { name: en.topBar.tasks }).click();
+  // El botón no cambia de ancho con 0, 1 o varias tareas (#20): se prueba cambiando el número del contador.
+  const tasks = page.getByRole("button", { name: en.topBar.tasks });
+  const widths = await tasks.evaluate((b) => {
+    const count = b.querySelector(".ot-count")!;
+    const original = count.textContent;
+    const w = ["0", "1", "8", "88"].map((n) => ((count.textContent = n), b.getBoundingClientRect().width));
+    count.textContent = original;
+    return w;
+  });
+  expect(new Set(widths).size, `anchos: ${widths.join(", ")}`).toBe(1);
+  await tasks.click();
   await expect(page.getByText(en.topBar.noTasksTitle)).toBeVisible();
   await page.keyboard.press("Escape");
   await page.keyboard.press("Control+K");
@@ -124,6 +134,7 @@ test("Ajustes en inglés: carpeta, idioma y actualización", async () => {
   const idle = (await check.boundingBox())!.width;
   await check.click();
   await expect(check).toHaveAttribute("aria-busy", "true");
+  await expect(page.getByRole("status").getByText(en.update.checkingDetail)).toBeVisible();
   expect((await check.boundingBox())!.width).toBe(idle);
   // Sin origen de actualizaciones: el motivo llega como código y se traduce.
   await expect(page.getByText(en.update.reason.noSource)).toBeVisible();

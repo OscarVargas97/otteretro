@@ -10,6 +10,8 @@ body { margin: 0; font-family: var(--font-sans); font-size: 15px; line-height: 2
 /* Mientras carga, el texto sigue ocupando su lugar (invisible) y la ruedita va al centro: el ancho no cambia (#20). */
 .ot-btn[aria-busy="true"] { color: transparent; }
 .ot-btn[aria-busy="true"] > .spinner { position: absolute; inset: 0; margin: auto; }
+/* Contador dentro de un botón: con el fondo del botón no se distinguiría. */
+.ot-btn .ot-count { background: var(--line); }
 .ot-btn:hover { border-color: var(--ink-muted); }
 .ot-btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .ot-btn-primary:hover { border-color: var(--focus); }
