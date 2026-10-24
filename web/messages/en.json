@@ -18,7 +18,7 @@
     "settings": "Settings"
   },
   "topBar": {
-    "search": "Search sagas, games, emulators…",
+    "search": "Search sagas and games…",
     "shortcut": "CTRL K",
     "tasks": "{count, plural, =0 {Tasks} one {1 task} other {# tasks}}",
     "tasksPanel": "Background tasks",

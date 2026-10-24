@@ -44,7 +44,7 @@ export function TopBar({ title }: { title: string }) {
           <circle cx="11" cy="11" r="7" />
           <path d="M20 20l-4-4" />
         </svg>
-        {t("search")}
+        <span className="search-text">{t("search")}</span>
         <span className="kbd">{t("shortcut")}</span>
       </button>
       <button className="ot-btn" type="button" aria-expanded={tasksOpen} onClick={() => setTasksOpen(!tasksOpen)}>

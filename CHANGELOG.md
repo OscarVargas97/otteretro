@@ -2,6 +2,13 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
+## El buscador muestra su texto entero · en desarrollo
+
+`fix/20-buscador` · PR — (apilado sobre `fase/p0-playos`)
+
+### Arreglos
+- **El buscador se lee entero en los dos idiomas**: el texto de ejemplo ahora es corto («Buscar sagas y juegos…» / «Search sagas and games…») y cabe en el buscador; si algún día no cabe, se corta con «…». La lupa y el atajo ya no se achican.
+
 ## El plan se ve en GitHub · en revisión
 
 `docs/21-plan-en-github` · PR #26 (apilado sobre `fase/p0-playos`)

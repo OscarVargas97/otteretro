@@ -37,6 +37,14 @@ async function expectNoRawKeys() {
   expect(text).not.toMatch(/\b(nav|topBar|comingSoon|welcome|settings|dataFolder|update|errors|move)\.[a-zA-Z]+/);
 }
 
+/** El buscador mide 320 px y su texto de ejemplo cabe entero (#20): se acorta, no se corta. */
+async function expectSearchFits() {
+  const search = page.locator(".search");
+  expect((await search.boundingBox())?.width).toBe(320);
+  const text = search.locator(".search-text");
+  expect(await text.evaluate((e) => e.scrollWidth <= e.clientWidth), "el texto del buscador no cabe").toBe(true);
+}
+
 test("sin carpeta de datos, abre el asistente en español", async () => {
   await page.goto(url());
   await expect(page).toHaveURL(/\/welcome\//);
@@ -69,6 +77,7 @@ test("elegir la carpeta de datos lleva al inicio", async () => {
   await expect(page.getByRole("heading", { level: 1, name: en.nav.home })).toBeVisible();
   await expect(page.getByText(en.comingSoon.home.title)).toBeVisible();
   await expectNoRawKeys();
+  await expectSearchFits();
   await page.screenshot({ path: "e2e-results/3-home-en.png" });
 });
 
@@ -118,5 +127,6 @@ test("volver a español en Ajustes cambia todo y se mantiene al recargar", async
   await expect(page.getByRole("heading", { level: 1, name: es.nav.settings })).toBeVisible();
   await expect(page.getByRole("link", { name: es.nav.collection })).toBeVisible();
   await expectNoRawKeys();
+  await expectSearchFits();
   await page.screenshot({ path: "e2e-results/5-settings-es.png", fullPage: true });
 });
