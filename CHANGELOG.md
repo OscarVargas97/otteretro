@@ -2,9 +2,9 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
-## Botones y buscador que no se mueven · en desarrollo
+## Botones y buscador que no se mueven · en revisión
 
-`fix/20-buscador` · PR — (apilado sobre `fase/p0-playos`)
+`fix/20-buscador` · PR #29 (apilado sobre `fase/p0-playos`)
 
 ### Arreglos
 - **El buscador se lee entero en los dos idiomas**: el texto de ejemplo ahora es corto («Buscar sagas y juegos…» / «Search sagas and games…») y cabe en el buscador; si algún día no cabe, se corta con «…». La lupa y el atajo ya no se achican.
