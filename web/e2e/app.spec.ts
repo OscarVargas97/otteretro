@@ -132,6 +132,8 @@ test("Ajustes en inglés: carpeta, idioma y actualización", async () => {
   // El botón no cambia de ancho mientras busca (#20).
   const check = page.getByRole("button", { name: en.update.check });
   const idle = (await check.boundingBox())!.width;
+  // La región de estado ya existe antes de buscar: así el lector de pantalla anuncia lo que aparece adentro.
+  await expect(page.locator('.version-row ~ [role="status"]')).toBeAttached();
   await check.click();
   await expect(check).toHaveAttribute("aria-busy", "true");
   await expect(page.getByRole("status").getByText(en.update.checkingDetail)).toBeVisible();

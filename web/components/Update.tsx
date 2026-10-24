@@ -95,18 +95,21 @@ export function VersionAndUpdate({ version }: { version?: string }) {
           </button>
         )}
       </div>
-      {checking && (
-        <div className="result" role="status">
-          <span className="small muted">{t("checkingDetail")}</span>
-        </div>
-      )}
-      {badge && (
-        // key: cada comprobación nueva vuelve a animar el resultado, aunque sea el mismo.
-        <div className="result" key={`${u?.phase}-${u?.checkedAt}`} role="status">
-          <span className={badgeClass}>{badge}</span>
-          <span className="small muted">{text}</span>
-        </div>
-      )}
+      {/* La región de estado siempre está: los lectores de pantalla anuncian lo que cambia adentro, no una región nueva. */}
+      <div role="status">
+        {checking && (
+          <div className="result">
+            <span className="small muted">{t("checkingDetail")}</span>
+          </div>
+        )}
+        {badge && (
+          // key: cada comprobación nueva vuelve a animar el resultado, aunque sea el mismo.
+          <div className="result" key={`${u?.phase}-${u?.checkedAt}`}>
+            <span className={badgeClass}>{badge}</span>
+            <span className="small muted">{text}</span>
+          </div>
+        )}
+      </div>
       {u?.phase === "Downloading" && (
         <div className="ot-progress"><span style={{ width: `${Number(u.progress)}%` }} /></div>
       )}

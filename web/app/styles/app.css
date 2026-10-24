@@ -16,6 +16,8 @@ html, body { margin: 0; min-height: 100%; background: var(--bg); }
 
 .version-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .result { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); animation: appear .3s ease-out; }
+/* Región de estado vacía: sigue en la página (para el lector de pantalla) sin sumar el espacio del panel. */
+.panel > [role="status"]:empty { margin-top: calc(-1 * var(--space-3)); }
 @keyframes appear { from { opacity: 0; transform: translateY(-4px); } }
 .spinner { width: 12px; height: 12px; border: 2px solid var(--line); border-top-color: var(--ink); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
