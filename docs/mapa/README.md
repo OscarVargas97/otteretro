@@ -2,47 +2,57 @@
 
 Qué pantalla o comando dispara cada función, qué endpoint llama, qué módulo la resuelve y qué tablas o archivos toca. Rutas relativas a `src/Otteretro/` (backend) y `web/` (front).
 
-**Vivo**: se actualiza en el mismo PR que agrega o cambia una pantalla, un endpoint, un comando o una tabla. Al día con F0 (2026-10-16).
+**Vivo**: se actualiza en el mismo PR que agrega o cambia una pantalla, un endpoint, un comando o una tabla. Al día con F0 renombrado al inglés (#4) y con los idiomas (#16), 2026-10-23.
 
 ## Arranque y modos del ejecutable
 
 | Comando | Qué hace | Módulo |
 |---|---|---|
-| `otteretro` | Abre la app: una sola instancia, servidor local y ventana | `Inicio/Program.cs` → `Inicio/Arranque.cs`, `Inicio/UnaInstancia.cs`, `Inicio/Servidor.cs`, `Inicio/Ventana.cs` |
-| `otteretro servidor` | API e interfaz sin ventana, para el navegador (desarrollo) | `Inicio/Modos.cs` → `Inicio/Servidor.cs` |
-| `otteretro jugar <id>` | Todavía no implementado (F4): registra el aviso y sale con código 2 | `Inicio/Modos.cs` |
-| `otteretro version` · `ayuda` · `openapi <archivo>` | Versión, ayuda y contrato OpenAPI para `npm run tipos` | `Inicio/Modos.cs` |
+| `otteretro` | Abre la app: una sola instancia, servidor local y ventana | `App/Program.cs` → `App/Startup.cs`, `App/SingleInstance.cs`, `App/LocalServer.cs`, `App/MainWindow.cs` |
+| `otteretro servidor` | API e interfaz sin ventana, para el navegador (desarrollo) | `App/Modes.cs` → `App/LocalServer.cs` |
+| `otteretro jugar <id>` | Todavía no implementado (F4): registra el aviso y sale con código 2 | `App/Modes.cs` |
+| `otteretro version` · `ayuda` · `openapi <archivo>` | Versión, ayuda y contrato OpenAPI para `npm run tipos` | `App/Modes.cs` |
 
-Al arrancar: migraciones de `Datos/Migraciones/` (`Datos/Migraciones.cs`) y registro del equipo actual en `equipo`. Logs: `Inicio/Registro.cs`, en `logs/` de la carpeta de datos (antes de elegirla, junto a `config.json`).
+Los comandos de la CLI siguen en español: son la interfaz que usa la persona (y Steam, con `jugar`).
+
+Al arrancar: migraciones de `Data/Migrations/` (`Data/Migrations.cs`) y registro del equipo actual en `machine`. Logs: `App/FileLog.cs`, en `logs/` de la carpeta de datos (antes de elegirla, junto a `config.json`).
+
+## Idiomas (#140 a #142)
+
+Los textos de la interfaz están en `web/messages/es.json` (base) y `en.json`, con claves y formato ICU; `web/messages/index.ts` los junta y `global.d.ts` les da tipos. `components/Shell.tsx` carga el catálogo del idioma de `GET /api/state` (`language`). El backend no manda textos: errores, avisos y pasos llegan como código (`ApiError { code, params }`, `MoveState.step`, `UpdateState.message`) y `web/lib/i18n.ts` los traduce. `npm run revisar` falla si los catálogos no tienen las mismas claves (`scripts/check-messages.mjs`).
+
+Para sumar un idioma: su `.json` en `web/messages/`, una línea en `messages/index.ts` y su código en `AppConfig.Languages`.
 
 ## Pantallas
 
 | Pantalla (`web/app/`) | Qué muestra o hace | Endpoints | Backend | Datos |
 |---|---|---|---|---|
-| Todas (`layout.tsx` → `componentes/Marco.tsx`) | Barra lateral, barra superior con panel de tareas, aviso de actualización; lleva al asistente si falta la carpeta de datos | `GET /api/estado`, `GET /api/eventos` (SSE), `GET /api/actualizacion`, `GET /api/carpeta-datos/mudanza` | `Api/Endpoints.cs`, `Api/Eventos.cs` | `config.json` |
-| `bienvenida/` | Asistente pasos 1 y 2: elegir la carpeta de datos (pasos 3 a 7 deshabilitados) | `GET /api/discos`, `POST /api/carpeta-datos` | `Inicio/CarpetaDatos.cs`, `Inicio/Configuracion.cs` | `config.json`; crea `data/`, `cache/imagenes/`, `Herramientas/`, `logs/` |
-| `ajustes/` · carpeta de datos (`componentes/CarpetaDatos.tsx`) | Ver la carpeta, usar otra o mudarla con progreso | `GET /api/carpeta-datos`, `GET /api/discos`, `POST /api/carpeta-datos`, `POST /api/carpeta-datos/mover`, evento `mudanza` | `Inicio/Mudanza.cs` (copiar, verificar, cambiar `config.json`, borrar el origen) | carpeta de datos completa, `config.json` |
-| `ajustes/` · versión (`componentes/Actualizacion.tsx`) | Versión, buscar actualización y reiniciar para aplicarla | `GET /api/actualizacion`, `POST /api/actualizacion/buscar`, `POST /api/actualizacion/reiniciar`, evento `actualizacion` | `Inicio/Actualizador.cs` (Velopack) | `origenActualizaciones` de `config.json` |
-| `page.tsx` (Inicio), `sagas/`, `saga/?id=`, `coleccion/`, `juego/?id=`, `descubrir/`, `revisar/`, `descargas/`, `herramientas/`, `steam/` | Estado vacío con la nutria y la fase que la llena (`Proximamente`) | — | — | — |
+| Todas (`layout.tsx` → `components/Shell.tsx`) | Barra lateral, barra superior con panel de tareas, aviso de actualización; lleva al asistente si falta la carpeta de datos | `GET /api/state`, `GET /api/events` (SSE), `GET /api/update`, `GET /api/data-folder/move` | `Api/Endpoints.cs`, `Api/Events.cs` | `config.json` |
+| `welcome/` | Asistente pasos 1 y 2: idioma y carpeta de datos (pasos 3 a 7 deshabilitados) | `GET /api/drives`, `POST /api/data-folder`, `PUT /api/language` | `App/DataFolder.cs`, `App/AppConfig.cs` | `config.json`; crea `data/`, `cache/imagenes/`, `Herramientas/`, `logs/` |
+| `settings/` · carpeta de datos (`components/DataFolder.tsx`) | Ver la carpeta, usar otra o mudarla con progreso | `GET /api/data-folder`, `GET /api/drives`, `POST /api/data-folder`, `POST /api/data-folder/move`, evento `move` | `App/FolderMove.cs` (copiar, verificar, cambiar `config.json`, borrar el origen) | carpeta de datos completa, `config.json` |
+| `settings/` · idioma (`components/LanguagePicker.tsx`) | Elegir el idioma; la interfaz cambia sin reiniciar | `PUT /api/language` | `App/AppConfig.cs` | `language` de `config.json` |
+| `settings/` · versión (`components/Update.tsx`) | Versión, buscar actualización y reiniciar para aplicarla | `GET /api/update`, `POST /api/update/check`, `POST /api/update/restart`, evento `update` | `App/Updater.cs` (Velopack) | `origenActualizaciones` de `config.json` |
+| `page.tsx` (Inicio), `sagas/`, `saga/?id=`, `collection/`, `game/?id=`, `discover/`, `review/`, `downloads/`, `tools/`, `steam/` | Estado vacío con la nutria y la fase que la llena (`ComingSoon`) | — | — | — |
 
 ## API (`Api/Endpoints.cs`)
 
-Todo bajo `/api`, solo en `127.0.0.1` y con la clave de la sesión (`Inicio/Servidor.cs`). El front llama siempre con `web/lib/cliente.ts`; los tipos salen de `web/lib/api.d.ts`.
+Todo bajo `/api`, solo en `127.0.0.1` y con la clave de la sesión (cabecera `X-Otteretro-Key` o `?key=`, `App/LocalServer.cs`). El front llama siempre con `web/lib/client.ts`; los tipos salen de `web/lib/api.d.ts`.
 
 | Endpoint | Para qué |
 |---|---|
-| `GET /api/estado` | Versión, carpeta de datos y si está configurada |
-| `GET /api/carpeta-datos` · `POST /api/carpeta-datos` | Ver la carpeta o usar otra (sin mover nada) |
-| `GET /api/carpeta-datos/mudanza` · `POST /api/carpeta-datos/mover` | Estado de la mudanza o empezarla (una a la vez) |
-| `GET /api/discos` | Unidades con espacio libre |
-| `GET /api/actualizacion` · `POST …/buscar` · `POST …/reiniciar` | Actualización de la app |
-| `GET /api/eventos` | SSE: `latido` cada 15 s, `mudanza`, `actualizacion` |
+| `GET /api/state` | Versión, carpeta de datos, si está configurada e idioma |
+| `PUT /api/language` | Cambiar el idioma (`es` o `en`) |
+| `GET /api/data-folder` · `POST /api/data-folder` | Ver la carpeta o usar otra (sin mover nada) |
+| `GET /api/data-folder/move` · `POST /api/data-folder/move` | Estado de la mudanza o empezarla (una a la vez) |
+| `GET /api/drives` | Unidades con espacio libre |
+| `GET /api/update` · `POST …/check` · `POST …/restart` | Actualización de la app |
+| `GET /api/events` | SSE: `heartbeat` cada 15 s, `move`, `update` |
 
 ## Datos
 
 | Tabla o archivo | Qué guarda | Quién escribe |
 |---|---|---|
-| `%LocalAppData%\Otteretro\config.json` | Carpeta de datos y origen de actualizaciones (escritura atómica) | `Inicio/Configuracion.cs` |
-| `data/otteretro.db` · `equipo` | Equipos donde se usa la app | `Datos/Migraciones.cs` al arrancar |
-| `data/otteretro.db` · `ajuste` | Ajustes globales o por equipo (todavía sin uso) | — |
-| `data/otteretro.db` · `migracion` | Migraciones aplicadas | `Datos/Migraciones.cs` |
+| `%LocalAppData%\Otteretro\config.json` | Carpeta de datos, origen de actualizaciones, id del equipo e idioma (`language`; sin él, el del sistema). Escritura atómica. Las claves de F0 siguen en español (`carpetaDatos`, `origenActualizaciones`, `equipoId`) para leer los de antes | `App/AppConfig.cs` |
+| `data/otteretro.db` · `machine` | Equipos donde se usa la app | `Data/Migrations.cs` al arrancar |
+| `data/otteretro.db` · `setting` | Ajustes globales o por equipo (todavía sin uso) | — |
+| `data/otteretro.db` · `migration` | Migraciones aplicadas | `Data/Migrations.cs` |

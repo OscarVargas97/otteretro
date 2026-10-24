@@ -1,12 +1,12 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-16, después de la encuesta 12, "PlayOS · refinamiento" (#129 a #138).
+> **Última actualización:** 2026-10-24, con las #145 y #146 (Otteretro público y encuestas en su issue).
 
 ## Cómo se mantiene
 
 - Después de cada encuesta o decisión:
-  1. Se guardan las respuestas originales en [historial/respuestas/](historial/respuestas/).
+  1. Las respuestas van en el issue «Encuesta NN» de la encuesta, sin contenido personal (#146).
   2. Se añade una entrada en [historial/decisiones.md](historial/decisiones.md), el registro cronológico de qué cambió y cuándo.
   3. Se **actualiza este documento** para que refleje siempre el estado actual.
 - [historial/v1-por-tema/](historial/v1-por-tema/) guarda la primera versión de los requisitos, separada por tema, antes de consolidarla.
@@ -49,9 +49,9 @@ Otteretro es una app **personal** para:
 ## 3. Stack y repositorio ✅
 
 - **Backend:** C# (.NET 10) con ASP.NET Core y SQLite (Dapper). Detalle en **[arquitectura.md](arquitectura.md)** (#92 a #99). **Interfaz:** Next.js exportado como estático (React). **Ventana:** Photino, que usa WebView2 en Windows y WebKitGTK en Linux.
-- **Idioma y uso:** interfaz en **español**, pensada para escritorio con ratón y teclado. Para la tele se usa Steam Big Picture.
-- **Idioma del código** (#125): identificadores en **inglés**; documentación, comentarios, commits, PRs e issues en español. Los nombres de F0 se renombran al inglés.
-- **Repositorio:** en **GitHub**. Ramas: **`dev`**, donde se trabaja, y **`main`**, que es lo publicado.
+- **Idioma y uso:** interfaz en **español e inglés** (#140 a #142), con los textos en un catálogo por idioma para que sumar otro sea agregar un archivo; se elige en Ajustes y por defecto sigue al sistema. Pensada para escritorio con ratón y teclado. Para la tele se usa Steam Big Picture.
+- **Idioma del código** (#125, #139): identificadores, tablas y columnas en **inglés**; documentación, comentarios, commits, PRs e issues en español.
+- **Repositorio:** en **GitHub, público** (#145). Ramas: **`dev`**, donde se trabaja, y **`main`**, que es lo publicado.
 - **Releases:** al fusionar `dev` en `main`, GitHub Actions compila y publica una release.
 - **Instalación y actualización:** con **Velopack**, desde las releases de GitHub. En Windows se instala en `%LocalAppData%\Otteretro`. *En Linux, reemplazado por la #114:* paquete y módulo de Nix, que se actualiza con el sistema. Se actualiza sola y nunca toca la carpeta de datos.
 
@@ -499,7 +499,7 @@ Mod público de WorkOS (tu NixOS) para juegos, en el repo `playos`, que importa 
 | Tema | Decisión |
 |---|---|
 | Sesiones | Al iniciar sesión eliges **Play** o **Work** (Hyprland); en Work los juegos son apps normales (#105). **Play es la sesión gamescope de Steam** y Otteretro arranca encima a pantalla completa; Big Picture está a un botón y Otteretro sigue detrás (#129) |
-| Máquinas | el portátil de juego; a futuro un PC para la tele y una portátil de mano; una VM de pruebas (#106) |
+| Máquinas | El portátil de juego; a futuro un PC para la tele y una portátil de mano; una VM de pruebas (#106) |
 | GPU del portátil de juego | Se usa la configuración que funciona hoy, **comprobada en el equipo** (#109) 🔬 |
 | Rendimiento | GameMode, gamescope, MangoHud, perfil de rendimiento automático, LACT; kernel por defecto; LenovoLegionLinux y OpenRGB (#110) |
 | Steam y tiendas | Steam (gamescope, Proton-GE, Remote Play y transferencia local, extest, Steam ROM Manager), Heroic, Lutris, Bottles, itch.io; Discord (Vesktop), OBS, gpu-screen-recorder (#111) |
@@ -517,11 +517,11 @@ Cómo se trabaja en Otteretro y en tus demás repos personales. Va en un plugin 
 |---|---|
 | Requerimientos | Las encuestas levantan los requerimientos y de ahí salen las tareas. Skill `requerimientos`: idea → encuesta → decisiones y requisitos → **una solicitud por tema** con sus sub-issues, creados cuando dices que sí. Criterios de aceptación derivados de las respuestas; lo que no queda claro y las preguntas que aparecen al implementar van a una mini-encuesta. Selector para 1 a 3 preguntas, artifact para más (#121) |
 | Tareas en GitHub | Solicitud = issue `solicitud`; tareas = sub-issues; estado en un GitHub Project (Pendiente → En desarrollo → En revisión → Hecho, Descartado); etiquetas de tipo y prioridad, `solicitud` y `automatizar`; un milestone por fase; se identifica con el número del issue. Sin Notion (#120) |
-| Decisiones y plan | Las decisiones siguen en `historial/decisiones.md` y los issues las citan. El estado de las tareas vive en issues y milestones; `plan-implementacion.md` queda con el detalle técnico de cada fase, sin marcar avance (#122) |
-| Reglas para la IA | `AGENTS.md` (y `CLAUDE.md` que lo importa), adaptaciones por repo, `work/<tarea>/ESTADO.md` para retomar entre sesiones, estado al iniciar sesión, lint después de editar, worktrees (el checkout base no se edita), `docs/README.md` como índice, `docs/review-checklist.md`, mapa funcional y badge de la skill (#123) |
+| Decisiones y plan | Las decisiones siguen en `historial/decisiones.md` y los issues las citan. El plan vive en GitHub: cada fase es un milestone, sus partes futuras son borradores del Project con el campo `Fase` y la fase en curso tiene su issue «Fase N»; en `docs/` queda solo `plan.md` con el orden de las fases (#122, #143) |
+| Reglas para la IA | `AGENTS.md` (y `CLAUDE.md` que lo importa), adaptaciones por repo, el issue de cada tarea para retomar entre sesiones (`## Estado` y comentarios, #144), estado al iniciar sesión, lint después de editar, worktrees (el checkout base no se edita), `docs/README.md` como índice, `docs/review-checklist.md`, mapa funcional y badge de la skill (#123) |
 | Guardián | En el plugin, con reglas por repo. En Otteretro bloquea o pide confirmación según la lista de #124. Cambios sin commitear o sin pushear: **avisa, no bloquea** (#124) |
 | Workspace | Un espacio de [ia-workspace](https://github.com/OscarVargas97/ia-workspace) agrupa Otteretro y PlayOS en `repos/<repo>/<rama>`, con `work/`, la configuración del guardián y lo que cruza repos (#128) |
-| Idioma | Código en inglés; el resto en español (#125, §3) |
+| Idioma | Interfaz en español e inglés (#140); código y tablas en inglés; documentación en español (#125, #139, §3) |
 | Skills | `requerimientos`, `issue-solver`, `pr-reviewer` (revisa tus PRs antes de fusionar en `dev`), `repo-docs`, docs entre repos, `fase` y `estado`. Un paso a la vez; commit, push y PR solo cuando los pides (#126) |
 | Puesta en marcha | Primero el plugin; después se aplica a Otteretro en una rama propia, con milestones de todas las fases e issues de la fase en curso. Se instala a nivel usuario (#127) |
 

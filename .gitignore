@@ -487,3 +487,6 @@ web/out/
 web/.next/
 web/node_modules/
 web/next-env.d.ts
+
+# Pruebas de interfaz (Playwright)
+web/e2e-results/

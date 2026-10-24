@@ -1,0 +1,194 @@
+{
+  "languageName": "English",
+  "app": {
+    "unreachable": "Could not talk to the app: {detail}. Close it and open it again."
+  },
+  "nav": {
+    "label": "Main",
+    "home": "Home",
+    "sagas": "Sagas",
+    "saga": "Saga",
+    "collection": "Collection",
+    "game": "Game",
+    "discover": "Discover",
+    "review": "Review",
+    "downloads": "Downloads",
+    "tools": "Tools",
+    "steam": "Steam",
+    "settings": "Settings"
+  },
+  "topBar": {
+    "search": "Search sagas and games…",
+    "shortcut": "CTRL K",
+    "tasks": "Tasks",
+    "tasksPanel": "Background tasks",
+    "noTasksTitle": "No tasks running",
+    "noTasksText": "Scans, downloads, backups and Claude’s work will show up here.",
+    "connected": "Connected to the app",
+    "reconnecting": "Reconnecting…",
+    "searchLabel": "Search",
+    "searchPlaceholder": "Sagas, games, emulators, settings…",
+    "searchLater": "Search works from phase 1, once there is a catalog."
+  },
+  "comingSoon": {
+    "badge": "Coming in phase {phase}",
+    "home": {
+      "title": "Nothing to show yet",
+      "text": "Once the catalog is loaded you will see the next game of each route, what needs review and what is new."
+    },
+    "sagas": {
+      "title": "No sagas yet",
+      "text": "Sagas and their games are loaded from IGDB."
+    },
+    "saga": {
+      "title": "Pick a saga",
+      "text": "Here you will see the saga’s timeline with the route you follow."
+    },
+    "collection": {
+      "title": "Your collection is empty",
+      "text": "First what you own on Steam will appear (phase 1), then the games in your libraries (phase 3)."
+    },
+    "game": {
+      "title": "Pick a game",
+      "text": "Here you will see how to play it, its versions, files and your progress."
+    },
+    "discover": {
+      "title": "Nothing to recommend yet",
+      "text": "Claude will recommend sagas based on what you like and tell you why."
+    },
+    "review": {
+      "title": "Nothing to review",
+      "text": "What the app decided with doubts will show up here: identifications, routes to approve and Claude’s learnings."
+    },
+    "downloads": {
+      "title": "No downloads",
+      "text": "Here you will see JDownloader, megapacks and every step of the import."
+    },
+    "tools": {
+      "title": "No emulators or ports yet",
+      "text": "Emulators, ports, add-ons and system files will be installed and updated here."
+    },
+    "steam": {
+      "title": "Nothing to export",
+      "text": "Here you will see which games go to Steam, with their saga category and art."
+    }
+  },
+  "welcome": {
+    "steps": {
+      "welcome": "Welcome",
+      "dataFolder": "Data folder",
+      "backup": "Backup",
+      "libraries": "Libraries",
+      "steam": "Steam",
+      "keys": "Keys",
+      "initialLoad": "Initial load"
+    },
+    "phase": "Phase {phase}",
+    "stepOf": "Step {step} of {total}",
+    "intro": "Catalog your sagas, organize your games, emulators and ports on any drive, and bring it all to Steam. This takes a few minutes.",
+    "start": "Start",
+    "chooseTitle": "Choose the data folder",
+    "chooseText": "This holds the database, the Tools (emulators, ports, BIOS) and the image cache. It takes a lot of space: pick a drive with room. To switch PCs, just move this folder.",
+    "freeOf": "{free} free of {total}",
+    "otherPath": "Or type another path",
+    "back": "Back",
+    "preparing": "Preparing…",
+    "use": "Use {path}",
+    "nextSteps": "The next steps (backup, libraries, Steam, keys and initial load) turn on with their phase."
+  },
+  "settings": {
+    "dataFolder": "Data folder",
+    "about": "About",
+    "language": "Language",
+    "later": "Libraries, accounts and keys, backup and the rest of the settings come with their phase."
+  },
+  "dataFolder": {
+    "usage": "Uses {used} · {free} free on that drive",
+    "moveButton": "Move to another folder…",
+    "useButton": "Use another folder…",
+    "contents": "Database, Tools, image cache and error log.",
+    "moveHelp": "Everything will be copied to the new folder, each file will be checked and only then the current one will be deleted. On the same drive it moves instantly. The new folder must be empty or not exist.",
+    "useHelp": "The app will start using that folder (for example, one you bring from another PC). The current one is not moved or deleted. If the chosen folder is empty, you will start from scratch.",
+    "driveChip": "{path} · {free} free",
+    "folderLabel": "Folder",
+    "placeholder": "For example E:\\Otteretro",
+    "cancel": "Cancel",
+    "move": "Move",
+    "useThis": "Use this folder",
+    "progress": "{step} to {destination}",
+    "dontClose": "Do not close the app until it finishes.",
+    "moved": "Moved",
+    "nowIn": "Your data is now in {destination}.",
+    "error": "Error",
+    "taskTitle": "Move the data folder",
+    "taskDone": "Done",
+    "taskNowIn": "Now in {destination}"
+  },
+  "move": {
+    "step": {
+      "preparing": "Preparing",
+      "moving": "Moving",
+      "copying": "Copying",
+      "verifying": "Verifying",
+      "deletingSource": "Deleting the previous folder",
+      "done": "Done",
+      "error": "Error"
+    }
+  },
+  "update": {
+    "taskTitle": "Otteretro update",
+    "checking": "Checking…",
+    "ready": "Ready",
+    "error": "Error",
+    "checkingDetail": "Checking for a new version",
+    "downloadingDetail": "Downloading version {version}",
+    "readyDetail": "Version {version} will be installed when you close the app",
+    "failedFallback": "Could not update.",
+    "unavailable": "Not available",
+    "upToDate": "You are up to date",
+    "upToDateText": "Otteretro {version} is the latest version · checked at {time}",
+    "downloadingBadge": "Downloading {version}",
+    "downloadingText": "{progress} % · you can keep using the app",
+    "readyBadge": "{version} ready",
+    "readyText": "It will be installed when you close the app, or right now if you restart.",
+    "restartNow": "Restart now",
+    "check": "Check for updates",
+    "notice": "<b>Otteretro {version} is ready.</b> It will be installed when you close the app, or right now if you restart.",
+    "reason": {
+      "noSource": "No update source is configured.",
+      "notInstalled": "Updates only work in the installed app.",
+      "failed": "Could not check for or download the update. The details are in the log."
+    }
+  },
+  "errors": {
+    "http": "The app responded with an error ({status}).",
+    "unknown": "Something went wrong ({code}).",
+    "path": {
+      "notAbsolute": "The path must be complete, for example E:\\Otteretro.",
+      "isFile": "That path is a file, not a folder."
+    },
+    "folder": {
+      "createFailed": "Could not create the folder: {detail}"
+    },
+    "move": {
+      "inProgress": "Wait for the data folder move to finish.",
+      "noDataFolder": "There is no data folder.",
+      "sameFolder": "It is the same folder as the current one.",
+      "insideCurrent": "The new folder cannot be inside the current one.",
+      "destinationNotEmpty": "The destination folder must be empty.",
+      "driveNotFound": "Drive {drive} was not found.",
+      "notEnoughSpace": "Not enough space on {drive}: {needed} needed and {free} free.",
+      "driveUnavailable": "Cannot use {drive}: {detail}",
+      "failedNothingMoved": "Nothing was moved; your data is still in {path}. {detail}",
+      "copyMismatch": "Nothing was moved; your data is still in {path}. The file {detail} was not copied correctly.",
+      "failedDataAt": "The move was interrupted and your data ended up in {path}. Use “Use another folder” with that path. {detail}",
+      "sourceNotDeleted": "Your data is already in the new folder, but {path} could not be fully deleted: {detail} You can delete it by hand."
+    },
+    "update": {
+      "nothingDownloaded": "No update has been downloaded."
+    },
+    "language": {
+      "unsupported": "That language is not available: {language}."
+    }
+  }
+}

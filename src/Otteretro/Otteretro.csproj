@@ -20,32 +20,32 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Datos\Migraciones\*.sql" />
+    <EmbeddedResource Include="Data\Migrations\*.sql" />
     <None Include="nutria.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- La interfaz: Next.js exportado en web/out se sirve como wwwroot. -->
   <PropertyGroup>
-    <DirWeb>$(MSBuildThisFileDirectory)..\..\web\</DirWeb>
+    <WebDir>$(MSBuildThisFileDirectory)..\..\web\</WebDir>
   </PropertyGroup>
   <!-- En Release se compila el front; en Debug se copia el último web/out si existe. Se copia al terminar
        (no como Content) porque Next genera nombres nuevos en cada build. -->
-  <Target Name="ConstruirWeb" BeforeTargets="Build" Condition="'$(Configuration)' == 'Release' And '$(SaltarWeb)' != 'true'">
-    <Exec Command="npm ci" WorkingDirectory="$(DirWeb)" Condition="!Exists('$(DirWeb)node_modules')" />
-    <Exec Command="npm run build" WorkingDirectory="$(DirWeb)" />
+  <Target Name="BuildWeb" BeforeTargets="Build" Condition="'$(Configuration)' == 'Release' And '$(SkipWeb)' != 'true'">
+    <Exec Command="npm ci" WorkingDirectory="$(WebDir)" Condition="!Exists('$(WebDir)node_modules')" />
+    <Exec Command="npm run build" WorkingDirectory="$(WebDir)" />
   </Target>
-  <Target Name="CopiarWeb" AfterTargets="Build">
+  <Target Name="CopyWeb" AfterTargets="Build">
     <ItemGroup>
-      <ArchivoWeb Include="$(DirWeb)out\**\*" />
+      <WebFile Include="$(WebDir)out\**\*" />
     </ItemGroup>
     <RemoveDir Directories="$(OutDir)wwwroot" />
-    <Copy SourceFiles="@(ArchivoWeb)" DestinationFiles="@(ArchivoWeb->'$(OutDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(WebFile)" DestinationFiles="@(WebFile->'$(OutDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
   </Target>
-  <Target Name="PublicarWeb" AfterTargets="Publish">
+  <Target Name="PublishWeb" AfterTargets="Publish">
     <ItemGroup>
-      <ArchivoWeb Include="$(DirWeb)out\**\*" />
+      <WebFile Include="$(WebDir)out\**\*" />
     </ItemGroup>
-    <Copy SourceFiles="@(ArchivoWeb)" DestinationFiles="@(ArchivoWeb->'$(PublishDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(WebFile)" DestinationFiles="@(WebFile->'$(PublishDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
   </Target>
 
 </Project>
