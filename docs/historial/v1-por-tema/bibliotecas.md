@@ -12,7 +12,7 @@ El **sistema** (Otteretro) y las **bibliotecas** (emuladores, ports y juegos) es
 - No hay rutas fijas a E: o D:. La app sabe dónde están sus bibliotecas porque las registra ella misma, y las reencuentra aunque cambie la letra del disco o el punto de montaje en Linux.
 
 ```
-D:\dev\personal\otteretro\     ← repositorio de desarrollo
+<repositorio>\                 ← repositorio de desarrollo
 <cualquier sitio>\Otteretro\   ← build portable lista para usar
    Otteretro(.exe)
    data\otteretro.db           ← registro de bibliotecas + catálogo (SQLite)

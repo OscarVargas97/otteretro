@@ -1,0 +1,46 @@
+# Publica una release con Velopack al fusionar en main (A6).
+# Por ahora no se ejecuta: nada se fusiona en main (#101).
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Versión (0.N.0 según el número de fusiones en main)
+        id: version
+        shell: bash
+        run: echo "valor=0.$(git rev-list --count --first-parent HEAD).0" >> "$GITHUB_OUTPUT"
+
+      - name: Pruebas
+        run: dotnet test -c Release
+
+      - name: Instalar vpk
+        run: dotnet tool install -g vpk
+
+      - name: Empaquetar
+        shell: pwsh
+        run: ./scripts/empaquetar.ps1 -Version ${{ steps.version.outputs.valor }}
+
+      - name: Subir a GitHub Releases
+        run: vpk upload github --repoUrl https://github.com/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }} --outputDir artefactos/paquetes --publish --releaseName "Otteretro ${{ steps.version.outputs.valor }}" --tag v${{ steps.version.outputs.valor }}
