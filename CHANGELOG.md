@@ -2,6 +2,14 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
+## El plan se ve en GitHub · en revisión
+
+`docs/21-plan-en-github` · PR #26 (apilado sobre `fase/p0-playos`)
+
+### Cambios
+- **El plan está en el Project**: cada fase es un milestone con lo que trae, lo que se te pide y su «Listo cuando», y lo que viene en cada fase son tarjetas del Project otteretro agrupables por `Fase` (vista «Plan»). Se pueden cambiar o borrar mientras la fase no empieza.
+- **Menos documentos que mantener**: `docs/plan-implementacion.md` ya no existe y `docs/plan.md` cabe en una página (el orden de las fases y por qué). Cómo se trabaja y los comandos pasaron al `AGENTS.md`, y el stack a `arquitectura.md`.
+
 ## Otteretro en Linux y PlayOS (en curso) · 2026-10-23
 
 `fase/p0-playos` · PR —

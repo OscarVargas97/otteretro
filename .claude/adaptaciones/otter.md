@@ -5,9 +5,9 @@ Valen para Otteretro y PlayOS (el registro y el Project de PlayOS se llevan desd
 ## Todas
 
 - Las rutas de documentos (`docs/...`) son de `repos/otteretro/<rama>/`, salvo que digan "del workspace".
-- Antes de proponer o implementar en Otteretro: `docs/REQUISITOS.md` (única fuente vigente), `docs/arquitectura.md` y la sección de la fase en `docs/plan-implementacion.md`.
-- GitHub de Otteretro: repo `OscarVargas97/otteretro`; Project 2 (`PVT_kwHOAp1b0c4BnZq6`), campo `Estado` `PVTSSF_lAHOAp1b0c4BnZq6zhl-eqA` con opciones Pendiente `f79538af`, En desarrollo `2393692f`, En revisión `01fa2157`, Hecho `6aebcffb`, Descartado `96d68a6b`.
-- GitHub de PlayOS: repo `OscarVargas97/playos` (público, rama `main`); Project 3 (`PVT_kwHOAp1b0c4Bna16`), campo `Estado` `PVTSSF_lAHOAp1b0c4Bna16zhl_kqE` con opciones Pendiente `027ee075`, En desarrollo `bf961e1f`, En revisión `504431d3`, Hecho `eaa7d197`, Descartado `73d3419a`. Mismas etiquetas que Otteretro y milestone `P0 · PlayOS y Linux`. Sin datos personales en el repo (invariantes de workos).
+- Antes de proponer o implementar en Otteretro: `docs/REQUISITOS.md` (única fuente vigente), `docs/arquitectura.md` y el milestone de la fase en curso (qué trae y «Listo cuando»).
+- GitHub de Otteretro: repo `OscarVargas97/otteretro`; Project 2 (`PVT_kwHOAp1b0c4BnZq6`), campo `Status` `PVTSSF_lAHOAp1b0c4BnZq6zhl-elE` con opciones Pendiente `f75ad846`, En desarrollo `47fc9ee4`, En revisión `9008e4ba`, Hecho `98236657`, Descartado `a3fd7d53`; campo `Fase` `PVTSSF_lAHOAp1b0c4BnZq6zhm-VyU` con P0 `7f0871bd`, D1 `ab429c9a`, F1 `b1a7c269`, F2 `e725d8ba`, F3 `45543992`, F4 `128f3f39`, F5 `d9a232a5`, F6 `d51e0cb7`, F7 `0f150735`, F8 `ba7a8281`, F9 `f67dec22`.
+- GitHub de PlayOS: repo `OscarVargas97/playos` (público, rama `main`); Project 3 (`PVT_kwHOAp1b0c4Bna16`), campo `Status` `PVTSSF_lAHOAp1b0c4Bna16zhl_knk` con opciones Pendiente `f75ad846`, En desarrollo `47fc9ee4`, En revisión `fcdd944a`, Hecho `98236657`, Descartado `8b020756`. Mismas etiquetas que Otteretro y milestone `P0 · PlayOS y Linux`. Sin datos personales en el repo (invariantes de workos).
 - En Otteretro la rama por defecto en GitHub es `dev` (desde el 2026-10-16, mientras nada vaya a `main`, #101): `Closes #n` en el PR cierra el issue al fusionar. Después pásalo a `Hecho` en el Project.
 - Idioma: identificadores en inglés (#125); todo lo demás en español neutro.
 
@@ -26,8 +26,8 @@ Valen para Otteretro y PlayOS (el registro y el Project de PlayOS se llevan desd
 
 ## fase
 
-- Fases de Otteretro: F0 (cerrada), P0 · PlayOS y Linux (#137; solicitudes otteretro#7 y playos#1, más workos-personal#1), D1 · Diseño (#138), F1 a F9. Milestones con el mismo nombre. P0 usa la rama `fase/p0-playos` en otteretro y en playos, con un solo `work/fase-p0-playos/`.
-- Al abrir o cerrar una fase, actualiza la línea "Dónde vamos" de `docs/plan-implementacion.md` y el título de la fase en `docs/plan.md`.
+- Fases de Otteretro: F0 (cerrada), P0 · PlayOS y Linux (#137; solicitudes otteretro#7 y playos#1, más workos-personal#1), D1 · Diseño (#138), F1 a F9. Milestones con el mismo nombre. P0 usa la rama `fase/p0-playos` en otteretro y en playos; su issue de fase es otteretro#25 (lleva el estado) y playos#7.
+- El plan vive en GitHub (#143): las partes de las fases futuras son borradores del Project 2 con el campo `Fase`. No hay «Dónde vamos» que actualizar: el estado de la fase está en su issue.
 - Las acciones de la persona de cada fase (cuentas, claves, A3) se piden al abrirla.
 
 ## pr-reviewer
