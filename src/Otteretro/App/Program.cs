@@ -11,7 +11,8 @@ public static class Program
         VelopackApp.Build().Run();
         return args switch
         {
-            [] => AppMode.Run(),
+            // En la sesión Play (gamescope) abre a pantalla completa aunque no se pida (#12).
+            [] or ["--fullscreen"] => AppMode.Run(args is ["--fullscreen"] || Environment.GetEnvironmentVariable("GAMESCOPE_WAYLAND_DISPLAY") is not null),
             ["jugar", .. var rest] => PlayMode.Run(rest),
             _ => CliMode.Run(args),
         };

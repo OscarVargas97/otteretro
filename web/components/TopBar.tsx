@@ -3,10 +3,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
-import { eventsUrl } from "@/lib/client";
+import { eventsUrl, request } from "@/lib/client";
 import { UpdateTask, useUpdate } from "./Update";
 import { MoveTask, useMove } from "./DataFolder";
-import { Empty } from "./Shell";
+import { Empty, useAppState } from "./Shell";
 
 /** Título de la pantalla, búsqueda global (Ctrl+K) y panel de tareas en segundo plano. */
 export function TopBar({ title }: { title: string }) {
@@ -14,6 +14,7 @@ export function TopBar({ title }: { title: string }) {
   const [searching, setSearching] = useState(false);
   const [tasksOpen, setTasksOpen] = useState(false);
   const connected = useEvents();
+  const fullscreen = !!useAppState().data?.fullscreen;
   const update = useUpdate();
   const move = useMove();
   const moving = !!move?.running;
@@ -47,6 +48,9 @@ export function TopBar({ title }: { title: string }) {
         <span className="search-text">{t("search")}</span>
         <span className="kbd">{t("shortcut")}</span>
       </button>
+      {fullscreen && (
+        <button className="ot-btn" type="button" onClick={() => request("/api/steam/big-picture", { method: "POST" })}>{t("goToSteam")}</button>
+      )}
       <button className="ot-btn" type="button" aria-expanded={tasksOpen} onClick={() => setTasksOpen(!tasksOpen)}>
         <span className="dot" data-connected={connected} data-busy={busy} />
         {t("tasks")}

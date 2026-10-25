@@ -47,6 +47,7 @@ Todo bajo `/api`, solo en `127.0.0.1` y con la clave de la sesión (cabecera `X-
 | `GET /api/data-folder/move` · `POST /api/data-folder/move` | Estado de la mudanza o empezarla (una a la vez) |
 | `GET /api/drives` | Unidades con espacio libre |
 | `GET /api/credentials` · `PUT` · `DELETE /api/credentials/{id}` | Estado de cada clave de este equipo, guardarla o borrarla (`credentials.noKeyring` si en Linux no hay llavero) |
+| `POST /api/steam/big-picture` | «Ir a Steam»: abre `steam://open/bigpicture` (el botón sale solo a pantalla completa, `AppState.fullscreen`) |
 | `POST /api/credentials/{id}/open` | Abrir en el navegador dónde se consigue esa clave |
 | `GET /api/update` · `POST …/check` · `POST …/restart` | Actualización de la app |
 | `GET /api/events` | SSE: `heartbeat` cada 15 s, `move`, `update` |

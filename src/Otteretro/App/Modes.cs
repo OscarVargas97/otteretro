@@ -5,7 +5,7 @@ namespace Otteretro.App;
 /// <summary>Modo APP: servidor local + ventana.</summary>
 public static class AppMode
 {
-    public static int Run()
+    public static int Run(bool fullscreen)
     {
         using var instance = SingleInstance.TryAcquire();
         if (instance is null)
@@ -19,7 +19,7 @@ public static class AppMode
         if (DataFolder.IsReady(config.DataFolder))
             Startup.PrepareData(config);
 
-        var session = new AppSession(config, configPath, LocalServer.NewKey());
+        var session = new AppSession(config, configPath, LocalServer.NewKey(), fullscreen);
         var app = LocalServer.Create(session);
         app.StartAsync().GetAwaiter().GetResult();
         var api = LocalServer.Address(app);
@@ -31,7 +31,7 @@ public static class AppMode
             : $"{web}/?key={session.Key}&api={Uri.EscapeDataString(api)}";
 
         _ = app.Services.GetRequiredService<Updater>().Check();
-        MainWindow.Show(url, instance);
+        MainWindow.Show(url, instance, fullscreen);
         app.StopAsync().GetAwaiter().GetResult();
         return 0;
     }
@@ -56,6 +56,7 @@ public static class CliMode
         Uso: otteretro [comando]
 
           (sin comando)          Abre la app.
+          --fullscreen           Abre la app a pantalla completa (en la sesión Play es automático).
           jugar <id>             Lanza un juego (fase 4).
           version                Muestra la versión.
           openapi <archivo>      Escribe el contrato OpenAPI de la API (para generar los tipos del front).

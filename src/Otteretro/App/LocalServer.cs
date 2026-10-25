@@ -7,7 +7,8 @@ using Otteretro.Api;
 namespace Otteretro.App;
 
 /// <summary>Lo que comparten la ventana y la API durante una sesión.</summary>
-public sealed record AppSession(AppConfig Config, string ConfigPath, string Key);
+/// <param name="Fullscreen">La ventana abrió a pantalla completa (sesión Play): la interfaz ofrece «Ir a Steam».</param>
+public sealed record AppSession(AppConfig Config, string ConfigPath, string Key, bool Fullscreen = false);
 
 /// <summary>
 /// Servidor local: solo 127.0.0.1, puerto aleatorio y una clave por sesión que solo conoce la ventana.

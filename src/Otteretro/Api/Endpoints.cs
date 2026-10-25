@@ -4,7 +4,7 @@ using Otteretro.Data;
 
 namespace Otteretro.Api;
 
-public record AppState(string Version, string? DataFolder, bool Configured, string Language);
+public record AppState(string Version, string? DataFolder, bool Configured, string Language, bool Fullscreen);
 public record FolderRequest(string Path);
 public record LanguageRequest(string Language);
 public record CredentialRequest(string Value);
@@ -116,6 +116,13 @@ public static class Endpoints
             return TypedResults.Ok();
         });
 
+        // «Ir a Steam» (#12): Steam pasa a Big Picture; Otteretro sigue abierto detrás.
+        api.MapPost("/steam/big-picture", () =>
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("steam://open/bigpicture") { UseShellExecute = true })?.Dispose();
+            return TypedResults.Ok();
+        });
+
         api.MapGet("/events", (HttpContext http, Events events) => events.Serve(http)).ExcludeFromDescription();
     }
 
@@ -123,5 +130,5 @@ public static class Endpoints
         DataFolder.IsReady(s.Config.DataFolder) ? new(new Database(DataFolder.DatabasePath(s.Config.DataFolder!)), s.Config.MachineId, box) : null;
 
     static AppState State(AppSession s) =>
-        new(Startup.Version, s.Config.DataFolder, DataFolder.IsReady(s.Config.DataFolder), s.Config.EffectiveLanguage);
+        new(Startup.Version, s.Config.DataFolder, DataFolder.IsReady(s.Config.DataFolder), s.Config.EffectiveLanguage, s.Fullscreen);
 }

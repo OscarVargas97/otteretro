@@ -28,7 +28,8 @@
     "reconnecting": "Reconectando…",
     "searchLabel": "Buscar",
     "searchPlaceholder": "Sagas, juegos, emuladores, ajustes…",
-    "searchLater": "La búsqueda funciona desde la fase 1, cuando haya catálogo."
+    "searchLater": "La búsqueda funciona desde la fase 1, cuando haya catálogo.",
+    "goToSteam": "Ir a Steam"
   },
   "comingSoon": {
     "badge": "Llega en la fase {phase}",

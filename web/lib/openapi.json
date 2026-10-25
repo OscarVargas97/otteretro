@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:49989/"
+      "url": "http://127.0.0.1:65360/"
     }
   ],
   "paths": {
@@ -436,6 +436,18 @@
           }
         }
       }
+    },
+    "/api/steam/big-picture": {
+      "post": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -465,7 +477,8 @@
           "version",
           "dataFolder",
           "configured",
-          "language"
+          "language",
+          "fullscreen"
         ],
         "type": "object",
         "properties": {
@@ -483,6 +496,9 @@
           },
           "language": {
             "type": "string"
+          },
+          "fullscreen": {
+            "type": "boolean"
           }
         }
       },
