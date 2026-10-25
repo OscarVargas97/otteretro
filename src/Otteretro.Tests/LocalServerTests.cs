@@ -81,7 +81,7 @@ public class LocalServerTests : IDisposable
     {
         client.DefaultRequestHeaders.Add(LocalServer.KeyHeader, session.Key);
         var state = await client.GetFromJsonAsync<UpdateState>("/api/update");
-        Assert.Equal(UpdatePhase.None, state!.Phase);
+        Assert.Equal(OperatingSystem.IsWindows() ? UpdatePhase.None : UpdatePhase.Unavailable, state!.Phase);
         var r = await client.PostAsync("/api/update/restart", null);
         Assert.Equal(HttpStatusCode.Conflict, r.StatusCode);
     }

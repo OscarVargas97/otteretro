@@ -158,8 +158,10 @@
     "reason": {
       "noSource": "No update source is configured.",
       "notInstalled": "Updates only work in the installed app.",
-      "failed": "Could not check for or download the update. The details are in the log."
-    }
+      "failed": "Could not check for or download the update. The details are in the log.",
+      "withSystem": "Updated with the system: it arrives with the next PlayOS or NixOS update."
+    },
+    "withSystemBadge": "With the system"
   },
   "errors": {
     "http": "The app responded with an error ({status}).",

@@ -70,7 +70,9 @@ export function VersionAndUpdate({ version }: { version?: string }) {
   const newVersion = u?.version ?? "";
   const results: Record<string, [string, string, string]> = {
     // fase: [clase de la insignia, insignia, texto]
-    Unavailable: ["ot-badge ot-badge-review", t("unavailable"), reason(u) ?? ""],
+    Unavailable: u?.message === "withSystem"
+      ? ["ot-badge ot-badge-info", t("withSystemBadge"), reason(u) ?? ""]
+      : ["ot-badge ot-badge-review", t("unavailable"), reason(u) ?? ""],
     UpToDate: ["ot-badge ot-badge-have", t("upToDate"), t("upToDateText", { version: version ?? "", time })],
     Downloading: ["ot-badge ot-badge-info", t("downloadingBadge", { version: newVersion }), t("downloadingText", { progress: Number(u?.progress) })],
     Ready: ["ot-badge ot-badge-have", t("readyBadge", { version: newVersion }), t("readyText")],
@@ -88,7 +90,7 @@ export function VersionAndUpdate({ version }: { version?: string }) {
             {restart.isPending && <span className="spinner" aria-hidden="true" />}
             {t("restartNow")}
           </button>
-        ) : (
+        ) : u?.message === "withSystem" ? null : (
           <button className="ot-btn" type="button" disabled={busy} aria-busy={busy} onClick={() => check.mutate()}>
             {busy && <span className="spinner" aria-hidden="true" />}
             {t("check")}

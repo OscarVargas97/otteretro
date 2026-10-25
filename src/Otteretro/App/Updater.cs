@@ -16,6 +16,7 @@ public record UpdateState(UpdatePhase Phase, string? Version, int Progress, stri
 /// Busca una versión nueva, la descarga y avisa a la interfaz en cada paso (panel de tareas y aviso de "lista").
 /// Se instala al cerrar la app o al pulsar "Reiniciar ahora".
 /// Mientras no haya releases en GitHub (#101) el origen es una carpeta local (config.json → origenActualizaciones).
+/// Velopack solo actualiza en Windows: en Linux, Otteretro se actualiza con el sistema (Nix, #114).
 /// </summary>
 public sealed class Updater(AppSession session, Events events)
 {
@@ -23,7 +24,9 @@ public sealed class Updater(AppSession session, Events events)
     VelopackAsset? ready;
     int busy;
 
-    public UpdateState State { get; private set; } = new(UpdatePhase.None, null, 0, null, null);
+    public UpdateState State { get; private set; } = OperatingSystem.IsWindows()
+        ? new(UpdatePhase.None, null, 0, null, null)
+        : new(UpdatePhase.Unavailable, null, 0, "withSystem", null);
     DateTimeOffset? checkedAt;
 
     /// <summary>
@@ -33,7 +36,7 @@ public sealed class Updater(AppSession session, Events events)
     public async Task Check()
     {
         // Una sola búsqueda o descarga a la vez (el arranque y el botón pueden coincidir).
-        if (State.Phase == UpdatePhase.Ready || Interlocked.CompareExchange(ref busy, 1, 0) != 0) return;
+        if (!OperatingSystem.IsWindows() || State.Phase == UpdatePhase.Ready || Interlocked.CompareExchange(ref busy, 1, 0) != 0) return;
         var downloading = false;
         try
         {

@@ -158,8 +158,10 @@
     "reason": {
       "noSource": "No hay un origen de actualizaciones configurado.",
       "notInstalled": "Las actualizaciones solo funcionan en la app instalada.",
-      "failed": "No se pudo buscar o descargar la actualización. El detalle está en el registro."
-    }
+      "failed": "No se pudo buscar o descargar la actualización. El detalle está en el registro.",
+      "withSystem": "Se actualiza con el sistema: llega con la próxima actualización de PlayOS o NixOS."
+    },
+    "withSystemBadge": "Con el sistema"
   },
   "errors": {
     "http": "La app respondió con un error ({status}).",
