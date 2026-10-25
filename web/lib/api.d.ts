@@ -651,6 +651,8 @@ export interface components {
             free: number | string;
             /** Format: int64 */
             total: number | string;
+            folder: string;
+            suggested: boolean;
         };
         FolderInfo: {
             path: null | string;

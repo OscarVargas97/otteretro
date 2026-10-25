@@ -45,7 +45,7 @@ Todo bajo `/api`, solo en `127.0.0.1` y con la clave de la sesión (cabecera `X-
 | `PUT /api/language` | Cambiar el idioma (`es` o `en`) |
 | `GET /api/data-folder` · `POST /api/data-folder` | Ver la carpeta o usar otra (sin mover nada) |
 | `GET /api/data-folder/move` · `POST /api/data-folder/move` | Estado de la mudanza o empezarla (una a la vez) |
-| `GET /api/drives` | Unidades con espacio libre |
+| `GET /api/drives` | Discos para la carpeta de datos, con su espacio libre, la carpeta que propone cada uno y cuál se sugiere (en Linux `~/Otteretro`, sin montajes en memoria; en Windows el de más espacio libre), `App/Mounts.cs` |
 | `GET /api/credentials` · `PUT` · `DELETE /api/credentials/{id}` | Estado de cada clave de este equipo, guardarla o borrarla (`credentials.noKeyring` si en Linux no hay llavero, o si ya hay claves guardadas y el llavero no devuelve la llave maestra: nunca se crea otra encima) |
 | `POST /api/steam/big-picture` | «Ir a Steam»: abre `steam://open/bigpicture` (el botón sale solo a pantalla completa, `AppState.fullscreen`; `steam.notInstalled` si el sistema no sabe abrirlo) |
 | `POST /api/credentials/{id}/open` | Abrir en el navegador dónde se consigue esa clave (`link.openFailed` si no hay navegador) |

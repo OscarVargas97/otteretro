@@ -18,7 +18,8 @@ public record ApiError(string Code, Dictionary<string, string>? Params = null)
     public static ApiError Of(string code, params (string Key, string Value)[] values) =>
         new(code, values.Length == 0 ? null : values.ToDictionary(v => v.Key, v => v.Value));
 }
-public record Drive(string Name, long Free, long Total);
+/// <summary>Un disco para la carpeta de datos: la carpeta que propone y si es la sugerida.</summary>
+public record Drive(string Name, long Free, long Total, string Folder, bool Suggested);
 public record FolderInfo(string? Path, long Used, long FreeOnDrive);
 
 /// <summary>Endpoints base de F0. Cada módulo añadirá los suyos.</summary>
@@ -65,10 +66,10 @@ public static class Endpoints
             return TypedResults.Ok(State(s));
         });
 
-        api.MapGet("/drives", () => DriveInfo.GetDrives()
-            .Where(d => d.IsReady && (OperatingSystem.IsWindows() ? d.DriveType == DriveType.Fixed : Mounts.IsUserMount(d.Name)))
-            .Select(d => new Drive(d.Name, d.TotalFreeSpace, d.TotalSize))
-            .ToList());
+        api.MapGet("/drives", () => Mounts.Offer(DriveInfo.GetDrives()
+                .Where(d => d.IsReady && (!OperatingSystem.IsWindows() || d.DriveType == DriveType.Fixed))
+                .Select(d => (d.Name, d.DriveFormat, d.TotalFreeSpace, d.TotalSize)),
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), OperatingSystem.IsWindows()));
 
         api.MapGet("/update", (Updater u) => u.State);
 

@@ -1,3 +1,5 @@
+using Otteretro.Api;
+
 namespace Otteretro.App;
 
 /// <summary>
@@ -26,4 +28,20 @@ public static class Mounts
     // ponytail: lista fija de prefijos; si aparece otro lugar habitual de montaje, se suma acá.
     public static bool IsUserMount(string mount) => mount == "/" ||
         new[] { "/home/", "/mnt/", "/media/", "/run/media/" }.Any(p => mount == p.TrimEnd('/') || mount.StartsWith(p, StringComparison.Ordinal));
+
+    /// <summary>
+    /// Los discos que se ofrecen para la carpeta de datos, con la carpeta que propone cada uno y cuál se sugiere.
+    /// En Linux quedan fuera los montajes en memoria: dentro de Steam (su entorno FHS) "/" es un tmpfs (#39).
+    /// </summary>
+    public static List<Drive> Offer(IEnumerable<(string Name, string Format, long Free, long Total)> drives, string home, bool windows)
+    {
+        var list = drives.Where(d => windows || (IsUserMount(d.Name) && d.Format is not ("tmpfs" or "ramfs"))).ToList();
+        if (list.Count == 0) return [];
+        // En Linux, ~/Otteretro en el montaje de la carpeta personal (#114); en Windows, el disco con más espacio libre.
+        var homeMount = windows ? null : Of(home, list.Select(d => d.Name));
+        var suggested = list.Any(d => d.Name == homeMount) ? homeMount : list.MaxBy(d => d.Free).Name;
+        return list.Select(d => new Drive(d.Name, d.Free, d.Total,
+            d.Name == homeMount ? Path.Combine(home, "Otteretro") : Path.Combine(d.Name, "Otteretro"),
+            d.Name == suggested)).ToList();
+    }
 }
