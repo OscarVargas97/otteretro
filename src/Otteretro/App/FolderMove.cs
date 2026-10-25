@@ -109,9 +109,9 @@ public static class FolderMove
             return ApiError.Of("path.isFile");
         if (Directory.Exists(d) && Directory.EnumerateFileSystemEntries(d).Any())
             return ApiError.Of("move.destinationNotEmpty");
-        if (!SameDrive(s, d))
+        if (!Mounts.Same(s, d))
         {
-            var root = Path.GetPathRoot(d)!;
+            var root = Mounts.Of(d);
             if (!Directory.Exists(root)) return ApiError.Of("move.driveNotFound", ("drive", root));
             try
             {
@@ -135,7 +135,7 @@ public static class FolderMove
     {
         CloseDatabase(source);
 
-        if (!forceCopy && SameDrive(source, destination))
+        if (!forceCopy && Mounts.Same(source, destination))
         {
             report(new("moving", 0, 1));
             if (Directory.Exists(destination)) Directory.Delete(destination); // está vacía (lo garantiza Validate)
@@ -260,6 +260,5 @@ public static class FolderMove
         return SHA256.HashData(fa).AsSpan().SequenceEqual(SHA256.HashData(fb));
     }
 
-    static bool SameDrive(string a, string b) => string.Equals(Path.GetPathRoot(a), Path.GetPathRoot(b), IgnoreCase);
     static string Normalize(string path) => Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
 }

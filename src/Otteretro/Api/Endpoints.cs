@@ -42,7 +42,7 @@ public static class Endpoints
         api.MapGet("/data-folder", (AppSession s) =>
         {
             var folder = s.Config.DataFolder;
-            var root = folder is null ? null : Path.GetPathRoot(folder);
+            var root = folder is null ? null : Mounts.Of(folder);
             return new FolderInfo(folder, folder is null ? 0 : FolderMove.Size(folder),
                 root is not null && Directory.Exists(root) ? new DriveInfo(root).AvailableFreeSpace : 0);
         });
@@ -64,7 +64,7 @@ public static class Endpoints
         });
 
         api.MapGet("/drives", () => DriveInfo.GetDrives()
-            .Where(d => d.IsReady && d.DriveType == DriveType.Fixed)
+            .Where(d => d.IsReady && (OperatingSystem.IsWindows() ? d.DriveType == DriveType.Fixed : Mounts.IsUserMount(d.Name)))
             .Select(d => new Drive(d.Name, d.TotalFreeSpace, d.TotalSize))
             .ToList());
 

@@ -4,8 +4,7 @@ namespace Otteretro.App;
 public sealed class FileLog : ILoggerProvider
 {
     /// <summary>Hasta elegir la carpeta de datos, los logs van junto a config.json.</summary>
-    public static string Folder { get; set; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Otteretro", "logs");
+    public static string Folder { get; set; } = Path.Combine(Path.GetDirectoryName(AppConfig.DefaultPath)!, "logs");
 
     static readonly Lock Gate = new();
 

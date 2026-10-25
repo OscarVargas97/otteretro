@@ -14,7 +14,8 @@ public static class MainWindow
             .SetSize(1440, 900)
             .SetMinSize(1100, 700)
             .Center()
-            .SetIconFile(Path.Combine(AppContext.BaseDirectory, "nutria.ico"))
+            // GTK no lee el .ico comprimido: en Linux va el PNG de la interfaz.
+            .SetIconFile(Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "nutria.ico" : "wwwroot/nutria.png"))
             .Load(new Uri(url));
 
         instance.Activated += () => window.Invoke(() =>

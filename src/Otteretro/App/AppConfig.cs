@@ -4,7 +4,8 @@ using System.Text.Json.Serialization;
 namespace Otteretro.App;
 
 /// <summary>
-/// Lo único que vive fuera de la carpeta de datos (en %LocalAppData%\Otteretro\config.json):
+/// Lo único que vive fuera de la carpeta de datos (en %LocalAppData%\Otteretro\config.json en Windows
+/// y en $XDG_CONFIG_HOME/otteretro/config.json en Linux):
 /// dónde está esa carpeta, de dónde llegan las actualizaciones y la identidad de este equipo.
 /// Las claves del JSON no cambian: los config.json de F0 se siguen leyendo igual.
 /// </summary>
@@ -35,8 +36,10 @@ public sealed class AppConfig
     static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
     /// <summary>OTTERETRO_CONFIG permite usar otra configuración (desarrollo y pruebas) sin tocar la real.</summary>
-    public static string DefaultPath => Environment.GetEnvironmentVariable("OTTERETRO_CONFIG") ?? Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Otteretro", "config.json");
+    public static string DefaultPath => Environment.GetEnvironmentVariable("OTTERETRO_CONFIG") ?? (OperatingSystem.IsWindows()
+        ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Otteretro", "config.json")
+        // En Linux, ApplicationData es $XDG_CONFIG_HOME o ~/.config.
+        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "otteretro", "config.json"));
 
     public static AppConfig Load(string path)
     {
