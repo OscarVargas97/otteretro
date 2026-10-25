@@ -50,8 +50,10 @@ public sealed class Credentials(Database db, string machineId, SecretBox box)
 
     public void Save(string id, string value)
     {
-        var sealedValue = box.Protect(Encoding.UTF8.GetBytes(value), Encoding.UTF8.GetBytes(id));
         using var c = db.Open();
+        // Una llave maestra nueva solo si este equipo no tiene nada cifrado con la anterior.
+        var first = c.ExecuteScalar<long>("SELECT COUNT(*) FROM credential WHERE machine_id = @machineId", new { machineId }) == 0;
+        var sealedValue = box.Protect(Encoding.UTF8.GetBytes(value), Encoding.UTF8.GetBytes(id), mayCreateKey: first);
         c.Execute("""
             INSERT INTO credential (machine_id, id, value, updated_at) VALUES (@machineId, @id, @sealedValue, @date)
             ON CONFLICT(machine_id, id) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
@@ -75,18 +77,24 @@ public sealed class Credentials(Database db, string machineId, SecretBox box)
 
 /// <summary>
 /// Cifra con el almacén del sistema: DPAPI del usuario en Windows; en Linux, AES-GCM con la llave maestra
-/// del llavero (#147). <paramref name="linuxKey"/> solo lo cambian las pruebas.
+/// del llavero (#147). <paramref name="linuxKey"/> (recibe si puede crear la llave) solo lo cambian las pruebas.
 /// </summary>
-public sealed class SecretBox(Func<byte[]>? linuxKey = null)
+public sealed class SecretBox(Func<bool, byte[]>? linuxKey = null)
 {
-    // PublicationOnly: si el llavero no estaba abierto, se vuelve a intentar en el próximo uso.
-    readonly Lazy<byte[]> key = new(linuxKey ?? LinuxSecrets.MasterKey, LazyThreadSafetyMode.PublicationOnly);
+    readonly Lock gate = new();
+    byte[]? key;
 
-    public byte[] Protect(byte[] plain, byte[] context) =>
-        OperatingSystem.IsWindows() ? WindowsSecrets.Protect(plain, context) : LinuxSecrets.Seal(key.Value, plain, context);
+    // Con cerrojo: dos primeros guardados a la vez no crean dos llaves. Si el llavero falla, se reintenta en el próximo uso.
+    byte[] Key(bool mayCreate)
+    {
+        lock (gate) return key ??= (linuxKey ?? LinuxSecrets.MasterKey)(mayCreate);
+    }
+
+    public byte[] Protect(byte[] plain, byte[] context, bool mayCreateKey = false) =>
+        OperatingSystem.IsWindows() ? WindowsSecrets.Protect(plain, context) : LinuxSecrets.Seal(Key(mayCreateKey), plain, context);
 
     public byte[] Unprotect(byte[] sealedValue, byte[] context) =>
-        OperatingSystem.IsWindows() ? WindowsSecrets.Unprotect(sealedValue, context) : LinuxSecrets.Open(key.Value, sealedValue, context);
+        OperatingSystem.IsWindows() ? WindowsSecrets.Unprotect(sealedValue, context) : LinuxSecrets.Open(Key(false), sealedValue, context);
 }
 
 [SupportedOSPlatform("windows")]
@@ -118,11 +126,14 @@ public static class LinuxSecrets
         return plain;
     }
 
-    /// <summary>La lee del llavero o, la primera vez, la crea y la guarda ahí.</summary>
-    public static byte[] MasterKey()
+    /// <summary>La lee del llavero o, si <paramref name="create"/>, la crea y la guarda ahí.</summary>
+    public static byte[] MasterKey(bool create)
     {
-        var (found, output, _) = SecretTool(["lookup", .. Attributes], null);
+        var (found, output, lookupError) = SecretTool(["lookup", .. Attributes], null);
         if (found == 0 && output.Trim().Length > 0) return Convert.FromBase64String(output.Trim());
+        // secret-tool falla igual si no hay llave que si el llavero no respondió (bloqueado, aviso cancelado).
+        // Con claves ya guardadas, una llave nueva las dejaría ilegibles: se avisa que falta el llavero.
+        if (!create) throw new KeyringUnavailableException(lookupError.Trim() is { Length: > 0 } e ? e : "sin llave maestra en el llavero");
         var key = RandomNumberGenerator.GetBytes(32);
         var (stored, _, error) = SecretTool(["store", "--label=Otteretro", .. Attributes], Convert.ToBase64String(key));
         if (stored != 0) throw new KeyringUnavailableException(error.Trim());

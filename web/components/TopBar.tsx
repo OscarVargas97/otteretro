@@ -1,9 +1,10 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { eventsUrl, request } from "@/lib/client";
+import { useDescribeError } from "@/lib/i18n";
 import { UpdateTask, useUpdate } from "./Update";
 import { MoveTask, useMove } from "./DataFolder";
 import { Empty, useAppState } from "./Shell";
@@ -15,6 +16,8 @@ export function TopBar({ title }: { title: string }) {
   const [tasksOpen, setTasksOpen] = useState(false);
   const connected = useEvents();
   const fullscreen = !!useAppState().data?.fullscreen;
+  const describe = useDescribeError();
+  const goToSteam = useMutation({ mutationFn: () => request("/api/steam/big-picture", { method: "POST" }) });
   const update = useUpdate();
   const move = useMove();
   const moving = !!move?.running;
@@ -49,7 +52,10 @@ export function TopBar({ title }: { title: string }) {
         <span className="kbd">{t("shortcut")}</span>
       </button>
       {fullscreen && (
-        <button className="ot-btn" type="button" onClick={() => request("/api/steam/big-picture", { method: "POST" })}>{t("goToSteam")}</button>
+        <>
+          <button className="ot-btn" type="button" disabled={goToSteam.isPending} onClick={() => goToSteam.mutate()}>{t("goToSteam")}</button>
+          {goToSteam.error && <span className="error small" role="alert">{describe(goToSteam.error)}</span>}
+        </>
       )}
       <button className="ot-btn" type="button" aria-expanded={tasksOpen} onClick={() => setTasksOpen(!tasksOpen)}>
         <span className="dot" data-connected={connected} data-busy={busy} />

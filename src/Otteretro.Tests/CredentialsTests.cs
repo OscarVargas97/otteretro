@@ -10,7 +10,7 @@ public class CredentialsTests
 {
     // En Linux, una llave fija en vez del llavero; en Windows se usa DPAPI de verdad.
     static readonly byte[] Key = RandomNumberGenerator.GetBytes(32);
-    static SecretBox Box() => new(() => Key);
+    static SecretBox Box() => new(_ => Key);
 
     static Database CreateDatabase(TempDir tmp)
     {
@@ -60,6 +60,23 @@ public class CredentialsTests
         credentials.Save("igdb.clientSecret", "x");
         credentials.Delete("igdb.clientSecret");
         Assert.Null(credentials.Read("igdb.clientSecret"));
+    }
+
+    [Fact]
+    public void ANewMasterKeyOnlyWhenNothingIsSavedYet()
+    {
+        using var tmp = new TempDir();
+        var db = CreateDatabase(tmp);
+        var asked = new List<bool>();
+        SecretBox Recording() => new(mayCreate => { asked.Add(mayCreate); return Key; });
+
+        new Credentials(db, "pc-a", Recording()).Save("github.token", "a");
+        // Ya hay algo cifrado: si el llavero no devuelve la llave, no se crea otra encima.
+        new Credentials(db, "pc-a", Recording()).Save("steam.apiKey", "b");
+        new Credentials(db, "pc-a", Recording()).Read("github.token");
+
+        // En Windows cifra DPAPI y no hay llave maestra.
+        Assert.Equal(OperatingSystem.IsWindows() ? [] : [true, false, false], asked);
     }
 
     [Fact]

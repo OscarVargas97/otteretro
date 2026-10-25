@@ -80,9 +80,10 @@ export function CredentialsSettings() {
   const dt = useDynamicT();
   const describe = useDescribeError();
   const list = useQuery({ queryKey: KEY, queryFn: () => request<CredentialStatus[]>("/api/credentials") });
-  const open = (id: string) => request("/api/credentials/" + id + "/open", { method: "POST" });
+  const open = useMutation({ mutationFn: (id: string) => request("/api/credentials/" + id + "/open", { method: "POST" }) });
 
   if (list.isError) return <div className="panel"><p className="error small" style={{ margin: 0 }}>{describe(list.error)}</p></div>;
+  if (list.isPending) return <div className="panel"><p className="small muted" style={{ margin: 0 }}>{t("loading")}</p></div>;
   const services = [...new Set(list.data?.map((c) => c.service))];
   return (
     <div className="panel">
@@ -92,12 +93,13 @@ export function CredentialsSettings() {
           <div key={service} className="cred-service">
             <div className="version-row">
               <h3 className="cred-name">{dt(`credentials.service.${service}`)}</h3>
-              <button className="ot-btn ot-btn-ghost" type="button" title={fields[0].url} onClick={() => open(fields[0].id)}>{t("getIt")}</button>
+              <button className="ot-btn ot-btn-ghost" type="button" title={fields[0].url} onClick={() => open.mutate(fields[0].id)}>{t("getIt")}</button>
             </div>
             {fields.map((c) => <CredentialRow key={c.id} c={c} />)}
           </div>
         );
       })}
+      {open.error && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(open.error)}</p>}
       <p className="small muted" style={{ margin: 0 }}>{t("bitwarden")}</p>
     </div>
   );

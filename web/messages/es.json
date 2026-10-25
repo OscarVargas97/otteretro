@@ -197,6 +197,12 @@
     "credentials": {
       "empty": "Pega un valor antes de guardar.",
       "noKeyring": "No hay llavero del sistema para guardar la clave. En Linux, Otteretro necesita gnome-keyring abierto."
+    },
+    "link": {
+      "openFailed": "No se pudo abrir el enlace: el sistema no tiene un navegador para abrirlo."
+    },
+    "steam": {
+      "notInstalled": "No se pudo abrir Steam. ¿Está instalado en este equipo?"
     }
   },
   "credentials": {
@@ -227,6 +233,7 @@
       "user": "Usuario",
       "password": "Contraseña",
       "email": "Correo"
-    }
+    },
+    "loading": "Cargando las cuentas…"
   }
 }

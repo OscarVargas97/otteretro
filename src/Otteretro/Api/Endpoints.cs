@@ -109,21 +109,32 @@ public static class Endpoints
         });
 
         // Abre en el navegador del sistema dónde se consigue la clave; solo URLs del catálogo.
-        api.MapPost("/credentials/{id}/open", Results<Ok, NotFound> (string id) =>
+        api.MapPost("/credentials/{id}/open", Results<Ok, NotFound, Conflict<ApiError>> (string id) =>
         {
             if (Credentials.Kinds.FirstOrDefault(k => k.Id == id) is not { } kind) return TypedResults.NotFound();
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(kind.Url) { UseShellExecute = true })?.Dispose();
-            return TypedResults.Ok();
+            return Open(kind.Url) ? TypedResults.Ok() : TypedResults.Conflict(ApiError.Of("link.openFailed"));
         });
 
         // «Ir a Steam» (#12): Steam pasa a Big Picture; Otteretro sigue abierto detrás.
-        api.MapPost("/steam/big-picture", () =>
-        {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("steam://open/bigpicture") { UseShellExecute = true })?.Dispose();
-            return TypedResults.Ok();
-        });
+        api.MapPost("/steam/big-picture", Results<Ok, Conflict<ApiError>> () =>
+            Open("steam://open/bigpicture") ? TypedResults.Ok() : TypedResults.Conflict(ApiError.Of("steam.notInstalled")));
 
         api.MapGet("/events", (HttpContext http, Events events) => events.Serve(http)).ExcludeFromDescription();
+    }
+
+    /// <summary>Abre un enlace con el programa del sistema; false si no hay quién lo abra.</summary>
+    static bool Open(string url)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true })?.Dispose();
+            return true;
+        }
+        catch (System.ComponentModel.Win32Exception e)
+        {
+            FileLog.Write(LogLevel.Warning, "Open", $"No se pudo abrir {url}: {e.Message}");
+            return false;
+        }
     }
 
     static Credentials? CredentialsOf(AppSession s, SecretBox box) =>
