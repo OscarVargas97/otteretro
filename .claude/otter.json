@@ -11,10 +11,5 @@
     ".cs": "dotnet format whitespace --folder --verify-no-changes --include {file}",
     ".ts": "[ -d web/node_modules ] || exit 0; npm --prefix web run --silent revisar",
     ".tsx": "[ -d web/node_modules ] || exit 0; npm --prefix web run --silent revisar"
-  },
-  "survey": {
-    "answers": "docs/historial/respuestas",
-    "decisions": "docs/historial/decisiones.md",
-    "requirements": "docs/REQUISITOS.md"
   }
 }

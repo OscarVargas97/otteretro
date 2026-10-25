@@ -1,70 +1,145 @@
 using Microsoft.AspNetCore.Http.HttpResults;
-using Otteretro.Inicio;
+using Otteretro.App;
+using Otteretro.Data;
 
 namespace Otteretro.Api;
 
-public record EstadoApp(string Version, string? CarpetaDatos, bool Configurada);
-public record PedidoCarpeta(string Ruta);
-public record Problema(string Mensaje);
-public record Disco(string Nombre, long Libre, long Total);
-public record InfoCarpeta(string? Ruta, long Ocupado, long LibreEnDisco);
+public record AppState(string Version, string? DataFolder, bool Configured, string Language, bool Fullscreen);
+public record FolderRequest(string Path);
+public record LanguageRequest(string Language);
+public record CredentialRequest(string Value);
+
+/// <summary>
+/// Error o aviso para la persona, como código y parámetros: el front lo traduce con su catálogo (#142).
+/// Los códigos son las claves de `errors.*` en web/messages.
+/// </summary>
+public record ApiError(string Code, Dictionary<string, string>? Params = null)
+{
+    public static ApiError Of(string code, params (string Key, string Value)[] values) =>
+        new(code, values.Length == 0 ? null : values.ToDictionary(v => v.Key, v => v.Value));
+}
+public record Drive(string Name, long Free, long Total);
+public record FolderInfo(string? Path, long Used, long FreeOnDrive);
 
 /// <summary>Endpoints base de F0. Cada módulo añadirá los suyos.</summary>
 public static class Endpoints
 {
-    public static void Mapear(WebApplication app)
+    public static void Map(WebApplication app)
     {
         var api = app.MapGroup("/api");
 
-        api.MapGet("/estado", (ContextoApp c) => Estado(c));
+        api.MapGet("/state", (AppSession s) => State(s));
 
-        api.MapPost("/carpeta-datos", Results<Ok<EstadoApp>, BadRequest<Problema>, Conflict<Problema>> (PedidoCarpeta pedido, ContextoApp c, ServicioMudanza m) =>
+        api.MapPost("/data-folder", Results<Ok<AppState>, BadRequest<ApiError>, Conflict<ApiError>> (FolderRequest request, AppSession s, FolderMoveService m) =>
         {
-            if (m.Estado.EnCurso) return TypedResults.Conflict(new Problema("Espera a que termine la mudanza de la carpeta de datos."));
-            var error = CarpetaDatos.Preparar(pedido.Ruta);
-            if (error is not null) return TypedResults.BadRequest(new Problema(error));
-            c.Config.CarpetaDatos = pedido.Ruta;
-            c.Config.Guardar(c.RutaConfig);
-            Arranque.PrepararDatos(c.Config);
-            return TypedResults.Ok(Estado(c));
+            if (m.State.Running) return TypedResults.Conflict(ApiError.Of("move.inProgress"));
+            var error = DataFolder.Prepare(request.Path);
+            if (error is not null) return TypedResults.BadRequest(error);
+            s.Config.DataFolder = request.Path;
+            s.Config.Save(s.ConfigPath);
+            Startup.PrepareData(s.Config);
+            return TypedResults.Ok(State(s));
         });
 
-        api.MapGet("/carpeta-datos", (ContextoApp c) =>
+        api.MapGet("/data-folder", (AppSession s) =>
         {
-            var ruta = c.Config.CarpetaDatos;
-            var raiz = ruta is null ? null : Path.GetPathRoot(ruta);
-            return new InfoCarpeta(ruta, ruta is null ? 0 : Mudanza.Tamano(ruta),
-                raiz is not null && Directory.Exists(raiz) ? new DriveInfo(raiz).AvailableFreeSpace : 0);
+            var folder = s.Config.DataFolder;
+            var root = folder is null ? null : Mounts.Of(folder);
+            return new FolderInfo(folder, folder is null ? 0 : FolderMove.Size(folder),
+                root is not null && Directory.Exists(root) ? new DriveInfo(root).AvailableFreeSpace : 0);
         });
 
-        api.MapGet("/carpeta-datos/mudanza", (ServicioMudanza m) => m.Estado);
+        api.MapGet("/data-folder/move", (FolderMoveService m) => m.State);
 
-        api.MapPost("/carpeta-datos/mover", Results<Accepted<EstadoMudanza>, BadRequest<Problema>> (PedidoCarpeta pedido, ServicioMudanza m) =>
+        api.MapPost("/data-folder/move", Results<Accepted<MoveState>, BadRequest<ApiError>> (FolderRequest request, FolderMoveService m) =>
         {
-            var error = m.Iniciar(pedido.Ruta);
-            return error is null ? TypedResults.Accepted("/api/carpeta-datos/mudanza", m.Estado) : TypedResults.BadRequest(new Problema(error));
+            var error = m.Start(request.Path);
+            return error is null ? TypedResults.Accepted("/api/data-folder/move", m.State) : TypedResults.BadRequest(error);
         });
 
-        api.MapGet("/discos", () => DriveInfo.GetDrives()
-            .Where(d => d.IsReady && d.DriveType == DriveType.Fixed)
-            .Select(d => new Disco(d.Name, d.TotalFreeSpace, d.TotalSize))
+        api.MapPut("/language", Results<Ok<AppState>, BadRequest<ApiError>> (LanguageRequest request, AppSession s) =>
+        {
+            if (!AppConfig.Languages.Contains(request.Language)) return TypedResults.BadRequest(ApiError.Of("language.unsupported", ("language", request.Language)));
+            s.Config.Language = request.Language;
+            s.Config.Save(s.ConfigPath);
+            return TypedResults.Ok(State(s));
+        });
+
+        api.MapGet("/drives", () => DriveInfo.GetDrives()
+            .Where(d => d.IsReady && (OperatingSystem.IsWindows() ? d.DriveType == DriveType.Fixed : Mounts.IsUserMount(d.Name)))
+            .Select(d => new Drive(d.Name, d.TotalFreeSpace, d.TotalSize))
             .ToList());
 
-        api.MapGet("/actualizacion", (Actualizador a) => a.Estado);
+        api.MapGet("/update", (Updater u) => u.State);
 
-        // Responde cuando termina la comprobación; si hay descarga, su progreso llega por el evento "actualizacion".
-        api.MapPost("/actualizacion/buscar", async (Actualizador a) =>
+        // Responde cuando termina la comprobación; si hay descarga, su progreso llega por el evento "update".
+        api.MapPost("/update/check", async (Updater u) =>
         {
-            await a.Buscar();
-            return a.Estado;
+            await u.Check();
+            return u.State;
         });
 
-        api.MapPost("/actualizacion/reiniciar", Results<Ok, Conflict<Problema>> (Actualizador a) =>
-            a.ReiniciarAhora() ? TypedResults.Ok() : TypedResults.Conflict(new Problema("No hay ninguna actualización descargada.")));
+        api.MapPost("/update/restart", Results<Ok, Conflict<ApiError>> (Updater u) =>
+            u.RestartNow() ? TypedResults.Ok() : TypedResults.Conflict(ApiError.Of("update.nothingDownloaded")));
 
-        api.MapGet("/eventos", (HttpContext http, Eventos eventos) => eventos.Atender(http)).ExcludeFromDescription();
+        // Ajustes › Cuentas y claves (§5.6): nunca se devuelve un valor, solo si está guardado.
+        api.MapGet("/credentials", Results<Ok<List<CredentialStatus>>, Conflict<ApiError>> (AppSession s, SecretBox box) =>
+            CredentialsOf(s, box) is { } c ? TypedResults.Ok(c.List()) : TypedResults.Conflict(ApiError.Of("move.noDataFolder")));
+
+        api.MapPut("/credentials/{id}", Results<Ok<List<CredentialStatus>>, BadRequest<ApiError>, Conflict<ApiError>, NotFound> (string id, CredentialRequest request, AppSession s, SecretBox box) =>
+        {
+            if (!Credentials.IsKnown(id)) return TypedResults.NotFound();
+            if (string.IsNullOrWhiteSpace(request.Value)) return TypedResults.BadRequest(ApiError.Of("credentials.empty"));
+            if (CredentialsOf(s, box) is not { } c) return TypedResults.Conflict(ApiError.Of("move.noDataFolder"));
+            try { c.Save(id, request.Value.Trim()); }
+            catch (KeyringUnavailableException e)
+            {
+                FileLog.Write(LogLevel.Warning, "Credentials", $"Sin llavero: {e.Message}");
+                return TypedResults.Conflict(ApiError.Of("credentials.noKeyring"));
+            }
+            return TypedResults.Ok(c.List());
+        });
+
+        api.MapDelete("/credentials/{id}", Results<Ok<List<CredentialStatus>>, Conflict<ApiError>, NotFound> (string id, AppSession s, SecretBox box) =>
+        {
+            if (!Credentials.IsKnown(id)) return TypedResults.NotFound();
+            if (CredentialsOf(s, box) is not { } c) return TypedResults.Conflict(ApiError.Of("move.noDataFolder"));
+            c.Delete(id);
+            return TypedResults.Ok(c.List());
+        });
+
+        // Abre en el navegador del sistema dónde se consigue la clave; solo URLs del catálogo.
+        api.MapPost("/credentials/{id}/open", Results<Ok, NotFound, Conflict<ApiError>> (string id) =>
+        {
+            if (Credentials.Kinds.FirstOrDefault(k => k.Id == id) is not { } kind) return TypedResults.NotFound();
+            return Open(kind.Url) ? TypedResults.Ok() : TypedResults.Conflict(ApiError.Of("link.openFailed"));
+        });
+
+        // «Ir a Steam» (#12): Steam pasa a Big Picture; Otteretro sigue abierto detrás.
+        api.MapPost("/steam/big-picture", Results<Ok, Conflict<ApiError>> () =>
+            Open("steam://open/bigpicture") ? TypedResults.Ok() : TypedResults.Conflict(ApiError.Of("steam.notInstalled")));
+
+        api.MapGet("/events", (HttpContext http, Events events) => events.Serve(http)).ExcludeFromDescription();
     }
 
-    static EstadoApp Estado(ContextoApp c) =>
-        new(Arranque.Version, c.Config.CarpetaDatos, CarpetaDatos.EstaLista(c.Config.CarpetaDatos));
+    /// <summary>Abre un enlace con el programa del sistema; false si no hay quién lo abra.</summary>
+    static bool Open(string url)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true })?.Dispose();
+            return true;
+        }
+        catch (System.ComponentModel.Win32Exception e)
+        {
+            FileLog.Write(LogLevel.Warning, "Open", $"No se pudo abrir {url}: {e.Message}");
+            return false;
+        }
+    }
+
+    static Credentials? CredentialsOf(AppSession s, SecretBox box) =>
+        DataFolder.IsReady(s.Config.DataFolder) ? new(new Database(DataFolder.DatabasePath(s.Config.DataFolder!)), s.Config.MachineId, box) : null;
+
+    static AppState State(AppSession s) =>
+        new(Startup.Version, s.Config.DataFolder, DataFolder.IsReady(s.Config.DataFolder), s.Config.EffectiveLanguage, s.Fullscreen);
 }

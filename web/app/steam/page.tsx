@@ -1,5 +1,7 @@
-import { Proximamente } from "@/componentes/Marco";
+"use client";
+
+import { ComingSoon } from "@/components/Shell";
 
 export default function Steam() {
-  return <Proximamente fase={6} titulo="Nada que exportar" texto="Aquí verás qué juegos se llevan a Steam, con su categoría por saga y su arte." />;
+  return <ComingSoon screen="steam" phase={6} />;
 }

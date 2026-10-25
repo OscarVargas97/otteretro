@@ -2,6 +2,50 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
+## Otteretro público · en desarrollo
+
+`chore/30-publico` · PR — (apilado sobre `fase/p0-playos`)
+
+### Cambios
+- **El código de Otteretro va a ser público**, para que PlayOS lo pueda instalar. La app no cambia.
+- **Documentación sin datos personales**: las máquinas se nombran por su rol (el PC de escritorio y el portátil de juego) y las respuestas de las encuestas ya no se guardan en el repo; van en el issue de cada encuesta.
+
+## Botones y buscador que no se mueven · en revisión
+
+`fix/20-buscador` · PR #29 (apilado sobre `fase/p0-playos`)
+
+### Arreglos
+- **El buscador se lee entero en los dos idiomas**: el texto de ejemplo ahora es corto («Buscar sagas y juegos…» / «Search sagas and games…») y cabe en el buscador; si algún día no cabe, se corta con «…». La lupa y el atajo ya no se achican.
+- **Los botones no cambian de tamaño al usarlos**: «Buscar actualización» y «Reiniciar ahora» muestran la ruedita en su lugar mientras trabajan, en vez de cambiar de texto, así no mueven lo que tienen al lado. Mientras busca, Ajustes dice «Comprobando si hay una versión nueva».
+- **Tareas**: el botón dice siempre «Tareas» y el número va en un contador aparte, también con 0, que se distingue del fondo del botón.
+
+### Cambios
+- **Botones parejos**: todos los botones miden al menos 96 px de ancho.
+
+## El plan se ve en GitHub · en revisión
+
+`docs/21-plan-en-github` · PR #26 (apilado sobre `fase/p0-playos`)
+
+### Cambios
+- **El plan está en el Project**: cada fase es un milestone con lo que trae, lo que se te pide y su «Listo cuando», y lo que viene en cada fase son tarjetas del Project otteretro agrupables por `Fase` (vista «Plan»). Se pueden cambiar o borrar mientras la fase no empieza.
+- **Menos documentos que mantener**: `docs/plan-implementacion.md` ya no existe y `docs/plan.md` cabe en una página (el orden de las fases y por qué). Cómo se trabaja y los comandos pasaron al `AGENTS.md`, y el stack a `arquitectura.md`.
+
+## Otteretro en Linux y PlayOS (en curso) · 2026-10-23
+
+`fase/p0-playos` · PR —
+
+### Nuevo
+- **Otteretro en inglés**: elige el idioma en Ajustes o en el primer paso del asistente; la interfaz cambia al momento y la próxima vez abre en el mismo. La primera vez usa el idioma de tu sistema. Todos los textos, también los errores, salen en el idioma elegido.
+- **Otteretro abre en Linux**: la ventana funciona con WebKitGTK, la configuración va en `~/.config/otteretro/`, los discos que ofrece son los montajes reales (la raíz, `/home` y lo montado en `/mnt`, `/media` o `/run/media`) y mover la carpeta de datos entre montajes copia y verifica antes de borrar. Abrir Otteretro otra vez trae al frente la ventana que ya está abierta.
+- **Se instala con Nix**: el repo trae un flake con el paquete de Otteretro (con su entrada en el menú de aplicaciones) y un módulo para NixOS, `programs.otteretro.enable = true;`. Es lo que va a usar PlayOS.
+- **Ajustes › Cuentas y claves**: pega las claves de GitHub, Steam, IGDB, ScreenScraper, SteamGridDB, RetroAchievements y MyJDownloader; cada una dice si está guardada o falta, y «Conseguirla» abre en el navegador dónde se saca. Se guardan cifradas y solo en ese equipo (en Windows con el cifrado del sistema; en Linux, con una llave guardada en gnome-keyring). Nunca se vuelven a mostrar. En otro PC, se pegan de nuevo desde Bitwarden. Si en Linux el llavero no responde (por ejemplo, se cancela el aviso para abrirlo), Otteretro avisa y no toca lo guardado.
+- **En Linux, Otteretro se actualiza con el sistema**: Ajustes › Acerca de lo dice y no ofrece buscar actualizaciones; llegan con la próxima actualización de PlayOS o NixOS. En Windows sigue igual.
+- **Pantalla completa para la sesión Play**: dentro de la sesión de Steam (gamescope) Otteretro abre solo a pantalla completa, o con `Otteretro --fullscreen`. Ahí la barra superior trae «Ir a Steam», que pasa a Big Picture; Otteretro sigue abierto detrás. Si Steam no está instalado, lo dice.
+
+### Cambios
+- **Código en inglés**: el código, la API y las tablas de la base de datos pasaron al inglés. La app se ve y funciona igual. Al abrir la versión nueva, la base de datos de tu carpeta de datos se actualiza sola y conserva todo, y la configuración se lee como antes.
+- **Las fuentes vienen con la app**: ya no se descargan al compilar. Se ven igual.
+
 ## La arquitectura dice que el código va en inglés · en revisión
 
 `docs/27-idioma-arquitectura` · PR #28

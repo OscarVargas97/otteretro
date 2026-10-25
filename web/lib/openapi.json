@@ -6,11 +6,11 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:53921/"
+      "url": "http://127.0.0.1:51257/"
     }
   ],
   "paths": {
-    "/api/estado": {
+    "/api/state": {
       "get": {
         "tags": [
           "Otteretro"
@@ -21,7 +21,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EstadoApp"
+                  "$ref": "#/components/schemas/AppState"
                 }
               }
             }
@@ -29,7 +29,7 @@
         }
       }
     },
-    "/api/carpeta-datos": {
+    "/api/data-folder": {
       "post": {
         "tags": [
           "Otteretro"
@@ -38,7 +38,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PedidoCarpeta"
+                "$ref": "#/components/schemas/FolderRequest"
               }
             }
           },
@@ -50,7 +50,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EstadoApp"
+                  "$ref": "#/components/schemas/AppState"
                 }
               }
             }
@@ -60,7 +60,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Problema"
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -70,7 +70,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Problema"
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -87,7 +87,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/InfoCarpeta"
+                  "$ref": "#/components/schemas/FolderInfo"
                 }
               }
             }
@@ -95,7 +95,7 @@
         }
       }
     },
-    "/api/carpeta-datos/mudanza": {
+    "/api/data-folder/move": {
       "get": {
         "tags": [
           "Otteretro"
@@ -106,15 +106,13 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EstadoMudanza"
+                  "$ref": "#/components/schemas/MoveState"
                 }
               }
             }
           }
         }
-      }
-    },
-    "/api/carpeta-datos/mover": {
+      },
       "post": {
         "tags": [
           "Otteretro"
@@ -123,7 +121,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PedidoCarpeta"
+                "$ref": "#/components/schemas/FolderRequest"
               }
             }
           },
@@ -135,7 +133,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EstadoMudanza"
+                  "$ref": "#/components/schemas/MoveState"
                 }
               }
             }
@@ -145,7 +143,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Problema"
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -153,7 +151,46 @@
         }
       }
     },
-    "/api/discos": {
+    "/api/language": {
+      "put": {
+        "tags": [
+          "Otteretro"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LanguageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppState"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/drives": {
       "get": {
         "tags": [
           "Otteretro"
@@ -166,7 +203,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/Disco"
+                    "$ref": "#/components/schemas/Drive"
                   }
                 }
               }
@@ -175,7 +212,7 @@
         }
       }
     },
-    "/api/actualizacion": {
+    "/api/update": {
       "get": {
         "tags": [
           "Otteretro"
@@ -186,7 +223,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EstadoActualizacion"
+                  "$ref": "#/components/schemas/UpdateState"
                 }
               }
             }
@@ -194,7 +231,7 @@
         }
       }
     },
-    "/api/actualizacion/buscar": {
+    "/api/update/check": {
       "post": {
         "tags": [
           "Otteretro"
@@ -205,7 +242,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EstadoActualizacion"
+                  "$ref": "#/components/schemas/UpdateState"
                 }
               }
             }
@@ -213,7 +250,7 @@
         }
       }
     },
-    "/api/actualizacion/reiniciar": {
+    "/api/update/restart": {
       "post": {
         "tags": [
           "Otteretro"
@@ -227,7 +264,204 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Problema"
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/credentials": {
+      "get": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CredentialStatus"
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/credentials/{id}": {
+      "put": {
+        "tags": [
+          "Otteretro"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CredentialRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CredentialStatus"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Otteretro"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CredentialStatus"
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/credentials/{id}/open": {
+      "post": {
+        "tags": [
+          "Otteretro"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/steam/big-picture": {
+      "post": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -238,18 +472,113 @@
   },
   "components": {
     "schemas": {
-      "Disco": {
+      "ApiError": {
         "required": [
-          "nombre",
-          "libre",
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "params": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AppState": {
+        "required": [
+          "version",
+          "dataFolder",
+          "configured",
+          "language",
+          "fullscreen"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "dataFolder": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "language": {
+            "type": "string"
+          },
+          "fullscreen": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CredentialRequest": {
+        "required": [
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "CredentialStatus": {
+        "required": [
+          "id",
+          "service",
+          "field",
+          "url",
+          "saved",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "service": {
+            "type": "string"
+          },
+          "field": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "saved": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "Drive": {
+        "required": [
+          "name",
+          "free",
           "total"
         ],
         "type": "object",
         "properties": {
-          "nombre": {
+          "name": {
             "type": "string"
           },
-          "libre": {
+          "free": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "integer",
@@ -267,18 +596,145 @@
           }
         }
       },
-      "EstadoActualizacion": {
+      "FolderInfo": {
         "required": [
-          "fase",
-          "version",
-          "progreso",
-          "mensaje",
-          "comprobada"
+          "path",
+          "used",
+          "freeOnDrive"
         ],
         "type": "object",
         "properties": {
-          "fase": {
-            "$ref": "#/components/schemas/FaseActualizacion"
+          "path": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "used": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "freeOnDrive": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "FolderRequest": {
+        "required": [
+          "path"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        }
+      },
+      "LanguageRequest": {
+        "required": [
+          "language"
+        ],
+        "type": "object",
+        "properties": {
+          "language": {
+            "type": "string"
+          }
+        }
+      },
+      "MoveState": {
+        "required": [
+          "step",
+          "done",
+          "total",
+          "running",
+          "destination",
+          "error",
+          "warning"
+        ],
+        "type": "object",
+        "properties": {
+          "step": {
+            "type": "string"
+          },
+          "done": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "running": {
+            "type": "boolean"
+          },
+          "destination": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "error": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ApiError"
+              }
+            ]
+          },
+          "warning": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ApiError"
+              }
+            ]
+          }
+        }
+      },
+      "UpdatePhase": {
+        "enum": [
+          "None",
+          "Unavailable",
+          "Checking",
+          "UpToDate",
+          "Downloading",
+          "Ready",
+          "Error"
+        ]
+      },
+      "UpdateState": {
+        "required": [
+          "phase",
+          "version",
+          "progress",
+          "message",
+          "checkedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "phase": {
+            "$ref": "#/components/schemas/UpdatePhase"
           },
           "version": {
             "type": [
@@ -286,7 +742,7 @@
               "string"
             ]
           },
-          "progreso": {
+          "progress": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "integer",
@@ -294,159 +750,18 @@
             ],
             "format": "int32"
           },
-          "mensaje": {
+          "message": {
             "type": [
               "null",
               "string"
             ]
           },
-          "comprobada": {
+          "checkedAt": {
             "type": [
               "null",
               "string"
             ],
             "format": "date-time"
-          }
-        }
-      },
-      "EstadoApp": {
-        "required": [
-          "version",
-          "carpetaDatos",
-          "configurada"
-        ],
-        "type": "object",
-        "properties": {
-          "version": {
-            "type": "string"
-          },
-          "carpetaDatos": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "configurada": {
-            "type": "boolean"
-          }
-        }
-      },
-      "EstadoMudanza": {
-        "required": [
-          "paso",
-          "hecho",
-          "total",
-          "enCurso",
-          "destino",
-          "error",
-          "aviso"
-        ],
-        "type": "object",
-        "properties": {
-          "paso": {
-            "type": "string"
-          },
-          "hecho": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int64"
-          },
-          "total": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int64"
-          },
-          "enCurso": {
-            "type": "boolean"
-          },
-          "destino": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "error": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "aviso": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "FaseActualizacion": {
-        "enum": [
-          "Ninguna",
-          "NoDisponible",
-          "Buscando",
-          "AlDia",
-          "Descargando",
-          "Lista",
-          "Error"
-        ]
-      },
-      "InfoCarpeta": {
-        "required": [
-          "ruta",
-          "ocupado",
-          "libreEnDisco"
-        ],
-        "type": "object",
-        "properties": {
-          "ruta": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "ocupado": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int64"
-          },
-          "libreEnDisco": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int64"
-          }
-        }
-      },
-      "PedidoCarpeta": {
-        "required": [
-          "ruta"
-        ],
-        "type": "object",
-        "properties": {
-          "ruta": {
-            "type": "string"
-          }
-        }
-      },
-      "Problema": {
-        "required": [
-          "mensaje"
-        ],
-        "type": "object",
-        "properties": {
-          "mensaje": {
-            "type": "string"
           }
         }
       }
