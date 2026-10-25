@@ -121,7 +121,7 @@ public class FolderMoveTests
         File.WriteAllText(Path.Combine(busy, "algo.txt"), "x");
 
         Assert.NotNull(FolderMove.Validate(source, source));                              // la misma
-        Assert.NotNull(FolderMove.Validate(source, source + "\\"));                       // la misma, con barra final
+        Assert.NotNull(FolderMove.Validate(source, source + Path.DirectorySeparatorChar)); // la misma, con barra final
         Assert.NotNull(FolderMove.Validate(source, Path.Combine(source, "dentro")));      // dentro de la actual
         Assert.NotNull(FolderMove.Validate(source, busy));                                // con contenido
         Assert.NotNull(FolderMove.Validate(source, "relativa"));                          // incompleta

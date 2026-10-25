@@ -49,3 +49,15 @@ Desde un **espacio** de [ia-workspace](https://github.com/OscarVargas97/ia-works
 | Ver la interfaz en un navegador sin ventana ni tocar la config real | `OTTERETRO_CONFIG=<ruta>/config.json Otteretro.exe servidor` → abre la URL que imprime |
 | Front en caliente | `cd web && npm run dev` (puerto 3000) y la app con `OTTERETRO_DEV_WEB=http://localhost:3000` |
 | Instalador local | `./scripts/empaquetar.ps1 -Version 0.0.N` → `artefactos/paquetes` (también es el origen de actualizaciones local) |
+| Paquete de Nix (en Linux con Nix) | `nix build` (compila el front y el back y corre `dotnet test`); `nix flake check` |
+
+### Paquete de Nix
+
+`flake.nix` exporta `packages.x86_64-linux.default`, `nixosModules.default` (`programs.otteretro.enable = true;`) y `checks`. Compila sin red, así que fija las dependencias:
+
+- **Al cambiar un paquete NuGet**: `nix build .#default.fetch-deps -o fetch-deps && ./fetch-deps deps.json` y commitear `deps.json`.
+- **Al cambiar `web/package-lock.json`**: poner `npmDepsHash = lib.fakeHash;` en `flake.nix`, correr `nix build .#web` y copiar el hash que dice «got:».
+- **Fuentes**: van en `web/app/fonts` (`next/font/local`); `next/font/google` no compila sin red.
+- La ventana se abre por XWayland (`GDK_BACKEND=x11` en el wrapper): en Wayland con NVIDIA, WebKitGTK no dibuja (#8).
+
+Desde Windows no hay Nix: se prueba por ssh en el portátil de juego, copiando el repo a una carpeta temporal.
