@@ -4,7 +4,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## Diseño del centro de entretenimiento con mando · en revisión
 
-`fase/d1-diseno` · PR —
+`fase/d1-diseno` · PR #42
 
 ### Nuevo
 - **Diseño para usar Otteretro con mando desde el sofá**: foco grande, barra con los botones, menú rápido del botón Guía y teclado en pantalla, con un recorrido de ejemplo en el prototipo.
