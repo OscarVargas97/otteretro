@@ -8,7 +8,7 @@ Qué pantalla o comando dispara cada función, qué endpoint llama, qué módulo
 
 | Comando | Qué hace | Módulo |
 |---|---|---|
-| `otteretro` | Abre la app: una sola instancia, servidor local y ventana | `App/Program.cs` → `App/Startup.cs`, `App/SingleInstance.cs`, `App/LocalServer.cs`, `App/MainWindow.cs` |
+| `otteretro` · `otteretro --fullscreen` | Abre la app: una sola instancia, servidor local y ventana (a pantalla completa con `--fullscreen` o dentro de gamescope) | `App/Program.cs` → `App/Startup.cs`, `App/SingleInstance.cs`, `App/LocalServer.cs`, `App/MainWindow.cs` |
 | `otteretro servidor` | API e interfaz sin ventana, para el navegador (desarrollo) | `App/Modes.cs` → `App/LocalServer.cs` |
 | `otteretro jugar <id>` | Todavía no implementado (F4): registra el aviso y sale con código 2 | `App/Modes.cs` |
 | `otteretro version` · `ayuda` · `openapi <archivo>` | Versión, ayuda y contrato OpenAPI para `npm run tipos` | `App/Modes.cs` |
@@ -56,7 +56,7 @@ Todo bajo `/api`, solo en `127.0.0.1` y con la clave de la sesión (cabecera `X-
 
 | Tabla o archivo | Qué guarda | Quién escribe |
 |---|---|---|
-| `%LocalAppData%\Otteretro\config.json` | Carpeta de datos, origen de actualizaciones, id del equipo e idioma (`language`; sin él, el del sistema). Escritura atómica. Las claves de F0 siguen en español (`carpetaDatos`, `origenActualizaciones`, `equipoId`) para leer los de antes | `App/AppConfig.cs` |
+| `%LocalAppData%\Otteretro\config.json` (en Linux, `~/.config/otteretro/config.json`) | Carpeta de datos, origen de actualizaciones, id del equipo e idioma (`language`; sin él, el del sistema). Escritura atómica. Las claves de F0 siguen en español (`carpetaDatos`, `origenActualizaciones`, `equipoId`) para leer los de antes | `App/AppConfig.cs` |
 | `data/otteretro.db` · `machine` | Equipos donde se usa la app | `Data/Migrations.cs` al arrancar |
 | `data/otteretro.db` · `credential` | Claves cifradas de cada equipo (`id` = servicio.campo) | `App/Credentials.cs` |
 | `data/otteretro.db` · `setting` | Ajustes globales o por equipo (todavía sin uso) | — |

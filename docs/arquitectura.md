@@ -25,13 +25,13 @@
 | Tema | Decisión |
 |---|---|
 | Un solo ejecutable | La app, el lanzador y la CLI son **el mismo `Otteretro.exe`**, con un argumento que elige el modo. Una sola instalación de Velopack y un solo código. (propia) |
-| Una sola ventana | Si la app ya está abierta y se vuelve a abrir, se trae al frente la ventana existente (mutex con nombre en Windows, socket en Linux). (propia) |
+| Una sola ventana | Si la app ya está abierta y se vuelve a abrir, se trae al frente la ventana existente (mutex con nombre y pipe: en Linux, .NET los resuelve con archivos y un socket Unix). (propia) |
 | Servidor local protegido | Solo escucha en `127.0.0.1`, en un **puerto aleatorio**. Al arrancar se genera una **clave aleatoria** que solo conoce la ventana; toda llamada a la API debe llevarla, y se rechaza cualquier `Host` que no sea `127.0.0.1`. Así ningún otro programa ni página web del PC puede usar la API. (propia) |
 | Interfaz | Next.js exportado como estático (`output: "export"`), servido por Kestrel desde el ejecutable. En desarrollo, `next dev` con proxy a la API. (propia) |
 | Progreso en vivo | **Server-Sent Events**: el servidor empuja el progreso de tareas, descargas y escaneos; la interfaz lo recibe con `EventSource`. (A2) |
 | Tipos compartidos | **Generados desde la API**: ASP.NET Core publica OpenAPI y un paso de build genera los tipos TypeScript del front. Si cambia un dato en C#, el front no compila hasta adaptarse. (A3) |
 | Varios procesos | `otteretro jugar` y la CLI escriben en la misma base mientras la app está abierta: SQLite en modo **WAL** y la cola de tareas con bloqueo por fila evitan choques. (propia) |
-| Plataforma | **.NET 10** (LTS) (A8). Windows hoy; todo lo específico de Windows (Job Objects, DPAPI, registro) va detrás de una clase por sistema operativo para Linux después. |
+| Plataforma | **.NET 10** (LTS) (A8). Windows y Linux (PlayOS, P0). Lo propio de cada sistema va detrás de su clase: discos (`Mounts`), claves (`Credentials`: DPAPI o llavero), actualizaciones (`Updater`: Velopack solo en Windows) y la ventana (WebView2 o WebKitGTK). Ver «Linux y Nix». |
 
 ## 2. Estructura del repositorio
 
@@ -188,3 +188,15 @@ Claude escribe la primera receta de algo nuevo; desde ahí la usa el script.
 | Logs | Archivo diario en `<carpeta de datos>\logs\`, 30 días (A5) |
 | Instalación | Velopack (`vpk`), paquetes locales mientras no haya `main` (#101) |
 | Pruebas | xUnit |
+
+## Linux y Nix (P0)
+
+| Tema | En Linux |
+|---|---|
+| Configuración | `$XDG_CONFIG_HOME/otteretro/config.json` (o `~/.config/…`); logs previos a la carpeta de datos en `logs/` al lado |
+| Discos | Los puntos de montaje reales (`/`, `/home`, `/mnt`, `/media`, `/run/media`); mover la carpeta de datos entre montajes copia y verifica (`App/Mounts.cs`) |
+| Ventana | Photino con WebKitGTK por XWayland (`GDK_BACKEND=x11`, `WEBKIT_DISABLE_DMABUF_RENDERER=1`): en Wayland con NVIDIA WebKitGTK no dibuja (#8) |
+| Claves | AES-GCM con una llave maestra en el llavero (Secret Service, gnome-keyring) vía `secret-tool` (#9, #147) |
+| Actualizaciones | Con el sistema: el actualizador queda en «se actualiza con el sistema» (#10) |
+| Sesión Play | Dentro de gamescope abre a pantalla completa (o `--fullscreen`) y ofrece «Ir a Steam» (#12, #129) |
+| Paquete | `flake.nix`: `packages.x86_64-linux.default` (front con `buildNpmPackage`, back con `buildDotnetModule` y `dotnet test`), `nixosModules.default` (`programs.otteretro.enable`) y `checks`. El wrapper suma WebKitGTK, GTK, libnotify, ICU, `secret-tool` y `xdg-open` (#11) |
