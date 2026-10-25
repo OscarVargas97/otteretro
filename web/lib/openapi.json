@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:51257/"
+      "url": "http://127.0.0.1:60991/"
     }
   ],
   "paths": {
@@ -571,7 +571,9 @@
         "required": [
           "name",
           "free",
-          "total"
+          "total",
+          "folder",
+          "suggested"
         ],
         "type": "object",
         "properties": {
@@ -593,6 +595,12 @@
               "string"
             ],
             "format": "int64"
+          },
+          "folder": {
+            "type": "string"
+          },
+          "suggested": {
+            "type": "boolean"
           }
         }
       },

@@ -104,8 +104,8 @@ export function DataFolderSettings() {
           <p className="small" style={{ margin: 0 }}>{mode === "move" ? t("moveHelp") : t("useHelp")}</p>
           <div className="chips">
             {drives?.map((d) => (
-              <button key={d.name} className="chip" type="button" onClick={() => setPath(`${d.name}Otteretro`)}>
-                {t("driveChip", { path: `${d.name}Otteretro`, free: gb(d.free, locale) })}
+              <button key={d.name} className="chip" type="button" onClick={() => setPath(d.folder)}>
+                {t("driveChip", { path: d.folder, free: gb(d.free, locale) })}
               </button>
             ))}
           </div>

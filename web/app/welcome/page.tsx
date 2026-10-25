@@ -73,9 +73,8 @@ function FolderStep({ onBack }: { onBack: () => void }) {
   const cache = useQueryClient();
   const drives = useQuery({ queryKey: ["drives"], queryFn: () => request<Drive[]>("/api/drives") });
   const [path, setPath] = useState("");
-  // Por defecto, el disco con más espacio libre (normalmente no el del sistema).
-  const largest = drives.data?.reduce((a, b) => (Number(b.free) > Number(a.free) ? b : a), drives.data[0]);
-  const chosen = path || (largest ? `${largest.name}Otteretro` : "");
+  // La sugerida la decide el servidor: ~/Otteretro en Linux, el disco con más espacio libre en Windows.
+  const chosen = path || drives.data?.find((d) => d.suggested)?.folder || "";
 
   const save = useMutation({
     mutationFn: (body: FolderRequest) => request<AppState>("/api/data-folder", { method: "POST", body: JSON.stringify(body) }),
@@ -91,7 +90,7 @@ function FolderStep({ onBack }: { onBack: () => void }) {
       <p className="muted">{t("chooseText")}</p>
       <div className="panel" style={{ gap: 0, padding: "0 16px" }}>
         {drives.data?.map((d) => {
-          const option = `${d.name}Otteretro`;
+          const option = d.folder;
           return (
             <label key={d.name} className="drive-option">
               <span>

@@ -2,6 +2,13 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
+## Carpeta de datos correcta dentro de la sesión Play · en revisión
+
+`fix/39-carpetas-linux` · PR —
+
+### Arreglos
+- **El asistente ya no propone carpetas que se borran**: abierto desde Steam en PlayOS, ofrecía `/Otteretro` y `/homeOtteretro`, que caían en una memoria temporal y se perdían al cerrar Steam. Ahora sugiere tu carpeta personal (`~/Otteretro`) y no ofrece discos en memoria. En Windows sigue sugiriendo el disco con más espacio libre.
+
 ## Otteretro público · en desarrollo
 
 `chore/30-publico` · PR — (apilado sobre `fase/p0-playos`)
