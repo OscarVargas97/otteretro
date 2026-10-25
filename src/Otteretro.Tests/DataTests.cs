@@ -47,12 +47,14 @@ public class DataTests
                 INSERT INTO ajuste VALUES ('tema', 'oscuro', '');
                 """);
 
-        Assert.Equal(1, Migrations.Apply(db));
+        // Se aplican todas menos la 0001, que ya estaba.
+        var total = typeof(Migrations).Assembly.GetManifestResourceNames().Count(r => r.EndsWith(".sql", StringComparison.Ordinal));
+        Assert.Equal(total - 1, Migrations.Apply(db));
 
         using var after = db.Open();
         Assert.Equal("PC", after.ExecuteScalar<string>("SELECT name FROM machine WHERE id = 'pc-viejo'"));
         Assert.Equal("oscuro", after.ExecuteScalar<string>("SELECT value FROM setting WHERE name = 'tema' AND machine_id = ''"));
-        Assert.Equal(2, after.ExecuteScalar<int>("SELECT count(*) FROM migration"));
+        Assert.Equal(total, after.ExecuteScalar<int>("SELECT count(*) FROM migration"));
         Assert.Equal(0, after.ExecuteScalar<int>("SELECT count(*) FROM sqlite_master WHERE name IN ('migracion', 'equipo', 'ajuste')"));
     }
 

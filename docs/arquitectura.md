@@ -80,7 +80,7 @@ Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
 | **Steam** | Genera manifiestos "Manual" para Steam ROM Manager con `otteretro jugar <id>`, categorías por saga ("Emulación" sin saga), nombre "Juego (Consola)", arte de SteamGridDB, diferencias con la última exportación, por equipo. | Herramientas, Jugar |
 | **Respaldo** | Repositorio privado `otteretro-datos`: BD como JSON por tabla, configuración de emuladores, partidas, BIOS/keys. Git LFS (> 50 MB, presupuesto 0). Conflictos: gana lo más reciente y lo otro se guarda aparte. | Tareas, Credenciales |
 | **Claude** | Ejecuta `claude -p` con prompts del repo; la respuesta es **JSON validado** (solo datos, nunca código); herramientas permitidas limitadas a búsqueda web y lectura. Lotes de varias sagas por llamada. Detecta el límite de la suscripción → pausa la tarea con hora de reanudación. Guarda aprendizajes reversibles y el registro de uso. | Tareas |
-| **Credenciales** | Guarda claves y tokens cifrados con DPAPI (Windows) o libsecret (Linux). | — |
+| **Credenciales** | Guarda claves y tokens de cada equipo cifrados con DPAPI (Windows) o con una llave maestra en el llavero vía libsecret (Linux, gnome-keyring). | — |
 | **Evolución** | Cuando una tarea de Claude se repite, propone crear un issue "automatizar" con `gh`. | Claude |
 
 ## 4. Modelo de datos (SQLite)
@@ -91,7 +91,7 @@ Tablas principales. `id` entero salvo donde se indica. Tablas, columnas y valore
 |---|---|---|
 | Equipo y ajustes | `machine` | id (GUID), name, os |
 | | `setting` | name, value, machine_id (vacío = para todos los equipos) |
-| | `credential` | service, encrypted_value, machine_id, expires_at |
+| | `credential` | machine_id, id (servicio.campo), value (cifrado), updated_at |
 | Bibliotecas | `library` | id (GUID del marcador), name, kind (games/tools), location (local/network, #136), last_path, connected, layout |
 | Catálogo | `console` | id, name, company, emulation_status |
 | | `saga` | id, name, igdb_id, favorite, following, iconic, chosen_route |

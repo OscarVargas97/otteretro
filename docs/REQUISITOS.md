@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-24, con las #145 y #146 (Otteretro público y encuestas en su issue).
+> **Última actualización:** 2026-10-25, con las #147 y #148 (llavero en Linux y estado de las claves).
 
 ## Cómo se mantiene
 
@@ -127,7 +127,7 @@ E:\Consolas\  ·  D:\Juegos\…    ← bibliotecas de JUEGOS (las que quieras, e
 - Carpetas sobrantes: `E:\Roms`, `E:\Emuladores` y `D:\Roms` están aprobadas para borrar, pero lo tienes que hacer tú, porque Claude Code bloquea los borrados en la raíz de un disco.
 
 ### 5.6 Credenciales ✅
-- Las claves de Steam Web API, IGDB, MyJDownloader, ScreenScraper, SteamGridDB, RetroAchievements y las tiendas se guardan en `data\`, **cifradas con el almacén seguro del sistema operativo**: DPAPI en Windows, libsecret en Linux.
+- Las claves de Steam Web API, IGDB, MyJDownloader, ScreenScraper, SteamGridDB, RetroAchievements y las tiendas se guardan en `data\`, **cifradas con el almacén seguro del sistema operativo**: DPAPI en Windows, libsecret en Linux (con gnome-keyring, #147). Las claves son de cada equipo: lo que cifra un PC no lo abre otro.
 - **Un solo token de GitHub** sirve para descargar las actualizaciones (releases del repositorio privado) y para escribir en `otteretro-datos` (#68).
 - **Bitwarden** es tu **respaldo manual**: la app no lo lee. En un PC nuevo, las claves se vuelven a escribir desde ahí.
 

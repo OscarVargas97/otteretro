@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { CredentialsSettings } from "@/components/Credentials";
 import { DataFolderSettings } from "@/components/DataFolder";
 import { LanguagePicker } from "@/components/LanguagePicker";
 import { useAppState } from "@/components/Shell";
@@ -14,6 +15,10 @@ export default function Settings() {
       <section className="sec">
         <div className="sec-h"><h2>{t("dataFolder")}</h2></div>
         <DataFolderSettings />
+      </section>
+      <section className="sec">
+        <div className="sec-h"><h2>{t("credentials")}</h2></div>
+        <CredentialsSettings />
       </section>
       <section className="sec">
         <div className="sec-h"><h2>{t("language")}</h2></div>

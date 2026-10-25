@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Otteretro.App;
+using Otteretro.Data;
 
 namespace Otteretro.Api;
 
 public record AppState(string Version, string? DataFolder, bool Configured, string Language);
 public record FolderRequest(string Path);
 public record LanguageRequest(string Language);
+public record CredentialRequest(string Value);
 
 /// <summary>
 /// Error o aviso para la persona, como código y parámetros: el front lo traduce con su catálogo (#142).
@@ -80,8 +82,45 @@ public static class Endpoints
         api.MapPost("/update/restart", Results<Ok, Conflict<ApiError>> (Updater u) =>
             u.RestartNow() ? TypedResults.Ok() : TypedResults.Conflict(ApiError.Of("update.nothingDownloaded")));
 
+        // Ajustes › Cuentas y claves (§5.6): nunca se devuelve un valor, solo si está guardado.
+        api.MapGet("/credentials", Results<Ok<List<CredentialStatus>>, Conflict<ApiError>> (AppSession s, SecretBox box) =>
+            CredentialsOf(s, box) is { } c ? TypedResults.Ok(c.List()) : TypedResults.Conflict(ApiError.Of("move.noDataFolder")));
+
+        api.MapPut("/credentials/{id}", Results<Ok<List<CredentialStatus>>, BadRequest<ApiError>, Conflict<ApiError>, NotFound> (string id, CredentialRequest request, AppSession s, SecretBox box) =>
+        {
+            if (!Credentials.IsKnown(id)) return TypedResults.NotFound();
+            if (string.IsNullOrWhiteSpace(request.Value)) return TypedResults.BadRequest(ApiError.Of("credentials.empty"));
+            if (CredentialsOf(s, box) is not { } c) return TypedResults.Conflict(ApiError.Of("move.noDataFolder"));
+            try { c.Save(id, request.Value.Trim()); }
+            catch (KeyringUnavailableException e)
+            {
+                FileLog.Write(LogLevel.Warning, "Credentials", $"Sin llavero: {e.Message}");
+                return TypedResults.Conflict(ApiError.Of("credentials.noKeyring"));
+            }
+            return TypedResults.Ok(c.List());
+        });
+
+        api.MapDelete("/credentials/{id}", Results<Ok<List<CredentialStatus>>, Conflict<ApiError>, NotFound> (string id, AppSession s, SecretBox box) =>
+        {
+            if (!Credentials.IsKnown(id)) return TypedResults.NotFound();
+            if (CredentialsOf(s, box) is not { } c) return TypedResults.Conflict(ApiError.Of("move.noDataFolder"));
+            c.Delete(id);
+            return TypedResults.Ok(c.List());
+        });
+
+        // Abre en el navegador del sistema dónde se consigue la clave; solo URLs del catálogo.
+        api.MapPost("/credentials/{id}/open", Results<Ok, NotFound> (string id) =>
+        {
+            if (Credentials.Kinds.FirstOrDefault(k => k.Id == id) is not { } kind) return TypedResults.NotFound();
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(kind.Url) { UseShellExecute = true })?.Dispose();
+            return TypedResults.Ok();
+        });
+
         api.MapGet("/events", (HttpContext http, Events events) => events.Serve(http)).ExcludeFromDescription();
     }
+
+    static Credentials? CredentialsOf(AppSession s, SecretBox box) =>
+        DataFolder.IsReady(s.Config.DataFolder) ? new(new Database(DataFolder.DatabasePath(s.Config.DataFolder!)), s.Config.MachineId, box) : null;
 
     static AppState State(AppSession s) =>
         new(Startup.Version, s.Config.DataFolder, DataFolder.IsReady(s.Config.DataFolder), s.Config.EffectiveLanguage);

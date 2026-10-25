@@ -240,6 +240,11 @@
     "hash": "sha256-D5rPWWjNHNrHyOgqXU8qolTYzOKczZEr+BKYUO5ET8k="
   },
   {
+    "pname": "System.Security.Cryptography.ProtectedData",
+    "version": "10.0.13",
+    "hash": "sha256-sLRKzotd7MEpuW3MYoHH6iOJdd0YST9SXw3SoE2pjW0="
+  },
+  {
     "pname": "Velopack",
     "version": "1.2.161",
     "hash": "sha256-1XJ1aSspl1GhLuPhgoO19/4+VTOflrFiM0XaCV3EhO0="

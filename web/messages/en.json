@@ -100,7 +100,8 @@
     "dataFolder": "Data folder",
     "about": "About",
     "language": "Language",
-    "later": "Libraries, accounts and keys, backup and the rest of the settings come with their phase."
+    "later": "Libraries, backup and the rest of the settings arrive with their phase.",
+    "credentials": "Accounts and keys"
   },
   "dataFolder": {
     "usage": "Uses {used} · {free} free on that drive",
@@ -189,6 +190,40 @@
     },
     "language": {
       "unsupported": "That language is not available: {language}."
+    },
+    "credentials": {
+      "empty": "Paste a value before saving.",
+      "noKeyring": "There is no system keyring to store the key. On Linux, Otteretro needs gnome-keyring unlocked."
+    }
+  },
+  "credentials": {
+    "saved": "Saved",
+    "missing": "Missing",
+    "savedOn": "Saved on {date}",
+    "paste": "Paste",
+    "change": "Change",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "getIt": "Get it ↗",
+    "bitwarden": "They are stored encrypted on this computer only. Bitwarden is your backup: on another PC, paste them again from there.",
+    "service": {
+      "github": "GitHub (updates and backup)",
+      "steam": "Steam Web API",
+      "igdb": "IGDB (Twitch)",
+      "screenscraper": "ScreenScraper",
+      "steamgriddb": "SteamGridDB",
+      "retroachievements": "RetroAchievements",
+      "myjdownloader": "MyJDownloader"
+    },
+    "field": {
+      "token": "Token",
+      "apiKey": "API key",
+      "clientId": "Client ID",
+      "clientSecret": "Client secret",
+      "user": "Username",
+      "password": "Password",
+      "email": "Email"
     }
   }
 }

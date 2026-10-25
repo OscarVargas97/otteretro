@@ -100,7 +100,8 @@
     "dataFolder": "Carpeta de datos",
     "about": "Acerca de",
     "language": "Idioma",
-    "later": "Bibliotecas, cuentas y claves, respaldo y el resto de ajustes llegan con su fase."
+    "later": "Bibliotecas, respaldo y el resto de ajustes llegan con su fase.",
+    "credentials": "Cuentas y claves"
   },
   "dataFolder": {
     "usage": "Ocupa {used} · {free} libres en ese disco",
@@ -189,6 +190,40 @@
     },
     "language": {
       "unsupported": "Ese idioma no está disponible: {language}."
+    },
+    "credentials": {
+      "empty": "Pega un valor antes de guardar.",
+      "noKeyring": "No hay llavero del sistema para guardar la clave. En Linux, Otteretro necesita gnome-keyring abierto."
+    }
+  },
+  "credentials": {
+    "saved": "Guardada",
+    "missing": "Falta",
+    "savedOn": "Guardada el {date}",
+    "paste": "Pegar",
+    "change": "Cambiar",
+    "delete": "Borrar",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "getIt": "Conseguirla ↗",
+    "bitwarden": "Se guardan cifradas solo en este equipo. Tu respaldo es Bitwarden: en otro PC, pégalas de nuevo desde ahí.",
+    "service": {
+      "github": "GitHub (actualizaciones y respaldo)",
+      "steam": "Steam Web API",
+      "igdb": "IGDB (Twitch)",
+      "screenscraper": "ScreenScraper",
+      "steamgriddb": "SteamGridDB",
+      "retroachievements": "RetroAchievements",
+      "myjdownloader": "MyJDownloader"
+    },
+    "field": {
+      "token": "Token",
+      "apiKey": "Clave de API",
+      "clientId": "Client ID",
+      "clientSecret": "Client secret",
+      "user": "Usuario",
+      "password": "Contraseña",
+      "email": "Correo"
     }
   }
 }

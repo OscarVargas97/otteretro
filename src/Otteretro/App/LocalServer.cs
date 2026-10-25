@@ -34,6 +34,7 @@ public static class LocalServer
         builder.Services.AddSingleton<Events>();
         builder.Services.AddSingleton<Updater>();
         builder.Services.AddSingleton<FolderMoveService>();
+        builder.Services.AddSingleton(new SecretBox());
 
         // Solo en desarrollo: la interfaz corre en `next dev` en otro origen.
         var devOrigin = Environment.GetEnvironmentVariable("OTTERETRO_DEV_WEB");

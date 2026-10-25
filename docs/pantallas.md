@@ -216,7 +216,7 @@ Secciones, en este **orden fijo** (D2):
 |---|---|
 | **Bibliotecas** (D8) | Lista con nombre, ruta, disco, espacio libre, estado (conectada o desconectada). Acciones: crear, adoptar, renombrar, quitar (sin borrar), **reconectar** y **mover o migrar** con progreso (§5.3) |
 | **Carpeta de datos** | Ruta actual y espacio. Mover la carpeta de datos (S7) |
-| **Cuentas y claves** | Cada servicio con estado (válida, vencida, falta), pegar o cambiar, enlace para conseguirla. Recordatorio de que el respaldo manual va en Bitwarden (§5.6) |
+| **Cuentas y claves** | Cada servicio con estado (guardada o falta; válida y vencida llegan con su integración, #148), pegar o cambiar, enlace para conseguirla. Recordatorio de que el respaldo manual va en Bitwarden (§5.6) |
 | **Respaldo** | Repositorio, último respaldo de cada tipo, uso de LFS sobre 10 GiB (#70), conflictos guardados aparte (#77). Acciones: respaldar ahora, restaurar |
 | **Cómo jugar** | Orden de la regla automática y sus valores editables (§8.3) |
 | **Ingesta** | Orden de regiones 1G1R (español primero, S2), formatos preferidos por consola (§9.5) |

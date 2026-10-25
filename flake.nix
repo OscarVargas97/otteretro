@@ -49,6 +49,8 @@
         makeWrapperArgs = [
           "--set-default" "GDK_BACKEND" "x11"
           "--set-default" "WEBKIT_DISABLE_DMABUF_RENDERER" "1"
+          # secret-tool guarda la llave maestra de las claves en el llavero (#9); xdg-open abre los enlaces.
+          "--prefix" "PATH" ":" (lib.makeBinPath [ pkgs.libsecret pkgs.xdg-utils ])
         ];
         nativeBuildInputs = [ pkgs.copyDesktopItems ];
         desktopItems = [

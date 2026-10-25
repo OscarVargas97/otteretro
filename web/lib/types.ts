@@ -10,3 +10,5 @@ export type MoveState = Schemas["MoveState"];
 export type FolderInfo = Schemas["FolderInfo"];
 export type ApiError = Schemas["ApiError"];
 export type LanguageRequest = Schemas["LanguageRequest"];
+export type CredentialStatus = Schemas["CredentialStatus"];
+export type CredentialRequest = Schemas["CredentialRequest"];

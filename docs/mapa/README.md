@@ -30,6 +30,7 @@ Para sumar un idioma: su `.json` en `web/messages/`, una línea en `messages/ind
 | Todas (`layout.tsx` → `components/Shell.tsx`) | Barra lateral, barra superior con panel de tareas, aviso de actualización; lleva al asistente si falta la carpeta de datos | `GET /api/state`, `GET /api/events` (SSE), `GET /api/update`, `GET /api/data-folder/move` | `Api/Endpoints.cs`, `Api/Events.cs` | `config.json` |
 | `welcome/` | Asistente pasos 1 y 2: idioma y carpeta de datos (pasos 3 a 7 deshabilitados) | `GET /api/drives`, `POST /api/data-folder`, `PUT /api/language` | `App/DataFolder.cs`, `App/AppConfig.cs` | `config.json`; crea `data/`, `cache/imagenes/`, `Herramientas/`, `logs/` |
 | `settings/` · carpeta de datos (`components/DataFolder.tsx`) | Ver la carpeta, usar otra o mudarla con progreso | `GET /api/data-folder`, `GET /api/drives`, `POST /api/data-folder`, `POST /api/data-folder/move`, evento `move` | `App/FolderMove.cs` (copiar, verificar, cambiar `config.json`, borrar el origen) | carpeta de datos completa, `config.json` |
+| `settings/` · cuentas y claves (`components/Credentials.tsx`) | Cada servicio de §5.6 con «guardada» o «falta», pegar, cambiar o borrar, y abrir dónde se consigue. Nunca se muestra el valor | `GET /api/credentials`, `PUT` · `DELETE /api/credentials/{id}`, `POST /api/credentials/{id}/open` | `App/Credentials.cs` (catálogo de servicios; DPAPI en Windows, AES-GCM con llave maestra en el llavero vía `secret-tool` en Linux) | `credential`; en Linux, la llave maestra en gnome-keyring |
 | `settings/` · idioma (`components/LanguagePicker.tsx`) | Elegir el idioma; la interfaz cambia sin reiniciar | `PUT /api/language` | `App/AppConfig.cs` | `language` de `config.json` |
 | `settings/` · versión (`components/Update.tsx`) | Versión, buscar actualización y reiniciar para aplicarla | `GET /api/update`, `POST /api/update/check`, `POST /api/update/restart`, evento `update` | `App/Updater.cs` (Velopack) | `origenActualizaciones` de `config.json` |
 | `page.tsx` (Inicio), `sagas/`, `saga/?id=`, `collection/`, `game/?id=`, `discover/`, `review/`, `downloads/`, `tools/`, `steam/` | Estado vacío con la nutria y la fase que la llena (`ComingSoon`) | — | — | — |
@@ -45,6 +46,8 @@ Todo bajo `/api`, solo en `127.0.0.1` y con la clave de la sesión (cabecera `X-
 | `GET /api/data-folder` · `POST /api/data-folder` | Ver la carpeta o usar otra (sin mover nada) |
 | `GET /api/data-folder/move` · `POST /api/data-folder/move` | Estado de la mudanza o empezarla (una a la vez) |
 | `GET /api/drives` | Unidades con espacio libre |
+| `GET /api/credentials` · `PUT` · `DELETE /api/credentials/{id}` | Estado de cada clave de este equipo, guardarla o borrarla (`credentials.noKeyring` si en Linux no hay llavero) |
+| `POST /api/credentials/{id}/open` | Abrir en el navegador dónde se consigue esa clave |
 | `GET /api/update` · `POST …/check` · `POST …/restart` | Actualización de la app |
 | `GET /api/events` | SSE: `heartbeat` cada 15 s, `move`, `update` |
 
@@ -54,5 +57,6 @@ Todo bajo `/api`, solo en `127.0.0.1` y con la clave de la sesión (cabecera `X-
 |---|---|---|
 | `%LocalAppData%\Otteretro\config.json` | Carpeta de datos, origen de actualizaciones, id del equipo e idioma (`language`; sin él, el del sistema). Escritura atómica. Las claves de F0 siguen en español (`carpetaDatos`, `origenActualizaciones`, `equipoId`) para leer los de antes | `App/AppConfig.cs` |
 | `data/otteretro.db` · `machine` | Equipos donde se usa la app | `Data/Migrations.cs` al arrancar |
+| `data/otteretro.db` · `credential` | Claves cifradas de cada equipo (`id` = servicio.campo) | `App/Credentials.cs` |
 | `data/otteretro.db` · `setting` | Ajustes globales o por equipo (todavía sin uso) | — |
 | `data/otteretro.db` · `migration` | Migraciones aplicadas | `Data/Migrations.cs` |

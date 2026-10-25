@@ -34,7 +34,7 @@ test.afterEach(() => {
 /** Ninguna clave sin traducir a la vista (next-intl muestra la ruta de la clave, por ejemplo "nav.home"). */
 async function expectNoRawKeys() {
   const text = await page.locator("body").innerText();
-  expect(text).not.toMatch(/\b(nav|topBar|comingSoon|welcome|settings|dataFolder|update|errors|move)\.[a-zA-Z]+/);
+  expect(text).not.toMatch(/\b(nav|topBar|comingSoon|welcome|settings|dataFolder|update|errors|move|credentials)\.[a-zA-Z]+/);
 }
 
 /** El buscador mide 320 px y su texto de ejemplo cabe entero (#20): se acorta, no se corta. */
@@ -165,4 +165,21 @@ test("volver a español en Ajustes cambia todo y se mantiene al recargar", async
   await expectSearchFits();
   await expectTextFits();
   await page.screenshot({ path: "e2e-results/5-settings-es.png", fullPage: true });
+});
+
+test("Cuentas y claves: pegar una clave la deja guardada sin mostrarla, y borrarla la deja en falta", async () => {
+  const row = page.locator(".cred-row").filter({ hasText: es.credentials.field.apiKey }).first();
+  await expect(row.getByText(es.credentials.missing, { exact: true })).toBeVisible();
+  await row.getByRole("button", { name: `${es.credentials.paste}: ${es.credentials.field.apiKey}` }).click();
+  await row.getByLabel(es.credentials.field.apiKey).fill("clave-e2e-123");
+  await row.getByRole("button", { name: es.credentials.save }).click();
+  await expect(row.getByText(es.credentials.saved, { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(row.getByText(es.credentials.saved, { exact: true })).toBeVisible();
+  expect(await page.locator("body").innerText()).not.toContain("clave-e2e-123");
+  await expectNoRawKeys();
+  await expectTextFits();
+  await page.screenshot({ path: "e2e-results/6-credentials-es.png", fullPage: true });
+  await row.getByRole("button", { name: `${es.credentials.delete}: ${es.credentials.field.apiKey}` }).click();
+  await expect(row.getByText(es.credentials.missing, { exact: true })).toBeVisible();
 });

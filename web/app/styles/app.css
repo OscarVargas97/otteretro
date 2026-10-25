@@ -50,3 +50,8 @@ input, select, textarea { font: inherit; background: var(--bg); color: var(--ink
 .form-block { display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--line); }
 
 .language-picker { display: flex; flex-direction: column; gap: var(--space-1); max-width: 240px; }
+
+/* Ajustes › Cuentas y claves */
+.cred-service { display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-3); border-bottom: 1px solid var(--line); }
+.cred-name { margin: 0; font-size: 15px; }
+.cred-row { display: flex; flex-direction: column; gap: var(--space-2); padding-left: var(--space-3); }
