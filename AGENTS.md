@@ -61,6 +61,6 @@ Desde un **espacio** de [ia-workspace](https://github.com/OscarVargas97/ia-works
 - **Fuentes**: van en `web/app/fonts` (`next/font/local`); `next/font/google` no compila sin red.
 - La ventana se abre por XWayland (`GDK_BACKEND=x11` en el wrapper): en Wayland con NVIDIA, WebKitGTK no dibuja (#8).
 
-Desde Windows no hay Nix: se prueba por ssh en el portátil de juego, copiando el repo a una carpeta temporal. Para claves en Linux sin tocar el sistema: `nix shell nixpkgs#gnome-keyring nixpkgs#libsecret -c dbus-run-session -- …` con `HOME` y `XDG_RUNTIME_DIR` en `/tmp` y `gnome-keyring-daemon --unlock --components=secrets`.
+Desde Windows no hay Nix: se prueba por ssh en el portátil de juego. Para los hashes (`npmDepsHash`, `deps.json`) se usa un `git clone` de la rama, no una copia desde Windows: los saltos CRLF de Windows cambian el hash. Para claves en Linux sin tocar el sistema: `nix shell nixpkgs#gnome-keyring nixpkgs#libsecret -c dbus-run-session -- …` con `HOME` y `XDG_RUNTIME_DIR` en `/tmp` y `gnome-keyring-daemon --unlock --components=secrets`.
 
 Cómo se arma todo en Linux (rutas, ventana, claves, paquete): `docs/arquitectura.md` «Linux y Nix». El contrato con PlayOS está en el repo de docs, `integraciones/otteretro--playos.md`.

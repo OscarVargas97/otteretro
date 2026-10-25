@@ -21,7 +21,7 @@
           ]));
         };
         # Al cambiar web/package-lock.json: ver «Paquete de Nix» en AGENTS.md.
-        npmDepsHash = "sha256-mDMzVM1fQHZLdrFlHEYZvxezHhTo2pB8FYxEf/3PkcU=";
+        npmDepsHash = "sha256-cJKiGoKROKms5O9b4IotqjKq+yCzu6fYj/ZVmD/qfzM=";
         env.NEXT_TELEMETRY_DISABLED = "1";
         installPhase = "cp -r out $out";
       };
