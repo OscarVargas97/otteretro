@@ -2,6 +2,18 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
+## Diseño del centro de entretenimiento con mando · en revisión
+
+`fase/d1-diseno` · PR #42
+
+### Nuevo
+- **Diseño para usar Otteretro con mando desde el sofá**: foco grande, barra con los botones, menú rápido del botón Guía y teclado en pantalla, con un recorrido de ejemplo en el prototipo.
+- **Inicio con «Continuar jugando»**: lo último que jugaste, de consola o de PC, antes del siguiente juego de cada ruta. Con sus estados vacío, cargando y error.
+- **Juegos de PC en Sagas, Colección y la ficha**, con quién lanza cada juego (Steam, Heroic, Lutris…), «jugar en el PC» y «traer a este equipo».
+- **Seguimiento en la ficha**: estado con fechas, nota, notas, tiempo jugado, sesiones y logros.
+
+Por ahora es diseño: se programa a partir de F1.
+
 ## Carpeta de datos correcta dentro de la sesión Play · en revisión
 
 `fix/39-carpetas-linux` · PR #40

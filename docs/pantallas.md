@@ -1,6 +1,6 @@
 # Especificación de pantallas
 
-- **Fecha:** 2026-10-14
+- **Fecha:** 2026-10-14 · actualizada el 2026-10-25 con la fase D1 (#32): mando, Inicio con consola y PC, juegos de PC y seguimiento
 - **Para qué sirve:** es la base para diseñar en **Claude Design**. Cada pantalla indica qué muestra, qué acciones tiene y qué estados contempla. No define colores ni disposición exacta: eso sale del sistema de diseño.
 - **Diseño:** sistema de diseño https://claude.ai/artifact/DMH4KuU2kkAnb3ApFTCiuu · prototipo navegable de todas las pantallas https://claude.ai/artifact/Bo8gtfiPdRAumFhkFikHPV
 - **De dónde sale:** de [REQUISITOS.md](REQUISITOS.md), sobre todo §12. Cada punto lleva entre paréntesis la sección o decisión que lo respalda.
@@ -29,6 +29,7 @@
 - **Barra lateral:** Inicio, Sagas, Colección y Descubrir arriba. Descargas, Herramientas, Steam y Ajustes abajo. Cada entrada puede mostrar un **contador**: pendientes de revisar, descargas activas, versiones nuevas o exportación pendiente.
 - **Acento de color:** toma el color dominante de la portada de la saga o del juego que estás viendo. Fuera de una saga o un juego, se usa el acento base (§12.2).
 - **Tema:** oscuro, con portadas grandes y densidad mixta (§12.2).
+- **Mando:** la misma ventana se usa con mando (§0.7).
 
 ### 0.2 Panel de tareas (§12.3)
 - Un botón en la barra superior con un **indicador de actividad**. Al pulsarlo se abre un panel lateral.
@@ -57,7 +58,14 @@
 | Sin conexión | Lo local funciona; lo que necesita internet se marca como no disponible |
 
 ### 0.6 Búsqueda (D1)
-- **Búsqueda global** en la barra superior (atajo `Ctrl+K`) que encuentra sagas, juegos, emuladores y ajustes.
+- **Búsqueda global** en la barra superior (atajo `Ctrl+K`) que encuentra sagas, juegos, emuladores y ajustes. Con mando se abre con X y se escribe con el teclado en pantalla (§0.7).
+
+### 0.7 Mando (§12.5, #134)
+- **La misma interfaz**, con navegación espacial: la cruceta salta entre elementos. Con mando el foco crece (anillo de 3px, la tarjeta sube) y abajo aparece la **barra de botones** con lo que hace cada uno en esa pantalla; con ratón, ninguno de los dos.
+- Botones por función: **A elegir, B volver, X buscar, Menú**, con la forma del mando conectado (Xbox, PlayStation o Switch).
+- **Botón Guía:** menú rápido encima de todo, también de un juego: volver a Otteretro, ir a Steam, capturar pantalla y cerrar el juego (pide A otra vez). Sin juego abierto, solo ir a Steam. En la sesión de Steam se abre con una combinación (playos#6).
+- **Escribir:** el teclado de Steam dentro de su sesión; fuera, el propio de Otteretro (B cerrar, X borrar, Y espacio, Menú listo).
+- Todo lo que se elige mide al menos 44px. Recorrido de ejemplo en el prototipo: «Recorrido con mando».
 
 ---
 
@@ -83,13 +91,16 @@ Aparece solo la primera vez, o si la carpeta de datos no está donde se esperaba
 
 Secciones, en este **orden fijo** (D2):
 
-1. **Continuar:** el **siguiente juego** de cada ruta que sigues (§6.5), en tarjetas grandes con botón Jugar, o "Conseguirlo" si no lo tienes.
-2. **Revisar:** contadores de identificaciones dudosas, sin identificar y aprendizajes de Claude recientes. Cada uno lleva a la pantalla Revisar (§2.1).
-3. **Novedades:** ports nuevos, cambios de compatibilidad, versiones nuevas de emuladores, ports y complementos, y **bajadas de precio** (#57, #75, D6).
+1. **Continuar jugando** (#138): lo último que jugaste, de consola o de PC, con cómo se juega, cuándo y las horas. Es lo primero que recibe el foco con mando.
+2. **Siguiente en tus rutas:** el **siguiente juego** de cada ruta que sigues (§6.5), en tarjetas grandes con botón Jugar, o "Conseguirlo" si no lo tienes.
+3. **Revisar:** contadores de identificaciones dudosas, sin identificar y aprendizajes de Claude recientes. Cada uno lleva a la pantalla Revisar (§2.1).
+4. **Novedades:** ports nuevos, cambios de compatibilidad, versiones nuevas de emuladores, ports y complementos, y **bajadas de precio** (#57, #75, D6).
    - **De qué juegos:** los de las **sagas que sigues que no tienes**, más los que marcas **"seguir precio"**.
    - **Cuándo cuenta como bajada:** llega a su **mínimo histórico**, queda **gratis** o tiene un **descuento del 40 % o más** (D6b).
-4. **En curso:** descargas y tareas activas (resumen del panel de tareas).
-5. **Avisos de configuración:** pasos del asistente que se saltaron, credenciales vencidas, biblioteca desconectada, BIOS o keys que faltan (§8.5), LFS bloqueado (#70).
+5. **Tareas en curso:** descargas y tareas activas (resumen del panel de tareas).
+6. **Avisos de configuración:** pasos del asistente que se saltaron, credenciales vencidas, biblioteca desconectada, BIOS o keys que faltan (§8.5), LFS bloqueado (#70).
+
+Estados (§0.5): **vacío** (la nutria, «Escanear una carpeta» y «Explorar sagas»), **cargando** (esqueletos de las tarjetas), **error** (qué carpeta no responde, que tus datos no se tocaron, Reintentar y Abrir Ajustes) y **con datos**.
 
 ### 2.1 Revisar (D3)
 **Pantalla propia.** Se llega desde Inicio y desde un **contador en la barra lateral**. Es la cola de lo que la app decidió con dudas (P6, §9.4):
@@ -107,7 +118,8 @@ Secciones, en este **orden fijo** (D2):
 
 ### 3.1 Lista de sagas
 - **Cuadrícula** de tarjetas de saga (§0.4).
-- **Filtros:** favoritas, que sigo, icónicas, por consola, por empresa, con o sin juegos que tengo.
+- **Filtros:** favoritas, que sigo, icónicas, por consola, por empresa, con o sin juegos que tengo, **con juegos de PC** (§6.6).
+- Cada tarjeta muestra sus **plataformas**, con PC como una más.
 - **Orden:** nombre, más icónicas, más jugadas (horas de Steam), última actividad.
 - Entrada fija **"Emulación"** para los juegos sin saga (§6.2).
 
@@ -134,6 +146,7 @@ Secciones, en este **orden fijo** (D2):
 
 ## 4. Colección (§12.4)
 - **Agrupada por consola**: un selector de consola (las 23 más PC) con el número de juegos de cada una.
+- **PC** (§6.6): cada juego dice **quién lo lanza** (Steam, Heroic · Epic o GOG, Lutris, Battle.net, Xbox, itch.io o carpeta suelta) y las horas; **«En Game Pass»** va aparte de «Lo tengo»; los que no corren en este equipo dicen **«Jugar en el PC»** (#112). El resumen cuenta los juegos por tienda.
 - **Filtros:** lo tengo · me falta · verificado · revisar · versión PC · no disponible · por biblioteca.
 - **Orden:** nombre, saga o año.
 - **Vista** (D4): **cuadrícula** de portadas por defecto, con alternativa de **lista compacta**.
@@ -146,17 +159,19 @@ Secciones, en este **orden fijo** (D2):
 ### 5.1 A la vista
 | Bloque | Contenido | Acciones |
 |---|---|---|
-| Cabecera | Portada, nombre, saga (enlace), años y consolas, insignias | Jugar · Favorito · Puntuar **de 1 a 10** (D5) |
-| **Cómo jugarlo** | Opción elegida (versión de PC, port o emulador) y por qué la eligió la regla (§8.3) | **Jugar** · Cambiar opción · Configuración específica del juego |
+| Cabecera | Portada, nombre, saga (enlace), años y consolas, insignias | Jugar (dice con qué lanza si es de PC) · Favorito |
+| **Cómo jugarlo** | Opción elegida (versión de PC, port o emulador) y por qué la eligió la regla (§8.3) | **Jugar** · Cambiar opción · **Quién lo lanza** (acceso de Steam u Otteretro directo, #130) · Configuración específica del juego |
+| **Quién lo lanza** (juegos de PC) | Las tiendas donde lo tienes, instalado o no, con las horas de cada una; y **jugar en el PC** por streaming (#112). Por defecto, la tienda donde más jugaste | Elegir para este juego |
+| **Dónde lo tienes** (juegos de PC) | Tienda, cuenta, instalado, tamaño y logros | — |
 | **Versiones** | Todas las versiones: consola o PC, original, remaster o remake. Comparativa con los **4 criterios por separado**: contenido, jugabilidad hoy, técnico y original (§6.4) | Marcar para Steam (varias) · Corregir la clasificación (§6.3) |
-| **Archivos** | Dónde está cada archivo (biblioteca y ruta), BASE, UPD y DLC, verificado o no, formato y tamaño (§7.2, §7.3) | Abrir carpeta · Verificar · Mover · Instalar en el emulador (§8.6) |
-| **Tu progreso** | Estado en la ruta, puntuación y notas | Cambiar estado · Escribir notas |
+| **Archivos** | Dónde está cada archivo (biblioteca y ruta), BASE, UPD y DLC, verificado o no, formato y tamaño (§7.2, §7.3) | Abrir carpeta · Verificar · Mover · Instalar en el emulador (§8.6) · **Traer a este equipo** si está en una biblioteca en red (#136) |
+| **Seguimiento** (§7.4, #133) | Estado (pendiente, jugando, terminado, 100 %, abandonado) con fecha de inicio y de fin (solo cuando aplica), nota **de 1 a 10** (D5), notas, tiempo jugado, sesiones, logros y última vez | Cambiar estado y fechas · Puntuar · Escribir notas. Jugar lo pasa solo a «jugando» |
 
 ### 5.2 En secciones desplegables
 | Sección | Contenido |
 |---|---|
-| Logros | RetroAchievements: lista y avance (§8.7) |
-| Tiempo jugado | Horas de Steam (§7.4) |
+| Sesiones | Historial: cuándo, cuánto, con qué y quién lo midió (Otteretro, o Steam importado) (§7.4) |
+| Logros | De Steam y de RetroAchievements: lista y avance (§8.7) |
 | Tiendas | Dónde se vende, precio actual, mínimo histórico, gratis ahora o antes, Game Pass, y el interruptor **seguir precio** (D6, T2) |
 | Conseguirlo | Pegar enlaces para JDownloader, elegir biblioteca destino con GB libres (§9.2) o buscarlo en un megapack |
 | Datos y fuentes | Descripción traducida, duración (HowLongToBeat, opcional), notas (IGDB y las citadas por Claude) y de qué fuente sale cada dato. **Corregir a mano** cualquier campo (§6.8) |
