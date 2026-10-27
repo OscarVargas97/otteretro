@@ -7,6 +7,7 @@ import { eventsUrl, request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
 import { UpdateTask, useUpdate } from "./Update";
 import { MoveTask, useMove } from "./DataFolder";
+import { TaskRows, upsertTask, useTasks } from "./Tasks";
 import { Empty, useAppState } from "./Shell";
 
 /** Título de la pantalla, búsqueda global (Ctrl+K) y panel de tareas en segundo plano. */
@@ -20,9 +21,11 @@ export function TopBar({ title }: { title: string }) {
   const goToSteam = useMutation({ mutationFn: () => request("/api/steam/big-picture", { method: "POST" }) });
   const update = useUpdate();
   const move = useMove();
+  const tasks = useTasks();
   const moving = !!move?.running;
-  const hasTasks = (!!update && ["Checking", "Downloading", "Ready", "Error"].includes(update.phase)) || (!!move && (move.running || ["done", "error"].includes(move.step)));
-  const active = Number(update?.phase === "Checking" || update?.phase === "Downloading") + Number(moving);
+  const hasTasks = tasks.length > 0 || (!!update && ["Checking", "Downloading", "Ready", "Error"].includes(update.phase)) || (!!move && (move.running || ["done", "error"].includes(move.step)));
+  const active = Number(update?.phase === "Checking" || update?.phase === "Downloading") + Number(moving)
+    + tasks.filter((t) => t.status === "queued" || t.status === "running").length;
   const busy = active > 0;
 
   useEffect(() => {
@@ -67,6 +70,7 @@ export function TopBar({ title }: { title: string }) {
         <div className="ot-tasks tasks-panel" role="dialog" aria-label={t("tasksPanel")}>
           <UpdateTask />
           <MoveTask />
+          <TaskRows />
           {!hasTasks && <Empty title={t("noTasksTitle")} text={t("noTasksText")} />}
           <p className="small muted tasks-panel-footer">{connected ? t("connected") : t("reconnecting")}</p>
         </div>
@@ -102,6 +106,9 @@ function useEvents() {
     source.onerror = () => setConnected(false);
     source.addEventListener("update", (e) => cache.setQueryData(["update"], JSON.parse(e.data)));
     source.addEventListener("move", (e) => cache.setQueryData(["move"], JSON.parse(e.data)));
+    source.addEventListener("task", (e) => upsertTask(cache, JSON.parse(e.data)));
+    // Al reconectar (por ejemplo, tras reiniciar la app) se vuelve a pedir la lista.
+    source.addEventListener("open", () => cache.invalidateQueries({ queryKey: ["tasks"] }));
     return () => source.close();
   }, [cache]);
   return connected;

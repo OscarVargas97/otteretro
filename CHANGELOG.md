@@ -8,6 +8,10 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ### Nuevo
 - **La base ya tiene lugar para el catálogo**: sagas, juegos, versiones de consola y PC, y el seguimiento de cada juego (estado, fechas, nota y notas). Viene con las 23 consolas y PC cargadas. Todavía no hay juegos: llegan con los importadores de esta fase.
+- **Panel de tareas con trabajo de verdad**: lo que corre en segundo plano se ve avanzar en el panel, una tarea a la vez por tipo. Si cierras la app a mitad de camino, al abrirla sigue desde donde quedó. Las tareas largas avisan con una notificación del sistema al terminar. Para probarlo: `otteretro tareas prueba`.
+
+### Cambios
+- **La carpeta de datos no se muda mientras corre una tarea**: la app pide esperar a que termine.
 
 ## Diseño del centro de entretenimiento con mando · en revisión
 

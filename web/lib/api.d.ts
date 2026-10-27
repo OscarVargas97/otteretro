@@ -617,6 +617,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TaskInfo"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -677,6 +712,17 @@ export interface components {
             destination: null | string;
             error: null | components["schemas"]["ApiError"];
             warning: null | components["schemas"]["ApiError"];
+        };
+        TaskInfo: {
+            /** Format: int64 */
+            id: number | string;
+            kind: string;
+            status: string;
+            /** Format: int32 */
+            progress: number | string;
+            detail: null | components["schemas"]["ApiError"];
+            createdAt: string;
+            finishedAt: null | string;
         };
         /** @enum {unknown} */
         UpdatePhase: "None" | "Unavailable" | "Checking" | "UpToDate" | "Downloading" | "Ready" | "Error";

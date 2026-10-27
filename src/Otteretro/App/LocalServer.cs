@@ -35,6 +35,8 @@ public static class LocalServer
         builder.Services.AddSingleton<Events>();
         builder.Services.AddSingleton<Updater>();
         builder.Services.AddSingleton<FolderMoveService>();
+        builder.Services.AddSingleton<TaskQueue>();
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<TaskQueue>());
         builder.Services.AddSingleton(new SecretBox());
 
         // Solo en desarrollo: la interfaz corre en `next dev` en otro origen.

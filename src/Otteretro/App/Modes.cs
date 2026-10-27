@@ -60,6 +60,7 @@ public static class CliMode
           jugar <id>             Lanza un juego (fase 4).
           version                Muestra la versión.
           openapi <archivo>      Escribe el contrato OpenAPI de la API (para generar los tipos del front).
+          tareas prueba          Encola una tarea de prueba (10 pasos de 3 s) para ver el panel de tareas.
           servidor               Levanta la API y la interfaz sin ventana, para abrirlas en un navegador (desarrollo).
           ayuda                  Muestra esta ayuda.
         """;
@@ -83,6 +84,8 @@ public static class CliMode
                 WriteOpenApi(file).GetAwaiter().GetResult();
                 output.WriteLine($"Contrato escrito en {file}");
                 return 0;
+            case ["tareas", "prueba"]:
+                return EnqueueDemo(output);
             case ["servidor"]:
                 Serve(output);
                 return 0;
@@ -91,6 +94,19 @@ public static class CliMode
                 output.WriteLine(Help);
                 return 1;
         }
+    }
+
+    static int EnqueueDemo(TextWriter output)
+    {
+        var config = AppConfig.Load(AppConfig.DefaultPath);
+        if (!DataFolder.IsReady(config.DataFolder))
+        {
+            output.WriteLine("Todavía no hay carpeta de datos: abre la app y elige una.");
+            return 1;
+        }
+        var id = TaskQueue.Enqueue(Startup.PrepareData(config), "demo");
+        output.WriteLine($"Tarea {id} encolada; la app abierta la toma en unos segundos.");
+        return 0;
     }
 
     static void Serve(TextWriter output)

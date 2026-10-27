@@ -31,9 +31,10 @@ public static class Endpoints
 
         api.MapGet("/state", (AppSession s) => State(s));
 
-        api.MapPost("/data-folder", Results<Ok<AppState>, BadRequest<ApiError>, Conflict<ApiError>> (FolderRequest request, AppSession s, FolderMoveService m) =>
+        api.MapPost("/data-folder", Results<Ok<AppState>, BadRequest<ApiError>, Conflict<ApiError>> (FolderRequest request, AppSession s, FolderMoveService m, TaskQueue q) =>
         {
             if (m.State.Running) return TypedResults.Conflict(ApiError.Of("move.inProgress"));
+            if (q.Busy) return TypedResults.Conflict(ApiError.Of("move.tasksRunning"));
             var error = DataFolder.Prepare(request.Path);
             if (error is not null) return TypedResults.BadRequest(error);
             s.Config.DataFolder = request.Path;
@@ -52,9 +53,10 @@ public static class Endpoints
 
         api.MapGet("/data-folder/move", (FolderMoveService m) => m.State);
 
-        api.MapPost("/data-folder/move", Results<Accepted<MoveState>, BadRequest<ApiError>> (FolderRequest request, FolderMoveService m) =>
+        api.MapPost("/data-folder/move", Results<Accepted<MoveState>, BadRequest<ApiError>> (FolderRequest request, FolderMoveService m, TaskQueue q) =>
         {
-            var error = m.Start(request.Path);
+            // Las tareas escriben en la base: se espera a que terminen antes de mudarla.
+            var error = q.Busy ? ApiError.Of("move.tasksRunning") : m.Start(request.Path);
             return error is null ? TypedResults.Accepted("/api/data-folder/move", m.State) : TypedResults.BadRequest(error);
         });
 
@@ -119,6 +121,9 @@ public static class Endpoints
         // «Ir a Steam» (#12): Steam pasa a Big Picture; Otteretro sigue abierto detrás.
         api.MapPost("/steam/big-picture", Results<Ok, Conflict<ApiError>> () =>
             Open("steam://open/bigpicture") ? TypedResults.Ok() : TypedResults.Conflict(ApiError.Of("steam.notInstalled")));
+
+        // Panel de tareas: lo pendiente y lo reciente; cada cambio llega después por el evento "task".
+        api.MapGet("/tasks", (TaskQueue q) => q.List());
 
         api.MapGet("/events", (HttpContext http, Events events) => events.Serve(http)).ExcludeFromDescription();
     }

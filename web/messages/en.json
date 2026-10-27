@@ -186,7 +186,8 @@
       "failedNothingMoved": "Nothing was moved; your data is still in {path}. {detail}",
       "copyMismatch": "Nothing was moved; your data is still in {path}. The file {detail} was not copied correctly.",
       "failedDataAt": "The move was interrupted and your data ended up in {path}. Use “Use another folder” with that path. {detail}",
-      "sourceNotDeleted": "Your data is already in the new folder, but {path} could not be fully deleted: {detail} You can delete it by hand."
+      "sourceNotDeleted": "Your data is already in the new folder, but {path} could not be fully deleted: {detail} You can delete it by hand.",
+      "tasksRunning": "Wait for the running tasks to finish before moving the data folder."
     },
     "update": {
       "nothingDownloaded": "No update has been downloaded."
@@ -203,6 +204,12 @@
     },
     "steam": {
       "notInstalled": "Could not open Steam. Is it installed on this computer?"
+    },
+    "tasks": {
+      "failed": "Failed: {detail}",
+      "demo": {
+        "step": "Step {step} of {total}"
+      }
     }
   },
   "credentials": {
@@ -235,5 +242,16 @@
       "email": "Email"
     },
     "loading": "Loading accounts…"
+  },
+  "tasks": {
+    "kind": {
+      "demo": "Test task"
+    },
+    "status": {
+      "queued": "Queued",
+      "running": "{progress}%",
+      "done": "Done",
+      "error": "Error"
+    }
   }
 }

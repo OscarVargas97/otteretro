@@ -186,7 +186,8 @@
       "failedNothingMoved": "No se movió nada; tus datos siguen en {path}. {detail}",
       "copyMismatch": "No se movió nada; tus datos siguen en {path}. El archivo {detail} no se copió bien.",
       "failedDataAt": "La mudanza se cortó y tus datos quedaron en {path}. Usa «Usar otra carpeta» con esa ruta. {detail}",
-      "sourceNotDeleted": "Los datos ya están en la carpeta nueva, pero no se pudo borrar del todo {path}: {detail} Puedes borrarla a mano."
+      "sourceNotDeleted": "Los datos ya están en la carpeta nueva, pero no se pudo borrar del todo {path}: {detail} Puedes borrarla a mano.",
+      "tasksRunning": "Espera a que terminen las tareas en curso antes de mover la carpeta de datos."
     },
     "update": {
       "nothingDownloaded": "No hay ninguna actualización descargada."
@@ -203,6 +204,12 @@
     },
     "steam": {
       "notInstalled": "No se pudo abrir Steam. ¿Está instalado en este equipo?"
+    },
+    "tasks": {
+      "failed": "Falló: {detail}",
+      "demo": {
+        "step": "Paso {step} de {total}"
+      }
     }
   },
   "credentials": {
@@ -235,5 +242,16 @@
       "email": "Correo"
     },
     "loading": "Cargando las cuentas…"
+  },
+  "tasks": {
+    "kind": {
+      "demo": "Tarea de prueba"
+    },
+    "status": {
+      "queued": "En cola",
+      "running": "{progress} %",
+      "done": "Terminada",
+      "error": "Error"
+    }
   }
 }

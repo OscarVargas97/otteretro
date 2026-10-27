@@ -114,7 +114,7 @@ Tablas principales. `id` entero salvo donde se indica. Tablas, columnas y valore
 | | `price_watch` | game_id |
 | | `dismissal` | saga_id, until (6 meses, S8) |
 | Steam | `steam_export` | machine_id, version_id, name, category, art, exported_at |
-| Tareas y Claude | `task` | id, kind, status, progress, detail, data (JSON), resume_at, attempts, created_at |
+| Tareas y Claude | `task` | id, kind, status (queued/running/done/error), progress (0–100), detail (código para el front), data (punto de control), resume_at, attempts, created_at, finished_at. Una a la vez por tipo; lo que estaba en `running` al arrancar vuelve a la cola (`App/TaskQueue.cs`) |
 | | `review_item` | id, kind (doubtful/unidentified/pending_approval), entity, data, status |
 | | `learning` | id, kind (alias/rule/recipe/route), content, created_at, undone |
 | | `claude_usage` | id, task, duration, result, created_at |
