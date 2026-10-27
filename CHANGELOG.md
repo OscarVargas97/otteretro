@@ -2,6 +2,13 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
+## Catálogo · en desarrollo
+
+`fase/f1-catalogo` · PR —
+
+### Nuevo
+- **La base ya tiene lugar para el catálogo**: sagas, juegos, versiones de consola y PC, y el seguimiento de cada juego (estado, fechas, nota y notas). Viene con las 23 consolas y PC cargadas. Todavía no hay juegos: llegan con los importadores de esta fase.
+
 ## Diseño del centro de entretenimiento con mando · en revisión
 
 `fase/d1-diseno` · PR #42

@@ -19,6 +19,29 @@ public class DataTests
         Assert.Equal(1, c.ExecuteScalar<int>("SELECT count(*) FROM sqlite_master WHERE name = 'machine'"));
     }
 
+    /// <summary>F1.4: las 24 plataformas quedan cargadas y la saga no lleva plataforma (#131).</summary>
+    [Fact]
+    public void CatalogHasThe24Platforms()
+    {
+        using var tmp = new TempDir();
+        var db = new Database(tmp["otteretro.db"]);
+        Migrations.Apply(db);
+        using var c = db.Open();
+        Assert.Equal(24, c.ExecuteScalar<int>("SELECT count(*) FROM console"));
+        Assert.Equal(23, c.ExecuteScalar<int>("SELECT count(*) FROM console WHERE company IS NOT NULL"));
+        Assert.Equal(0, c.ExecuteScalar<int>("SELECT count(*) FROM pragma_table_info('saga') WHERE name = 'platform'"));
+
+        // Una saga con versiones de PC y de consola, sin duplicar la saga.
+        c.Execute("""
+            INSERT INTO saga (id, name) VALUES (1, 'Half-Life');
+            INSERT INTO game (id, saga_id, name_es) VALUES (1, 1, 'Half-Life');
+            INSERT INTO version (game_id, platform) VALUES (1, 'pc'), (1, 'ps2');
+            INSERT INTO progress (game_id, status, rating) VALUES (1, 'finished', 9);
+            """);
+        Assert.Throws<Microsoft.Data.Sqlite.SqliteException>(() => c.Execute("INSERT INTO version (game_id, platform) VALUES (1, 'dreamcast')"));
+        Assert.Throws<Microsoft.Data.Sqlite.SqliteException>(() => c.Execute("UPDATE progress SET rating = 11 WHERE game_id = 1"));
+    }
+
     [Fact]
     public void RegisteringTheMachineTwiceDoesNotDuplicate()
     {

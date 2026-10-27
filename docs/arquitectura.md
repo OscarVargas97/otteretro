@@ -95,8 +95,8 @@ Tablas principales. `id` entero salvo donde se indica. Tablas, columnas y valore
 | Bibliotecas | `library` | id (GUID del marcador), name, kind (games/tools), location (local/network, #136), last_path, connected, layout |
 | Catálogo | `console` | id, name, company, emulation_status |
 | | `saga` | id, name, igdb_id, favorite, following, iconic, chosen_route |
-| | `game` | id, saga_id (vacío = Emulación), name_es, original_name, year, igdb_id, on_pc |
-| | `version` | id, game_id, platform (consola o PC), kind (original/remaster/remake), year, export_to_steam |
+| | `game` | id, saga_id (vacío = Emulación), name_es, original_name, year, igdb_id (si está en PC sale de sus versiones) |
+| | `version` | id, game_id, platform (`console.id`, también `pc`), kind (original/remaster/remake), year, export_to_steam |
 | | `version_criterion` | version_id, criterion (content/gameplay/technical/original), value, text |
 | | `field_value` | entity, entity_id, field, value, source, manual (lo manual nunca se sobrescribe) |
 | Colección | `source` | id, version_id, kind (file/store), library_id, relative_path, component (BASE/UPD/DLC), title_id, size, sha1, verified, store, store_id, family_shared |

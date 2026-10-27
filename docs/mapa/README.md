@@ -59,5 +59,8 @@ Todo bajo `/api`, solo en `127.0.0.1` y con la clave de la sesión (cabecera `X-
 | `%LocalAppData%\Otteretro\config.json` (en Linux, `~/.config/otteretro/config.json`) | Carpeta de datos, origen de actualizaciones, id del equipo e idioma (`language`; sin él, el del sistema). Escritura atómica. Las claves de F0 siguen en español (`carpetaDatos`, `origenActualizaciones`, `equipoId`) para leer los de antes | `App/AppConfig.cs` |
 | `data/otteretro.db` · `machine` | Equipos donde se usa la app | `Data/Migrations.cs` al arrancar |
 | `data/otteretro.db` · `credential` | Claves cifradas de cada equipo (`id` = servicio.campo) | `App/Credentials.cs` |
+| `data/otteretro.db` · `console` | Las 23 consolas y PC (`id` = nombre corto: `snes`, `pc`…) con su estado de emulación | Semilla en `Data/Migrations/0004_catalog.sql` |
+| `data/otteretro.db` · `saga`, `game`, `version`, `version_criterion`, `field_value` | El catálogo: la saga sin plataforma, la plataforma en la versión (#131); cada dato con su fuente | Todavía nadie (los importadores de F1) |
+| `data/otteretro.db` · `progress`, `play_session`, `price_watch`, `dismissal` | Seguimiento de cada juego (#133), sesiones de juego (F4), precios a vigilar y sagas descartadas | Todavía nadie |
 | `data/otteretro.db` · `setting` | Ajustes globales o por equipo (todavía sin uso) | — |
 | `data/otteretro.db` · `migration` | Migraciones aplicadas | `Data/Migrations.cs` |
