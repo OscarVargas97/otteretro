@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-25, con las #147 y #148 (llavero en Linux y estado de las claves).
+> **Última actualización:** 2026-10-30, con la #151 (HowLongToBeat fuera de F1).
 
 ## Cómo se mantiene
 
@@ -187,7 +187,7 @@ Se comparan todas las versiones con cuatro criterios, que se muestran **por sepa
 | libretro-database · Redump | DAT para verificar por hash sin conexión: No-Intro (cartuchos) y Redump (discos) (#76) |
 | Wikidata | Relación entre juegos y sagas |
 | IGDB · Metacritic / OpenCritic | Notas: la agregada de IGDB; en las sagas icónicas, Claude cita además Metacritic y OpenCritic (#63) |
-| HowLongToBeat | Duración. **Opcional**: no tiene API y el scraper puede fallar; entonces se muestra "sin datos" (#66) |
+| HowLongToBeat | Duración. **Opcional**: no tiene API y el scraper puede fallar; entonces se muestra "sin datos" (#66). Fuera de F1, para una fase posterior (#151) |
 | RAWG | Complemento |
 | SteamGridDB | **Imágenes** de la app y de Steam |
 | Steam Web API | Lo que tienes y horas jugadas |
