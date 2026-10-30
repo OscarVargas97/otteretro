@@ -8,6 +8,7 @@ using Otteretro.Data;
 namespace Otteretro.Tests;
 
 /// <summary>F1.5 con un IGDB falso: la saga Zelda resumida, con lo que el importador tiene que resolver.</summary>
+[Collection("FakeHttp")]
 public class IgdbImportTests
 {
     const string Zelda = """{ "id": 596, "name": "The Legend of Zelda" }""";

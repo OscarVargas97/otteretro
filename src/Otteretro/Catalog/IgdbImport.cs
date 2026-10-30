@@ -111,6 +111,47 @@ public static class IgdbImport
         QueueImages(run.Db);
     }
 
+    record SteamLink(long Game, string Uid);
+
+    /// <summary>
+    /// Lo de Steam que no está en el catálogo: busca en IGDB cada id de Steam, carga esos juegos y enlaza el origen
+    /// con su versión de PC (también cuando un juego tiene varios ids de Steam). De a 200, con punto de control.
+    /// </summary>
+    public static async Task FromSteam(TaskRun run, CancellationToken ct)
+    {
+        var job = JsonSerializer.Deserialize<Steam.LinkJob>(run.Data!, JsonSerializerOptions.Web)!;
+        List<long> appIds;
+        using (var c = run.Db.Open())
+            appIds = c.Query<long>("""
+                SELECT CAST(store_id AS INTEGER) AS app FROM source
+                WHERE kind = 'store' AND store = 'steam' AND version_id IS NULL AND CAST(store_id AS INTEGER) > @After ORDER BY app
+                """, job).ToList();
+        var igdb = Client(run);
+        for (var i = 0; i < appIds.Count; i += 200)
+        {
+            var chunk = appIds.Skip(i).Take(200).ToList();
+            var uids = string.Join(',', chunk.Select(id => $"\"{id}\""));
+            var links = await igdb.Query<SteamLink>("external_games", $"fields game, uid; where external_game_source = 1 & uid = ({uids}); limit 500;", ct);
+            var gameIds = links.Select(l => l.Game).Distinct().ToList();
+            if (gameIds.Count > 0)
+                await Import(run.Db, igdb, await igdb.Query<IgdbGame>("games", $"{IgdbGame.Fields} where id = ({string.Join(',', gameIds)}); limit {Page};", ct), null, ct);
+
+            using (var c = run.Db.Open())
+            {
+                foreach (var l in links)
+                    c.Execute("""
+                        UPDATE source SET version_id = (SELECT id FROM version WHERE igdb_id = @Game AND platform = 'pc')
+                        WHERE kind = 'store' AND store = 'steam' AND store_id = @Uid AND version_id IS NULL
+                        """, l);
+                Steam.Link(c);
+            }
+            var done = Math.Min(i + 200, appIds.Count);
+            run.Report(done * 100 / appIds.Count, ApiError.Of("tasks.igdb.steam", ("done", done.ToString()), ("total", appIds.Count.ToString())),
+                JsonSerializer.Serialize(new Steam.LinkJob(chunk[^1]), JsonSerializerOptions.Web));
+        }
+        QueueImages(run.Db);
+    }
+
     /// <summary>Al terminar una carga, las portadas de lo nuevo (si no hay ya una tarea de imágenes esperando).</summary>
     static void QueueImages(Database db)
     {
@@ -181,6 +222,7 @@ public static class IgdbImport
             byIgdb[g.Id] = gameId;
             UpsertVersions(c, t, g, gameId, kind);
         }
+        Steam.Link(c, t);
         t.Commit();
     }
 

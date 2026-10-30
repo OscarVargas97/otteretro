@@ -38,7 +38,9 @@ sealed class Fixture : IAsyncDisposable
             await Task.Delay(20);
         }
         await Queue.StopAsync(CancellationToken.None);
-        return task!;
+        var logs = Path.Combine(config.DataFolder!, "logs");
+        Assert.True(task is not null, $"La tarea {id} no aparece. Log: " + string.Join(" | ", Directory.GetFiles(logs).Select(File.ReadAllText)));
+        return task;
     }
 
     public async ValueTask DisposeAsync()

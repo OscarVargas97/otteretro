@@ -11,6 +11,7 @@ Qué pantalla o comando dispara cada función, qué endpoint llama, qué módulo
 | `otteretro` · `otteretro --fullscreen` | Abre la app: una sola instancia, servidor local y ventana (a pantalla completa con `--fullscreen` o dentro de gamescope) | `App/Program.cs` → `App/Startup.cs`, `App/SingleInstance.cs`, `App/LocalServer.cs`, `App/MainWindow.cs` |
 | `otteretro servidor` | API e interfaz sin ventana, para el navegador (desarrollo) | `App/Modes.cs` → `App/LocalServer.cs` |
 | `otteretro jugar <id>` | Todavía no implementado (F4): registra el aviso y sale con código 2 | `App/Modes.cs` |
+| `otteretro steam sincronizar` | Encola `steam.sync`: lo que tienes en Steam con horas y última vez; lo que no está en el catálogo se busca en IGDB por su id de Steam (`igdb.steam`) | `App/Modes.cs` → `Catalog/Steam.cs`, `Catalog/IgdbImport.cs` |
 | `otteretro tareas prueba` | Encola una tarea de prueba (10 pasos de 3 s) para ver el panel de tareas; la toma la app abierta | `App/Modes.cs` → `App/TaskQueue.cs` |
 | `otteretro version` · `ayuda` · `openapi <archivo>` | Versión, ayuda y contrato OpenAPI para `npm run tipos` | `App/Modes.cs` |
 
@@ -67,6 +68,7 @@ Todo bajo `/api`, solo en `127.0.0.1` y con la clave de la sesión (cabecera `X-
 | `data/otteretro.db` · `progress`, `play_session`, `price_watch`, `dismissal` | Seguimiento de cada juego (#133), sesiones de juego (F4), precios a vigilar y sagas descartadas | Todavía nadie |
 | `data/otteretro.db` · `task` | Cola de tareas en segundo plano: estado, progreso, detalle (código para el front) y punto de control para seguir tras un reinicio | `App/TaskQueue.cs` (la CLI encola) |
 | `data/otteretro.db` · `api_cache` | Respuestas de IGDB y demás fuentes, con su vencimiento (clave: fuente, método, URL y consulta, sin las claves). No va en el respaldo | `App/ApiClient.cs`, que además respeta el ritmo de cada fuente (IGDB: una cada 260 ms) |
+| `data/otteretro.db` · `source` | Lo que tienes: por ahora tu cuenta de Steam (`kind = store`), con horas (`playtime`, minutos) y última vez; sin versión mientras no esté en el catálogo | `Catalog/Steam.cs`; cada carga de IGDB enlaza lo suelto |
 | `cache/imagenes/{juego}-{cover,hero,logo}.{ext}` | Imágenes de SteamGridDB | Tarea `sgdb.images` (`Catalog/SteamGridDb.cs`), que encola cada carga de IGDB |
 | `data/otteretro.db` · `setting` | Ajustes globales o por equipo (todavía sin uso) | — |
 | `data/otteretro.db` · `migration` | Migraciones aplicadas | `Data/Migrations.cs` |

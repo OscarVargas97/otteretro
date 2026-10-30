@@ -217,12 +217,20 @@
         "badKey": "Twitch no aceptó la cuenta de IGDB: revisa el Client ID y el Client Secret en Ajustes › Cuentas y claves.",
         "sagaNotFound": "IGDB no tiene ninguna saga que se llame «{query}».",
         "pcBySaga": "PC tiene demasiados juegos para cargarlos de una vez: se cargan por saga.",
-        "unknownPlatform": "«{platform}» no es una de las consolas del catálogo."
+        "unknownPlatform": "«{platform}» no es una de las consolas del catálogo.",
+        "steam": "{done} de {total} juegos de Steam"
       },
       "sgdb": {
         "images": "{done} de {total} juegos",
         "noKey": "Falta la clave de SteamGridDB: pégala en Ajustes › Cuentas y claves.",
         "badKey": "SteamGridDB no aceptó la clave: revísala en Ajustes › Cuentas y claves."
+      },
+      "steam": {
+        "synced": "{count} juegos en tu cuenta de Steam",
+        "noKey": "Falta la clave de Steam Web API: pégala en Ajustes › Cuentas y claves.",
+        "badKey": "Steam no aceptó la clave de Steam Web API: revísala en Ajustes › Cuentas y claves.",
+        "noAccount": "No se encontró una cuenta de Steam en este equipo: abre Steam e inicia sesión una vez.",
+        "failed": "Steam no respondió bien ({status}). Prueba más tarde."
       }
     }
   },
@@ -262,10 +270,14 @@
       "demo": "Tarea de prueba",
       "igdb": {
         "saga": "Cargar una saga de IGDB",
-        "platform": "Cargar una consola de IGDB"
+        "platform": "Cargar una consola de IGDB",
+        "steam": "Buscar en IGDB tus juegos de Steam"
       },
       "sgdb": {
         "images": "Bajar portadas de SteamGridDB"
+      },
+      "steam": {
+        "sync": "Leer lo que tienes en Steam"
       }
     },
     "status": {

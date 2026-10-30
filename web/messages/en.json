@@ -217,12 +217,20 @@
         "badKey": "Twitch did not accept the IGDB account: check the Client ID and Client Secret in Settings › Accounts and keys.",
         "sagaNotFound": "IGDB has no saga called “{query}”.",
         "pcBySaga": "PC has too many games to load at once: it is loaded by saga.",
-        "unknownPlatform": "“{platform}” is not one of the catalog consoles."
+        "unknownPlatform": "“{platform}” is not one of the catalog consoles.",
+        "steam": "{done} of {total} Steam games"
       },
       "sgdb": {
         "images": "{done} of {total} games",
         "noKey": "The SteamGridDB key is missing: paste it in Settings › Accounts and keys.",
         "badKey": "SteamGridDB did not accept the key: check it in Settings › Accounts and keys."
+      },
+      "steam": {
+        "synced": "{count} games in your Steam account",
+        "noKey": "The Steam Web API key is missing: paste it in Settings › Accounts and keys.",
+        "badKey": "Steam did not accept the Steam Web API key: check it in Settings › Accounts and keys.",
+        "noAccount": "No Steam account was found on this computer: open Steam and sign in once.",
+        "failed": "Steam did not answer properly ({status}). Try again later."
       }
     }
   },
@@ -262,10 +270,14 @@
       "demo": "Test task",
       "igdb": {
         "saga": "Load a saga from IGDB",
-        "platform": "Load a console from IGDB"
+        "platform": "Load a console from IGDB",
+        "steam": "Find your Steam games on IGDB"
       },
       "sgdb": {
         "images": "Download covers from SteamGridDB"
+      },
+      "steam": {
+        "sync": "Read what you own on Steam"
       }
     },
     "status": {

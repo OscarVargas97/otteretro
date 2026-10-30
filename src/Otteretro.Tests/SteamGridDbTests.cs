@@ -8,6 +8,7 @@ using Otteretro.Catalog;
 namespace Otteretro.Tests;
 
 /// <summary>F1.7 con un SteamGridDB falso.</summary>
+[Collection("FakeHttp")]
 public class SteamGridDbTests
 {
     sealed class FakeSteamGridDb : HttpMessageHandler

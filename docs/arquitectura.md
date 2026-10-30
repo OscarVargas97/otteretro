@@ -99,7 +99,7 @@ Tablas principales. `id` entero salvo donde se indica. Tablas, columnas y valore
 | | `version` | id, game_id, platform (`console.id`, también `pc`), kind (original/remaster/remake), year, export_to_steam, igdb_id (la ficha de IGDB de la que sale), steam_app_id |
 | | `version_criterion` | version_id, criterion (content/gameplay/technical/original), value, text |
 | | `field_value` | entity, entity_id, field, value, source, manual (lo manual nunca se sobrescribe) |
-| Colección | `source` | id, version_id, kind (file/store), library_id, relative_path, component (BASE/UPD/DLC), title_id, size, sha1, verified, store, store_id, family_shared |
+| Colección | `source` | id, version_id (vacío mientras no se enlaza con el catálogo), kind (file/store), library_id, relative_path, component (BASE/UPD/DLC), title_id, size, sha1, verified, store, store_id, name, family_shared, playtime (minutos), last_played (#133) |
 | | `dat_entry` | system, name, sha1, crc, region, languages, source (libretro/redump) |
 | | `alias` | text, game_id, origin (script/claude), undone |
 | Rutas y progreso | `route` | id, saga_id, kind (release/story/community), rationale, sources, approved |

@@ -60,6 +60,7 @@ public static class CliMode
           jugar <id>             Lanza un juego (fase 4).
           version                Muestra la versión.
           openapi <archivo>      Escribe el contrato OpenAPI de la API (para generar los tipos del front).
+          steam sincronizar      Lee lo que tienes en Steam (con sus horas) y lo enlaza con el catálogo; lo hace la app abierta.
           tareas prueba          Encola una tarea de prueba (10 pasos de 3 s) para ver el panel de tareas.
           servidor               Levanta la API y la interfaz sin ventana, para abrirlas en un navegador (desarrollo).
           ayuda                  Muestra esta ayuda.
@@ -85,7 +86,9 @@ public static class CliMode
                 output.WriteLine($"Contrato escrito en {file}");
                 return 0;
             case ["tareas", "prueba"]:
-                return EnqueueDemo(output);
+                return Enqueue(output, db => TaskQueue.Enqueue(db, "demo"));
+            case ["steam", "sincronizar"]:
+                return Enqueue(output, Catalog.Steam.EnqueueSync);
             case ["servidor"]:
                 Serve(output);
                 return 0;
@@ -96,7 +99,8 @@ public static class CliMode
         }
     }
 
-    static int EnqueueDemo(TextWriter output)
+    /// <summary>Encola una tarea en la base de la carpeta de datos; la toma la app abierta.</summary>
+    static int Enqueue(TextWriter output, Func<Data.Database, long> enqueue)
     {
         var config = AppConfig.Load(AppConfig.DefaultPath);
         if (!DataFolder.IsReady(config.DataFolder))
@@ -104,7 +108,7 @@ public static class CliMode
             output.WriteLine("Todavía no hay carpeta de datos: abre la app y elige una.");
             return 1;
         }
-        var id = TaskQueue.Enqueue(Startup.PrepareData(config), "demo");
+        var id = enqueue(Startup.PrepareData(config));
         output.WriteLine($"Tarea {id} encolada; la app abierta la toma en unos segundos.");
         return 0;
     }
