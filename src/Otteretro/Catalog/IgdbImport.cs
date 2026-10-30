@@ -134,7 +134,7 @@ public static class IgdbImport
             var links = await igdb.Query<SteamLink>("external_games", $"fields game, uid; where external_game_source = 1 & uid = ({uids}); limit 500;", ct);
             var gameIds = links.Select(l => l.Game).Distinct().ToList();
             if (gameIds.Count > 0)
-                await Import(run.Db, igdb, await igdb.Query<IgdbGame>("games", $"{IgdbGame.Fields} where id = ({string.Join(',', gameIds)}); limit {Page};", ct), null, ct);
+                await Import(run.Db, igdb, await igdb.Query<IgdbGame>("games", $"{IgdbGame.Fields} where id = ({string.Join(',', gameIds)}); limit {Page};", ct), null, ct, owned: true);
 
             using (var c = run.Db.Open())
             {
@@ -184,26 +184,36 @@ public static class IgdbImport
     }
 
     /// <summary>
-    /// Guarda una página de juegos. Los remakes, remasters y ports pasan a ser versiones de su juego original
-    /// (si no vinieron en la página, se piden). Lo corregido a mano no se toca: ver <see cref="FieldValues"/>.
+    /// Guarda una página de juegos. Los remakes, remasters, ports y ediciones ampliadas pasan a ser versiones de su juego
+    /// original (si no vinieron en la página, se piden), igual que un juego con el mismo nombre en la misma saga.
+    /// Fuera quedan los que no tienen fecha (cancelados, rumores) salvo si son tuyos (`owned`), y al cargar una saga, sus
+    /// invitados (#58). Lo corregido a mano no se toca: ver <see cref="FieldValues"/>.
     /// </summary>
-    public static async Task Import(Database db, Igdb igdb, IEnumerable<IgdbGame> page, SagaRef? preferred, CancellationToken ct)
+    public static async Task Import(Database db, Igdb igdb, IEnumerable<IgdbGame> page, SagaRef? preferred, CancellationToken ct, bool owned = false)
     {
-        var games = page.Where(g => g.VersionParent is null && IgdbGame.PlayableTypes.Contains(g.Type)).ToList();
-        var missing = games.SelectMany(Children).Select(r => r.Id).Except(games.Select(g => g.Id)).Distinct().ToList();
+        var candidates = page.Where(g => g.VersionParent is null && IgdbGame.PlayableTypes.Contains(g.Type) && (owned || g.HasDate)).ToList();
+        var games = candidates.Where(g => Belongs(g, preferred)).ToList();
+        // Las ediciones siguen a su original: Hyrule Warriors Legends entra porque entra Hyrule Warriors.
+        for (var more = Editions(); more.Count > 0; more = Editions()) games.AddRange(more);
+        List<IgdbGame> Editions() => candidates.Where(g => !games.Contains(g) && g.EditionOf is { } p && games.Any(k => k.Id == p)).ToList();
+        var missing = games.SelectMany(Children).Select(r => r.Id).Concat(games.Select(g => g.EditionOf).OfType<long>())
+            .Except(games.Select(g => g.Id)).Distinct().ToList();
         foreach (var chunk in missing.Chunk(Page))
             games.AddRange(await igdb.Query<IgdbGame>("games", $"{IgdbGame.Fields} where id = ({string.Join(',', chunk)}); limit {Page};", ct));
 
         var parentOf = new Dictionary<long, (long Parent, string Kind)>();
         foreach (var g in games)
+        {
             foreach (var (child, kind) in Children(g))
                 parentOf.TryAdd(child, (g.Id, kind));
+            if (g.EditionOf is { } parent && parent != g.Id) parentOf.TryAdd(g.Id, (parent, "original"));
+        }
 
         using var c = db.Open();
         using var t = c.BeginTransaction();
         var byIgdb = new Dictionary<long, long>();
-        // Primero los originales, para que sus remakes los encuentren.
-        foreach (var g in games.OrderBy(g => parentOf.ContainsKey(g.Id)))
+        // Primero los originales (y de ellos, los más antiguos), para que sus remakes y homónimos los encuentren.
+        foreach (var g in games.OrderBy(g => parentOf.ContainsKey(g.Id)).ThenBy(g => g.FirstReleaseDate ?? long.MaxValue))
         {
             var kind = parentOf.TryGetValue(g.Id, out var p) ? p.Kind : "original";
             var root = g.Id;
@@ -218,6 +228,8 @@ public static class IgdbImport
             else if (c.ExecuteScalar<long?>("SELECT game_id FROM version WHERE igdb_id = @Id", g, t) is { } existing
                      && c.ExecuteScalar<long?>("SELECT igdb_id FROM game WHERE id = @existing", new { existing }, t) != g.Id)
                 gameId = existing; // ya es versión de otro juego (llegó antes con su original)
+            else if (SameName(c, t, g, preferred) is { } namesake)
+                gameId = namesake;
             else
             {
                 gameId = UpsertGame(c, t, g, preferred);
@@ -230,6 +242,35 @@ public static class IgdbImport
         t.Commit();
     }
 
+    /// <summary>
+    /// Al cargar una franquicia no entran los invitados: Smash Bros. o Mario Kart están en la franquicia Zelda porque Link
+    /// aparece en ellos. Entra el juego que la tiene como principal (IGDB casi nunca la marca), como única, o que con varias
+    /// está en una colección con el nombre de la saga (Hyrule Warriors está en Zelda y Musou, y en la colección Zelda).
+    /// </summary>
+    static bool Belongs(IgdbGame g, SagaRef? saga)
+    {
+        if (saga is not { Kind: "franchise" }) return true;
+        if (g.Franchise is { } main) return main.Id == saga.IgdbId;
+        if (g.Franchises is [{ } only]) return only.Id == saga.IgdbId;
+        return saga.Name is { } name && (g.Collections ?? []).Any(c => c.Name?.Contains(name, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    /// <summary>Un juego nuevo con el mismo nombre que otro de su saga (A Link to the Past de SNES y de GBA) es una versión de ese.</summary>
+    static long? SameName(SqliteConnection c, SqliteTransaction t, IgdbGame g, SagaRef? preferred)
+    {
+        if (c.ExecuteScalar<long?>("SELECT id FROM game WHERE igdb_id = @Id", g, t) is not null || SagaOf(g, preferred) is not { } saga) return null;
+        var key = NameKey(g.Name);
+        return c.Query<(long Id, string? Name)>("""
+            SELECT g.id, g.original_name FROM game g JOIN saga s ON s.id = g.saga_id
+            WHERE s.igdb_kind = @Kind AND s.igdb_id = @IgdbId ORDER BY g.year
+            """, saga, t).FirstOrDefault(x => x.Name is not null && NameKey(x.Name) == key).Id is var id and not 0 ? id : null;
+    }
+
+    static string NameKey(string name) => new([.. name.ToLowerInvariant().Where(char.IsLetterOrDigit)]);
+
+    /// <summary>Un solo formato de nombre: guiones largos como guion y sin espacios repetidos.</summary>
+    static string Clean(string name) => System.Text.RegularExpressions.Regex.Replace(name.Replace('–', '-').Replace('—', '-'), @"\s+", " ").Trim();
+
     static IEnumerable<(long Id, string Kind)> Children(IgdbGame g) =>
         (g.Remakes ?? []).Select(id => (id, "remake"))
         .Concat((g.Remasters ?? []).Select(id => (id, "remaster")))
@@ -239,8 +280,8 @@ public static class IgdbImport
     {
         var id = c.ExecuteScalar<long?>("SELECT id FROM game WHERE igdb_id = @Id", g, t)
                  ?? c.ExecuteScalar<long>("INSERT INTO game (igdb_id, name_es) VALUES (@Id, @Name) RETURNING id", g, t);
-        FieldValues.Set(c, "game", id, "original_name", g.Name, Source, t);
-        FieldValues.Set(c, "game", id, "name_es", SpanishName(g), Source, t);
+        FieldValues.Set(c, "game", id, "original_name", Clean(g.Name), Source, t);
+        FieldValues.Set(c, "game", id, "name_es", Clean(SpanishName(g)), Source, t);
         FieldValues.Set(c, "game", id, "year", Year(g.FirstReleaseDate), Source, t);
 
         // La saga se elige una vez; recargar otra saga no mueve el juego (Hyrule Warriors sigue en Zelda).
@@ -254,7 +295,9 @@ public static class IgdbImport
         var franchises = g.Franchises ?? [];
         var collections = g.Collections ?? [];
         if (preferred is not null && (preferred.Kind == "franchise" ? franchises : collections).Any(n => n.Id == preferred.IgdbId)) return preferred;
-        if (franchises.FirstOrDefault() is { } f) return new("franchise", f.Id, f.Name);
+        // La franquicia principal antes que las demás: Smash Bros. va a Smash, no a la primera de su lista.
+        if ((g.Franchise is { } main ? franchises.FirstOrDefault(n => n.Id == main.Id) ?? main : franchises.FirstOrDefault()) is { } f)
+            return new("franchise", f.Id, f.Name);
         return collections.FirstOrDefault() is { } col ? new("collection", col.Id, col.Name) : null;
     }
 

@@ -80,14 +80,21 @@ public record IgdbExternal(string? Uid, int? Category, long? ExternalGameSource)
 public record IgdbGame(
     long Id, string Name, long? FirstReleaseDate, int? GameType, int? Category, long[]? Platforms, long? VersionParent,
     long[]? Remakes, long[]? Remasters, long[]? Ports, IgdbNamed[]? Franchises, IgdbNamed[]? Collections,
-    IgdbNamed[]? AlternativeNames, IgdbReleaseDate[]? ReleaseDates, IgdbExternal[]? ExternalGames)
+    IgdbNamed[]? AlternativeNames, IgdbReleaseDate[]? ReleaseDates, IgdbExternal[]? ExternalGames,
+    IgdbNamed? Franchise = null, long? ParentGame = null)
 {
     public const string Fields = "fields name, first_release_date, game_type, category, platforms, version_parent, remakes, remasters, ports, "
         + "franchises.name, collections.name, alternative_names.name, alternative_names.comment, release_dates.platform, release_dates.date, "
-        + "external_games.uid, external_games.category, external_games.external_game_source;";
+        + "external_games.uid, external_games.category, external_games.external_game_source, franchise.name, parent_game;";
 
     /// <summary>Juego principal, expansión independiente, remake, remaster, juego ampliado o port. Fuera: DLC, packs, mods, episodios…</summary>
     public static readonly int[] PlayableTypes = [0, 4, 8, 9, 10, 11];
 
     public int Type => GameType ?? Category ?? 0;
+
+    /// <summary>Juego ampliado (10) o port (11): con `parent_game` es una versión de ese juego.</summary>
+    public long? EditionOf => Type is 10 or 11 ? ParentGame : null;
+
+    /// <summary>Salió o tiene fecha anunciada. Sin ninguna fecha: cancelado, rumor o prototipo.</summary>
+    public bool HasDate => FirstReleaseDate is not null;
 }
