@@ -60,6 +60,9 @@ public static class CliMode
           jugar <id>             Lanza un juego (fase 4).
           version                Muestra la versión.
           openapi <archivo>      Escribe el contrato OpenAPI de la API (para generar los tipos del front).
+          catalogo cargar        Carga el catálogo desde IGDB: sin opciones, las 23 consolas; o solo
+            [--consola X]          una consola (snes, n64, switch, ps2…)
+            [--saga X]             o una saga (zelda, half-life…; PC se carga así). Lo hace la app abierta.
           steam sincronizar      Lee lo que tienes en Steam (con sus horas) y lo enlaza con el catálogo; lo hace la app abierta.
           tareas prueba          Encola una tarea de prueba (10 pasos de 3 s) para ver el panel de tareas.
           servidor               Levanta la API y la interfaz sin ventana, para abrirlas en un navegador (desarrollo).
@@ -86,9 +89,11 @@ public static class CliMode
                 output.WriteLine($"Contrato escrito en {file}");
                 return 0;
             case ["tareas", "prueba"]:
-                return Enqueue(output, db => TaskQueue.Enqueue(db, "demo"));
+                return Enqueue(output, db => [TaskQueue.Enqueue(db, "demo")]);
             case ["steam", "sincronizar"]:
-                return Enqueue(output, Catalog.Steam.EnqueueSync);
+                return Enqueue(output, db => [Catalog.Steam.EnqueueSync(db)]);
+            case ["catalogo", "cargar", .. var options] when options is [] or ["--consola", _] or ["--saga", _, ..]:
+                return Enqueue(output, db => EnqueueLoad(db, options));
             case ["servidor"]:
                 Serve(output);
                 return 0;
@@ -99,8 +104,21 @@ public static class CliMode
         }
     }
 
-    /// <summary>Encola una tarea en la base de la carpeta de datos; la toma la app abierta.</summary>
-    static int Enqueue(TextWriter output, Func<Data.Database, long> enqueue)
+    /// <summary>
+    /// `catalogo cargar`: sin opciones, una tarea por consola (PC no: tiene demasiados juegos y va por saga);
+    /// `--consola X` o `--saga X` (la saga puede ir en varias palabras sin comillas).
+    /// </summary>
+    public static long[] EnqueueLoad(Data.Database db, string[] options)
+    {
+        if (options is ["--consola", var platform]) return [Catalog.IgdbImport.EnqueuePlatform(db, platform.ToLowerInvariant())];
+        if (options is ["--saga", .. var words]) return [Catalog.IgdbImport.EnqueueSaga(db, string.Join(' ', words))];
+        using var c = db.Open();
+        var consoles = Dapper.SqlMapper.Query<string>(c, "SELECT id FROM console WHERE id <> 'pc' ORDER BY rowid").ToList();
+        return consoles.Select(p => Catalog.IgdbImport.EnqueuePlatform(db, p)).ToArray();
+    }
+
+    /// <summary>Encola tareas en la base de la carpeta de datos; las toma la app abierta.</summary>
+    static int Enqueue(TextWriter output, Func<Data.Database, long[]> enqueue)
     {
         var config = AppConfig.Load(AppConfig.DefaultPath);
         if (!DataFolder.IsReady(config.DataFolder))
@@ -108,8 +126,10 @@ public static class CliMode
             output.WriteLine("Todavía no hay carpeta de datos: abre la app y elige una.");
             return 1;
         }
-        var id = enqueue(Startup.PrepareData(config));
-        output.WriteLine($"Tarea {id} encolada; la app abierta la toma en unos segundos.");
+        var ids = enqueue(Startup.PrepareData(config));
+        output.WriteLine(ids.Length == 1
+            ? $"Tarea {ids[0]} encolada; la app abierta la toma en unos segundos."
+            : $"{ids.Length} tareas encoladas; la app abierta las hace de a una y se ven en el panel de tareas.");
         return 0;
     }
 

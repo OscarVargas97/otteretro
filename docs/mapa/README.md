@@ -11,6 +11,7 @@ Qué pantalla o comando dispara cada función, qué endpoint llama, qué módulo
 | `otteretro` · `otteretro --fullscreen` | Abre la app: una sola instancia, servidor local y ventana (a pantalla completa con `--fullscreen` o dentro de gamescope) | `App/Program.cs` → `App/Startup.cs`, `App/SingleInstance.cs`, `App/LocalServer.cs`, `App/MainWindow.cs` |
 | `otteretro servidor` | API e interfaz sin ventana, para el navegador (desarrollo) | `App/Modes.cs` → `App/LocalServer.cs` |
 | `otteretro jugar <id>` | Todavía no implementado (F4): registra el aviso y sale con código 2 | `App/Modes.cs` |
+| `otteretro catalogo cargar [--consola X \| --saga X]` | Encola la carga desde IGDB: sin opciones, una tarea `igdb.platform` por consola (PC no: va por saga); con `--consola`, esa; con `--saga`, `igdb.saga` (la saga puede ir en varias palabras) | `App/Modes.cs` (`CliMode.EnqueueLoad`) → `Catalog/IgdbImport.cs` |
 | `otteretro steam sincronizar` | Encola `steam.sync`: lo que tienes en Steam con horas y última vez; lo que no está en el catálogo se busca en IGDB por su id de Steam (`igdb.steam`) | `App/Modes.cs` → `Catalog/Steam.cs`, `Catalog/IgdbImport.cs` |
 | `otteretro tareas prueba` | Encola una tarea de prueba (10 pasos de 3 s) para ver el panel de tareas; la toma la app abierta | `App/Modes.cs` → `App/TaskQueue.cs` |
 | `otteretro version` · `ayuda` · `openapi <archivo>` | Versión, ayuda y contrato OpenAPI para `npm run tipos` | `App/Modes.cs` |
