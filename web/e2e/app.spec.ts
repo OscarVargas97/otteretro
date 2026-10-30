@@ -183,3 +183,62 @@ test("Cuentas y claves: pegar una clave la deja guardada sin mostrarla, y borrar
   await row.getByRole("button", { name: `${es.credentials.delete}: ${es.credentials.field.apiKey}` }).click();
   await expect(row.getByText(es.credentials.missing, { exact: true })).toBeVisible();
 });
+
+test("con mando se recorre la app: foco, barra de botones, buscar con el teclado en pantalla y menú rápido", async ({ browser }) => {
+  // Un mando de Xbox simulado: la app lo lee con navigator.getGamepads() en cada cuadro.
+  const pad = await browser.newPage();
+  await pad.addInitScript(() => {
+    const state = {
+      id: "Xbox Wireless Controller (STANDARD GAMEPAD Vendor: 045e)", index: 0, connected: true, mapping: "standard", timestamp: 0,
+      axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, touched: false, value: 0 })),
+    };
+    (window as unknown as { pad: typeof state }).pad = state;
+    navigator.getGamepads = () => [state as unknown as Gamepad];
+  });
+  const press = async (button: number) => {
+    await pad.evaluate((b) => { (window as unknown as { pad: { buttons: { pressed: boolean }[] } }).pad.buttons[b].pressed = true; }, button);
+    await pad.waitForTimeout(100);
+    await pad.evaluate((b) => { (window as unknown as { pad: { buttons: { pressed: boolean }[] } }).pad.buttons[b].pressed = false; }, button);
+    await pad.waitForTimeout(100);
+  };
+  const [A, B, X, , , , , , , MENU, , , , DOWN, , RIGHT, GUIDE] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+
+  await pad.goto(url());
+  await expect(pad.getByRole("heading", { level: 1, name: es.nav.home })).toBeVisible();
+  await press(DOWN);
+  await expect(pad.locator("html")).toHaveAttribute("data-input", "pad");
+  await expect(pad.locator(".ot-padbar")).toContainText(es.pad.choose);
+  // Con la forma del mando conectado: A de Xbox para elegir.
+  await expect(pad.locator(".ot-padbar .ot-glyph").first()).toHaveText("A");
+  await expect(pad.locator(".is-focus")).toHaveCount(1);
+
+  // X abre la búsqueda; A en el campo abre el teclado; se escribe «qw» y Menú lo deja listo.
+  await press(X);
+  const field = pad.locator("#search");
+  await expect(field).toBeFocused();
+  await press(A);
+  await expect(pad.getByRole("dialog", { name: es.pad.keyboard })).toBeVisible();
+  await press(A);
+  await press(RIGHT);
+  await press(A);
+  await expect(pad.locator(".ot-osk-field")).toHaveText("qw");
+  await press(MENU);
+  await expect(pad.getByRole("dialog", { name: es.pad.keyboard })).toBeHidden();
+  await expect(field).toHaveValue("qw");
+  await press(B);
+  await expect(field).toBeHidden();
+
+  // Guía abre el menú rápido; B lo cierra.
+  await press(GUIDE);
+  await expect(pad.getByRole("dialog", { name: es.pad.quickMenu })).toBeVisible();
+  await expect(pad.getByRole("button", { name: es.pad.goToSteam })).toBeFocused();
+  await pad.screenshot({ path: "e2e-results/7-mando-menu-rapido.png" });
+  await press(B);
+  await expect(pad.getByRole("dialog", { name: es.pad.quickMenu })).toBeHidden();
+
+  // Con el ratón, la interfaz vuelve a su forma normal.
+  await pad.mouse.move(400, 400);
+  await expect(pad.locator("html")).toHaveAttribute("data-input", "mouse");
+  await expect(pad.locator(".ot-padbar")).toHaveCount(0);
+  await pad.close();
+});

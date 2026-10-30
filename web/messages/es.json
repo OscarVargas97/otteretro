@@ -286,5 +286,20 @@
       "done": "Terminada",
       "error": "Error"
     }
+  },
+  "pad": {
+    "choose": "Elegir",
+    "back": "Volver",
+    "close": "Cerrar",
+    "search": "Buscar",
+    "quickMenu": "Menú rápido",
+    "noGame": "Ningún juego abierto",
+    "goToSteam": "Ir a Steam",
+    "keyboard": "Teclado",
+    "shift": "Mayús",
+    "space": "Espacio",
+    "delete": "Borrar",
+    "done": "Listo",
+    "menu": "Menú"
   }
 }

@@ -55,3 +55,9 @@ input, select, textarea { font: inherit; background: var(--bg); color: var(--ink
 .cred-service { display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-3); border-bottom: 1px solid var(--line); }
 .cred-name { margin: 0; font-size: 15px; }
 .cred-row { display: flex; flex-direction: column; gap: var(--space-2); padding-left: var(--space-3); }
+
+/* Mando (F1.1): la barra de botones fija abajo y las capas del menú rápido y el teclado sobre todo */
+.pad-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; }
+[data-input="pad"] .app-main { padding-bottom: 56px; }
+.ot-scrim.pad-layer { position: fixed; inset: 0; z-index: 50; }
+.ot-scrim.pad-osk { align-items: flex-end; justify-content: center; }
