@@ -7,14 +7,14 @@ using Otteretro.Data;
 
 namespace Otteretro.App;
 
-/// <summary>Un dato que se guarda cifrado: servicio, campo y dónde se consigue (§5.6).</summary>
-public record CredentialKind(string Service, string Field, string Url)
+/// <summary>Un dato que se guarda cifrado: servicio, campo, dónde se consigue (§5.6) y la fase en que la app empieza a usarlo.</summary>
+public record CredentialKind(string Service, string Field, string Url, int Phase)
 {
     public string Id => $"{Service}.{Field}";
 }
 
 /// <summary>Lo que ve Ajustes › Cuentas y claves: nunca el valor, solo si está guardado (#148).</summary>
-public record CredentialStatus(string Id, string Service, string Field, string Url, bool Saved, string? UpdatedAt);
+public record CredentialStatus(string Id, string Service, string Field, string Url, int Phase, bool Saved, string? UpdatedAt);
 
 /// <summary>Sin llavero (Secret Service) en Linux no hay dónde guardar la llave maestra.</summary>
 public sealed class KeyringUnavailableException(string detail) : Exception(detail);
@@ -25,18 +25,18 @@ public sealed class Credentials(Database db, string machineId, SecretBox box)
     // ponytail: las tiendas de PC se suman cuando su fase diga cuáles son y qué piden.
     public static readonly CredentialKind[] Kinds =
     [
-        new("github", "token", "https://github.com/settings/personal-access-tokens"),
-        new("steam", "apiKey", "https://steamcommunity.com/dev/apikey"),
-        new("igdb", "clientId", "https://dev.twitch.tv/console/apps"),
-        new("igdb", "clientSecret", "https://dev.twitch.tv/console/apps"),
-        new("screenscraper", "user", "https://www.screenscraper.fr/"),
-        new("screenscraper", "password", "https://www.screenscraper.fr/"),
-        new("steamgriddb", "apiKey", "https://www.steamgriddb.com/profile/preferences/api"),
-        new("rawg", "apiKey", "https://rawg.io/apidocs"),
-        new("retroachievements", "user", "https://retroachievements.org/settings"),
-        new("retroachievements", "apiKey", "https://retroachievements.org/settings"),
-        new("myjdownloader", "email", "https://my.jdownloader.org/"),
-        new("myjdownloader", "password", "https://my.jdownloader.org/"),
+        new("github", "token", "https://github.com/settings/personal-access-tokens", 5),
+        new("steam", "apiKey", "https://steamcommunity.com/dev/apikey", 1),
+        new("igdb", "clientId", "https://dev.twitch.tv/console/apps", 1),
+        new("igdb", "clientSecret", "https://dev.twitch.tv/console/apps", 1),
+        new("screenscraper", "user", "https://www.screenscraper.fr/", 8),
+        new("screenscraper", "password", "https://www.screenscraper.fr/", 8),
+        new("steamgriddb", "apiKey", "https://www.steamgriddb.com/profile/preferences/api", 1),
+        new("rawg", "apiKey", "https://rawg.io/apidocs", 1),
+        new("retroachievements", "user", "https://retroachievements.org/settings", 9),
+        new("retroachievements", "apiKey", "https://retroachievements.org/settings", 9),
+        new("myjdownloader", "email", "https://my.jdownloader.org/", 8),
+        new("myjdownloader", "password", "https://my.jdownloader.org/", 8),
     ];
 
     public static bool IsKnown(string id) => Kinds.Any(k => k.Id == id);
@@ -46,7 +46,7 @@ public sealed class Credentials(Database db, string machineId, SecretBox box)
         using var c = db.Open();
         var saved = c.Query<(string Id, string UpdatedAt)>("SELECT id, updated_at FROM credential WHERE machine_id = @machineId", new { machineId })
             .ToDictionary(r => r.Id, r => r.UpdatedAt);
-        return Kinds.Select(k => new CredentialStatus(k.Id, k.Service, k.Field, k.Url, saved.ContainsKey(k.Id), saved.GetValueOrDefault(k.Id))).ToList();
+        return Kinds.Select(k => new CredentialStatus(k.Id, k.Service, k.Field, k.Url, k.Phase, saved.ContainsKey(k.Id), saved.GetValueOrDefault(k.Id))).ToList();
     }
 
     public void Save(string id, string value)

@@ -243,7 +243,7 @@
     "getIt": "Get it ↗",
     "bitwarden": "They are stored encrypted on this computer only. Bitwarden is your backup: on another PC, paste them again from there.",
     "service": {
-      "github": "GitHub (updates and backup)",
+      "github": "GitHub",
       "steam": "Steam Web API",
       "igdb": "IGDB (Twitch)",
       "screenscraper": "ScreenScraper",
@@ -261,7 +261,25 @@
       "password": "Password",
       "email": "Email"
     },
-    "loading": "Loading accounts…"
+    "loading": "Loading accounts…",
+    "now": "In use now",
+    "later": "Later ({count})",
+    "laterHint": "Not needed yet: each one is asked for when its phase arrives.",
+    "phase": "Phase {phase}",
+    "ready": "Ready",
+    "partial": "{missing} of {total} missing",
+    "configure": "Set up",
+    "close": "Close",
+    "purpose": {
+      "github": "Backs up your saves to a private repository of yours.",
+      "steam": "What you own on Steam, with your hours.",
+      "igdb": "Series, games and versions for the catalog.",
+      "screenscraper": "Identifies ROMs that don’t match the DATs.",
+      "steamgriddb": "Covers, backgrounds and logos.",
+      "rawg": "Fills in years IGDB doesn’t have.",
+      "retroachievements": "Your achievements in retro games.",
+      "myjdownloader": "Sends downloads to JDownloader."
+    }
   },
   "tasks": {
     "kind": {

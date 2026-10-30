@@ -1283,6 +1283,8 @@ export interface components {
             service: string;
             field: string;
             url: string;
+            /** Format: int32 */
+            phase: number | string;
             saved: boolean;
             updatedAt: null | string;
         };

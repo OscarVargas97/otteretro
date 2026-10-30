@@ -21,6 +21,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **Lo que corriges a mano no se pisa** al volver a cargar: en la ficha, «Datos y fuentes» muestra qué dijo cada fuente, deja corregir el nombre o el año y volver al de las fuentes.
 
 ### Cambios
+- **Cuentas y claves, más corta y clara**: una tarjeta por servicio con su estado y un botón «Configurar» que abre sus campos; lo que se usa en fases posteriores (GitHub, ScreenScraper, MyJDownloader, RetroAchievements) va plegado en «Más adelante». GitHub ya no dice «actualizaciones»: solo se usará para el respaldo de partidas.
 - **La carpeta de datos no se muda mientras corre una tarea**: la app pide esperar a que termine.
 
 ## Diseño del centro de entretenimiento con mando · en revisión

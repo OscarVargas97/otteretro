@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:52961/"
+      "url": "http://127.0.0.1:54350/"
     }
   ],
   "paths": {
@@ -1200,6 +1200,7 @@
           "service",
           "field",
           "url",
+          "phase",
           "saved",
           "updatedAt"
         ],
@@ -1216,6 +1217,14 @@
           },
           "url": {
             "type": "string"
+          },
+          "phase": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           },
           "saved": {
             "type": "boolean"

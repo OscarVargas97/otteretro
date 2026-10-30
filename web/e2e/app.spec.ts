@@ -179,20 +179,32 @@ test("volver a español en Ajustes cambia todo y se mantiene al recargar", async
 });
 
 test("Cuentas y claves: pegar una clave la deja guardada sin mostrarla, y borrarla la deja en falta", async () => {
-  const row = page.locator(".cred-row").filter({ hasText: es.credentials.field.apiKey }).first();
+  // Arriba, las tarjetas de lo que usa F1; lo de otras fases, plegado (#57).
+  const steam = `${es.credentials.configure}: ${es.credentials.service.steam}`;
+  await expect(page.getByRole("button", { name: steam })).toBeVisible();
+  await expect(page.getByRole("button", { name: `${es.credentials.configure}: ${es.credentials.service.github}` })).toBeHidden();
+  await page.getByRole("button", { name: steam }).click();
+  const dialog = page.getByRole("dialog", { name: es.credentials.service.steam });
+  const row = dialog.locator(".cred-row").filter({ hasText: es.credentials.field.apiKey });
   await expect(row.getByText(es.credentials.missing, { exact: true })).toBeVisible();
   await row.getByRole("button", { name: `${es.credentials.paste}: ${es.credentials.field.apiKey}` }).click();
   await row.getByLabel(es.credentials.field.apiKey).fill("clave-e2e-123");
   await row.getByRole("button", { name: es.credentials.save }).click();
   await expect(row.getByText(es.credentials.saved, { exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
   await page.reload();
-  await expect(row.getByText(es.credentials.saved, { exact: true })).toBeVisible();
+  const card = page.locator(".cred-card").filter({ hasText: es.credentials.service.steam });
+  await expect(card.getByText(es.credentials.ready, { exact: true })).toBeVisible();
   expect(await page.locator("body").innerText()).not.toContain("clave-e2e-123");
   await expectNoRawKeys();
   await expectTextFits();
   await page.screenshot({ path: "e2e-results/6-credentials-es.png", fullPage: true });
+  await page.getByRole("button", { name: steam }).click();
   await row.getByRole("button", { name: `${es.credentials.delete}: ${es.credentials.field.apiKey}` }).click();
   await expect(row.getByText(es.credentials.missing, { exact: true })).toBeVisible();
+  await page.screenshot({ path: "e2e-results/6b-credentials-dialog-es.png" });
+  await page.getByRole("button", { name: es.credentials.close }).click();
 });
 
 test("con mando se recorre la app: foco, barra de botones, buscar con el teclado en pantalla y menú rápido", async ({ browser }) => {

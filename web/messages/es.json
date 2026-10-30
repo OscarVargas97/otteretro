@@ -243,7 +243,7 @@
     "getIt": "Conseguirla ↗",
     "bitwarden": "Se guardan cifradas solo en este equipo. Tu respaldo es Bitwarden: en otro PC, pégalas de nuevo desde ahí.",
     "service": {
-      "github": "GitHub (actualizaciones y respaldo)",
+      "github": "GitHub",
       "steam": "Steam Web API",
       "igdb": "IGDB (Twitch)",
       "screenscraper": "ScreenScraper",
@@ -261,7 +261,25 @@
       "password": "Contraseña",
       "email": "Correo"
     },
-    "loading": "Cargando las cuentas…"
+    "loading": "Cargando las cuentas…",
+    "now": "En uso ahora",
+    "later": "Más adelante ({count})",
+    "laterHint": "Todavía no hacen falta: cada una se pide cuando llega su fase.",
+    "phase": "Fase {phase}",
+    "ready": "Lista",
+    "partial": "Falta {missing} de {total}",
+    "configure": "Configurar",
+    "close": "Cerrar",
+    "purpose": {
+      "github": "Respaldo de tus partidas en un repositorio privado tuyo.",
+      "steam": "Lo que tienes en Steam, con sus horas.",
+      "igdb": "Sagas, juegos y versiones del catálogo.",
+      "screenscraper": "Identificar ROMs que no coinciden con los DAT.",
+      "steamgriddb": "Portadas, fondos y logos.",
+      "rawg": "Completa años que IGDB no tiene.",
+      "retroachievements": "Tus logros en juegos retro.",
+      "myjdownloader": "Mandar descargas a JDownloader."
+    }
   },
   "tasks": {
     "kind": {
