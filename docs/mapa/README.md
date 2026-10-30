@@ -51,6 +51,7 @@ Todo bajo `/api`, solo en `127.0.0.1` y con la clave de la sesión (cabecera `X-
 | `POST /api/steam/big-picture` | «Ir a Steam»: abre `steam://open/bigpicture` (el botón sale solo a pantalla completa, `AppState.fullscreen`; `steam.notInstalled` si el sistema no sabe abrirlo) |
 | `POST /api/credentials/{id}/open` | Abrir en el navegador dónde se consigue esa clave (`link.openFailed` si no hay navegador) |
 | `GET /api/update` · `POST …/check` · `POST …/restart` | Actualización de la app |
+| `GET /api/images/{gameId}/{kind}` | Portada (`cover`, 2:3), héroe (`hero`) o logo (`logo`) de un juego desde `cache/imagenes/`; 404 si no hay. La clave va en `?key=` porque se usa en `<img>` |
 | `GET /api/tasks` | Tareas de la cola: lo pendiente y lo de las últimas 24 horas (hasta 20). La mudanza de la carpeta de datos responde `move.tasksRunning` mientras corre alguna |
 | `GET /api/events` | SSE: `heartbeat` cada 15 s, `move`, `update`, `task` |
 
@@ -66,5 +67,6 @@ Todo bajo `/api`, solo en `127.0.0.1` y con la clave de la sesión (cabecera `X-
 | `data/otteretro.db` · `progress`, `play_session`, `price_watch`, `dismissal` | Seguimiento de cada juego (#133), sesiones de juego (F4), precios a vigilar y sagas descartadas | Todavía nadie |
 | `data/otteretro.db` · `task` | Cola de tareas en segundo plano: estado, progreso, detalle (código para el front) y punto de control para seguir tras un reinicio | `App/TaskQueue.cs` (la CLI encola) |
 | `data/otteretro.db` · `api_cache` | Respuestas de IGDB y demás fuentes, con su vencimiento (clave: fuente, método, URL y consulta, sin las claves). No va en el respaldo | `App/ApiClient.cs`, que además respeta el ritmo de cada fuente (IGDB: una cada 260 ms) |
+| `cache/imagenes/{juego}-{cover,hero,logo}.{ext}` | Imágenes de SteamGridDB | Tarea `sgdb.images` (`Catalog/SteamGridDb.cs`), que encola cada carga de IGDB |
 | `data/otteretro.db` · `setting` | Ajustes globales o por equipo (todavía sin uso) | — |
 | `data/otteretro.db` · `migration` | Migraciones aplicadas | `Data/Migrations.cs` |

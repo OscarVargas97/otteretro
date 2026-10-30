@@ -85,8 +85,9 @@ public static class IgdbImport
             await Import(run.Db, igdb, page, saga, ct);
             job = job with { Offset = job.Offset + page.Length };
             Report(run, job.Offset, total, ApiError.Of("tasks.igdb.saga", ("name", job.Name!), ("done", job.Offset.ToString()), ("total", total.ToString())), job);
-            if (page.Length < Page) return;
+            if (page.Length < Page) break;
         }
+        QueueImages(run.Db);
     }
 
     public static async Task Platform(TaskRun run, CancellationToken ct)
@@ -105,8 +106,17 @@ public static class IgdbImport
             await Import(run.Db, igdb, page, null, ct);
             job = job with { Offset = job.Offset + page.Length };
             Report(run, job.Offset, total, ApiError.Of("tasks.igdb.platform", ("platform", job.Platform), ("done", job.Offset.ToString()), ("total", total.ToString())), job);
-            if (page.Length < Page) return;
+            if (page.Length < Page) break;
         }
+        QueueImages(run.Db);
+    }
+
+    /// <summary>Al terminar una carga, las portadas de lo nuevo (si no hay ya una tarea de imágenes esperando).</summary>
+    static void QueueImages(Database db)
+    {
+        using (var c = db.Open())
+            if (c.ExecuteScalar<long>("SELECT count(*) FROM task WHERE kind = 'sgdb.images' AND status = 'queued'") > 0) return;
+        SteamGridDb.Enqueue(db);
     }
 
     static void Report<T>(TaskRun run, long done, long total, ApiError detail, T job) =>

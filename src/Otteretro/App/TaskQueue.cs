@@ -25,6 +25,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         ["demo"] = Demo,
         ["igdb.saga"] = Catalog.IgdbImport.Saga,
         ["igdb.platform"] = Catalog.IgdbImport.Platform,
+        ["sgdb.images"] = Catalog.SteamGridDb.Images,
     };
 
     /// <summary>Las que duran más que esto avisan con una notificación del sistema al terminar.</summary>

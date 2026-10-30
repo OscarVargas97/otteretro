@@ -125,6 +125,14 @@ public static class Endpoints
         // Panel de tareas: lo pendiente y lo reciente; cada cambio llega después por el evento "task".
         api.MapGet("/tasks", (TaskQueue q) => q.List());
 
+        // Portada, héroe o logo de un juego desde cache/imagenes. Va en <img src>, así que la clave llega en ?key=.
+        api.MapGet("/images/{gameId:long}/{kind}", Results<PhysicalFileHttpResult, NotFound> (long gameId, string kind, AppSession s) =>
+        {
+            if (!Catalog.SteamGridDb.Kinds.Contains(kind) || !DataFolder.IsReady(s.Config.DataFolder)) return TypedResults.NotFound();
+            var file = Catalog.SteamGridDb.Find(new Database(DataFolder.DatabasePath(s.Config.DataFolder!)), gameId, kind);
+            return file is null ? TypedResults.NotFound() : TypedResults.PhysicalFile(file, ImageType(file), enableRangeProcessing: false);
+        });
+
         api.MapGet("/events", (HttpContext http, Events events) => events.Serve(http)).ExcludeFromDescription();
     }
 
@@ -142,6 +150,13 @@ public static class Endpoints
             return false;
         }
     }
+
+    static string ImageType(string file) => Path.GetExtension(file).ToLowerInvariant() switch
+    {
+        ".png" => "image/png",
+        ".webp" => "image/webp",
+        _ => "image/jpeg",
+    };
 
     static Credentials? CredentialsOf(AppSession s, SecretBox box) =>
         DataFolder.IsReady(s.Config.DataFolder) ? new(new Database(DataFolder.DatabasePath(s.Config.DataFolder!)), s.Config.MachineId, box) : null;

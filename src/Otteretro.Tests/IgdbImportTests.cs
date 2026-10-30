@@ -73,51 +73,7 @@ public class IgdbImportTests
         }
     }
 
-    sealed class Fixture : IAsyncDisposable
-    {
-        public readonly TempDir Tmp = new();
-        public readonly Database Db;
-        public readonly TaskQueue Queue;
-        readonly AppConfig config;
-        readonly SecretBox box = new();
-
-        public Fixture(bool withKeys = true)
-        {
-            config = new AppConfig { DataFolder = Tmp["datos"] };
-            Assert.Null(DataFolder.Prepare(config.DataFolder));
-            Db = Startup.PrepareData(config);
-            if (withKeys)
-            {
-                var credentials = new Credentials(Db, config.MachineId, box);
-                credentials.Save("igdb.clientId", "id");
-                credentials.Save("igdb.clientSecret", "secreto");
-            }
-            var session = new AppSession(config, Tmp["config.json"], "k");
-            var events = new Events();
-            Queue = new TaskQueue(session, events, new FolderMoveService(session, events), box) { Poll = TimeSpan.FromMilliseconds(20) };
-        }
-
-        /// <summary>Encola, corre la cola hasta que la tarea termina y devuelve cómo terminó.</summary>
-        public async Task<TaskInfo> Run(long id)
-        {
-            await Queue.StartAsync(CancellationToken.None);
-            TaskInfo? task = null;
-            for (var i = 0; i < 500; i++)
-            {
-                task = Queue.List().FirstOrDefault(t => t.Id == id);
-                if (task?.Status is "done" or "error") break;
-                await Task.Delay(20);
-            }
-            await Queue.StopAsync(CancellationToken.None);
-            return task!;
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            await Queue.StopAsync(CancellationToken.None);
-            Tmp.Dispose();
-        }
-    }
+    static readonly (string, string)[] IgdbKeys = [("igdb.clientId", "id"), ("igdb.clientSecret", "secreto")];
 
     public IgdbImportTests() => IgdbImport.Handler = new FakeIgdb();
 
@@ -125,7 +81,7 @@ public class IgdbImportTests
     [Fact]
     public async Task LoadingZeldaLeavesTheSagaComplete()
     {
-        await using var f = new Fixture();
+        await using var f = new Fixture(IgdbKeys);
 
         // Antes, una carga por consola trajo el remake de 3DS como juego suelto: al cargar la saga pasa a su original.
         Assert.Equal("done", (await f.Run(IgdbImport.EnqueuePlatform(f.Db, "3ds"))).Status);
@@ -164,7 +120,7 @@ public class IgdbImportTests
     [InlineData("dreamcast", "tasks.igdb.unknownPlatform")]
     public async Task PlatformLoadRefusesPcAndUnknownPlatforms(string platform, string code)
     {
-        await using var f = new Fixture();
+        await using var f = new Fixture(IgdbKeys);
         var task = await f.Run(IgdbImport.EnqueuePlatform(f.Db, platform));
         Assert.Equal(("error", code), (task.Status, task.Detail!.Code));
     }
@@ -172,9 +128,9 @@ public class IgdbImportTests
     [Fact]
     public async Task WithoutKeysOrSagaTheTaskSaysWhy()
     {
-        await using (var f = new Fixture(withKeys: false))
-            Assert.Equal("tasks.igdb.noKey", (await f.Run(IgdbImport.EnqueueSaga(f.Db, "zelda"))).Detail!.Code);
         await using (var f = new Fixture())
+            Assert.Equal("tasks.igdb.noKey", (await f.Run(IgdbImport.EnqueueSaga(f.Db, "zelda"))).Detail!.Code);
+        await using (var f = new Fixture(IgdbKeys))
         {
             var task = await f.Run(IgdbImport.EnqueueSaga(f.Db, "no existe"));
             Assert.Equal("tasks.igdb.sagaNotFound", task.Detail!.Code);

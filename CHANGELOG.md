@@ -10,6 +10,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **La base ya tiene lugar para el catálogo**: sagas, juegos, versiones de consola y PC, y el seguimiento de cada juego (estado, fechas, nota y notas). Viene con las 23 consolas y PC cargadas. Todavía no hay juegos: llegan con los importadores de esta fase.
 - **Panel de tareas con trabajo de verdad**: lo que corre en segundo plano se ve avanzar en el panel, una tarea a la vez por tipo. Si cierras la app a mitad de camino, al abrirla sigue desde donde quedó. Las tareas largas avisan con una notificación del sistema al terminar. Para probarlo: `otteretro tareas prueba`.
 - **Carga del catálogo desde IGDB**, por saga o por consola y por partes: si se corta, sigue donde quedó. Los remakes, remasters y ports quedan como versiones del juego original; el nombre en español cuando IGDB lo tiene, y el id de Steam de las versiones de PC. PC se carga solo por saga. Necesita la cuenta de IGDB (Twitch) en Ajustes › Cuentas y claves.
+- **Portadas, fondos y logos de SteamGridDB**, que se bajan solos después de cada carga y quedan guardados en tu carpeta de datos. Necesita la clave de SteamGridDB en Ajustes › Cuentas y claves.
 - **Lo que corriges a mano no se pisa** al volver a cargar.
 
 ### Cambios

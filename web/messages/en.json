@@ -218,6 +218,11 @@
         "sagaNotFound": "IGDB has no saga called “{query}”.",
         "pcBySaga": "PC has too many games to load at once: it is loaded by saga.",
         "unknownPlatform": "“{platform}” is not one of the catalog consoles."
+      },
+      "sgdb": {
+        "images": "{done} of {total} games",
+        "noKey": "The SteamGridDB key is missing: paste it in Settings › Accounts and keys.",
+        "badKey": "SteamGridDB did not accept the key: check it in Settings › Accounts and keys."
       }
     }
   },
@@ -258,6 +263,9 @@
       "igdb": {
         "saga": "Load a saga from IGDB",
         "platform": "Load a console from IGDB"
+      },
+      "sgdb": {
+        "images": "Download covers from SteamGridDB"
       }
     },
     "status": {
