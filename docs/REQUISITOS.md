@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-30, con la #151 (HowLongToBeat fuera de F1).
+> **Última actualización:** 2026-10-30, con la #152 (Switch 2 y PC VR; juegos sin consola atenuados).
 
 ## Cómo se mantiene
 
@@ -57,21 +57,22 @@ Otteretro es una app **personal** para:
 
 ## 4. Consolas ✅
 
-**Incluidas: 23 sistemas.**
+**Incluidas: 24 sistemas** (Switch 2 desde la #152).
 
 | Empresa | Sistemas |
 |---|---|
-| Nintendo (12) | NES · Game Boy (incluye GBC) · SNES · Virtual Boy · N64 (incluye 64DD) · GBA · GameCube · DS (incluye DSi) · Wii · 3DS (incluye New 3DS) · Wii U · Switch |
+| Nintendo (13) | NES · Game Boy (incluye GBC) · SNES · Virtual Boy · N64 (incluye 64DD) · GBA · GameCube · DS (incluye DSi) · Wii · 3DS (incluye New 3DS) · Wii U · Switch · Switch 2 (solo se cataloga) |
 | Sony (7) | PS1 · PS2 · PSP · PS3 · PS Vita · PS4 · PS5 (emulación temprana: SharpEmu, KytyPS5) |
 | Microsoft (4) | Xbox · Xbox 360 · Xbox One y Series X\|S (estas dos solo se catalogan) |
-| **PC** | Versiones de PC oficiales y ports (§6.6) |
+| **PC** | Versiones de PC oficiales y ports (§6.6). **PC VR** va aparte (#152), como PC: solo por saga y con lo comprado en Steam |
 
 **Reglas**
 - Los add-ons van dentro de su consola base y las variantes, junto con su consola.
 - Las consolas sin emulación también se catalogan.
 - El estado de la emulación es un dato que se actualiza, no un valor fijo.
+- Un juego de una saga sin ninguna de estas consolas (Game & Watch, CD-i, Satellaview…) se muestra en la saga atenuado, con «Sin consola en Otteretro», y no cuenta para la colección (#152).
 
-**Fuera: 49 sistemas.** Game & Watch, FDS, Satellaview, Pokémon Mini, Switch 2 y todo lo de Sega, NEC, SNK, Atari, otras marcas, arcade y computadoras retro. Detalle en [historial/v1-por-tema/consolas.md](historial/v1-por-tema/consolas.md).
+**Fuera: 48 sistemas.** Game & Watch, FDS, Satellaview, Pokémon Mini y todo lo de Sega, NEC, SNK, Atari, otras marcas, arcade y computadoras retro. Detalle en [historial/v1-por-tema/consolas.md](historial/v1-por-tema/consolas.md).
 
 ## 5. Bibliotecas
 

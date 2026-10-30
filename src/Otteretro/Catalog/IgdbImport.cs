@@ -32,6 +32,7 @@ public static class IgdbImport
         [137] = "3ds",
         [41] = "wiiu",
         [130] = "switch",
+        [508] = "switch2",
         [7] = "ps1",
         [8] = "ps2",
         [38] = "psp",
@@ -44,7 +45,14 @@ public static class IgdbImport
         [49] = "xone",
         [169] = "xseries",
         [6] = "pc",
+        [161] = "pcvr", // Windows Mixed Reality
+        [162] = "pcvr", // Oculus VR
+        [163] = "pcvr", // SteamVR
+        [385] = "pcvr", // Oculus Rift
     };
+
+    /// <summary>PC y PC VR: se cargan solo por saga y sus versiones llevan el id de Steam.</summary>
+    public static readonly string[] PcPlatforms = ["pc", "pcvr"];
 
     public const int Page = 500;
     const string Source = "igdb";
@@ -93,7 +101,7 @@ public static class IgdbImport
     public static async Task Platform(TaskRun run, CancellationToken ct)
     {
         var job = JsonSerializer.Deserialize<PlatformJob>(run.Data!, JsonSerializerOptions.Web)!;
-        if (job.Platform == "pc") throw new TaskException(ApiError.Of("tasks.igdb.pcBySaga"));
+        if (PcPlatforms.Contains(job.Platform)) throw new TaskException(ApiError.Of("tasks.igdb.pcBySaga"));
         var ids = Platforms.Where(p => p.Value == job.Platform).Select(p => p.Key).ToList();
         if (ids.Count == 0) throw new TaskException(ApiError.Of("tasks.igdb.unknownPlatform", ("platform", job.Platform)));
 
@@ -140,7 +148,7 @@ public static class IgdbImport
             {
                 foreach (var l in links)
                     c.Execute("""
-                        UPDATE source SET version_id = (SELECT id FROM version WHERE igdb_id = @Game AND platform = 'pc')
+                        UPDATE source SET version_id = (SELECT id FROM version WHERE igdb_id = @Game AND platform IN ('pc', 'pcvr') ORDER BY platform LIMIT 1)
                         WHERE kind = 'store' AND store = 'steam' AND store_id = @Uid AND version_id IS NULL
                         """, l);
                 Steam.Link(c);
@@ -325,7 +333,7 @@ public static class IgdbImport
         {
             var dates = (g.ReleaseDates ?? []).Where(d => d.Platform is { } p && platform.Contains(p) && d.Date is not null).Select(d => d.Date!.Value).ToList();
             var year = Year(dates.Count > 0 ? dates.Min() : g.FirstReleaseDate);
-            var steam = platform.Key == "pc" ? SteamId(g) : null;
+            var steam = PcPlatforms.Contains(platform.Key) ? SteamId(g) : null;
             // Al recargar solo cambian el año y el id de Steam: el tipo y el juego pueden estar corregidos a mano.
             c.Execute("""
                 INSERT INTO version (game_id, platform, kind, year, igdb_id, steam_app_id) VALUES (@gameId, @platform, @kind, @year, @igdbId, @steam)

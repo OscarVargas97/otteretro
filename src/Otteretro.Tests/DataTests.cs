@@ -27,8 +27,8 @@ public class DataTests
         var db = new Database(tmp["otteretro.db"]);
         Migrations.Apply(db);
         using var c = db.Open();
-        Assert.Equal(24, c.ExecuteScalar<int>("SELECT count(*) FROM console"));
-        Assert.Equal(23, c.ExecuteScalar<int>("SELECT count(*) FROM console WHERE company IS NOT NULL"));
+        Assert.Equal(26, c.ExecuteScalar<int>("SELECT count(*) FROM console"));
+        Assert.Equal(24, c.ExecuteScalar<int>("SELECT count(*) FROM console WHERE company IS NOT NULL"));
         Assert.Equal(0, c.ExecuteScalar<int>("SELECT count(*) FROM pragma_table_info('saga') WHERE name = 'platform'"));
 
         // Una saga con versiones de PC y de consola, sin duplicar la saga.

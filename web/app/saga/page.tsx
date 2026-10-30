@@ -70,13 +70,13 @@ function Saga() {
               <thead><tr><th>{t("saga.game")}</th><th>{t("saga.year")}</th><th>{t("saga.platforms")}</th><th>{t("saga.state")}</th></tr></thead>
               <tbody>
                 {games.map((g) => (
-                  <tr key={g.id}>
+                  <tr key={g.id} className={g.platforms.length === 0 ? "is-unplayable" : undefined}>
                     <td><Link href={`/game/?id=${g.id}`}>{g.name}</Link></td>
                     <td>{g.year ?? "—"}</td>
                     <td><span className="chips" style={{ gap: 4 }}><Platforms ids={g.platforms} /></span></td>
                     <td>
                       <span className="chips" style={{ gap: 4 }}>
-                        {g.owned ? <span className="ot-badge ot-badge-have">{t("owned")}</span> : <span className="ot-badge">{t("missing")}</span>}
+                        {g.platforms.length === 0 ? <span className="ot-badge">{t("noConsole")}</span> : g.owned ? <span className="ot-badge ot-badge-have">{t("owned")}</span> : <span className="ot-badge">{t("missing")}</span>}
                         {g.status && g.status !== "pending" && <span className="ot-badge ot-badge-info">{t(`status.${g.status as "playing"}`)}</span>}
                       </span>
                     </td>

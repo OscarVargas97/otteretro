@@ -105,7 +105,7 @@ public static class CliMode
     }
 
     /// <summary>
-    /// `catalogo cargar`: sin opciones, una tarea por consola (PC no: tiene demasiados juegos y va por saga);
+    /// `catalogo cargar`: sin opciones, una tarea por consola (PC y PC VR no: tiene demasiados juegos y va por saga);
     /// `--consola X` o `--saga X` (la saga puede ir en varias palabras sin comillas).
     /// </summary>
     public static long[] EnqueueLoad(Data.Database db, string[] options)
@@ -113,7 +113,7 @@ public static class CliMode
         if (options is ["--consola", var platform]) return [Catalog.IgdbImport.EnqueuePlatform(db, platform.ToLowerInvariant())];
         if (options is ["--saga", .. var words]) return [Catalog.IgdbImport.EnqueueSaga(db, string.Join(' ', words))];
         using var c = db.Open();
-        var consoles = Dapper.SqlMapper.Query<string>(c, "SELECT id FROM console WHERE id <> 'pc' ORDER BY rowid").ToList();
+        var consoles = Dapper.SqlMapper.Query<string>(c, "SELECT id FROM console WHERE id NOT IN ('pc', 'pcvr') ORDER BY rowid").ToList();
         return consoles.Select(p => Catalog.IgdbImport.EnqueuePlatform(db, p)).ToArray();
     }
 

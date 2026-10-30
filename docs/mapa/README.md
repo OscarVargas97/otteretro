@@ -11,7 +11,7 @@ Qué pantalla o comando dispara cada función, qué endpoint llama, qué módulo
 | `otteretro` · `otteretro --fullscreen` | Abre la app: una sola instancia, servidor local y ventana (a pantalla completa con `--fullscreen` o dentro de gamescope) | `App/Program.cs` → `App/Startup.cs`, `App/SingleInstance.cs`, `App/LocalServer.cs`, `App/MainWindow.cs` |
 | `otteretro servidor` | API e interfaz sin ventana, para el navegador (desarrollo) | `App/Modes.cs` → `App/LocalServer.cs` |
 | `otteretro jugar <id>` | Todavía no implementado (F4): registra el aviso y sale con código 2 | `App/Modes.cs` |
-| `otteretro catalogo cargar [--consola X \| --saga X]` | Encola la carga desde IGDB: sin opciones, una tarea `igdb.platform` por consola (PC no: va por saga); con `--consola`, esa; con `--saga`, `igdb.saga` (la saga puede ir en varias palabras) | `App/Modes.cs` (`CliMode.EnqueueLoad`) → `Catalog/IgdbImport.cs` |
+| `otteretro catalogo cargar [--consola X \| --saga X]` | Encola la carga desde IGDB: sin opciones, una tarea `igdb.platform` por consola (PC y PC VR no: van por saga); con `--consola`, esa; con `--saga`, `igdb.saga` (la saga puede ir en varias palabras) | `App/Modes.cs` (`CliMode.EnqueueLoad`) → `Catalog/IgdbImport.cs` |
 | `otteretro steam sincronizar` | Encola `steam.sync`: lo que tienes en Steam con horas y última vez; lo que no está en el catálogo se busca en IGDB por su id de Steam (`igdb.steam`) | `App/Modes.cs` → `Catalog/Steam.cs`, `Catalog/IgdbImport.cs` |
 | `otteretro tareas prueba` | Encola una tarea de prueba (10 pasos de 3 s) para ver el panel de tareas; la toma la app abierta | `App/Modes.cs` → `App/TaskQueue.cs` |
 | `otteretro version` · `ayuda` · `openapi <archivo>` | Versión, ayuda y contrato OpenAPI para `npm run tipos` | `App/Modes.cs` |
@@ -63,7 +63,7 @@ Todo bajo `/api`, solo en `127.0.0.1` y con la clave de la sesión (cabecera `X-
 | `GET /api/tasks` | Tareas de la cola: lo pendiente y lo de las últimas 24 horas (hasta 20). La mudanza de la carpeta de datos responde `move.tasksRunning` mientras corre alguna |
 | `GET /api/events` | SSE: `heartbeat` cada 15 s, `move`, `update`, `task` |
 | `GET /api/sagas?filter&platform&company&sort` · `GET` · `PUT /api/sagas/{id}` | Sagas con sus plataformas y conteos; detalle con sus juegos; marcar favorita o seguir (`Api/CatalogEndpoints.cs`) |
-| `GET /api/consoles` · `GET /api/collection/{platform}?filter&sort` | Las 24 consolas con cuántos juegos hay y cuántos tienes; los juegos de una consola (en PC, también lo de Steam sin catálogo) |
+| `GET /api/consoles` · `GET /api/collection/{platform}?filter&sort` | Las 26 consolas con cuántos juegos hay y cuántos tienes; los juegos de una consola (en PC, también lo de Steam sin catálogo) |
 | `GET /api/games/{id}` · `PUT …/progress` · `PUT` · `DELETE …/fields/{field}` | Ficha; guardar el seguimiento (`progress.badStatus`, `badDate`, `badRating`, `notesTooLong`); corregir `name_es`, `original_name` o `year` a mano (`fields.empty`, `fields.badYear`) o quitar la corrección |
 | `GET /api/search?q=` | Sagas y juegos por nombre (2 letras como mínimo) |
 | `GET /api/notices` | Avisos de Inicio: `notices.missingKey` con el servicio |
@@ -75,7 +75,7 @@ Todo bajo `/api`, solo en `127.0.0.1` y con la clave de la sesión (cabecera `X-
 | `%LocalAppData%\Otteretro\config.json` (en Linux, `~/.config/otteretro/config.json`) | Carpeta de datos, origen de actualizaciones, id del equipo e idioma (`language`; sin él, el del sistema). Escritura atómica. Las claves de F0 siguen en español (`carpetaDatos`, `origenActualizaciones`, `equipoId`) para leer los de antes | `App/AppConfig.cs` |
 | `data/otteretro.db` · `machine` | Equipos donde se usa la app | `Data/Migrations.cs` al arrancar |
 | `data/otteretro.db` · `credential` | Claves cifradas de cada equipo (`id` = servicio.campo) | `App/Credentials.cs` |
-| `data/otteretro.db` · `console` | Las 23 consolas y PC (`id` = nombre corto: `snes`, `pc`…) con su estado de emulación | Semilla en `Data/Migrations/0004_catalog.sql` |
+| `data/otteretro.db` · `console` | Las 24 consolas, PC y PC VR (`id` = nombre corto: `snes`, `pc`, `pcvr`…) con su estado de emulación | Semilla en `Data/Migrations/0004_catalog.sql` y `0008_switch2_pcvr.sql` |
 | `data/otteretro.db` · `saga`, `game`, `version`, `version_criterion`, `field_value` | El catálogo: la saga sin plataforma, la plataforma en la versión (#131); cada dato con su fuente, y en la columna el ganador (lo manual siempre gana) | Tareas `igdb.saga` e `igdb.platform` (`Catalog/IgdbImport.cs`, `Catalog/Igdb.cs`); después de cada carga, `catalog.extra` (`Catalog/ExtraSources.cs`): Wikidata pone en su saga los juegos que IGDB dejó sin ella y RAWG trae el año que falta (solo con su clave). `Catalog/FieldValues.cs` elige el ganador: lo manual, después la fuente con dato de más prioridad (IGDB, Wikidata, RAWG, HowLongToBeat) |
 | `data/otteretro.db` · `progress`, `play_session`, `price_watch`, `dismissal` | Seguimiento de cada juego (#133), sesiones de juego (F4), precios a vigilar y sagas descartadas | `progress`: la ficha (`PUT /api/games/{id}/progress`); el resto, todavía nadie |
 | `data/otteretro.db` · `task` | Cola de tareas en segundo plano: estado, progreso, detalle (código para el front) y punto de control para seguir tras un reinicio | `App/TaskQueue.cs` (la CLI encola) |

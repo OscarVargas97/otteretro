@@ -45,6 +45,8 @@ body { margin: 0; font-family: var(--font-sans); font-size: 15px; line-height: 2
 .ot-game-meta { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); align-items: center; font-size: 13px; line-height: 18px; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
 .ot-game-badges { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 .ot-game.is-missing .ot-cover { filter: grayscale(1) brightness(.6); }
+/* Sin ninguna consola del catálogo (Game & Watch, CD-i…): está en la saga, pero no se puede jugar ni tener (#58). */
+.ot-game.is-unplayable, tr.is-unplayable { opacity: .55; }
 
 /* Progreso */
 .ot-progress { height: 4px; border-radius: var(--radius-sm); background: var(--line); overflow: hidden; }

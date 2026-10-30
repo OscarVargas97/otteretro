@@ -68,7 +68,7 @@ public static partial class Steam
     /// <summary>Enlaza los orígenes de Steam sueltos con la versión de PC que tiene ese id de Steam.</summary>
     public static void Link(Microsoft.Data.Sqlite.SqliteConnection c, Microsoft.Data.Sqlite.SqliteTransaction? t = null) =>
         c.Execute("""
-            UPDATE source SET version_id = (SELECT v.id FROM version v WHERE v.platform = 'pc' AND v.steam_app_id = CAST(source.store_id AS INTEGER))
+            UPDATE source SET version_id = (SELECT v.id FROM version v WHERE v.platform IN ('pc', 'pcvr') AND v.steam_app_id = CAST(source.store_id AS INTEGER) ORDER BY v.platform LIMIT 1)
             WHERE kind = 'store' AND store = 'steam' AND version_id IS NULL
             """, transaction: t);
 

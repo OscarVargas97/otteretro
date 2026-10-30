@@ -74,7 +74,7 @@ public class CatalogApiTests : IAsyncLifetime
     public async Task CollectionByConsoleWithPcStoresAndUnlinkedGames()
     {
         var consoles = (await Get<List<ConsoleCount>>("/api/consoles"))!;
-        Assert.Equal(24, consoles.Count);
+        Assert.Equal(26, consoles.Count);
         Assert.Equal((1, 1), consoles.Where(c => c.Id == "pc").Select(c => (c.Games, c.Owned)).Single());
 
         var pc = (await Get<CollectionPage>("/api/collection/pc"))!;

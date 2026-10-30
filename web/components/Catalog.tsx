@@ -47,7 +47,7 @@ export function GameTile({ game }: { game: GameCard }) {
   const t = useTranslations("catalog");
   const id = Number(game.id);
   return (
-    <Link className={`ot-game${game.owned ? "" : " is-missing"}`} href={`/game/?id=${id}`} style={{ textDecoration: "none", color: "var(--ink)" }}>
+    <Link className={`ot-game${game.owned ? "" : " is-missing"}${game.platforms.length === 0 ? " is-unplayable" : ""}`} href={`/game/?id=${id}`} style={{ textDecoration: "none", color: "var(--ink)" }}>
       <Cover gameId={id} name={game.name} hasCover={game.hasCover} />
       <p className="ot-game-name" title={game.name}>{game.name}</p>
       <div className="ot-game-meta">
@@ -57,7 +57,7 @@ export function GameTile({ game }: { game: GameCard }) {
         {Number(game.playtime) > 0 && <span>{hours(game.playtime)}</span>}
       </div>
       <div className="ot-game-badges">
-        {game.owned ? <span className="ot-badge ot-badge-have">{t("owned")}</span> : <span className="ot-badge">{t("missing")}</span>}
+        {game.platforms.length === 0 ? <span className="ot-badge">{t("noConsole")}</span> : game.owned ? <span className="ot-badge ot-badge-have">{t("owned")}</span> : <span className="ot-badge">{t("missing")}</span>}
         {game.status && game.status !== "pending" && <span className="ot-badge ot-badge-info">{t(`status.${game.status as "playing"}`)}</span>}
       </div>
     </Link>
