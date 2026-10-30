@@ -36,14 +36,17 @@ INSERT INTO console (id, name, company, emulation_status) VALUES
     ('pc',      'PC',                 NULL,        NULL);
 
 -- La saga no tiene plataforma: va en la versión (#131). chosen_route apunta a route (F2).
+-- igdb_kind: franchise o collection (en IGDB son listas aparte y sus ids se repiten).
 CREATE TABLE saga (
     id           INTEGER PRIMARY KEY,
     name         TEXT NOT NULL,
-    igdb_id      INTEGER UNIQUE,
+    igdb_kind    TEXT CHECK (igdb_kind IN ('franchise', 'collection')),
+    igdb_id      INTEGER,
     favorite     INTEGER NOT NULL DEFAULT 0,
     following    INTEGER NOT NULL DEFAULT 0,
     iconic       INTEGER NOT NULL DEFAULT 0,
-    chosen_route INTEGER
+    chosen_route INTEGER,
+    UNIQUE (igdb_kind, igdb_id)
 );
 
 -- saga_id vacío = el juego va en «Emulación» (sin saga).
@@ -57,15 +60,20 @@ CREATE TABLE game (
 );
 CREATE INDEX game_saga ON game (saga_id);
 
+-- igdb_id: la ficha de IGDB de la que sale (la del remake o el port, si lo es). steam_app_id: solo en PC.
 CREATE TABLE version (
     id              INTEGER PRIMARY KEY,
     game_id         INTEGER NOT NULL REFERENCES game(id) ON DELETE CASCADE,
     platform        TEXT NOT NULL REFERENCES console(id),
     kind            TEXT NOT NULL DEFAULT 'original' CHECK (kind IN ('original', 'remaster', 'remake')),
     year            INTEGER,
-    export_to_steam INTEGER NOT NULL DEFAULT 0
+    export_to_steam INTEGER NOT NULL DEFAULT 0,
+    igdb_id         INTEGER,
+    steam_app_id    INTEGER,
+    UNIQUE (igdb_id, platform)
 );
 CREATE INDEX version_game ON version (game_id);
+CREATE INDEX version_steam ON version (steam_app_id);
 
 CREATE TABLE version_criterion (
     version_id INTEGER NOT NULL REFERENCES version(id) ON DELETE CASCADE,

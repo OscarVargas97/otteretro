@@ -209,6 +209,15 @@
       "failed": "Falló: {detail}",
       "demo": {
         "step": "Paso {step} de {total}"
+      },
+      "igdb": {
+        "saga": "{name}: {done} de {total} juegos",
+        "platform": "{platform}: {done} de {total} juegos",
+        "noKey": "Falta la cuenta de IGDB: pega el Client ID y el Client Secret de Twitch en Ajustes › Cuentas y claves.",
+        "badKey": "Twitch no aceptó la cuenta de IGDB: revisa el Client ID y el Client Secret en Ajustes › Cuentas y claves.",
+        "sagaNotFound": "IGDB no tiene ninguna saga que se llame «{query}».",
+        "pcBySaga": "PC tiene demasiados juegos para cargarlos de una vez: se cargan por saga.",
+        "unknownPlatform": "«{platform}» no es una de las consolas del catálogo."
       }
     }
   },
@@ -245,7 +254,11 @@
   },
   "tasks": {
     "kind": {
-      "demo": "Tarea de prueba"
+      "demo": "Tarea de prueba",
+      "igdb": {
+        "saga": "Cargar una saga de IGDB",
+        "platform": "Cargar una consola de IGDB"
+      }
     },
     "status": {
       "queued": "En cola",

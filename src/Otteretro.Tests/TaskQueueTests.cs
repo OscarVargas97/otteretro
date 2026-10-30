@@ -14,7 +14,7 @@ public class TaskQueueTests
         var db = Startup.PrepareData(config);
         var session = new AppSession(config, tmp["config.json"], "k");
         var events = new Events();
-        return (new TaskQueue(session, events, new FolderMoveService(session, events)) { Poll = TimeSpan.FromMilliseconds(20) }, db);
+        return (new TaskQueue(session, events, new FolderMoveService(session, events), new SecretBox()) { Poll = TimeSpan.FromMilliseconds(20) }, db);
     }
 
     static async Task Until(Func<bool> condition)

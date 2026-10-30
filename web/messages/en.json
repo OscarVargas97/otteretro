@@ -209,6 +209,15 @@
       "failed": "Failed: {detail}",
       "demo": {
         "step": "Step {step} of {total}"
+      },
+      "igdb": {
+        "saga": "{name}: {done} of {total} games",
+        "platform": "{platform}: {done} of {total} games",
+        "noKey": "The IGDB account is missing: paste the Twitch Client ID and Client Secret in Settings › Accounts and keys.",
+        "badKey": "Twitch did not accept the IGDB account: check the Client ID and Client Secret in Settings › Accounts and keys.",
+        "sagaNotFound": "IGDB has no saga called “{query}”.",
+        "pcBySaga": "PC has too many games to load at once: it is loaded by saga.",
+        "unknownPlatform": "“{platform}” is not one of the catalog consoles."
       }
     }
   },
@@ -245,7 +254,11 @@
   },
   "tasks": {
     "kind": {
-      "demo": "Test task"
+      "demo": "Test task",
+      "igdb": {
+        "saga": "Load a saga from IGDB",
+        "platform": "Load a console from IGDB"
+      }
     },
     "status": {
       "queued": "Queued",

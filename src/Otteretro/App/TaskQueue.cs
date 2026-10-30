@@ -15,12 +15,17 @@ public record TaskInfo(long Id, string Kind, string Status, int Progress, ApiErr
 /// Revisa la tabla cada pocos segundos, así que también ve lo que encola la CLI desde otro proceso.
 /// Cada cambio se publica como evento "task" (panel de tareas).
 /// </summary>
-public sealed class TaskQueue(AppSession session, Events events, FolderMoveService move) : BackgroundService
+public sealed class TaskQueue(AppSession session, Events events, FolderMoveService move, SecretBox box) : BackgroundService
 {
     /// <summary>Lo que hace cada tipo de tarea. Recibe el punto de control guardado en `run.Data` y sigue desde ahí.</summary>
     public delegate Task Handler(TaskRun run, CancellationToken ct);
 
-    public static readonly Dictionary<string, Handler> Handlers = new() { ["demo"] = Demo };
+    public static readonly Dictionary<string, Handler> Handlers = new()
+    {
+        ["demo"] = Demo,
+        ["igdb.saga"] = Catalog.IgdbImport.Saga,
+        ["igdb.platform"] = Catalog.IgdbImport.Platform,
+    };
 
     /// <summary>Las que duran más que esto avisan con una notificación del sistema al terminar.</summary>
     public static readonly TimeSpan LongTask = TimeSpan.FromMinutes(1);
@@ -104,10 +109,15 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         try
         {
             if (!Handlers.TryGetValue(t.Kind, out var handler)) throw new InvalidOperationException($"Tipo de tarea desconocido: {t.Kind}");
-            await handler(new TaskRun(this, db, t.Id, t.Data), ct);
+            await handler(new TaskRun(this, db, t.Id, t.Data, new Credentials(db, session.Config.MachineId, box)), ct);
             Finish(db, t.Id, "done", null, clock.Elapsed);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        catch (TaskException e)
+        {
+            FileLog.Write(LogLevel.Warning, "Tasks", $"Tarea {t.Id} ({t.Kind}): {e.Error.Code}");
+            Finish(db, t.Id, "error", e.Error, clock.Elapsed);
+        }
         catch (Exception e)
         {
             FileLog.Write(LogLevel.Error, "Tasks", $"Tarea {t.Id} ({t.Kind}): {e}");
@@ -157,10 +167,18 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
     }
 }
 
+/// <summary>Un fallo que la persona puede arreglar (falta una clave, no se encontró la saga…): su código va al panel.</summary>
+public sealed class TaskException(ApiError error) : Exception(error.Code)
+{
+    public ApiError Error { get; } = error;
+}
+
 /// <summary>Una tarea en curso: informa su avance y guarda su punto de control.</summary>
-public sealed class TaskRun(TaskQueue queue, Database db, long id, string? data)
+public sealed class TaskRun(TaskQueue queue, Database db, long id, string? data, Credentials credentials)
 {
     public long Id { get; } = id;
+    public Database Db { get; } = db;
+    public Credentials Credentials { get; } = credentials;
 
     /// <summary>Punto de control con el que arrancó (null la primera vez).</summary>
     public string? Data { get; private set; } = data;
@@ -170,10 +188,10 @@ public sealed class TaskRun(TaskQueue queue, Database db, long id, string? data)
     public void Report(int progress, ApiError? detail, string? data = null)
     {
         Data = data ?? Data;
-        using (var c = db.Open())
+        using (var c = Db.Open())
             c.Execute("UPDATE task SET progress = @progress, detail = @detail, data = @Data WHERE id = @Id",
                 new { Id, progress = Math.Clamp(progress, 0, 100), detail = detail is null ? null : JsonSerializer.Serialize(detail, JsonSerializerOptions.Web), Data });
-        queue.Publish(db, Id);
+        queue.Publish(Db, Id);
     }
 }
 
