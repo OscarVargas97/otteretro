@@ -2,6 +2,13 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
+## Imágenes livianas · en revisión
+
+`feat/64-imagenes-webp`
+
+### Cambios
+- **Las imágenes ocupan unas 13 veces menos**: portadas, fondos y logos se guardan en WebP y al tamaño que muestra la app. Las que ya estaban bajadas se convierten solas en segundo plano, sin volver a descargarlas. En la carpeta de prueba, 532 imágenes pasaron de 556 MB a 42 MB.
+
 ## Juegos de PC populares · en revisión
 
 `feat/62-pc-populares`
