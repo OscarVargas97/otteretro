@@ -202,7 +202,8 @@
         "sagaNotFound": "IGDB has no saga called “{query}”.",
         "pcBySaga": "PC has too many games to load at once: it is loaded by saga.",
         "unknownPlatform": "“{platform}” is not one of the catalog consoles.",
-        "steam": "{done} of {total} Steam games"
+        "steam": "{done} of {total} Steam games",
+        "popular": "Popular PC games: {done} of {total}"
       },
       "sgdb": {
         "images": "{done} of {total} games",
@@ -288,7 +289,8 @@
       "igdb": {
         "saga": "Load a saga from IGDB",
         "platform": "Load a console from IGDB",
-        "steam": "Find your Steam games on IGDB"
+        "steam": "Find your Steam games on IGDB",
+        "popular": "Load popular PC games from IGDB"
       },
       "sgdb": {
         "images": "Download covers from SteamGridDB"

@@ -47,8 +47,10 @@ public class ModesTests
 
         Assert.StartsWith("igdb.platform {\"platform\":\"snes\"", Data(CliMode.EnqueueLoad(f.Db, ["--consola", "SNES"]).Single()));
         Assert.StartsWith("igdb.saga {\"query\":\"the legend of zelda\"", Data(CliMode.EnqueueLoad(f.Db, ["--saga", "the", "legend", "of", "zelda"]).Single()));
+        Assert.StartsWith("igdb.popular ", Data(CliMode.EnqueueLoad(f.Db, ["--pc-populares"]).Single()));
         var all = CliMode.EnqueueLoad(f.Db, []);
-        Assert.Equal(24, all.Length); // todas menos PC y PC VR
+        Assert.Equal(25, all.Length); // todas menos PC y PC VR, y al final los populares de PC (#62)
+        Assert.StartsWith("igdb.popular ", Data(all[^1]));
         Assert.DoesNotContain(all, id => Data(id).Contains("\"pc\""));
     }
 
