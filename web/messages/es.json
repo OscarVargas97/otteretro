@@ -214,6 +214,10 @@
         "badKey": "Steam no aceptó la clave de Steam Web API: revísala en Ajustes › Cuentas y claves.",
         "noAccount": "No se encontró una cuenta de Steam en este equipo: abre Steam e inicia sesión una vez.",
         "failed": "Steam no respondió bien ({status}). Prueba más tarde."
+      },
+      "extra": {
+        "progress": "{done} de {total} juegos",
+        "rawgBadKey": "RAWG no aceptó la clave: revísala en Ajustes › Cuentas y claves."
       }
     },
     "progress": {
@@ -244,6 +248,7 @@
       "igdb": "IGDB (Twitch)",
       "screenscraper": "ScreenScraper",
       "steamgriddb": "SteamGridDB",
+      "rawg": "RAWG (opcional)",
       "retroachievements": "RetroAchievements",
       "myjdownloader": "MyJDownloader"
     },
@@ -271,6 +276,9 @@
       },
       "steam": {
         "sync": "Leer lo que tienes en Steam"
+      },
+      "catalog": {
+        "extra": "Completar con Wikidata y RAWG"
       }
     },
     "status": {

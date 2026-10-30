@@ -228,7 +228,7 @@ public static class CatalogQueries
         var fields = c.Query<(string Field, string? Value, string Source, bool Manual)>(
                 "SELECT field, value, source, manual FROM field_value WHERE entity = 'game' AND entity_id = @id", new { id })
             .GroupBy(f => f.Field)
-            .SelectMany(group => group.OrderBy(f => FieldValues.Rank(f.Field, f.Source, f.Manual)).Select((f, i) => new FieldRow(f.Field, f.Value, f.Source, f.Manual, i == 0)))
+            .SelectMany(group => group.OrderBy(f => f.Value is null && !f.Manual).ThenBy(f => FieldValues.Rank(f.Field, f.Source, f.Manual)).Select((f, i) => new FieldRow(f.Field, f.Value, f.Source, f.Manual, i == 0)))
             .ToList();
 
         var p = c.QuerySingleOrDefault<(string Status, string? StartedAt, string? FinishedAt, long? Rating, string? Notes, long Favorite)?>(

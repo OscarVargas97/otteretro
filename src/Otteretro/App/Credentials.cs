@@ -32,6 +32,7 @@ public sealed class Credentials(Database db, string machineId, SecretBox box)
         new("screenscraper", "user", "https://www.screenscraper.fr/"),
         new("screenscraper", "password", "https://www.screenscraper.fr/"),
         new("steamgriddb", "apiKey", "https://www.steamgriddb.com/profile/preferences/api"),
+        new("rawg", "apiKey", "https://rawg.io/apidocs"),
         new("retroachievements", "user", "https://retroachievements.org/settings"),
         new("retroachievements", "apiKey", "https://retroachievements.org/settings"),
         new("myjdownloader", "email", "https://my.jdownloader.org/"),

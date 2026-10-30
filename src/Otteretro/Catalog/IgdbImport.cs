@@ -87,7 +87,7 @@ public static class IgdbImport
             Report(run, job.Offset, total, ApiError.Of("tasks.igdb.saga", ("name", job.Name!), ("done", job.Offset.ToString()), ("total", total.ToString())), job);
             if (page.Length < Page) break;
         }
-        QueueImages(run.Db);
+        QueueFollowUps(run.Db);
     }
 
     public static async Task Platform(TaskRun run, CancellationToken ct)
@@ -108,7 +108,7 @@ public static class IgdbImport
             Report(run, job.Offset, total, ApiError.Of("tasks.igdb.platform", ("platform", job.Platform), ("done", job.Offset.ToString()), ("total", total.ToString())), job);
             if (page.Length < Page) break;
         }
-        QueueImages(run.Db);
+        QueueFollowUps(run.Db);
     }
 
     record SteamLink(long Game, string Uid);
@@ -149,15 +149,19 @@ public static class IgdbImport
             run.Report(done * 100 / appIds.Count, ApiError.Of("tasks.igdb.steam", ("done", done.ToString()), ("total", appIds.Count.ToString())),
                 JsonSerializer.Serialize(new Steam.LinkJob(chunk[^1]), JsonSerializerOptions.Web));
         }
-        QueueImages(run.Db);
+        QueueFollowUps(run.Db);
     }
 
-    /// <summary>Al terminar una carga, las portadas de lo nuevo (si no hay ya una tarea de imágenes esperando).</summary>
-    static void QueueImages(Database db)
+    /// <summary>Al terminar una carga: las portadas de lo nuevo y lo que completan Wikidata y RAWG (si no están ya esperando).</summary>
+    static void QueueFollowUps(Database db)
     {
-        using (var c = db.Open())
-            if (c.ExecuteScalar<long>("SELECT count(*) FROM task WHERE kind = 'sgdb.images' AND status = 'queued'") > 0) return;
-        SteamGridDb.Enqueue(db);
+        bool Waiting(string kind)
+        {
+            using var c = db.Open();
+            return c.ExecuteScalar<long>("SELECT count(*) FROM task WHERE kind = @kind AND status = 'queued'", new { kind }) > 0;
+        }
+        if (!Waiting("sgdb.images")) SteamGridDb.Enqueue(db);
+        if (!Waiting("catalog.extra")) ExtraSources.Enqueue(db);
     }
 
     static void Report<T>(TaskRun run, long done, long total, ApiError detail, T job) =>

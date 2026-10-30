@@ -214,6 +214,10 @@
         "badKey": "Steam did not accept the Steam Web API key: check it in Settings › Accounts and keys.",
         "noAccount": "No Steam account was found on this computer: open Steam and sign in once.",
         "failed": "Steam did not answer properly ({status}). Try again later."
+      },
+      "extra": {
+        "progress": "{done} of {total} games",
+        "rawgBadKey": "RAWG didn’t accept the key: check it in Settings › Accounts and keys."
       }
     },
     "progress": {
@@ -244,6 +248,7 @@
       "igdb": "IGDB (Twitch)",
       "screenscraper": "ScreenScraper",
       "steamgriddb": "SteamGridDB",
+      "rawg": "RAWG (optional)",
       "retroachievements": "RetroAchievements",
       "myjdownloader": "MyJDownloader"
     },
@@ -271,6 +276,9 @@
       },
       "steam": {
         "sync": "Read what you own on Steam"
+      },
+      "catalog": {
+        "extra": "Complete with Wikidata and RAWG"
       }
     },
     "status": {

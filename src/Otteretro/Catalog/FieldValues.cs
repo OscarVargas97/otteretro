@@ -59,7 +59,9 @@ public static class FieldValues
         var winner = c.Query<(string? Value, string Source, bool Manual)>(
                 "SELECT value, source, manual FROM field_value WHERE entity = @entity AND entity_id = @id AND field = @field",
                 new { entity, id, field }, t)
-            .OrderBy(r => Rank(field, r.Source, r.Manual))
+            // Una fuente que no tiene el dato no gana (el año de RAWG cuando IGDB no lo trae); lo manual vacío sí.
+            .OrderBy(r => r.Value is null && !r.Manual)
+            .ThenBy(r => Rank(field, r.Source, r.Manual))
             .FirstOrDefault();
         // Sin ningún valor guardado, la columna se queda como está (name_es no puede quedar vacío).
         if (winner.Source is not null)
