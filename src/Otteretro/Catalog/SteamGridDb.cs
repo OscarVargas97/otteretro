@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Dapper;
 using Otteretro.Api;
 using Otteretro.App;
@@ -11,6 +12,7 @@ namespace Otteretro.Catalog;
 /// <summary>
 /// Portadas 2:3, héroes y logos de SteamGridDB (F1.7) en `cache/imagenes/{juego}-{tipo}.{ext}`.
 /// La tarea `sgdb.images` recorre los juegos sin portada, con punto de control; la encola cada carga de IGDB.
+/// Si SteamGridDB no tiene una portada segura del juego, se usa la carátula oficial de IGDB (#61).
 /// </summary>
 public static class SteamGridDb
 {
@@ -32,7 +34,11 @@ public static class SteamGridDb
     public static HttpMessageHandler? Handler { get; set; }
 
     public record Job(long After = 0);
-    record Found(long Id);
+    record Found(long Id, string? Name = null, [property: JsonPropertyName("release_date")] long? ReleaseDate = null);
+    record IgdbCover(string? ImageId);
+
+    /// <summary>Carátula de IGDB (528×748): https://api-docs.igdb.com/#images.</summary>
+    public const string IgdbImageUrl = "https://images.igdb.com/igdb/image/upload/t_cover_big_2x/";
     record Image(string Url);
     record Response<T>(bool Success, T? Data);
 
@@ -40,7 +46,6 @@ public static class SteamGridDb
 
     public static string Folder(Database db) => Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(db.FilePath)!)!, "cache", "imagenes");
 
-    /// <summary>La imagen guardada de un juego, o null si todavía no hay.</summary>
     /// <summary>Borra las imágenes de un juego que ya no existe.</summary>
     public static void Forget(Database db, long gameId)
     {
@@ -48,6 +53,7 @@ public static class SteamGridDb
             while (Find(db, gameId, kind) is { } file) File.Delete(file);
     }
 
+    /// <summary>La imagen guardada de un juego, o null si todavía no hay.</summary>
     public static string? Find(Database db, long gameId, string kind) =>
         Directory.Exists(Folder(db)) ? Directory.EnumerateFiles(Folder(db), $"{gameId}-{kind}.*").FirstOrDefault() : null;
 
@@ -62,22 +68,29 @@ public static class SteamGridDb
         var folder = Folder(run.Db);
         Directory.CreateDirectory(folder);
 
-        List<(long Id, string Name, long? Steam)> games;
+        var igdb = !string.IsNullOrEmpty(run.Credentials.Read("igdb.clientId")) && !string.IsNullOrEmpty(run.Credentials.Read("igdb.clientSecret"))
+            ? new Igdb(api, run.Credentials, Handler) : null;
+
+        List<(long Id, string Name, long? Steam, long? Year, long? IgdbId)> games;
         using (var c = run.Db.Open())
-            games = c.Query<(long, string, long?)>("""
-                SELECT g.id, COALESCE(g.original_name, g.name_es), (SELECT max(steam_app_id) FROM version v WHERE v.game_id = g.id)
+            games = c.Query<(long, string, long?, long?, long?)>("""
+                SELECT g.id, COALESCE(g.original_name, g.name_es), (SELECT max(steam_app_id) FROM version v WHERE v.game_id = g.id), g.year, g.igdb_id
                 FROM game g WHERE g.id > @After ORDER BY g.id
                 """, job).ToList();
         games = games.Where(g => Find(run.Db, g.Id, "cover") is null).ToList();
 
         for (var i = 0; i < games.Count; i++)
         {
-            var (id, name, steam) = games[i];
-            var sgdbId = await GameId(api, key, name, steam, ct);
+            var (id, name, steam, year, igdbId) = games[i];
+            var sgdbId = await GameId(api, key, name, year, steam, ct);
             if (sgdbId is not null)
                 foreach (var kind in Kinds)
                     if (Find(run.Db, id, kind) is null && await First(api, key, string.Format(Queries[kind], sgdbId), ct) is { } url)
                         await Download(http, url, Path.Combine(folder, $"{id}-{kind}{Path.GetExtension(new Uri(url).AbsolutePath)}"), ct);
+            // ponytail: una consulta a IGDB por juego sin portada; de a 500 si la carga completa se hace lenta.
+            if (Find(run.Db, id, "cover") is null && igdb is not null && igdbId is not null
+                && (await igdb.Query<IgdbCover>("covers", $"fields image_id; where game = {igdbId}; limit 1;", ct)).FirstOrDefault()?.ImageId is { } image)
+                await Download(http, IgdbImageUrl + image + ".jpg", Path.Combine(folder, $"{id}-cover.jpg"), ct);
             // La carga corre a la par: si el juego se fusionó y se borró mientras bajaba, su imagen no queda para el próximo id (#59).
             using (var c = run.Db.Open())
                 if (c.ExecuteScalar<long?>("SELECT id FROM game WHERE id = @id", new { id }) is null) Forget(run.Db, id);
@@ -86,12 +99,17 @@ public static class SteamGridDb
         }
     }
 
-    /// <summary>El juego en SteamGridDB: por el id de Steam si lo hay, si no por el nombre (el primer resultado).</summary>
-    static async Task<long?> GameId(ApiClient api, string key, string name, long? steam, CancellationToken ct)
+    /// <summary>
+    /// El juego en SteamGridDB: por el id de Steam si lo hay; si no, el resultado de la búsqueda con el mismo nombre y,
+    /// si los dos tienen año, el mismo o uno de diferencia. Si ninguno coincide, null: una portada de otro juego es peor que ninguna (#61).
+    /// </summary>
+    static async Task<long?> GameId(ApiClient api, string key, string name, long? year, long? steam, CancellationToken ct)
     {
         if (steam is not null && await Get<Found>(api, key, $"games/steam/{steam}", ct) is { } bySteam) return bySteam.Id;
-        var list = await Get<Found[]>(api, key, $"search/autocomplete/{Uri.EscapeDataString(name)}", ct);
-        return list?.FirstOrDefault()?.Id;
+        var list = await Get<Found[]>(api, key, $"search/autocomplete/{Uri.EscapeDataString(name)}", ct) ?? [];
+        var wanted = IgdbImport.NameKey(name);
+        return list.FirstOrDefault(f => f.Name is not null && IgdbImport.NameKey(f.Name) == wanted
+            && (year is null || f.ReleaseDate is not { } date || Math.Abs(DateTimeOffset.FromUnixTimeSeconds(date).Year - year.Value) <= 1))?.Id;
     }
 
     static async Task<string?> First(ApiClient api, string key, string path, CancellationToken ct) =>

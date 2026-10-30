@@ -274,7 +274,8 @@ public static class IgdbImport
             """, saga, t).FirstOrDefault(x => x.Name is not null && NameKey(x.Name) == key).Id is var id and not 0 ? id : null;
     }
 
-    static string NameKey(string name) => new([.. name.ToLowerInvariant().Where(char.IsLetterOrDigit)]);
+    /// <summary>El nombre para comparar: minúsculas, solo letras y números.</summary>
+    internal static string NameKey(string name) => new([.. name.ToLowerInvariant().Where(char.IsLetterOrDigit)]);
 
     /// <summary>Un solo formato de nombre: guiones largos como guion y sin espacios repetidos.</summary>
     static string Clean(string name) => System.Text.RegularExpressions.Regex.Replace(name.Replace('–', '-').Replace('—', '-'), @"\s+", " ").Trim();

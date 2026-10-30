@@ -16,7 +16,12 @@ public class SteamGridDbTests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
             var url = request.RequestUri!.AbsoluteUri;
-            if (url.StartsWith("https://cdn2.steamgriddb.com/"))
+            // IGDB (respaldo de la portada, #61): el token y la carátula del juego 3.
+            if (url == Igdb.TokenUrl)
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{ "access_token": "token", "expires_in": 3600 }""") });
+            if (url == Igdb.ApiUrl + "covers")
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""[ { "id": 1, "image_id": "co3nada" } ]""") });
+            if (url.StartsWith("https://cdn2.steamgriddb.com/") || url.StartsWith(SteamGridDb.IgdbImageUrl))
             {
                 OnDownload?.Invoke(url);
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1, 2, 3]) });
@@ -25,8 +30,9 @@ public class SteamGridDbTests
             string? data = path switch
             {
                 "games/steam/70" => """{ "id": 11 }""",
-                "search/autocomplete/Zelda%20Classic" => """[ { "id": 22 } ]""",
-                "search/autocomplete/Nada" => "[]",
+                "search/autocomplete/Zelda%20Classic" => """[ { "id": 22, "name": "Zelda: Classic", "release_date": 1200000000 } ]""",
+                // El primer resultado es otro juego (#61): no se usa.
+                "search/autocomplete/Nada" => """[ { "id": 33, "name": "Nada Mas", "release_date": 1200000000 } ]""",
                 _ when path.StartsWith("grids/game/11") => """[ { "url": "https://cdn2.steamgriddb.com/grid/a.png" } ]""",
                 _ when path.StartsWith("grids/game/22") => """[ { "url": "https://cdn2.steamgriddb.com/grid/b.jpg" } ]""",
                 "logos/game/11" => """[ { "url": "https://cdn2.steamgriddb.com/logo/c.webp" } ]""",
@@ -90,6 +96,27 @@ public class SteamGridDbTests
         Assert.Equal(HttpStatusCode.NotFound, (await http.GetAsync($"/api/images/3/cover?key={f.Session.Key}")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await http.GetAsync($"/api/images/1/..%2F..%2Fdata?key={f.Session.Key}")).StatusCode);
         await app.StopAsync();
+    }
+
+    /// <summary>
+    /// #61: sin id de Steam solo vale un resultado con el mismo nombre y año (±1). Si ninguno coincide, la portada sale de IGDB,
+    /// que viene con el id del juego; sin cuenta de IGDB, el juego queda sin portada antes que con la de otro.
+    /// </summary>
+    [Fact]
+    public async Task WithoutAnExactMatchTheCoverComesFromIgdb()
+    {
+        await using var f = new Fixture(("steamgriddb.apiKey", "clave"), ("igdb.clientId", "id"), ("igdb.clientSecret", "secreto"));
+        using (var c = f.Db.Open())
+            c.Execute("""
+                INSERT INTO game (id, name_es, original_name, year, igdb_id) VALUES
+                    (2, 'Zelda Classic', 'Zelda Classic', 1990, NULL), -- mismo nombre, otro año (2008), sin IGDB
+                    (3, 'Nada', 'Nada', 2008, 3000),                    -- la búsqueda solo trae «Nada Mas»
+                    (4, 'Zelda Classic', 'Zelda Classic', 2007, NULL);  -- mismo nombre y un año de diferencia
+                """);
+
+        Assert.Equal("done", (await f.Run(SteamGridDb.Enqueue(f.Db))).Status);
+        var files = Directory.GetFiles(SteamGridDb.Folder(f.Db)).Select(Path.GetFileName).Order();
+        Assert.Equal(["3-cover.jpg", "4-cover.jpg"], files);
     }
 
     [Fact]
