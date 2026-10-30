@@ -41,6 +41,13 @@ public static class SteamGridDb
     public static string Folder(Database db) => Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(db.FilePath)!)!, "cache", "imagenes");
 
     /// <summary>La imagen guardada de un juego, o null si todavía no hay.</summary>
+    /// <summary>Borra las imágenes de un juego que ya no existe.</summary>
+    public static void Forget(Database db, long gameId)
+    {
+        foreach (var kind in Kinds)
+            while (Find(db, gameId, kind) is { } file) File.Delete(file);
+    }
+
     public static string? Find(Database db, long gameId, string kind) =>
         Directory.Exists(Folder(db)) ? Directory.EnumerateFiles(Folder(db), $"{gameId}-{kind}.*").FirstOrDefault() : null;
 

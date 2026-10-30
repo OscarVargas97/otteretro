@@ -231,7 +231,7 @@ public static class IgdbImport
             if (root != g.Id && byIgdb.TryGetValue(root, out var parentGame))
             {
                 gameId = parentGame;
-                MergeStandalone(c, t, g.Id, gameId);
+                MergeStandalone(c, t, g.Id, gameId, db);
             }
             else if (c.ExecuteScalar<long?>("SELECT game_id FROM version WHERE igdb_id = @Id", g, t) is { } existing
                      && c.ExecuteScalar<long?>("SELECT igdb_id FROM game WHERE id = @existing", new { existing }, t) != g.Id)
@@ -319,12 +319,14 @@ public static class IgdbImport
     }
 
     /// <summary>Un remake que antes se cargó como juego propio pasa a su original (si no tiene seguimiento).</summary>
-    static void MergeStandalone(SqliteConnection c, SqliteTransaction t, long igdbId, long target)
+    static void MergeStandalone(SqliteConnection c, SqliteTransaction t, long igdbId, long target, Database db)
     {
         if (c.ExecuteScalar<long?>("SELECT id FROM game WHERE igdb_id = @igdbId AND id <> @target", new { igdbId, target }, t) is not { } old) return;
         c.Execute("UPDATE version SET game_id = @target WHERE game_id = @old", new { target, old }, t);
         if (c.ExecuteScalar<long>("SELECT count(*) FROM progress WHERE game_id = @old", new { old }, t) > 0) return;
         c.Execute("DELETE FROM field_value WHERE entity = 'game' AND entity_id = @old; DELETE FROM game WHERE id = @old", new { old }, t);
+        // SQLite puede volver a usar ese id: sus imágenes (caché, se bajan de nuevo) no deben quedar para otro juego (#58).
+        SteamGridDb.Forget(db, old);
     }
 
     static void UpsertVersions(SqliteConnection c, SqliteTransaction t, IgdbGame g, long gameId, string kind)

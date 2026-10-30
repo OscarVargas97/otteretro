@@ -22,6 +22,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ### Cambios
 - **El catálogo trae solo lo que es de cada saga**: fuera los juegos cancelados o sin fecha, y los invitados (Smash Bros. o Mario Kart ya no aparecen en Zelda porque Link sale en ellos). Los ports y las ediciones («DX», «Definitive», «Nintendo Switch 2 Edition») y los juegos con el mismo nombre en la misma saga quedan como versiones del original. Los nombres usan un solo formato de guiones y espacios. **Switch 2 y PC VR** se suman como consolas, y lo que no tiene ninguna consola del catálogo (Game & Watch, CD-i…) se ve atenuado en su saga con «Sin consola en Otteretro».
+- **Cada juego muestra su propia portada**: cuando un juego se fusiona con su original, sus imágenes se borran para que no las herede otro juego, y la ventana ya no se queda con una imagen vieja si cambió.
 - **Cuentas y claves, más corta y clara**: una tarjeta por servicio con su estado y un botón «Configurar» que abre sus campos; lo que se usa en fases posteriores (GitHub, ScreenScraper, MyJDownloader, RetroAchievements) va plegado en «Más adelante». GitHub ya no dice «actualizaciones»: solo se usará para el respaldo de partidas.
 - **La carpeta de datos no se muda mientras corre una tarea**: la app pide esperar a que termine.
 

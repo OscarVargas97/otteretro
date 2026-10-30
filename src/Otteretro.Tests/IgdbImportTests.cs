@@ -122,7 +122,13 @@ public class IgdbImportTests
 
         // Antes, una carga por consola trajo el remake de 3DS como juego suelto: al cargar la saga pasa a su original.
         Assert.Equal("done", (await f.Run(IgdbImport.EnqueuePlatform(f.Db, "3ds"))).Status);
+        long loose;
+        using (var c0 = f.Db.Open()) loose = c0.ExecuteScalar<long>("SELECT id FROM game WHERE igdb_id = 1030");
+        Directory.CreateDirectory(SteamGridDb.Folder(f.Db));
+        File.WriteAllText(Path.Combine(SteamGridDb.Folder(f.Db), $"{loose}-cover.jpg"), "portada del remake suelto");
         var task = await f.Run(IgdbImport.EnqueueSaga(f.Db, "zelda"));
+        // El juego suelto se fusionó: su portada no queda para el próximo juego que reciba ese id (#58).
+        Assert.Null(SteamGridDb.Find(f.Db, loose, "cover"));
         Assert.Equal("done", task.Status);
         Assert.Equal(100, task.Progress);
 

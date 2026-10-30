@@ -128,8 +128,10 @@ public static class Endpoints
         api.MapGet("/tasks", (TaskQueue q) => q.List());
 
         // Portada, héroe o logo de un juego desde cache/imagenes. Va en <img src>, así que la clave llega en ?key=.
-        api.MapGet("/images/{gameId:long}/{kind}", Results<PhysicalFileHttpResult, NotFound> (long gameId, string kind, AppSession s) =>
+        api.MapGet("/images/{gameId:long}/{kind}", Results<PhysicalFileHttpResult, NotFound> (long gameId, string kind, AppSession s, HttpResponse response) =>
         {
+            // La ventana pregunta siempre (con ETag): si la imagen cambió, no se queda con la vieja (#58).
+            response.Headers.CacheControl = "no-cache";
             if (!Catalog.SteamGridDb.Kinds.Contains(kind) || !DataFolder.IsReady(s.Config.DataFolder)) return TypedResults.NotFound();
             var file = Catalog.SteamGridDb.Find(new Database(DataFolder.DatabasePath(s.Config.DataFolder!)), gameId, kind);
             return file is null ? TypedResults.NotFound() : TypedResults.PhysicalFile(file, ImageType(file), enableRangeProcessing: false);
