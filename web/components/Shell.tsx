@@ -8,6 +8,7 @@ import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
 import type { AppState } from "@/lib/types";
 import { CATALOGS, isLocale, systemLocale } from "@/messages";
+import { Gamepad } from "./Gamepad";
 import { UpdateNotice } from "./Update";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
@@ -39,6 +40,7 @@ export function Shell({ children }: { children: ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <Translations>
         <Content>{children}</Content>
+        <Gamepad />
       </Translations>
     </QueryClientProvider>
   );
@@ -101,7 +103,7 @@ export function Empty({ title, text, children }: { title: string; text: string; 
 }
 
 /** Para pantallas que se activan en una fase posterior. `screen` es su clave en comingSoon.*. */
-export function ComingSoon({ screen, phase }: { screen: "home" | "sagas" | "saga" | "collection" | "game" | "discover" | "review" | "downloads" | "tools" | "steam"; phase: number }) {
+export function ComingSoon({ screen, phase }: { screen: "home" | "discover" | "review" | "downloads" | "tools" | "steam"; phase: number }) {
   const t = useTranslations("comingSoon");
   return (
     <div className="content">

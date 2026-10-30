@@ -31,9 +31,10 @@ public static class Endpoints
 
         api.MapGet("/state", (AppSession s) => State(s));
 
-        api.MapPost("/data-folder", Results<Ok<AppState>, BadRequest<ApiError>, Conflict<ApiError>> (FolderRequest request, AppSession s, FolderMoveService m) =>
+        api.MapPost("/data-folder", Results<Ok<AppState>, BadRequest<ApiError>, Conflict<ApiError>> (FolderRequest request, AppSession s, FolderMoveService m, TaskQueue q) =>
         {
             if (m.State.Running) return TypedResults.Conflict(ApiError.Of("move.inProgress"));
+            if (q.Busy) return TypedResults.Conflict(ApiError.Of("move.tasksRunning"));
             var error = DataFolder.Prepare(request.Path);
             if (error is not null) return TypedResults.BadRequest(error);
             s.Config.DataFolder = request.Path;
@@ -52,9 +53,10 @@ public static class Endpoints
 
         api.MapGet("/data-folder/move", (FolderMoveService m) => m.State);
 
-        api.MapPost("/data-folder/move", Results<Accepted<MoveState>, BadRequest<ApiError>> (FolderRequest request, FolderMoveService m) =>
+        api.MapPost("/data-folder/move", Results<Accepted<MoveState>, BadRequest<ApiError>> (FolderRequest request, FolderMoveService m, TaskQueue q) =>
         {
-            var error = m.Start(request.Path);
+            // Las tareas escriben en la base: se espera a que terminen antes de mudarla.
+            var error = q.Busy ? ApiError.Of("move.tasksRunning") : m.Start(request.Path);
             return error is null ? TypedResults.Accepted("/api/data-folder/move", m.State) : TypedResults.BadRequest(error);
         });
 
@@ -120,6 +122,21 @@ public static class Endpoints
         api.MapPost("/steam/big-picture", Results<Ok, Conflict<ApiError>> () =>
             Open("steam://open/bigpicture") ? TypedResults.Ok() : TypedResults.Conflict(ApiError.Of("steam.notInstalled")));
 
+        CatalogEndpoints.Map(api);
+
+        // Panel de tareas: lo pendiente y lo reciente; cada cambio llega después por el evento "task".
+        api.MapGet("/tasks", (TaskQueue q) => q.List());
+
+        // Portada, héroe o logo de un juego desde cache/imagenes. Va en <img src>, así que la clave llega en ?key=.
+        api.MapGet("/images/{gameId:long}/{kind}", Results<PhysicalFileHttpResult, NotFound> (long gameId, string kind, AppSession s, HttpResponse response) =>
+        {
+            // La ventana pregunta siempre (con ETag): si la imagen cambió, no se queda con la vieja (#58).
+            response.Headers.CacheControl = "no-cache";
+            if (!Catalog.SteamGridDb.Kinds.Contains(kind) || !DataFolder.IsReady(s.Config.DataFolder)) return TypedResults.NotFound();
+            var file = Catalog.SteamGridDb.Find(new Database(DataFolder.DatabasePath(s.Config.DataFolder!)), gameId, kind);
+            return file is null ? TypedResults.NotFound() : TypedResults.PhysicalFile(file, ImageType(file), enableRangeProcessing: false);
+        });
+
         api.MapGet("/events", (HttpContext http, Events events) => events.Serve(http)).ExcludeFromDescription();
     }
 
@@ -137,6 +154,13 @@ public static class Endpoints
             return false;
         }
     }
+
+    static string ImageType(string file) => Path.GetExtension(file).ToLowerInvariant() switch
+    {
+        ".png" => "image/png",
+        ".webp" => "image/webp",
+        _ => "image/jpeg",
+    };
 
     static Credentials? CredentialsOf(AppSession s, SecretBox box) =>
         DataFolder.IsReady(s.Config.DataFolder) ? new(new Database(DataFolder.DatabasePath(s.Config.DataFolder!)), s.Config.MachineId, box) : null;

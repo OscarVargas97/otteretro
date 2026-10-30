@@ -1,3 +1,4 @@
+using Dapper;
 using Otteretro.App;
 
 namespace Otteretro.Tests;
@@ -34,5 +35,28 @@ public class ModesTests
         Assert.Contains("/api/state", json);
         Assert.Contains("/api/data-folder", json);
         Assert.DoesNotContain("/api/events", json);
+    }
+
+    /// <summary>Listo cuando de F1.10: `catalogo cargar` encola la carga (la toma la cola, y se ve en el panel).</summary>
+    [Fact]
+    public async Task CatalogLoadEnqueuesByConsoleSagaOrAll()
+    {
+        await using var f = new Fixture();
+        using var c = f.Db.Open();
+        string Data(long id) => c.ExecuteScalar<string>("SELECT kind || ' ' || data FROM task WHERE id = @id", new { id })!;
+
+        Assert.StartsWith("igdb.platform {\"platform\":\"snes\"", Data(CliMode.EnqueueLoad(f.Db, ["--consola", "SNES"]).Single()));
+        Assert.StartsWith("igdb.saga {\"query\":\"the legend of zelda\"", Data(CliMode.EnqueueLoad(f.Db, ["--saga", "the", "legend", "of", "zelda"]).Single()));
+        var all = CliMode.EnqueueLoad(f.Db, []);
+        Assert.Equal(24, all.Length); // todas menos PC y PC VR
+        Assert.DoesNotContain(all, id => Data(id).Contains("\"pc\""));
+    }
+
+    [Fact]
+    public void CatalogLoadWithBadOptionsShowsHelp()
+    {
+        var output = new StringWriter();
+        Assert.Equal(1, CliMode.Run(["catalogo", "cargar", "--consola"], output));
+        Assert.Contains("catalogo cargar", output.ToString());
     }
 }

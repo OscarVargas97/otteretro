@@ -28,7 +28,6 @@
     "reconnecting": "Reconnecting…",
     "searchLabel": "Search",
     "searchPlaceholder": "Sagas, games, emulators, settings…",
-    "searchLater": "Search works from phase 1, once there is a catalog.",
     "goToSteam": "Go to Steam"
   },
   "comingSoon": {
@@ -36,22 +35,6 @@
     "home": {
       "title": "Nothing to show yet",
       "text": "Once the catalog is loaded you will see the next game of each route, what needs review and what is new."
-    },
-    "sagas": {
-      "title": "No sagas yet",
-      "text": "Sagas and their games are loaded from IGDB."
-    },
-    "saga": {
-      "title": "Pick a saga",
-      "text": "Here you will see the saga’s timeline with the route you follow."
-    },
-    "collection": {
-      "title": "Your collection is empty",
-      "text": "First what you own on Steam will appear (phase 1), then the games in your libraries (phase 3)."
-    },
-    "game": {
-      "title": "Pick a game",
-      "text": "Here you will see how to play it, its versions, files and your progress."
     },
     "discover": {
       "title": "Nothing to recommend yet",
@@ -186,7 +169,8 @@
       "failedNothingMoved": "Nothing was moved; your data is still in {path}. {detail}",
       "copyMismatch": "Nothing was moved; your data is still in {path}. The file {detail} was not copied correctly.",
       "failedDataAt": "The move was interrupted and your data ended up in {path}. Use “Use another folder” with that path. {detail}",
-      "sourceNotDeleted": "Your data is already in the new folder, but {path} could not be fully deleted: {detail} You can delete it by hand."
+      "sourceNotDeleted": "Your data is already in the new folder, but {path} could not be fully deleted: {detail} You can delete it by hand.",
+      "tasksRunning": "Wait for the running tasks to finish before moving the data folder."
     },
     "update": {
       "nothingDownloaded": "No update has been downloaded."
@@ -203,6 +187,49 @@
     },
     "steam": {
       "notInstalled": "Could not open Steam. Is it installed on this computer?"
+    },
+    "tasks": {
+      "failed": "Failed: {detail}",
+      "retrying": "Connection failed: retry {attempt} of {total} in {minutes} min.",
+      "demo": {
+        "step": "Step {step} of {total}"
+      },
+      "igdb": {
+        "saga": "{name}: {done} of {total} games",
+        "platform": "{platform}: {done} of {total} games",
+        "noKey": "The IGDB account is missing: paste the Twitch Client ID and Client Secret in Settings › Accounts and keys.",
+        "badKey": "Twitch did not accept the IGDB account: check the Client ID and Client Secret in Settings › Accounts and keys.",
+        "sagaNotFound": "IGDB has no saga called “{query}”.",
+        "pcBySaga": "PC has too many games to load at once: it is loaded by saga.",
+        "unknownPlatform": "“{platform}” is not one of the catalog consoles.",
+        "steam": "{done} of {total} Steam games"
+      },
+      "sgdb": {
+        "images": "{done} of {total} games",
+        "noKey": "The SteamGridDB key is missing: paste it in Settings › Accounts and keys.",
+        "badKey": "SteamGridDB did not accept the key: check it in Settings › Accounts and keys."
+      },
+      "steam": {
+        "synced": "{count} games in your Steam account",
+        "noKey": "The Steam Web API key is missing: paste it in Settings › Accounts and keys.",
+        "badKey": "Steam did not accept the Steam Web API key: check it in Settings › Accounts and keys.",
+        "noAccount": "No Steam account was found on this computer: open Steam and sign in once.",
+        "failed": "Steam did not answer properly ({status}). Try again later."
+      },
+      "extra": {
+        "progress": "{done} of {total} games",
+        "rawgBadKey": "RAWG didn’t accept the key: check it in Settings › Accounts and keys."
+      }
+    },
+    "progress": {
+      "badStatus": "That status doesn't exist.",
+      "badDate": "The date isn't valid.",
+      "badRating": "The score goes from 1 to 10.",
+      "notesTooLong": "The notes are too long."
+    },
+    "fields": {
+      "empty": "The name can't be empty.",
+      "badYear": "The year must be between 1970 and 2100."
     }
   },
   "credentials": {
@@ -217,11 +244,12 @@
     "getIt": "Get it ↗",
     "bitwarden": "They are stored encrypted on this computer only. Bitwarden is your backup: on another PC, paste them again from there.",
     "service": {
-      "github": "GitHub (updates and backup)",
+      "github": "GitHub",
       "steam": "Steam Web API",
       "igdb": "IGDB (Twitch)",
       "screenscraper": "ScreenScraper",
       "steamgriddb": "SteamGridDB",
+      "rawg": "RAWG (optional)",
       "retroachievements": "RetroAchievements",
       "myjdownloader": "MyJDownloader"
     },
@@ -234,6 +262,212 @@
       "password": "Password",
       "email": "Email"
     },
-    "loading": "Loading accounts…"
+    "loading": "Loading accounts…",
+    "now": "In use now",
+    "later": "Later ({count})",
+    "laterHint": "Not needed yet: each one is asked for when its phase arrives.",
+    "phase": "Phase {phase}",
+    "ready": "Ready",
+    "partial": "{missing} of {total} missing",
+    "configure": "Set up",
+    "close": "Close",
+    "purpose": {
+      "github": "Backs up your saves to a private repository of yours.",
+      "steam": "What you own on Steam, with your hours.",
+      "igdb": "Series, games and versions for the catalog.",
+      "screenscraper": "Identifies ROMs that don’t match the DATs.",
+      "steamgriddb": "Covers, backgrounds and logos.",
+      "rawg": "Fills in years IGDB doesn’t have.",
+      "retroachievements": "Your achievements in retro games.",
+      "myjdownloader": "Sends downloads to JDownloader."
+    }
+  },
+  "tasks": {
+    "kind": {
+      "demo": "Test task",
+      "igdb": {
+        "saga": "Load a saga from IGDB",
+        "platform": "Load a console from IGDB",
+        "steam": "Find your Steam games on IGDB"
+      },
+      "sgdb": {
+        "images": "Download covers from SteamGridDB"
+      },
+      "steam": {
+        "sync": "Read what you own on Steam"
+      },
+      "catalog": {
+        "extra": "Complete with Wikidata and RAWG"
+      }
+    },
+    "status": {
+      "queued": "Queued",
+      "running": "{progress}%",
+      "done": "Done",
+      "error": "Error"
+    }
+  },
+  "pad": {
+    "choose": "Select",
+    "back": "Back",
+    "close": "Close",
+    "search": "Search",
+    "quickMenu": "Quick menu",
+    "noGame": "No game open",
+    "goToSteam": "Go to Steam",
+    "keyboard": "Keyboard",
+    "shift": "Shift",
+    "space": "Space",
+    "delete": "Delete",
+    "done": "Done",
+    "menu": "Menu"
+  },
+  "catalog": {
+    "loading": "Loading…",
+    "owned": "I own it",
+    "missing": "Missing",
+    "noConsole": "No console in Otteretro",
+    "favorite": "Favorite",
+    "following": "Following",
+    "emulation": "Emulation",
+    "noSaga": "Games without a series",
+    "games": "{count, plural, one {# game} other {# games}}",
+    "ownedCount": "{count, plural, =0 {None owned} other {# owned}}",
+    "store": {
+      "steam": "Steam"
+    },
+    "status": {
+      "pending": "Pending",
+      "playing": "Playing",
+      "finished": "Finished",
+      "completed": "100%",
+      "dropped": "Dropped"
+    },
+    "kind": {
+      "original": "original",
+      "remaster": "remaster",
+      "remake": "remake"
+    },
+    "sagas": {
+      "filters": "Filters",
+      "filter": {
+        "all": "All",
+        "favorite": "★ Favorites",
+        "following": "Following",
+        "iconic": "Iconic",
+        "owned": "With games I own",
+        "pc": "With PC games"
+      },
+      "sortBy": "Sort by",
+      "sort": {
+        "iconic": "Most iconic",
+        "name": "Name",
+        "played": "Most played",
+        "activity": "Recent activity"
+      },
+      "emptyTitle": "No series yet",
+      "emptyText": "Series and their games are loaded from IGDB. Paste the account in Settings › Accounts and keys and load one with “otteretro catalogo cargar --saga zelda”.",
+      "noMatch": "No series match this filter."
+    },
+    "saga": {
+      "back": "‹ Series",
+      "favorite": "Favorite",
+      "follow": "Follow this series",
+      "following": "✓ Following",
+      "routesLater": "Routes (release, story and community) arrive in phase 2.",
+      "allGames": "All games",
+      "game": "Game",
+      "year": "Year",
+      "platforms": "Consoles",
+      "state": "Status",
+      "noneTitle": "Pick a series",
+      "noneText": "Open a series from Series or with search.",
+      "notFound": "This series is no longer in the catalog."
+    },
+    "collection": {
+      "consoles": "Consoles",
+      "filters": "Filters",
+      "filter": {
+        "all": "All",
+        "owned": "I own it",
+        "missing": "Missing",
+        "pc": "PC version"
+      },
+      "sortLabel": "Sort",
+      "sort": {
+        "saga": "By series",
+        "name": "By name",
+        "year": "By year"
+      },
+      "view": "View",
+      "grid": "Grid",
+      "list": "List",
+      "summary": "{console} · {games} · {owned}",
+      "unlinked": "In your stores, not in the catalog yet",
+      "unlinkedHint": "They show up anyway; once their series is loaded from IGDB they move to the grid.",
+      "emptyTitle": "No games for this console",
+      "emptyText": "Load its games with “otteretro catalogo cargar --consola {console}” or, for PC, sync Steam.",
+      "name": "Game",
+      "saga": "Series",
+      "year": "Year",
+      "store": "Store",
+      "hours": "Hours",
+      "lastPlayed": "Last played"
+    },
+    "game": {
+      "noneTitle": "Pick a game",
+      "noneText": "Open a game from Collection, a series or search.",
+      "notFound": "This game is no longer in the catalog.",
+      "favorite": "★ Favorite",
+      "versions": "Versions",
+      "version": "Version",
+      "have": "Owned",
+      "where": "Where you have it",
+      "tracking": "Tracking",
+      "lastPlayed": "Last played: {date}",
+      "never": "Last played: never",
+      "states": "Status",
+      "started": "Started",
+      "finished": "Finished on",
+      "completed": "Completed on",
+      "dropped": "Dropped on",
+      "rating": "Your score",
+      "noRating": "—",
+      "notes": "Notes",
+      "playtime": "Time played",
+      "pendingHint": "Dates show up once you start it.",
+      "saving": "Saving…",
+      "saved": "Saved",
+      "sources": "Data and sources",
+      "field": {
+        "name_es": "Spanish name",
+        "original_name": "Original name",
+        "year": "Year"
+      },
+      "source": {
+        "manual": "By hand",
+        "igdb": "IGDB",
+        "wikidata": "Wikidata",
+        "rawg": "RAWG",
+        "hltb": "HowLongToBeat"
+      },
+      "fix": "Correct",
+      "save": "Save",
+      "cancel": "Cancel",
+      "undoFix": "Back to the sources' value",
+      "manualNote": "What you correct by hand wins and no load overwrites it.",
+      "shown": "Shown"
+    },
+    "search": {
+      "sagas": "Series",
+      "games": "Games",
+      "noResults": "Nothing is called “{query}”.",
+      "typeMore": "Type at least 2 letters."
+    }
+  },
+  "notices": {
+    "title": "Notices",
+    "missingKey": "The {service} key is missing: its data can't be loaded without it.",
+    "openSettings": "Open Settings"
   }
 }

@@ -2,6 +2,37 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
+## Catálogo · en revisión
+
+`fase/f1-catalogo` · PR #60
+
+### Nuevo
+- **La base ya tiene lugar para el catálogo**: sagas, juegos, versiones de consola y PC, y el seguimiento de cada juego (estado, fechas, nota y notas). Viene con las 23 consolas y PC cargadas. Todavía no hay juegos: llegan con los importadores de esta fase.
+- **Panel de tareas con trabajo de verdad**: lo que corre en segundo plano se ve avanzar en el panel, una tarea a la vez por tipo. Si cierras la app a mitad de camino, al abrirla sigue desde donde quedó. Las tareas largas avisan con una notificación del sistema al terminar. Para probarlo: `otteretro tareas prueba`.
+- **Carga del catálogo desde IGDB**, por saga o por consola y por partes: si se corta, sigue donde quedó. Se pide con `otteretro catalogo cargar` (todas las consolas), `--consola snes` o `--saga zelda`. Los remakes, remasters y ports quedan como versiones del juego original; el nombre en español cuando IGDB lo tiene, y el id de Steam de las versiones de PC. PC se carga solo por saga. Necesita la cuenta de IGDB (Twitch) en Ajustes › Cuentas y claves.
+- **Portadas, fondos y logos de SteamGridDB**, que se bajan solos después de cada carga y quedan guardados en tu carpeta de datos. Necesita la clave de SteamGridDB en Ajustes › Cuentas y claves.
+- **Tus juegos de Steam cuentan como «lo tengo»**, estén instalados o no, con las horas jugadas y la última vez. Los que no estaban en el catálogo se buscan solos en IGDB, y los que IGDB no conoce aparecen igual con su nombre. Se lee con `otteretro steam sincronizar` y la clave de Steam Web API.
+- **Otteretro se usa con mando**: la cruceta mueve el foco al elemento más cercano, abajo aparece qué hace cada botón (con la forma de tu mando: Xbox, PlayStation o Switch), X abre la búsqueda, Guía abre el menú rápido con «Ir a Steam» y los campos de texto tienen su propio teclado en pantalla. Al mover el ratón, todo vuelve a la vista normal.
+- **Sagas, Colección y la ficha con tus datos**: las sagas con sus consolas y filtros (favoritas, las que sigues, icónicas, por empresa, con juegos de PC), la colección por consola con PC como una más (tienda y horas, y lo de Steam que aún no está en el catálogo), y la ficha de cada juego con sus versiones y dónde lo tienes.
+- **Favoritas, seguir una saga y el seguimiento de cada juego**: estado (pendiente, jugando, terminado, 100 % o abandonado) con sus fechas, nota de 1 a 10 y notas. Se guarda al momento.
+- **Búsqueda global** con Ctrl+K (o X con el mando): encuentra sagas y juegos por su nombre en español u original.
+- **Wikidata y RAWG completan a IGDB**: los juegos que IGDB deja sin saga van a la suya según Wikidata, y el año que falta sale de RAWG si pegas su clave (opcional) en Ajustes › Cuentas y claves. Si dos fuentes no coinciden, gana la de más prioridad que tenga el dato.
+- **Inicio avisa qué claves faltan** para cargar el catálogo, con un botón a Ajustes.
+- **Lo que corriges a mano no se pisa** al volver a cargar: en la ficha, «Datos y fuentes» muestra qué dijo cada fuente, deja corregir el nombre o el año y volver al de las fuentes.
+
+### Cambios
+- **El catálogo trae solo lo que es de cada saga**: fuera los juegos cancelados o sin fecha, y los invitados (Smash Bros. o Mario Kart ya no aparecen en Zelda porque Link sale en ellos). Los ports y las ediciones («DX», «Definitive», «Nintendo Switch 2 Edition») y los juegos con el mismo nombre en la misma saga quedan como versiones del original. Los nombres usan un solo formato de guiones y espacios. **Switch 2 y PC VR** se suman como consolas, y lo que no tiene ninguna consola del catálogo (Game & Watch, CD-i…) se ve atenuado en su saga con «Sin consola en Otteretro».
+- **Las sub-sagas tienen su lugar**: Counter-Strike ya no aparece dentro de Half-Life, sino en su propia saga con CS 2 y Condition Zero. Lo mismo con otras series que IGDB guarda dentro de una franquicia mayor.
+- **Un corte de internet no arruina una carga**: si una fuente no responde o pide esperar, la tarea se reintenta sola a los 1, 5 y 15 minutos desde donde iba, y el panel lo dice.
+- **Portadas sin equivocarse de juego**: sin id de Steam, de SteamGridDB solo se usa un juego con el mismo nombre y año; si no lo hay, la portada es la carátula oficial de IGDB.
+- **Cada juego muestra su propia portada**: cuando un juego se fusiona con su original, sus imágenes se borran para que no las herede otro juego, y la ventana ya no se queda con una imagen vieja si cambió.
+- **Cuentas y claves, más corta y clara**: una tarjeta por servicio con su estado y un botón «Configurar» que abre sus campos; lo que se usa en fases posteriores (GitHub, ScreenScraper, MyJDownloader, RetroAchievements) va plegado en «Más adelante». GitHub ya no dice «actualizaciones»: solo se usará para el respaldo de partidas.
+- **La carpeta de datos no se muda mientras corre una tarea**: la app pide esperar a que termine.
+
+### Arreglos
+- **Las claves guardadas no se pierden** si `config.json` se edita a mano y no trae el id del equipo.
+- **Un remake con seguimiento** que pasa a ser versión de su original lleva su estado y notas al original, sin dejar un juego vacío.
+
 ## Diseño del centro de entretenimiento con mando · en revisión
 
 `fase/d1-diseno` · PR #42

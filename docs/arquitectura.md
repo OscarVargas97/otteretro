@@ -71,7 +71,7 @@ Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
 |---|---|---|
 | **Tareas** | Cola en SQLite: en cola, en curso, pausada (con hora de reanudación), terminada, error. Un trabajador ejecuta las tareas; publica progreso; notificación del sistema al terminar. Las tareas de la cola sobreviven a cerrar la app (respaldo tras jugar, carga de Claude). | Datos |
 | **Bibliotecas** | `otteretro-biblioteca.json`, registro, crear, adoptar (incluida la estructura antigua de `E:\Consolas`), renombrar, quitar, reconectar (busca en 2 niveles), mover/migrar (copiar → hash → BD → rutas internas → borrar). Rutas siempre como id de biblioteca + ruta relativa. | Tareas, Herramientas |
-| **Catálogo** | Saga → Juego → Versión. Carga inicial por scripts desde IGDB, Wikidata, RAWG, SteamGridDB y HowLongToBeat (opcional). **Prioridad fija por campo**; lo corregido a mano no se sobrescribe. Nombre oficial en español si existe. | Tareas, Claude |
+| **Catálogo** | Saga → Juego → Versión. Carga inicial por scripts desde IGDB, Wikidata, RAWG y SteamGridDB (HowLongToBeat, más adelante: #151). **Prioridad fija por campo**; lo corregido a mano no se sobrescribe. Nombre oficial en español si existe. | Tareas, Claude |
 | **Colección** | Origen = archivo o tienda. Escaneo por nombre y TitleID/serial; verificación por hash contra DAT de libretro (No-Intro) y Redump; ScreenScraper para lo que no coincide. Detecta BASE/UPD/DLC. Cola "Revisar". | Catálogo, Bibliotecas |
 | **Ingesta** | Proceso único: extraer → identificar → convertir → ubicar → marcar. JDownloader (My.JDownloader.Api o HTTP directo), megapacks con vista previa, 1G1R, duplicados, traducciones de fans. Conversión con DolphinTool (RVZ) y chdman (CHD); PS4 extrae el `.pkg`. | Colección, Herramientas |
 | **Herramientas** | Lee las recetas, descarga de la fuente oficial, instala versiones lado a lado, copia previa al actualizar, migra partidas y configuración, reescribe rutas internas, instala contenido dentro del emulador, detecta lo instalado a mano, gestiona BIOS/keys/firmware. | Tareas, Respaldo |
@@ -94,12 +94,12 @@ Tablas principales. `id` entero salvo donde se indica. Tablas, columnas y valore
 | | `credential` | machine_id, id (servicio.campo), value (cifrado), updated_at |
 | Bibliotecas | `library` | id (GUID del marcador), name, kind (games/tools), location (local/network, #136), last_path, connected, layout |
 | Catálogo | `console` | id, name, company, emulation_status |
-| | `saga` | id, name, igdb_id, favorite, following, iconic, chosen_route |
-| | `game` | id, saga_id (vacío = Emulación), name_es, original_name, year, igdb_id, on_pc |
-| | `version` | id, game_id, platform (consola o PC), kind (original/remaster/remake), year, export_to_steam |
+| | `saga` | id, name, igdb_kind (franchise/collection), igdb_id, favorite, following, iconic, chosen_route |
+| | `game` | id, saga_id (vacío = Emulación), name_es, original_name, year, igdb_id (si está en PC sale de sus versiones) |
+| | `version` | id, game_id, platform (`console.id`, también `pc`), kind (original/remaster/remake), year, export_to_steam, igdb_id (la ficha de IGDB de la que sale), steam_app_id |
 | | `version_criterion` | version_id, criterion (content/gameplay/technical/original), value, text |
 | | `field_value` | entity, entity_id, field, value, source, manual (lo manual nunca se sobrescribe) |
-| Colección | `source` | id, version_id, kind (file/store), library_id, relative_path, component (BASE/UPD/DLC), title_id, size, sha1, verified, store, store_id, family_shared |
+| Colección | `source` | id, version_id (vacío mientras no se enlaza con el catálogo), kind (file/store), library_id, relative_path, component (BASE/UPD/DLC), title_id, size, sha1, verified, store, store_id, name, family_shared, playtime (minutos), last_played (#133) |
 | | `dat_entry` | system, name, sha1, crc, region, languages, source (libretro/redump) |
 | | `alias` | text, game_id, origin (script/claude), undone |
 | Rutas y progreso | `route` | id, saga_id, kind (release/story/community), rationale, sources, approved |
@@ -114,7 +114,7 @@ Tablas principales. `id` entero salvo donde se indica. Tablas, columnas y valore
 | | `price_watch` | game_id |
 | | `dismissal` | saga_id, until (6 meses, S8) |
 | Steam | `steam_export` | machine_id, version_id, name, category, art, exported_at |
-| Tareas y Claude | `task` | id, kind, status, progress, detail, data (JSON), resume_at, attempts, created_at |
+| Tareas y Claude | `task` | id, kind, status (queued/running/done/error), progress (0–100), detail (código para el front), data (punto de control), resume_at, attempts, created_at, finished_at. Una a la vez por tipo; lo que estaba en `running` al arrancar vuelve a la cola (`App/TaskQueue.cs`) |
 | | `review_item` | id, kind (doubtful/unidentified/pending_approval), entity, data, status |
 | | `learning` | id, kind (alias/rule/recipe/route), content, created_at, undone |
 | | `claude_usage` | id, task, duration, result, created_at |

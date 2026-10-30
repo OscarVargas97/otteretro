@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-25, con las #147 y #148 (llavero en Linux y estado de las claves).
+> **Última actualización:** 2026-10-30, con la #153 (sub-sagas: Counter-Strike fuera de Half-Life).
 
 ## Cómo se mantiene
 
@@ -57,21 +57,23 @@ Otteretro es una app **personal** para:
 
 ## 4. Consolas ✅
 
-**Incluidas: 23 sistemas.**
+**Incluidas: 24 sistemas** (Switch 2 desde la #152).
 
 | Empresa | Sistemas |
 |---|---|
-| Nintendo (12) | NES · Game Boy (incluye GBC) · SNES · Virtual Boy · N64 (incluye 64DD) · GBA · GameCube · DS (incluye DSi) · Wii · 3DS (incluye New 3DS) · Wii U · Switch |
+| Nintendo (13) | NES · Game Boy (incluye GBC) · SNES · Virtual Boy · N64 (incluye 64DD) · GBA · GameCube · DS (incluye DSi) · Wii · 3DS (incluye New 3DS) · Wii U · Switch · Switch 2 (solo se cataloga) |
 | Sony (7) | PS1 · PS2 · PSP · PS3 · PS Vita · PS4 · PS5 (emulación temprana: SharpEmu, KytyPS5) |
 | Microsoft (4) | Xbox · Xbox 360 · Xbox One y Series X\|S (estas dos solo se catalogan) |
-| **PC** | Versiones de PC oficiales y ports (§6.6) |
+| **PC** | Versiones de PC oficiales y ports (§6.6). **PC VR** va aparte (#152), como PC: solo por saga y con lo comprado en Steam |
 
 **Reglas**
 - Los add-ons van dentro de su consola base y las variantes, junto con su consola.
 - Las consolas sin emulación también se catalogan.
 - El estado de la emulación es un dato que se actualiza, no un valor fijo.
+- Un juego va a la saga de su colección de IGDB cuando esa colección no lleva el nombre de su franquicia: Counter-Strike tiene su propia saga aunque IGDB lo ponga en Half-Life (#153).
+- Un juego de una saga sin ninguna de estas consolas (Game & Watch, CD-i, Satellaview…) se muestra en la saga atenuado, con «Sin consola en Otteretro», y no cuenta para la colección (#152).
 
-**Fuera: 49 sistemas.** Game & Watch, FDS, Satellaview, Pokémon Mini, Switch 2 y todo lo de Sega, NEC, SNK, Atari, otras marcas, arcade y computadoras retro. Detalle en [historial/v1-por-tema/consolas.md](historial/v1-por-tema/consolas.md).
+**Fuera: 48 sistemas.** Game & Watch, FDS, Satellaview, Pokémon Mini y todo lo de Sega, NEC, SNK, Atari, otras marcas, arcade y computadoras retro. Detalle en [historial/v1-por-tema/consolas.md](historial/v1-por-tema/consolas.md).
 
 ## 5. Bibliotecas
 
@@ -187,7 +189,7 @@ Se comparan todas las versiones con cuatro criterios, que se muestran **por sepa
 | libretro-database · Redump | DAT para verificar por hash sin conexión: No-Intro (cartuchos) y Redump (discos) (#76) |
 | Wikidata | Relación entre juegos y sagas |
 | IGDB · Metacritic / OpenCritic | Notas: la agregada de IGDB; en las sagas icónicas, Claude cita además Metacritic y OpenCritic (#63) |
-| HowLongToBeat | Duración. **Opcional**: no tiene API y el scraper puede fallar; entonces se muestra "sin datos" (#66) |
+| HowLongToBeat | Duración. **Opcional**: no tiene API y el scraper puede fallar; entonces se muestra "sin datos" (#66). Fuera de F1, para una fase posterior (#151) |
 | RAWG | Complemento |
 | SteamGridDB | **Imágenes** de la app y de Steam |
 | Steam Web API | Lo que tienes y horas jugadas |
