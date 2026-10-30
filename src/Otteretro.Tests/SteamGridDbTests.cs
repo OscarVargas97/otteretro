@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
 using Otteretro.App;
 using Otteretro.Catalog;
+using SkiaSharp;
 
 namespace Otteretro.Tests;
 
@@ -24,7 +25,8 @@ public class SteamGridDbTests
             if (url.StartsWith("https://cdn2.steamgriddb.com/") || url.StartsWith(SteamGridDb.IgdbImageUrl))
             {
                 OnDownload?.Invoke(url);
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1, 2, 3]) });
+                // a.png es una imagen de verdad y grande (#64); lo demás no se puede leer como imagen y queda tal cual.
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(url.EndsWith("/a.png") ? Png(1200, 1800) : [1, 2, 3]) });
             }
             var path = url[SteamGridDb.ApiUrl.Length..];
             string? data = path switch
@@ -43,6 +45,71 @@ public class SteamGridDbTests
                 ? new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent("""{ "success": false }""") }
                 : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent($$"""{ "success": true, "data": {{data}} }""") });
         }
+    }
+
+    /// <summary>Un PNG del tamaño pedido; con `transparent`, la mitad izquierda transparente.</summary>
+    static byte[] Png(int width, int height, bool transparent = false)
+    {
+        using var bitmap = new SKBitmap(width, height);
+        using (var canvas = new SKCanvas(bitmap))
+        {
+            canvas.Clear(SKColors.Red);
+            if (transparent) canvas.DrawRect(0, 0, width / 2, height, new SKPaint { Color = SKColors.Transparent, BlendMode = SKBlendMode.Src });
+        }
+        return bitmap.Encode(SKEncodedImageFormat.Png, 100).ToArray();
+    }
+
+    /// <summary>#64: se reduce al tope de su tipo sin agrandar ni deformar, y el logo conserva la transparencia.</summary>
+    [Fact]
+    public void ImagesAreSavedAsSmallerWebp()
+    {
+        var big = Png(1200, 1800);
+        var cover = SteamGridDb.ToWebp(big, "cover")!;
+        using (var decoded = SKBitmap.Decode(cover))
+            Assert.Equal((600, 900), (decoded.Width, decoded.Height));
+        Assert.True(cover.Length < big.Length);
+
+        using (var small = SKBitmap.Decode(SteamGridDb.ToWebp(Png(300, 450), "cover")))
+            Assert.Equal((300, 450), (small.Width, small.Height));
+
+        using var logo = SKBitmap.Decode(SteamGridDb.ToWebp(Png(1600, 400, transparent: true), "logo"));
+        Assert.Equal((800, 200), (logo.Width, logo.Height));
+        Assert.Equal(0, logo.GetPixel(10, 100).Alpha);
+        Assert.Equal(255, logo.GetPixel(790, 100).Alpha);
+
+        Assert.Null(SteamGridDb.ToWebp([1, 2, 3], "cover"));
+    }
+
+    /// <summary>
+    /// #64: lo bajado antes pasa a WebP sin descargar nada; lo que no se puede leer queda como está y la imagen de un juego
+    /// que ya no existe se borra (#59).
+    /// </summary>
+    [Fact]
+    public async Task OldImagesAreConvertedWithoutDownloading()
+    {
+        await using var f = new Fixture();
+        using (var c = f.Db.Open())
+            c.Execute("INSERT INTO game (id, name_es, original_name) VALUES (1, 'Zelda', 'Zelda')");
+        var folder = SteamGridDb.Folder(f.Db);
+        Directory.CreateDirectory(folder);
+        File.WriteAllBytes(Path.Combine(folder, "1-cover.png"), Png(1200, 1800));
+        File.WriteAllBytes(Path.Combine(folder, "1-hero.png"), [1, 2, 3]);
+        File.WriteAllBytes(Path.Combine(folder, "9-cover.png"), Png(10, 10));
+        OnDownload = url => throw new InvalidOperationException("no se descarga nada");
+
+        SteamGridDb.EnqueueConvert(f.Db);
+        SteamGridDb.EnqueueConvert(f.Db); // ya hay una esperando: no se duplica
+        using (var c = f.Db.Open())
+            Assert.Equal(1, c.ExecuteScalar<int>("SELECT count(*) FROM task WHERE kind = 'sgdb.webp'"));
+        long id;
+        using (var c = f.Db.Open())
+            id = c.ExecuteScalar<long>("SELECT id FROM task WHERE kind = 'sgdb.webp'");
+
+        var task = await f.Run(id);
+        Assert.Equal(("done", 100), (task.Status, task.Progress));
+        Assert.Equal(["1-cover.webp", "1-hero.png"], Directory.GetFiles(folder).Select(Path.GetFileName).Order());
+        using var cover = SKBitmap.Decode(Path.Combine(folder, "1-cover.webp"));
+        Assert.Equal((600, 900), (cover.Width, cover.Height));
     }
 
     /// <summary>Para simular algo que pasa mientras se baja una imagen.</summary>
@@ -84,7 +151,7 @@ public class SteamGridDbTests
         var task = await f.Run(SteamGridDb.Enqueue(f.Db));
         Assert.Equal(("done", 100), (task.Status, task.Progress));
         var files = Directory.GetFiles(SteamGridDb.Folder(f.Db)).Select(Path.GetFileName).Order();
-        Assert.Equal(["1-cover.png", "1-logo.webp", "2-cover.jpg"], files);
+        Assert.Equal(["1-cover.webp", "1-logo.webp", "2-cover.jpg"], files);
 
         var app = LocalServer.Create(f.Session, b => b.WebHost.UseTestServer());
         await app.StartAsync();
@@ -92,7 +159,7 @@ public class SteamGridDbTests
         http.BaseAddress = new Uri("http://127.0.0.1/");
         var cover = await http.GetAsync($"/api/images/1/cover?key={f.Session.Key}");
         Assert.Equal(HttpStatusCode.OK, cover.StatusCode);
-        Assert.Equal("image/png", cover.Content.Headers.ContentType!.MediaType);
+        Assert.Equal("image/webp", cover.Content.Headers.ContentType!.MediaType);
         Assert.Equal(HttpStatusCode.NotFound, (await http.GetAsync($"/api/images/3/cover?key={f.Session.Key}")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await http.GetAsync($"/api/images/1/..%2F..%2Fdata?key={f.Session.Key}")).StatusCode);
         await app.StopAsync();

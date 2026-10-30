@@ -207,6 +207,7 @@
       },
       "sgdb": {
         "images": "{done} of {total} games",
+        "webp": "{done} of {total} images converted to WebP",
         "noKey": "The SteamGridDB key is missing: paste it in Settings › Accounts and keys.",
         "badKey": "SteamGridDB did not accept the key: check it in Settings › Accounts and keys."
       },
@@ -293,7 +294,8 @@
         "popular": "Load popular PC games from IGDB"
       },
       "sgdb": {
-        "images": "Download covers from SteamGridDB"
+        "images": "Download covers from SteamGridDB",
+        "webp": "Convert images to WebP"
       },
       "steam": {
         "sync": "Read what you own on Steam"

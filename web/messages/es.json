@@ -207,6 +207,7 @@
       },
       "sgdb": {
         "images": "{done} de {total} juegos",
+        "webp": "{done} de {total} imágenes pasadas a WebP",
         "noKey": "Falta la clave de SteamGridDB: pégala en Ajustes › Cuentas y claves.",
         "badKey": "SteamGridDB no aceptó la clave: revísala en Ajustes › Cuentas y claves."
       },
@@ -293,7 +294,8 @@
         "popular": "Cargar los juegos de PC populares de IGDB"
       },
       "sgdb": {
-        "images": "Bajar portadas de SteamGridDB"
+        "images": "Bajar portadas de SteamGridDB",
+        "webp": "Pasar las imágenes a WebP"
       },
       "steam": {
         "sync": "Leer lo que tienes en Steam"
