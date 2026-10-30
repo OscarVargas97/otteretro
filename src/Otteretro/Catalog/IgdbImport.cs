@@ -302,11 +302,18 @@ public static class IgdbImport
     {
         var franchises = g.Franchises ?? [];
         var collections = g.Collections ?? [];
-        if (preferred is not null && (preferred.Kind == "franchise" ? franchises : collections).Any(n => n.Id == preferred.IgdbId)) return preferred;
-        // La franquicia principal antes que las demás: Smash Bros. va a Smash, no a la primera de su lista.
-        if ((g.Franchise is { } main ? franchises.FirstOrDefault(n => n.Id == main.Id) ?? main : franchises.FirstOrDefault()) is { } f)
-            return new("franchise", f.Id, f.Name);
-        return collections.FirstOrDefault() is { } col ? new("collection", col.Id, col.Name) : null;
+        if (preferred is { Kind: "collection" } && collections.Any(n => n.Id == preferred.IgdbId)) return preferred;
+        var franchise = preferred is { Kind: "franchise" } && franchises.Any(n => n.Id == preferred.IgdbId) ? preferred
+            // La franquicia principal antes que las demás: Smash Bros. va a Smash, no a la primera de su lista.
+            : (g.Franchise is { } main ? franchises.FirstOrDefault(n => n.Id == main.Id) ?? main : franchises.FirstOrDefault()) is { } f
+                ? new SagaRef("franchise", f.Id, f.Name) : null;
+        if (franchise is null) return collections.FirstOrDefault() is { } col ? new("collection", col.Id, col.Name) : null;
+        // Sub-saga (decisión 153): Counter-Strike está en la franquicia Half-Life (nació como mod), pero tiene su colección
+        // propia, sin «Half-Life» en el nombre: va a la saga Counter-Strike. Hyrule Warriors sigue en Zelda (está en la colección Zelda).
+        if (franchise.Name is { } name && collections.Length > 0 && !collections.Any(n => n.Name?.Contains(name, StringComparison.OrdinalIgnoreCase) == true)
+            && collections.FirstOrDefault(n => n.Name is not null) is { } own)
+            return new("collection", own.Id, own.Name);
+        return franchise;
     }
 
     static long UpsertSaga(SqliteConnection c, SqliteTransaction t, SagaRef s)

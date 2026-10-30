@@ -43,6 +43,12 @@ public class IgdbImportTests
           "franchises": [ { "id": 1, "name": "Musou" }, ZELDA ], "collections": [ { "id": 8, "name": "Hyrule Warriors" } ] }
         """;
 
+    /// <summary>Sub-saga (decisión 153): de la franquicia Zelda, pero con su colección propia: va a la saga Tingle.</summary>
+    const string Tingle = """
+        { "id": 11607, "name": "Freshly-Picked Tingle's Rosy Rupeeland", "first_release_date": 1157068800, "game_type": 0, "platforms": [20],
+          "franchises": [ZELDA], "collections": [ { "id": 9, "name": "Tingle" } ] }
+        """;
+
     /// <summary>Invitado sin franquicia principal ni colección Zelda (#58).</summary>
     const string AmiiboTap = """
         { "id": 60431, "name": "Amiibo Tap: Nintendo's Greatest Bits", "first_release_date": 1428969600, "game_type": 0, "platforms": [41],
@@ -99,7 +105,7 @@ public class IgdbImportTests
                 _ when url.EndsWith("/collections") => "[]",
                 _ when url.EndsWith("/games/count") => """{ "count": 6 }""",
                 _ when body.Contains("franchises = (596)") => Games(OcarinaOfTime, BreathOfTheWild, HyruleWarriors, PcGame, Dlc, Edition,
-                    Smash, Cancelled, Switch2Edition, LinkToThePastGba, LinkToThePast, HyruleWarriorsLegends, AmiiboTap),
+                    Smash, Cancelled, Switch2Edition, LinkToThePastGba, LinkToThePast, HyruleWarriorsLegends, AmiiboTap, Tingle),
                 _ when body.Contains("platforms = (37,137)") => Games(OcarinaOfTime3D),
                 _ when body.Contains("where id = (1030)") => Games(OcarinaOfTime3D),
                 _ => null,
@@ -133,12 +139,13 @@ public class IgdbImportTests
         Assert.Equal(100, task.Progress);
 
         using var c = f.Db.Open();
-        Assert.Equal(["The Legend of Zelda"], c.Query<string>("SELECT name FROM saga"));
+        Assert.Equal(["The Legend of Zelda", "Tingle"], c.Query<string>("SELECT name FROM saga ORDER BY name"));
+        Assert.Equal("Tingle", c.ExecuteScalar<string>("SELECT s.name FROM game g JOIN saga s ON s.id = g.saga_id WHERE g.igdb_id = 11607"));
         // Sin Smash (invitado) ni Project X (sin fecha); la Switch 2 Edition y el de GBA son versiones (#58).
         Assert.Equal(
-            ["Hyrule Warriors", "La leyenda de Zelda: Ocarina of Time", "The Legend of Zelda: A Link to the Past", "The Legend of Zelda: Breath of the Wild", "Zelda PC"],
+            ["Freshly-Picked Tingle's Rosy Rupeeland", "Hyrule Warriors", "La leyenda de Zelda: Ocarina of Time", "The Legend of Zelda: A Link to the Past", "The Legend of Zelda: Breath of the Wild", "Zelda PC"],
             c.Query<string>("SELECT name_es FROM game WHERE saga_id IS NOT NULL ORDER BY name_es"));
-        Assert.Equal(5, c.ExecuteScalar<int>("SELECT count(*) FROM game"));
+        Assert.Equal(6, c.ExecuteScalar<int>("SELECT count(*) FROM game"));
         Assert.Equal(["gba 2002", "snes 1991"],
             c.Query<string>("SELECT platform || ' ' || v.year FROM version v JOIN game g ON g.id = v.game_id WHERE g.igdb_id = 1026 ORDER BY platform"));
 
@@ -157,9 +164,9 @@ public class IgdbImportTests
 
         Assert.Equal("done", (await f.Run(IgdbImport.EnqueueSaga(f.Db, "zelda"))).Status);
         Assert.Equal("Zelda: Aliento de lo salvaje", c.ExecuteScalar<string>("SELECT name_es FROM game WHERE id = @botw", new { botw }));
-        Assert.Equal(5, c.ExecuteScalar<int>("SELECT count(*) FROM game"));
+        Assert.Equal(6, c.ExecuteScalar<int>("SELECT count(*) FROM game"));
         Assert.Equal(versions, c.ExecuteScalar<int>("SELECT count(*) FROM version"));
-        Assert.Equal(1, c.ExecuteScalar<int>("SELECT count(*) FROM saga"));
+        Assert.Equal(2, c.ExecuteScalar<int>("SELECT count(*) FROM saga"));
     }
 
     [Theory]

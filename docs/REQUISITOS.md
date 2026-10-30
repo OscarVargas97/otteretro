@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-30, con la #152 (Switch 2 y PC VR; juegos sin consola atenuados).
+> **Última actualización:** 2026-10-30, con la #153 (sub-sagas: Counter-Strike fuera de Half-Life).
 
 ## Cómo se mantiene
 
@@ -70,6 +70,7 @@ Otteretro es una app **personal** para:
 - Los add-ons van dentro de su consola base y las variantes, junto con su consola.
 - Las consolas sin emulación también se catalogan.
 - El estado de la emulación es un dato que se actualiza, no un valor fijo.
+- Un juego va a la saga de su colección de IGDB cuando esa colección no lleva el nombre de su franquicia: Counter-Strike tiene su propia saga aunque IGDB lo ponga en Half-Life (#153).
 - Un juego de una saga sin ninguna de estas consolas (Game & Watch, CD-i, Satellaview…) se muestra en la saga atenuado, con «Sin consola en Otteretro», y no cuenta para la colección (#152).
 
 **Fuera: 48 sistemas.** Game & Watch, FDS, Satellaview, Pokémon Mini y todo lo de Sega, NEC, SNK, Atari, otras marcas, arcade y computadoras retro. Detalle en [historial/v1-por-tema/consolas.md](historial/v1-por-tema/consolas.md).
