@@ -25,6 +25,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         ["demo"] = Demo,
         ["igdb.saga"] = Catalog.IgdbImport.Saga,
         ["igdb.platform"] = Catalog.IgdbImport.Platform,
+        ["igdb.popular"] = Catalog.IgdbImport.Popular,
         ["sgdb.images"] = Catalog.SteamGridDb.Images,
         ["catalog.extra"] = Catalog.ExtraSources.Run,
         ["steam.sync"] = Catalog.Steam.Sync,

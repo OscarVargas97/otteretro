@@ -2,6 +2,13 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
+## Juegos de PC populares · en revisión
+
+`feat/62-pc-populares`
+
+### Nuevo
+- **Los juegos de PC más conocidos entran al catálogo**: los 1.500 con más calificaciones en IGDB (triple A e indies famosos), cada uno en su saga y con las mismas reglas que el resto. Vienen con la carga completa (`otteretro catalogo cargar`) o solos con `--pc-populares`.
+
 ## Catálogo · en revisión
 
 `fase/f1-catalogo` · PR #60

@@ -60,10 +60,17 @@ public static class IgdbImport
     /// <summary>Punto de control de «cargar una saga»: lo que se pidió, la saga encontrada y por dónde va.</summary>
     public record SagaJob(string Query, string? Kind = null, long? IgdbId = null, string? Name = null, long Offset = 0);
     public record PlatformJob(string Platform, long Offset = 0);
+    public record PopularJob(long Offset = 0);
+
+    /// <summary>Cuántos juegos de PC populares trae `--pc-populares` (#62): los más calificados en IGDB.</summary>
+    public const int PopularLimit = 1500;
     public record SagaRef(string Kind, long IgdbId, string? Name);
 
     public static long EnqueueSaga(Database db, string query) =>
         TaskQueue.Enqueue(db, "igdb.saga", JsonSerializer.Serialize(new SagaJob(query), JsonSerializerOptions.Web));
+
+    public static long EnqueuePopular(Database db) =>
+        TaskQueue.Enqueue(db, "igdb.popular", JsonSerializer.Serialize(new PopularJob(), JsonSerializerOptions.Web));
 
     public static long EnqueuePlatform(Database db, string platform) =>
         TaskQueue.Enqueue(db, "igdb.platform", JsonSerializer.Serialize(new PlatformJob(platform), JsonSerializerOptions.Web));
@@ -115,6 +122,27 @@ public static class IgdbImport
             job = job with { Offset = job.Offset + page.Length };
             Report(run, job.Offset, total, ApiError.Of("tasks.igdb.platform", ("platform", job.Platform), ("done", job.Offset.ToString()), ("total", total.ToString())), job);
             if (page.Length < Page) break;
+        }
+        QueueFollowUps(run.Db);
+    }
+
+    /// <summary>
+    /// Los juegos de PC icónicos (#62, completa la #131): los más calificados en IGDB, triple A e indies conocidos.
+    /// Cada uno entra con su saga asignada; la saga entera se carga con `--saga` o en F2.
+    /// </summary>
+    public static async Task Popular(TaskRun run, CancellationToken ct)
+    {
+        var job = JsonSerializer.Deserialize<PopularJob>(run.Data!, JsonSerializerOptions.Web)!;
+        var igdb = Client(run);
+        var where = $"where platforms = (6) & version_parent = null & first_release_date != null & total_rating_count != null & game_type = ({string.Join(',', IgdbGame.PlayableTypes)});";
+        while (job.Offset < PopularLimit)
+        {
+            var size = (int)Math.Min(Page, PopularLimit - job.Offset);
+            var page = await igdb.Query<IgdbGame>("games", $"{IgdbGame.Fields} {where} sort total_rating_count desc; limit {size}; offset {job.Offset};", ct);
+            await Import(run.Db, igdb, page, null, ct);
+            job = job with { Offset = job.Offset + page.Length };
+            Report(run, job.Offset, PopularLimit, ApiError.Of("tasks.igdb.popular", ("done", job.Offset.ToString()), ("total", PopularLimit.ToString())), job);
+            if (page.Length < size) break;
         }
         QueueFollowUps(run.Db);
     }

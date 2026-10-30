@@ -104,6 +104,7 @@ public class IgdbImportTests
                 _ when url.EndsWith("/franchises") => body.Contains("zelda", StringComparison.OrdinalIgnoreCase) ? $"[{Zelda}]" : "[]",
                 _ when url.EndsWith("/collections") => "[]",
                 _ when url.EndsWith("/games/count") => """{ "count": 6 }""",
+                _ when body.Contains("sort total_rating_count desc") => PopularPage(body),
                 _ when body.Contains("franchises = (596)") => Games(OcarinaOfTime, BreathOfTheWild, HyruleWarriors, PcGame, Dlc, Edition,
                     Smash, Cancelled, Switch2Edition, LinkToThePastGba, LinkToThePast, HyruleWarriorsLegends, AmiiboTap, Tingle),
                 _ when body.Contains("platforms = (37,137)") => Games(OcarinaOfTime3D),
@@ -114,6 +115,16 @@ public class IgdbImportTests
                 ? new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent($"sin respuesta para {url} {body}") }
                 : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json) };
         }
+    }
+
+    /// <summary>Los populares de PC (#62): 2.000 juegos falsos con ids 100000+, en el orden y la página que pide la consulta.</summary>
+    static string PopularPage(string body)
+    {
+        var limit = int.Parse(System.Text.RegularExpressions.Regex.Match(body, @"limit (\d+);").Groups[1].Value);
+        var offset = int.Parse(System.Text.RegularExpressions.Regex.Match(body, @"offset (\d+);").Groups[1].Value);
+        var games = Enumerable.Range(offset, Math.Max(0, Math.Min(limit, 2000 - offset))).Select(i =>
+            $$"""{ "id": {{100000 + i}}, "name": "Popular {{i}}", "first_release_date": 1500000000, "game_type": 0, "platforms": [6] }""");
+        return "[" + string.Join(",", games) + "]";
     }
 
     static readonly (string, string)[] IgdbKeys = [("igdb.clientId", "id"), ("igdb.clientSecret", "secreto")];
@@ -174,6 +185,20 @@ public class IgdbImportTests
         Assert.Equal(6, c.ExecuteScalar<int>("SELECT count(*) FROM game"));
         Assert.Equal(versions, c.ExecuteScalar<int>("SELECT count(*) FROM version"));
         Assert.Equal(2, c.ExecuteScalar<int>("SELECT count(*) FROM saga"));
+    }
+
+    /// <summary>#62: los populares de PC llegan en orden de calificaciones, hasta el tope y por páginas con punto de control.</summary>
+    [Fact]
+    public async Task PopularPcGamesStopAtTheLimit()
+    {
+        await using var f = new Fixture(IgdbKeys);
+        var task = await f.Run(IgdbImport.EnqueuePopular(f.Db));
+        Assert.Equal(("done", 100), (task.Status, task.Progress));
+        using var c = f.Db.Open();
+        Assert.Equal(IgdbImport.PopularLimit, c.ExecuteScalar<int>("SELECT count(*) FROM game"));
+        Assert.Equal(IgdbImport.PopularLimit, c.ExecuteScalar<int>("SELECT count(*) FROM version WHERE platform = 'pc'"));
+        Assert.Equal(100000 + IgdbImport.PopularLimit - 1, c.ExecuteScalar<long>("SELECT max(igdb_id) FROM game"));
+        Assert.Contains($"\"offset\":{IgdbImport.PopularLimit}", c.ExecuteScalar<string>("SELECT data FROM task"));
     }
 
     [Theory]
