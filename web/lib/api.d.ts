@@ -1298,7 +1298,7 @@ export interface components {
             suggested: boolean;
         };
         FieldRequest: {
-            value: string;
+            value: null | string;
         };
         FieldRow: {
             field: string;

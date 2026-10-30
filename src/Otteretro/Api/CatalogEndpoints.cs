@@ -7,7 +7,7 @@ using Otteretro.Data;
 namespace Otteretro.Api;
 
 public record SagaFlagsRequest(bool? Favorite, bool? Following);
-public record FieldRequest(string Value);
+public record FieldRequest(string? Value);
 
 /// <summary>Pantallas del catálogo (F1.9): sagas, colección, ficha, seguimiento, búsqueda y avisos de Inicio.</summary>
 public static class CatalogEndpoints
@@ -63,7 +63,7 @@ public static class CatalogEndpoints
         {
             if (Db(s) is not { } db) return NoData();
             if (!CatalogQueries.EditableFields.Contains(field)) return TypedResults.NotFound();
-            var value = request.Value.Trim();
+            var value = request.Value?.Trim() ?? "";
             if (value.Length == 0 && field == "name_es") return TypedResults.BadRequest(ApiError.Of("fields.empty"));
             if (field == "year" && !(int.TryParse(value, out var year) && year is >= 1970 and <= 2100)) return TypedResults.BadRequest(ApiError.Of("fields.badYear"));
             if (CatalogQueries.Game(db, id) is null) return TypedResults.NotFound();

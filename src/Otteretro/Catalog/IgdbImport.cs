@@ -330,6 +330,8 @@ public static class IgdbImport
     {
         if (c.ExecuteScalar<long?>("SELECT id FROM game WHERE igdb_id = @igdbId AND id <> @target", new { igdbId, target }, t) is not { } old) return;
         c.Execute("UPDATE version SET game_id = @target WHERE game_id = @old", new { target, old }, t);
+        // Su seguimiento pasa al original si este no tiene uno (#59); si los dos tienen, el suelto se queda para no perder nada.
+        c.Execute("UPDATE progress SET game_id = @target WHERE game_id = @old AND NOT EXISTS (SELECT 1 FROM progress WHERE game_id = @target)", new { target, old }, t);
         if (c.ExecuteScalar<long>("SELECT count(*) FROM progress WHERE game_id = @old", new { old }, t) > 0) return;
         c.Execute("DELETE FROM field_value WHERE entity = 'game' AND entity_id = @old; DELETE FROM game WHERE id = @old", new { old }, t);
         // SQLite puede volver a usar ese id: sus imágenes (caché, se bajan de nuevo) no deben quedar para otro juego (#58).

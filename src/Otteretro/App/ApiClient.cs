@@ -51,7 +51,12 @@ public sealed class ApiClient(Database db, HttpMessageHandler? handler = null)
         using var response = await http.SendAsync(request, ct);
         var text = await response.Content.ReadAsStringAsync(ct);
         if (!response.IsSuccessStatusCode)
-            throw new HttpRequestException($"{source} respondió {(int)response.StatusCode}: {text[..Math.Min(text.Length, 200)]}", null, response.StatusCode);
+        {
+            var error = new HttpRequestException($"{source} respondió {(int)response.StatusCode}: {text[..Math.Min(text.Length, 200)]}", null, response.StatusCode);
+            // La cola reintenta un 429 no antes de lo que pide la fuente.
+            if (response.Headers.RetryAfter?.Delta is { } wait) error.Data[TaskQueue.RetryAfterKey] = wait;
+            throw error;
+        }
 
         using (var c = db.Open())
             c.Execute("INSERT OR REPLACE INTO api_cache (key, response, expires_at) VALUES (@key, @text, @expires)",

@@ -132,9 +132,16 @@ public class IgdbImportTests
         using (var c0 = f.Db.Open()) loose = c0.ExecuteScalar<long>("SELECT id FROM game WHERE igdb_id = 1030");
         Directory.CreateDirectory(SteamGridDb.Folder(f.Db));
         File.WriteAllText(Path.Combine(SteamGridDb.Folder(f.Db), $"{loose}-cover.jpg"), "portada del remake suelto");
+        using (var c0 = f.Db.Open()) c0.Execute("INSERT INTO progress (game_id, status, notes) VALUES (@loose, 'playing', 'en 3DS')", new { loose });
         var task = await f.Run(IgdbImport.EnqueueSaga(f.Db, "zelda"));
         // El juego suelto se fusionó: su portada no queda para el próximo juego que reciba ese id (#58).
         Assert.Null(SteamGridDb.Find(f.Db, loose, "cover"));
+        // Y su seguimiento pasó al original, sin dejar un juego vacío (#59).
+        using (var c1 = f.Db.Open())
+        {
+            Assert.Equal("en 3DS", c1.ExecuteScalar<string>("SELECT p.notes FROM progress p JOIN game g ON g.id = p.game_id WHERE g.igdb_id = 1029"));
+            Assert.Equal(0, c1.ExecuteScalar<int>("SELECT count(*) FROM game WHERE id = @loose", new { loose }));
+        }
         Assert.Equal("done", task.Status);
         Assert.Equal(100, task.Progress);
 

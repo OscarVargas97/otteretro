@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:54350/"
+      "url": "http://127.0.0.1:49984/"
     }
   ],
   "paths": {
@@ -1281,7 +1281,10 @@
         "type": "object",
         "properties": {
           "value": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

@@ -9,6 +9,7 @@ Errores propios de este stack que `otter:pr-reviewer` revisa además de su check
 - **Operaciones largas, una a la vez**: si un doble clic o dos pestañas pueden lanzar la misma operación dos veces, tiene que haber un cerrojo (la revisión de F0 encontró dos mudanzas simultáneas que podían borrar origen y destino).
 - **Escrituras atómicas**: `config.json` y cualquier archivo que la app reescribe se escriben a un temporal y se reemplazan; un corte no puede dejarlo a medias.
 - **Rutas**: rutas de red, discos que no están, mayúsculas en Windows y separadores; en Linux todo puede parecer el mismo disco.
+- **Lo que se guarda con el id de una fila se borra con ella** (archivos en la caché, como las imágenes de `cache/imagenes/{juego}-…`): SQLite reusa los ids, y otra fila heredaría lo del borrado (la revisión de F1 lo encontró con las portadas).
 
 ## Backend (C# .NET 10, ASP.NET Core, SQLite con Dapper)
 
@@ -16,6 +17,7 @@ Errores propios de este stack que `otter:pr-reviewer` revisa además de su check
 - **Migraciones**: un archivo `.sql` nuevo y numerado en `Data/Migrations/`; una migración ya publicada no se edita (ni se renombra: su nombre queda en `migration`). Tablas y columnas en inglés (#139). Aplicarlas dos veces no falla.
 - **Transacciones**: leer un estado y escribir según él va en una transacción; SQLite está en WAL con `busy_timeout`, pero dos escrituras que dependen de la misma lectura igual compiten.
 - **Servidor local**: todo endpoint nuevo pasa por el middleware de la clave y del `Host` (`App/LocalServer.cs`); nada escucha fuera de `127.0.0.1`.
+- **Tareas largas que aguantan errores pasajeros**: una tarea de la cola que habla con una API vuelve a la cola con su punto de control ante un corte de red, un 429 o un 5xx (`TaskQueue.Retry`), en vez de quedar en error y obligar a empezar de cero.
 - **Errores**: el registro nunca lanza; un error del usuario (ruta inválida, operación en curso) responde 4xx con un mensaje legible, no 500.
 - **API y tipos**: si cambió un endpoint, se regeneraron los tipos del front (`npm run tipos`) y se actualizó `docs/mapa/README.md` en el mismo PR.
 - **Claude**: solo con `claude -p`; nunca la API de Anthropic. La salida de Claude se valida contra un esquema antes de guardarla.

@@ -78,6 +78,9 @@ public static class SteamGridDb
                 foreach (var kind in Kinds)
                     if (Find(run.Db, id, kind) is null && await First(api, key, string.Format(Queries[kind], sgdbId), ct) is { } url)
                         await Download(http, url, Path.Combine(folder, $"{id}-{kind}{Path.GetExtension(new Uri(url).AbsolutePath)}"), ct);
+            // La carga corre a la par: si el juego se fusionó y se borró mientras bajaba, su imagen no queda para el próximo id (#59).
+            using (var c = run.Db.Open())
+                if (c.ExecuteScalar<long?>("SELECT id FROM game WHERE id = @id", new { id }) is null) Forget(run.Db, id);
             run.Report((i + 1) * 100 / games.Count, ApiError.Of("tasks.sgdb.images", ("done", (i + 1).ToString()), ("total", games.Count.ToString())),
                 JsonSerializer.Serialize(new Job(id), JsonSerializerOptions.Web));
         }

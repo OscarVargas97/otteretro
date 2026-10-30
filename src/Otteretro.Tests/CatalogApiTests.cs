@@ -108,6 +108,7 @@ public class CatalogApiTests : IAsyncLifetime
         Assert.Equal(("manual", true), fixedName.Fields.Where(x => x.Winner).Select(x => (x.Source, x.Manual)).Single());
         Assert.Equal("Breath of the Wild", (await (await http.DeleteAsync("/api/games/11/fields/name_es")).Content.ReadFromJsonAsync<GameDetail>())!.NameEs);
         Assert.Equal(HttpStatusCode.BadRequest, (await http.PutAsJsonAsync("/api/games/11/fields/year", new FieldRequest("hace mucho"))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await http.PutAsJsonAsync("/api/games/11/fields/name_es", new FieldRequest(null))).StatusCode); // #59
         Assert.Equal(HttpStatusCode.NotFound, (await http.PutAsJsonAsync("/api/games/11/fields/saga_id", new FieldRequest("2"))).StatusCode);
     }
 

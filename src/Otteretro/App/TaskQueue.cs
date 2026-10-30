@@ -36,6 +36,15 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
 
     public TimeSpan Poll { get; init; } = TimeSpan.FromSeconds(2);
 
+    /// <summary>
+    /// Espera antes de cada reintento de un error pasajero (#59): se corta la red, vence el tiempo, o la fuente responde 429 o 5xx.
+    /// La tarea vuelve a la cola con su punto de control; pasados estos intentos sin avanzar, queda en error.
+    /// </summary>
+    public static TimeSpan[] RetryDelays { get; set; } = [TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(15)];
+
+    /// <summary>En `Exception.Data`: cuánto pidió esperar la fuente (Retry-After).</summary>
+    public const string RetryAfterKey = "retryAfter";
+
     const string Columns = "id, kind, status, progress, detail, data, created_at AS CreatedAt, finished_at AS FinishedAt";
 
     readonly HashSet<string> running = [];
@@ -117,6 +126,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
             Finish(db, t.Id, "done", null, clock.Elapsed);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        catch (Exception e) when (IsTransient(e) && Retry(db, t, e)) { }
         catch (TaskException e)
         {
             FileLog.Write(LogLevel.Warning, "Tasks", $"Tarea {t.Id} ({t.Kind}): {e.Error.Code}");
@@ -131,6 +141,33 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         {
             lock (gate) running.Remove(t.Kind);
         }
+    }
+
+    static bool IsTransient(Exception e) => e switch
+    {
+        HttpRequestException h => h.StatusCode is null or System.Net.HttpStatusCode.TooManyRequests || (int)h.StatusCode >= 500,
+        TaskCanceledException => true, // venció el tiempo de HttpClient (la cancelación de la app se atrapa antes)
+        _ => false,
+    };
+
+    /// <summary>Vuelve a poner la tarea en la cola para más tarde. False si ya agotó los intentos.</summary>
+    bool Retry(Database db, Row t, Exception e)
+    {
+        using var c = db.Open();
+        var attempt = c.ExecuteScalar<int>("SELECT attempts FROM task WHERE id = @Id", t);
+        if (attempt > RetryDelays.Length) return false;
+        var wait = RetryDelays[attempt - 1];
+        if (e.Data[RetryAfterKey] is TimeSpan asked && asked > wait) wait = asked;
+        FileLog.Write(LogLevel.Warning, "Tasks", $"Tarea {t.Id} ({t.Kind}): reintento {attempt} de {RetryDelays.Length} en {wait}: {e.Message}");
+        c.Execute("UPDATE task SET status = 'queued', resume_at = @at, detail = @detail WHERE id = @Id", new
+        {
+            t.Id,
+            at = DateTime.UtcNow.Add(wait).ToString("O"),
+            detail = JsonSerializer.Serialize(ApiError.Of("tasks.retrying", ("attempt", attempt.ToString()), ("total", RetryDelays.Length.ToString()),
+                ("minutes", Math.Max(1, (int)Math.Ceiling(wait.TotalMinutes)).ToString())), JsonSerializerOptions.Web),
+        });
+        Publish(db, t.Id);
+        return true;
     }
 
     void Finish(Database db, long id, string status, ApiError? detail, TimeSpan elapsed)
@@ -191,10 +228,12 @@ public sealed class TaskRun(TaskQueue queue, Database db, long id, string? data,
     /// <param name="data">Punto de control desde donde seguir si se corta; null deja el anterior.</param>
     public void Report(int progress, ApiError? detail, string? data = null)
     {
+        // Avanzar el punto de control reinicia los intentos: una carga de horas aguanta varios cortes separados.
+        var advanced = data is not null && data != Data;
         Data = data ?? Data;
         using (var c = Db.Open())
-            c.Execute("UPDATE task SET progress = @progress, detail = @detail, data = @Data WHERE id = @Id",
-                new { Id, progress = Math.Clamp(progress, 0, 100), detail = detail is null ? null : JsonSerializer.Serialize(detail, JsonSerializerOptions.Web), Data });
+            c.Execute("UPDATE task SET progress = @progress, detail = @detail, data = @Data, attempts = CASE WHEN @advanced THEN 1 ELSE attempts END WHERE id = @Id",
+                new { Id, progress = Math.Clamp(progress, 0, 100), detail = detail is null ? null : JsonSerializer.Serialize(detail, JsonSerializerOptions.Web), Data, advanced });
         queue.Publish(Db, Id);
     }
 }

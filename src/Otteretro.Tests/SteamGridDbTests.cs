@@ -17,7 +17,10 @@ public class SteamGridDbTests
         {
             var url = request.RequestUri!.AbsoluteUri;
             if (url.StartsWith("https://cdn2.steamgriddb.com/"))
+            {
+                OnDownload?.Invoke(url);
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1, 2, 3]) });
+            }
             var path = url[SteamGridDb.ApiUrl.Length..];
             string? data = path switch
             {
@@ -36,7 +39,30 @@ public class SteamGridDbTests
         }
     }
 
-    public SteamGridDbTests() => SteamGridDb.Handler = new FakeSteamGridDb();
+    /// <summary>Para simular algo que pasa mientras se baja una imagen.</summary>
+    static Action<string>? OnDownload;
+
+    public SteamGridDbTests()
+    {
+        SteamGridDb.Handler = new FakeSteamGridDb();
+        OnDownload = null;
+    }
+
+    /// <summary>#59: si el juego se borra (fusión) mientras se baja su imagen, la imagen no queda para el próximo juego con ese id.</summary>
+    [Fact]
+    public async Task ImageOfAGameDeletedMeanwhileIsNotKept()
+    {
+        await using var f = new Fixture(("steamgriddb.apiKey", "clave"));
+        using (var c = f.Db.Open())
+            c.Execute("INSERT INTO game (id, name_es, original_name) VALUES (2, 'Zelda Classic', 'Zelda Classic')");
+        OnDownload = url =>
+        {
+            using var c = f.Db.Open();
+            c.Execute("DELETE FROM game WHERE id = 2");
+        };
+        Assert.Equal("done", (await f.Run(SteamGridDb.Enqueue(f.Db))).Status);
+        Assert.Null(SteamGridDb.Find(f.Db, 2, "cover"));
+    }
 
     /// <summary>Listo cuando de F1.7: las portadas 2:3 quedan en la caché y la API las sirve.</summary>
     [Fact]

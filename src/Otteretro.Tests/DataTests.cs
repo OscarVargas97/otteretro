@@ -120,6 +120,17 @@ public class DataTests
         Assert.Equal(c.MachineId, loaded.MachineId);
     }
 
+    /// <summary>#59: un config.json sin equipoId (escrito a mano) guarda el que se inventa, para que las claves se sigan encontrando.</summary>
+    [Fact]
+    public void ConfigWithoutMachineIdKeepsTheSameOne()
+    {
+        using var tmp = new TempDir();
+        var path = tmp["config.json"];
+        File.WriteAllText(path, """{ "carpetaDatos": "E:\\Otteretro" }""");
+        Assert.Equal(AppConfig.Load(path).MachineId, AppConfig.Load(path).MachineId);
+        Assert.Equal("E:\\Otteretro", AppConfig.Load(path).DataFolder);
+    }
+
     /// <summary>El config.json que escribía F0 se sigue leyendo: sus claves no cambian.</summary>
     [Fact]
     public void ConfigFromF0IsRead()

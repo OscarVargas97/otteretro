@@ -44,7 +44,13 @@ public sealed class AppConfig
     public static AppConfig Load(string path)
     {
         if (File.Exists(path))
-            return JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(path), Json) ?? new();
+        {
+            var text = File.ReadAllText(path);
+            var loaded = JsonSerializer.Deserialize<AppConfig>(text, Json) ?? new();
+            // Sin equipoId, cada arranque inventaría otro y las claves guardadas de este equipo no se encontrarían (#59).
+            if (!JsonDocument.Parse(text).RootElement.TryGetProperty("equipoId", out _)) loaded.Save(path);
+            return loaded;
+        }
         var config = new AppConfig();
         config.Save(path);
         return config;

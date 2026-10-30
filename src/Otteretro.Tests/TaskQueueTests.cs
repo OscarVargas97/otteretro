@@ -61,6 +61,40 @@ public class TaskQueueTests
         Assert.Equal(100, second.List()[0].Progress);
     }
 
+    /// <summary>#59: un corte de red no mata la tarea; vuelve a la cola con su punto de control y, sin avanzar, se rinde al tercer reintento.</summary>
+    [Fact]
+    public async Task TransientErrorsAreRetriedFromTheCheckpoint()
+    {
+        var starts = new List<string?>();
+        TaskQueue.Handlers["test-retry"] = (run, ct) =>
+        {
+            lock (starts) starts.Add(run.Data);
+            if (run.Data is null) run.Report(50, null, "mitad");
+            if (starts.Count < 3) throw new HttpRequestException("sin red");
+            return Task.CompletedTask;
+        };
+        TaskQueue.Handlers["test-down"] = (run, ct) => throw new HttpRequestException("caído", null, System.Net.HttpStatusCode.ServiceUnavailable);
+        TaskQueue.Handlers["test-bad"] = (run, ct) => throw new HttpRequestException("no existe", null, System.Net.HttpStatusCode.NotFound);
+        var delays = TaskQueue.RetryDelays;
+        TaskQueue.RetryDelays = [TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero];
+        try
+        {
+            using var tmp = new TempDir();
+            var (queue, db) = NewQueue(tmp);
+            var (retry, down, bad) = (TaskQueue.Enqueue(db, "test-retry"), TaskQueue.Enqueue(db, "test-down"), TaskQueue.Enqueue(db, "test-bad"));
+            await queue.StartAsync(CancellationToken.None);
+            await Until(() => new[] { retry, down, bad }.All(id => Status(db, id) is "done" or "error"));
+            await queue.StopAsync(CancellationToken.None);
+
+            Assert.Equal("done", Status(db, retry));
+            Assert.Equal([null, "mitad", "mitad"], starts); // sigue desde su punto de control
+            using var c = db.Open();
+            Assert.Equal(("error", 4), c.QuerySingle<(string, int)>("SELECT status, attempts FROM task WHERE id = @down", new { down }));
+            Assert.Equal(("error", 1), c.QuerySingle<(string, int)>("SELECT status, attempts FROM task WHERE id = @bad", new { bad })); // un 404 no se reintenta
+        }
+        finally { TaskQueue.RetryDelays = delays; }
+    }
+
     [Fact]
     public async Task OneTaskAtATimePerKindAndErrorsAreKept()
     {

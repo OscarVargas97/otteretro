@@ -190,6 +190,7 @@
     },
     "tasks": {
       "failed": "Failed: {detail}",
+      "retrying": "Connection failed: retry {attempt} of {total} in {minutes} min.",
       "demo": {
         "step": "Step {step} of {total}"
       },
