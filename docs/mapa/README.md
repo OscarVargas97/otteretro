@@ -35,7 +35,13 @@ Para sumar un idioma: su `.json` en `web/messages/`, una línea en `messages/ind
 | `settings/` · cuentas y claves (`components/Credentials.tsx`) | Cada servicio de §5.6 con «guardada» o «falta», pegar, cambiar o borrar, y abrir dónde se consigue. Nunca se muestra el valor | `GET /api/credentials`, `PUT` · `DELETE /api/credentials/{id}`, `POST /api/credentials/{id}/open` | `App/Credentials.cs` (catálogo de servicios; DPAPI en Windows, AES-GCM con llave maestra en el llavero vía `secret-tool` en Linux) | `credential`; en Linux, la llave maestra en gnome-keyring |
 | `settings/` · idioma (`components/LanguagePicker.tsx`) | Elegir el idioma; la interfaz cambia sin reiniciar | `PUT /api/language` | `App/AppConfig.cs` | `language` de `config.json` |
 | `settings/` · versión (`components/Update.tsx`) | Versión, buscar actualización y reiniciar para aplicarla | `GET /api/update`, `POST /api/update/check`, `POST /api/update/restart`, evento `update` | `App/Updater.cs` (Velopack; en Linux queda en «se actualiza con el sistema», `withSystem`) | `origenActualizaciones` de `config.json` |
-| `page.tsx` (Inicio), `sagas/`, `saga/?id=`, `collection/`, `game/?id=`, `discover/`, `review/`, `downloads/`, `tools/`, `steam/` | Estado vacío con la nutria y la fase que la llena (`ComingSoon`) | — | — | — |
+| `page.tsx` (Inicio) | Avisos de las claves que faltan (IGDB, SteamGridDB, Steam) con «Abrir Ajustes»; el resto, estado vacío (`ComingSoon`) | `GET /api/notices` | `Api/CatalogEndpoints.cs` | `credential` |
+| `sagas/` | Cuadrícula de sagas (`components/Catalog.tsx`) con filtros (favoritas, que sigo, icónicas, con juegos que tengo, empresa, con PC) y orden; «Emulación» (id 0) al final | `GET /api/sagas`, `GET /api/consoles`, `GET /api/images/…` | `Catalog/CatalogQueries.cs` | `saga`, `game`, `version`, `source`, `console` |
+| `saga/?id=` | Cabecera con ★ favorita y seguir la saga, y la tabla de todos sus juegos (las rutas llegan en F2) | `GET` · `PUT /api/sagas/{id}` | `Catalog/CatalogQueries.cs` | `saga` (`favorite`, `following`) |
+| `collection/?console=` | Consolas con su número de juegos, filtros (lo tengo, me falta, versión PC), orden, cuadrícula o lista; en PC, tienda y horas, y lo de Steam que aún no está en el catálogo | `GET /api/consoles`, `GET /api/collection/{platform}` | `Catalog/CatalogQueries.cs` | `game`, `version`, `source` |
+| `game/?id=` | Ficha: cabecera, Favorito, seguimiento (estado, fechas, nota de 1 a 10, notas; se guarda al cambiar), dónde lo tienes (PC), versiones y «Datos y fuentes» con corregir a mano o volver al de las fuentes | `GET /api/games/{id}`, `PUT /api/games/{id}/progress`, `PUT` · `DELETE /api/games/{id}/fields/{field}` | `Catalog/CatalogQueries.cs`, `Catalog/FieldValues.cs` | `progress`, `field_value`, `game` |
+| Barra superior · búsqueda (`components/TopBar.tsx`) | Ctrl+K (o X con mando): sagas y juegos por nombre en español u original; Enter abre el primero | `GET /api/search?q=` | `Catalog/CatalogQueries.cs` | `saga`, `game` |
+| `discover/`, `review/`, `downloads/`, `tools/`, `steam/` | Estado vacío con la nutria y la fase que la llena (`ComingSoon`) | — | — | — |
 
 ## API (`Api/Endpoints.cs`)
 
@@ -55,6 +61,11 @@ Todo bajo `/api`, solo en `127.0.0.1` y con la clave de la sesión (cabecera `X-
 | `GET /api/images/{gameId}/{kind}` | Portada (`cover`, 2:3), héroe (`hero`) o logo (`logo`) de un juego desde `cache/imagenes/`; 404 si no hay. La clave va en `?key=` porque se usa en `<img>` |
 | `GET /api/tasks` | Tareas de la cola: lo pendiente y lo de las últimas 24 horas (hasta 20). La mudanza de la carpeta de datos responde `move.tasksRunning` mientras corre alguna |
 | `GET /api/events` | SSE: `heartbeat` cada 15 s, `move`, `update`, `task` |
+| `GET /api/sagas?filter&platform&company&sort` · `GET` · `PUT /api/sagas/{id}` | Sagas con sus plataformas y conteos; detalle con sus juegos; marcar favorita o seguir (`Api/CatalogEndpoints.cs`) |
+| `GET /api/consoles` · `GET /api/collection/{platform}?filter&sort` | Las 24 consolas con cuántos juegos hay y cuántos tienes; los juegos de una consola (en PC, también lo de Steam sin catálogo) |
+| `GET /api/games/{id}` · `PUT …/progress` · `PUT` · `DELETE …/fields/{field}` | Ficha; guardar el seguimiento (`progress.badStatus`, `badDate`, `badRating`, `notesTooLong`); corregir `name_es`, `original_name` o `year` a mano (`fields.empty`, `fields.badYear`) o quitar la corrección |
+| `GET /api/search?q=` | Sagas y juegos por nombre (2 letras como mínimo) |
+| `GET /api/notices` | Avisos de Inicio: `notices.missingKey` con el servicio |
 
 ## Datos
 
@@ -65,7 +76,7 @@ Todo bajo `/api`, solo en `127.0.0.1` y con la clave de la sesión (cabecera `X-
 | `data/otteretro.db` · `credential` | Claves cifradas de cada equipo (`id` = servicio.campo) | `App/Credentials.cs` |
 | `data/otteretro.db` · `console` | Las 23 consolas y PC (`id` = nombre corto: `snes`, `pc`…) con su estado de emulación | Semilla en `Data/Migrations/0004_catalog.sql` |
 | `data/otteretro.db` · `saga`, `game`, `version`, `version_criterion`, `field_value` | El catálogo: la saga sin plataforma, la plataforma en la versión (#131); cada dato con su fuente, y en la columna el ganador (lo manual siempre gana) | Tareas `igdb.saga` e `igdb.platform` (`Catalog/IgdbImport.cs`, `Catalog/Igdb.cs`); `Catalog/FieldValues.cs` elige el ganador |
-| `data/otteretro.db` · `progress`, `play_session`, `price_watch`, `dismissal` | Seguimiento de cada juego (#133), sesiones de juego (F4), precios a vigilar y sagas descartadas | Todavía nadie |
+| `data/otteretro.db` · `progress`, `play_session`, `price_watch`, `dismissal` | Seguimiento de cada juego (#133), sesiones de juego (F4), precios a vigilar y sagas descartadas | `progress`: la ficha (`PUT /api/games/{id}/progress`); el resto, todavía nadie |
 | `data/otteretro.db` · `task` | Cola de tareas en segundo plano: estado, progreso, detalle (código para el front) y punto de control para seguir tras un reinicio | `App/TaskQueue.cs` (la CLI encola) |
 | `data/otteretro.db` · `api_cache` | Respuestas de IGDB y demás fuentes, con su vencimiento (clave: fuente, método, URL y consulta, sin las claves). No va en el respaldo | `App/ApiClient.cs`, que además respeta el ritmo de cada fuente (IGDB: una cada 260 ms) |
 | `data/otteretro.db` · `source` | Lo que tienes: por ahora tu cuenta de Steam (`kind = store`), con horas (`playtime`, minutos) y última vez; sin versión mientras no esté en el catálogo | `Catalog/Steam.cs`; cada carga de IGDB enlaza lo suelto |

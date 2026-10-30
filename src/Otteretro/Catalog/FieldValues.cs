@@ -34,13 +34,35 @@ public static class FieldValues
             ON CONFLICT (entity, entity_id, field, source) DO UPDATE SET value = excluded.value
             """, new { entity, id, field, value = value?.ToString(), source, manual = source == Manual }, t);
 
+        Recompute(c, table, entity, id, field, t);
+    }
+
+    /// <summary>Quita el valor de una fuente (por ejemplo, la corrección manual) y vuelve a elegir el ganador.</summary>
+    public static void Clear(SqliteConnection c, string entity, long id, string field, string source, SqliteTransaction? t = null)
+    {
+        var table = Columns[(entity, field)];
+        c.Execute("DELETE FROM field_value WHERE entity = @entity AND entity_id = @id AND field = @field AND source = @source",
+            new { entity, id, field, source }, t);
+        Recompute(c, table, entity, id, field, t);
+    }
+
+    /// <summary>Posición de un valor en la prioridad del campo: 0 gana. Lo manual siempre primero.</summary>
+    public static int Rank(string field, string source, bool manual)
+    {
+        if (manual) return -1;
         var order = Priority.GetValueOrDefault(field) ?? Priority["default"];
+        return Array.IndexOf(order, source) is var i and >= 0 ? i : int.MaxValue;
+    }
+
+    static void Recompute(SqliteConnection c, string table, string entity, long id, string field, SqliteTransaction? t)
+    {
         var winner = c.Query<(string? Value, string Source, bool Manual)>(
                 "SELECT value, source, manual FROM field_value WHERE entity = @entity AND entity_id = @id AND field = @field",
                 new { entity, id, field }, t)
-            .OrderByDescending(r => r.Manual)
-            .ThenBy(r => Array.IndexOf(order, r.Source) is var i and >= 0 ? i : int.MaxValue)
-            .First();
-        c.Execute($"UPDATE {table} SET {field} = @value WHERE id = @id", new { id, value = winner.Value }, t);
+            .OrderBy(r => Rank(field, r.Source, r.Manual))
+            .FirstOrDefault();
+        // Sin ningún valor guardado, la columna se queda como está (name_es no puede quedar vacío).
+        if (winner.Source is not null)
+            c.Execute($"UPDATE {table} SET {field} = @value WHERE id = @id", new { id, value = winner.Value }, t);
     }
 }

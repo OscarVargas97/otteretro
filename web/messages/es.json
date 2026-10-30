@@ -28,7 +28,6 @@
     "reconnecting": "Reconectando…",
     "searchLabel": "Buscar",
     "searchPlaceholder": "Sagas, juegos, emuladores, ajustes…",
-    "searchLater": "La búsqueda funciona desde la fase 1, cuando haya catálogo.",
     "goToSteam": "Ir a Steam"
   },
   "comingSoon": {
@@ -36,22 +35,6 @@
     "home": {
       "title": "Todavía no hay nada que mostrar",
       "text": "Cuando se cargue el catálogo verás aquí el siguiente juego de cada ruta, lo pendiente de revisar y las novedades."
-    },
-    "sagas": {
-      "title": "Aún no hay sagas",
-      "text": "Las sagas y sus juegos se cargan desde IGDB."
-    },
-    "saga": {
-      "title": "Elige una saga",
-      "text": "Aquí verás la línea de tiempo de la saga con la ruta que sigas."
-    },
-    "collection": {
-      "title": "Tu colección está vacía",
-      "text": "Primero aparecerá lo que tienes en Steam (fase 1) y después los juegos de tus bibliotecas (fase 3)."
-    },
-    "game": {
-      "title": "Elige un juego",
-      "text": "Aquí verás cómo jugarlo, sus versiones, archivos y tu progreso."
     },
     "discover": {
       "title": "Nada que recomendar todavía",
@@ -232,6 +215,16 @@
         "noAccount": "No se encontró una cuenta de Steam en este equipo: abre Steam e inicia sesión una vez.",
         "failed": "Steam no respondió bien ({status}). Prueba más tarde."
       }
+    },
+    "progress": {
+      "badStatus": "Ese estado no existe.",
+      "badDate": "La fecha no es válida.",
+      "badRating": "La nota va de 1 a 10.",
+      "notesTooLong": "Las notas son demasiado largas."
+    },
+    "fields": {
+      "empty": "El nombre no puede quedar vacío.",
+      "badYear": "El año tiene que estar entre 1970 y 2100."
     }
   },
   "credentials": {
@@ -301,5 +294,152 @@
     "delete": "Borrar",
     "done": "Listo",
     "menu": "Menú"
+  },
+  "catalog": {
+    "loading": "Cargando…",
+    "owned": "Lo tengo",
+    "missing": "Me falta",
+    "favorite": "Favorita",
+    "following": "La sigues",
+    "emulation": "Emulación",
+    "noSaga": "Juegos sin saga",
+    "games": "{count, plural, one {# juego} other {# juegos}}",
+    "ownedCount": "{count, plural, =0 {Ninguno} one {# lo tienes} other {# los tienes}}",
+    "store": {
+      "steam": "Steam"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "playing": "Jugando",
+      "finished": "Terminado",
+      "completed": "100 %",
+      "dropped": "Abandonado"
+    },
+    "kind": {
+      "original": "original",
+      "remaster": "remaster",
+      "remake": "remake"
+    },
+    "sagas": {
+      "filters": "Filtros",
+      "filter": {
+        "all": "Todas",
+        "favorite": "★ Favoritas",
+        "following": "Que sigo",
+        "iconic": "Icónicas",
+        "owned": "Con juegos que tengo",
+        "pc": "Con juegos de PC"
+      },
+      "sortBy": "Ordenar por",
+      "sort": {
+        "iconic": "Más icónicas",
+        "name": "Nombre",
+        "played": "Más jugadas",
+        "activity": "Última actividad"
+      },
+      "emptyTitle": "Aún no hay sagas",
+      "emptyText": "Las sagas y sus juegos se cargan desde IGDB. Pega la cuenta en Ajustes › Cuentas y claves y carga una saga con «otteretro catalogo cargar --saga zelda».",
+      "noMatch": "Ninguna saga cumple el filtro."
+    },
+    "saga": {
+      "back": "‹ Sagas",
+      "favorite": "Favorita",
+      "follow": "Seguir esta saga",
+      "following": "✓ Sigues esta saga",
+      "routesLater": "Las rutas (lanzamiento, historia y comunidad) llegan en la fase 2.",
+      "allGames": "Todos los juegos",
+      "game": "Juego",
+      "year": "Año",
+      "platforms": "Consolas",
+      "state": "Estado",
+      "noneTitle": "Elige una saga",
+      "noneText": "Abre una saga desde Sagas o con la búsqueda.",
+      "notFound": "Esta saga ya no está en el catálogo."
+    },
+    "collection": {
+      "consoles": "Consolas",
+      "filters": "Filtros",
+      "filter": {
+        "all": "Todos",
+        "owned": "Lo tengo",
+        "missing": "Me falta",
+        "pc": "Versión PC"
+      },
+      "sortLabel": "Ordenar",
+      "sort": {
+        "saga": "Por saga",
+        "name": "Por nombre",
+        "year": "Por año"
+      },
+      "view": "Vista",
+      "grid": "Cuadrícula",
+      "list": "Lista",
+      "summary": "{console} · {games} · {owned}",
+      "unlinked": "En tus tiendas, todavía sin datos del catálogo",
+      "unlinkedHint": "Aparecen igual; al cargar su saga desde IGDB pasan a la cuadrícula.",
+      "emptyTitle": "No hay juegos de esta consola",
+      "emptyText": "Carga sus juegos con «otteretro catalogo cargar --consola {console}» o, para PC, sincroniza Steam.",
+      "name": "Juego",
+      "saga": "Saga",
+      "year": "Año",
+      "store": "Tienda",
+      "hours": "Horas",
+      "lastPlayed": "Última vez"
+    },
+    "game": {
+      "noneTitle": "Elige un juego",
+      "noneText": "Abre un juego desde Colección, una saga o la búsqueda.",
+      "notFound": "Este juego ya no está en el catálogo.",
+      "favorite": "★ Favorito",
+      "versions": "Versiones",
+      "version": "Versión",
+      "have": "Tienes",
+      "where": "Dónde lo tienes",
+      "tracking": "Seguimiento",
+      "lastPlayed": "Última vez: {date}",
+      "never": "Última vez: nunca",
+      "states": "Estado",
+      "started": "Empezado",
+      "finished": "Terminado el",
+      "completed": "Completado el",
+      "dropped": "Abandonado el",
+      "rating": "Tu nota",
+      "noRating": "—",
+      "notes": "Notas",
+      "playtime": "Tiempo jugado",
+      "pendingHint": "Las fechas aparecen al empezarlo.",
+      "saving": "Guardando…",
+      "saved": "Guardado",
+      "sources": "Datos y fuentes",
+      "field": {
+        "name_es": "Nombre en español",
+        "original_name": "Nombre original",
+        "year": "Año"
+      },
+      "source": {
+        "manual": "A mano",
+        "igdb": "IGDB",
+        "wikidata": "Wikidata",
+        "rawg": "RAWG",
+        "hltb": "HowLongToBeat"
+      },
+      "fix": "Corregir",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "undoFix": "Volver al de las fuentes",
+      "manualNote": "Lo corregido a mano gana y ninguna carga lo pisa.",
+      "shown": "Se muestra"
+    },
+    "search": {
+      "sagas": "Sagas",
+      "games": "Juegos",
+      "noResults": "Nada se llama «{query}».",
+      "typeMore": "Escribe al menos 2 letras."
+    }
+  },
+  "notices": {
+    "title": "Avisos",
+    "missingKey": "Falta la clave de {service}: sin ella no se cargan sus datos.",
+    "openSettings": "Abrir Ajustes"
   }
 }

@@ -103,7 +103,7 @@ export function Empty({ title, text, children }: { title: string; text: string; 
 }
 
 /** Para pantallas que se activan en una fase posterior. `screen` es su clave en comingSoon.*. */
-export function ComingSoon({ screen, phase }: { screen: "home" | "sagas" | "saga" | "collection" | "game" | "discover" | "review" | "downloads" | "tools" | "steam"; phase: number }) {
+export function ComingSoon({ screen, phase }: { screen: "home" | "discover" | "review" | "downloads" | "tools" | "steam"; phase: number }) {
   const t = useTranslations("comingSoon");
   return (
     <div className="content">

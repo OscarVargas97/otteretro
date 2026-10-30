@@ -13,7 +13,11 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **Portadas, fondos y logos de SteamGridDB**, que se bajan solos después de cada carga y quedan guardados en tu carpeta de datos. Necesita la clave de SteamGridDB en Ajustes › Cuentas y claves.
 - **Tus juegos de Steam cuentan como «lo tengo»**, estén instalados o no, con las horas jugadas y la última vez. Los que no estaban en el catálogo se buscan solos en IGDB, y los que IGDB no conoce aparecen igual con su nombre. Se lee con `otteretro steam sincronizar` y la clave de Steam Web API.
 - **Otteretro se usa con mando**: la cruceta mueve el foco al elemento más cercano, abajo aparece qué hace cada botón (con la forma de tu mando: Xbox, PlayStation o Switch), X abre la búsqueda, Guía abre el menú rápido con «Ir a Steam» y los campos de texto tienen su propio teclado en pantalla. Al mover el ratón, todo vuelve a la vista normal.
-- **Lo que corriges a mano no se pisa** al volver a cargar.
+- **Sagas, Colección y la ficha con tus datos**: las sagas con sus consolas y filtros (favoritas, las que sigues, icónicas, por empresa, con juegos de PC), la colección por consola con PC como una más (tienda y horas, y lo de Steam que aún no está en el catálogo), y la ficha de cada juego con sus versiones y dónde lo tienes.
+- **Favoritas, seguir una saga y el seguimiento de cada juego**: estado (pendiente, jugando, terminado, 100 % o abandonado) con sus fechas, nota de 1 a 10 y notas. Se guarda al momento.
+- **Búsqueda global** con Ctrl+K (o X con el mando): encuentra sagas y juegos por su nombre en español u original.
+- **Inicio avisa qué claves faltan** para cargar el catálogo, con un botón a Ajustes.
+- **Lo que corriges a mano no se pisa** al volver a cargar: en la ficha, «Datos y fuentes» muestra qué dijo cada fuente, deja corregir el nombre o el año y volver al de las fuentes.
 
 ### Cambios
 - **La carpeta de datos no se muda mientras corre una tarea**: la app pide esperar a que termine.

@@ -34,7 +34,7 @@ test.afterEach(() => {
 /** Ninguna clave sin traducir a la vista (next-intl muestra la ruta de la clave, por ejemplo "nav.home"). */
 async function expectNoRawKeys() {
   const text = await page.locator("body").innerText();
-  expect(text).not.toMatch(/\b(nav|topBar|comingSoon|welcome|settings|dataFolder|update|errors|move|credentials)\.[a-zA-Z]+/);
+  expect(text).not.toMatch(/\b(nav|topBar|comingSoon|welcome|settings|dataFolder|update|errors|move|credentials|catalog|notices)\.[a-zA-Z]+/);
 }
 
 /** El buscador mide 320 px y su texto de ejemplo cabe entero (#20): se acorta, no se corta. */
@@ -89,6 +89,7 @@ test("elegir la carpeta de datos lleva al inicio", async () => {
   await expect(page).toHaveURL(`${base()}/`);
   await expect(page.getByRole("heading", { level: 1, name: en.nav.home })).toBeVisible();
   await expect(page.getByText(en.comingSoon.home.title)).toBeVisible();
+  await expect(page.getByText(en.notices.missingKey.replace("{service}", en.credentials.service.igdb))).toBeVisible();
   await expectNoRawKeys();
   await expectSearchFits();
   await expectTextFits();
@@ -96,11 +97,18 @@ test("elegir la carpeta de datos lleva al inicio", async () => {
 });
 
 test("todas las pantallas se ven en inglés", async () => {
-  const screens = ["sagas", "collection", "game", "saga", "discover", "review", "downloads", "tools", "steam"] as const;
-  for (const screen of screens) {
+  // Las del catálogo, sin nada cargado, dicen cómo cargarlo; las demás, en qué fase llegan.
+  const screens = [
+    ["sagas", en.catalog.sagas.emptyTitle],
+    ["collection", en.catalog.collection.emptyTitle],
+    ["game", en.catalog.game.noneTitle],
+    ["saga", en.catalog.saga.noneTitle],
+    ...(["discover", "review", "downloads", "tools", "steam"] as const).map((s) => [s, en.comingSoon[s].title] as const),
+  ] as const;
+  for (const [screen, title] of screens) {
     await page.goto(`${base()}/${screen}/`);
     await expect(page.getByRole("heading", { level: 1, name: en.nav[screen] })).toBeVisible();
-    await expect(page.getByText(en.comingSoon[screen].title)).toBeVisible();
+    await expect(page.getByText(title)).toBeVisible();
     await expectNoRawKeys();
     await expectTextFits();
   }
@@ -122,6 +130,9 @@ test("el panel de tareas y la búsqueda están traducidos", async () => {
   await page.keyboard.press("Escape");
   await page.keyboard.press("Control+K");
   await expect(page.getByPlaceholder(en.topBar.searchPlaceholder)).toBeVisible();
+  await expect(page.getByText(en.catalog.search.typeMore)).toBeVisible();
+  await page.keyboard.type("zelda");
+  await expect(page.getByText(en.catalog.search.noResults.replace("{query}", "zelda"))).toBeVisible();
   await page.keyboard.press("Escape");
 });
 
@@ -241,4 +252,70 @@ test("con mando se recorre la app: foco, barra de botones, buscar con el teclado
   await expect(pad.locator("html")).toHaveAttribute("data-input", "mouse");
   await expect(pad.locator(".ot-padbar")).toHaveCount(0);
   await pad.close();
+});
+
+test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección a mano, colección de PC y búsqueda", async () => {
+  // Un catálogo pequeño, como el que dejaría una carga de IGDB y de Steam.
+  const { DatabaseSync } = await import("node:sqlite");
+  const db = new DatabaseSync(join(dataDir("moved"), "data", "otteretro.db"));
+  db.exec(`
+    INSERT INTO saga (id, name, iconic) VALUES (1, 'The Legend of Zelda', 1), (2, 'Half-Life', 0);
+    INSERT INTO game (id, saga_id, name_es, original_name, year) VALUES
+      (10, 1, 'Ocarina of Time', 'Ocarina of Time', 1998), (11, 1, 'Breath of the Wild', 'Breath of the Wild', 2017), (20, 2, 'Half-Life', 'Half-Life', 1998);
+    INSERT INTO version (id, game_id, platform, kind, year, steam_app_id) VALUES
+      (100, 10, 'n64', 'original', 1998, NULL), (101, 10, '3ds', 'remake', 2011, NULL), (110, 11, 'switch', 'original', 2017, NULL), (200, 20, 'pc', 'original', 1998, 70);
+    INSERT INTO field_value (entity, entity_id, field, value, source, manual) VALUES ('game', 10, 'name_es', 'Ocarina of Time', 'igdb', 0);
+    INSERT INTO source (kind, store, store_id, name, playtime, last_played, version_id) VALUES
+      ('store', 'steam', '70', 'Half-Life', 600, '2026-10-01T00:00:00Z', 200), ('store', 'steam', '999', 'Algo que IGDB no tiene', 5, NULL, NULL);
+  `);
+  db.close();
+
+  await page.goto(`${base()}/sagas/`);
+  await page.getByRole("link", { name: /The Legend of Zelda/ }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "The Legend of Zelda" })).toBeVisible();
+  const favorite = page.getByRole("button", { name: es.catalog.saga.favorite });
+  await favorite.click();
+  await expect(favorite).toHaveAttribute("aria-pressed", "true");
+  await page.reload();
+  await expect(page.getByRole("button", { name: es.catalog.saga.favorite })).toHaveAttribute("aria-pressed", "true");
+  await expectNoRawKeys();
+  await expectTextFits();
+  await page.screenshot({ path: "e2e-results/8-saga-es.png", fullPage: true });
+
+  await page.getByRole("link", { name: "Ocarina of Time" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "Ocarina of Time" })).toBeVisible();
+  await page.getByRole("radio", { name: es.catalog.status.finished }).click();
+  await expect(page.getByLabel(es.catalog.game.finished)).toBeVisible();
+  await page.getByLabel(es.catalog.game.rating).selectOption("9");
+  await expect(page.getByText(es.catalog.game.saved)).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("radio", { name: es.catalog.status.finished })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByLabel(es.catalog.game.rating)).toHaveValue("9");
+
+  // Corregir el nombre a mano gana sobre IGDB; volver al de las fuentes lo deshace.
+  await page.getByText(es.catalog.game.sources).click();
+  await page.getByRole("button", { name: `${es.catalog.game.fix}: ${es.catalog.game.field.name_es}` }).click();
+  await page.getByLabel(es.catalog.game.field.name_es).fill("La ocarina del tiempo");
+  await page.getByRole("button", { name: es.catalog.game.save }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "La ocarina del tiempo" })).toBeVisible();
+  await expectNoRawKeys();
+  await expectTextFits();
+  await page.screenshot({ path: "e2e-results/9-ficha-es.png", fullPage: true });
+  await page.getByRole("button", { name: es.catalog.game.undoFix }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "Ocarina of Time" })).toBeVisible();
+
+  await page.goto(`${base()}/collection/?console=pc`);
+  await expect(page.getByRole("link", { name: /Half-Life/ })).toBeVisible();
+  await expect(page.getByText("Algo que IGDB no tiene")).toBeVisible();
+  await page.getByRole("button", { name: es.catalog.collection.list }).click();
+  await expect(page.getByRole("cell", { name: "10 h" })).toBeVisible();
+  await expectNoRawKeys();
+  await expectTextFits();
+  await page.screenshot({ path: "e2e-results/10-coleccion-pc-es.png", fullPage: true });
+
+  await page.keyboard.press("Control+K");
+  await page.keyboard.type("zelda");
+  await expect(page.getByRole("link", { name: /The Legend of Zelda/ })).toBeVisible();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/saga\/\?id=1/);
 });

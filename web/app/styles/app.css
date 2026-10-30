@@ -42,7 +42,7 @@ input, select, textarea { font: inherit; background: var(--bg); color: var(--ink
 .wizard-steps ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
 .wizard-steps li[aria-disabled="true"] { opacity: .5; }
 .wizard-body { flex: 999 1 560px; min-width: 0; max-width: 760px; padding: 64px 48px; display: flex; flex-direction: column; gap: 24px; box-sizing: border-box; }
-.wizard-body h1 { margin: 0; font-family: var(--font-display); font-size: 40px; line-height: 44px; font-weight: 700; }
+.wizard-body h1 { margin: 0; font-family: var(--font-display); font-size: 40px; line-height: 48px; font-weight: 700; }
 .wizard-body p { margin: 0; }
 .drive-option { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
 .error { color: var(--danger); }
@@ -61,3 +61,37 @@ input, select, textarea { font: inherit; background: var(--bg); color: var(--ink
 [data-input="pad"] .app-main { padding-bottom: 56px; }
 .ot-scrim.pad-layer { position: fixed; inset: 0; z-index: 50; }
 .ot-scrim.pad-osk { align-items: flex-end; justify-content: center; }
+
+/* Catálogo (F1.9) */
+.toolbar { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; justify-content: space-between; }
+.toolbar-end, .toolbar-label { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.toolbar select, .toolbar .ot-btn { height: 36px; }
+.tabular { font-variant-numeric: tabular-nums; }
+.saga-art-name { text-shadow: 0 1px 3px rgba(0, 0, 0, .8); }
+.hero { background: var(--accent-soft); padding: var(--space-6); display: flex; flex-wrap: wrap; gap: var(--space-6); align-items: flex-end; }
+.hero-main { flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.hero-title { margin: 0; font-family: var(--font-display); font-size: 40px; line-height: 48px; font-weight: 700; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.collection { display: flex; flex-wrap: wrap; flex: 1; }
+.collection-consoles { flex: 1 1 200px; max-width: 220px; border-right: 1px solid var(--line); padding: var(--space-4) var(--space-2); display: flex; flex-direction: column; gap: 2px; }
+.collection-consoles .ot-nav-item { font: inherit; font-weight: 700; background: none; border: 0; cursor: pointer; text-align: left; }
+.collection-main { flex: 999 1 560px; min-width: 0; gap: var(--space-5, 20px); }
+.columns { display: flex; flex-wrap: wrap; gap: var(--space-6); align-items: flex-start; }
+.column { flex: 1 1 420px; min-width: 0; }
+.chip-lg { height: 36px; }
+.fields-row { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.field { display: flex; flex-direction: column; gap: var(--space-1); }
+.field input, .field select { height: 36px; box-sizing: border-box; padding: 0 8px; color-scheme: dark; }
+.stat { display: flex; flex-direction: column; gap: 2px; }
+.stat-value { font-family: var(--font-pixel); font-size: 18px; line-height: 24px; }
+textarea { min-height: 64px; }
+details.fold { background: var(--surface); border-radius: var(--radius-lg); padding: 0 var(--space-4); }
+details.fold summary { cursor: pointer; padding: 14px 0; font-family: var(--font-display); font-weight: 600; font-size: 16px; display: flex; justify-content: space-between; gap: var(--space-3); }
+details.fold[open] summary { border-bottom: 1px solid var(--line); }
+.fold-body { padding: var(--space-3) 0 var(--space-4); display: flex; flex-direction: column; gap: var(--space-4); }
+.field-editor { display: flex; flex-direction: column; gap: var(--space-2); }
+.source-list { margin: 0; padding-left: var(--space-4); }
+.search-group { display: flex; flex-direction: column; gap: 2px; }
+.search-group h3 { margin: var(--space-2) 0 0; font-weight: 700; }
+.search-result { display: flex; justify-content: space-between; gap: var(--space-3); padding: var(--space-2); border-radius: var(--radius-md); color: var(--ink); text-decoration: none; }
+.search-result:hover, .search-result:focus-visible { background: var(--accent-soft); }

@@ -122,6 +122,8 @@ public static class Endpoints
         api.MapPost("/steam/big-picture", Results<Ok, Conflict<ApiError>> () =>
             Open("steam://open/bigpicture") ? TypedResults.Ok() : TypedResults.Conflict(ApiError.Of("steam.notInstalled")));
 
+        CatalogEndpoints.Map(api);
+
         // Panel de tareas: lo pendiente y lo reciente; cada cambio llega después por el evento "task".
         api.MapGet("/tasks", (TaskQueue q) => q.List());
 

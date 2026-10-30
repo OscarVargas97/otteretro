@@ -33,3 +33,7 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 /** EventSource no admite cabeceras, así que la clave va en la URL. */
 export const eventsUrl = () => `${apiBase()}/api/events?key=${encodeURIComponent(key())}`;
+
+/** Portada, héroe o logo de un juego (SteamGridDB, guardado en la carpeta de datos). Un <img> no manda cabeceras. */
+export const imageUrl = (gameId: number | string, kind: "cover" | "hero" | "logo") =>
+  `${apiBase()}/api/images/${gameId}/${kind}?key=${encodeURIComponent(key())}`;

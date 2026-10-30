@@ -1,10 +1,13 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { eventsUrl, request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
+import type { SearchResults } from "@/lib/types";
 import { UpdateTask, useUpdate } from "./Update";
 import { MoveTask, useMove } from "./DataFolder";
 import { TaskRows, upsertTask, useTasks } from "./Tasks";
@@ -81,16 +84,54 @@ export function TopBar({ title }: { title: string }) {
   );
 }
 
+/** Búsqueda global (§0.6): sagas y juegos por nombre, en español u original. Enter abre el primero. */
 function Search({ onClose }: { onClose: () => void }) {
   const t = useTranslations("topBar");
+  const tc = useTranslations("catalog");
+  const router = useRouter();
   const field = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState("");
+  const text = useDeferredValue(query.trim());
+  const results = useQuery({
+    queryKey: ["search", text],
+    queryFn: () => request<SearchResults>(`/api/search?q=${encodeURIComponent(text)}`),
+    enabled: text.length >= 2,
+    placeholderData: (previous) => previous,
+  });
   useEffect(() => field.current?.focus(), []);
+  const links = [
+    ...(results.data?.sagas ?? []).map((s) => ({ href: `/saga/?id=${s.id}`, name: s.name, meta: tc("games", { count: Number(s.games) }), group: "sagas" as const })),
+    ...(results.data?.games ?? []).map((g) => ({ href: `/game/?id=${g.id}`, name: g.name, meta: [g.sagaName, g.year].filter(Boolean).join(" · "), group: "games" as const })),
+  ];
+  const open = (href: string) => {
+    onClose();
+    router.push(href);
+  };
+
   return (
     <div className="overlay" onClick={onClose}>
       <div className="search-dialog" role="dialog" aria-label={t("searchLabel")} onClick={(e) => e.stopPropagation()}>
         <label htmlFor="search" className="small muted">{t("searchLabel")}</label>
-        <input id="search" ref={field} placeholder={t("searchPlaceholder")} />
-        <p className="small muted">{t("searchLater")}</p>
+        <input id="search" ref={field} placeholder={t("searchPlaceholder")} value={query} autoComplete="off"
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && links[0]) open(links[0].href); }} />
+        {text.length < 2 ? (
+          <p className="small muted">{tc("search.typeMore")}</p>
+        ) : results.data && links.length === 0 ? (
+          <p className="small muted">{tc("search.noResults", { query: text })}</p>
+        ) : (
+          (["sagas", "games"] as const).map((group) => links.some((l) => l.group === group) && (
+            <div key={group} className="search-group">
+              <h3 className="small muted">{tc(`search.${group}`)}</h3>
+              {links.filter((l) => l.group === group).map((l) => (
+                <Link key={l.href} className="search-result" href={l.href} onClick={(e) => { e.preventDefault(); open(l.href); }}>
+                  <span>{l.name}</span>
+                  <span className="small muted">{l.meta}</span>
+                </Link>
+              ))}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
