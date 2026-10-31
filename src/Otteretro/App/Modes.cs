@@ -66,6 +66,7 @@ public static class CliMode
             [--saga X]             una saga (zelda, half-life…; PC se carga así)
             [--pc-populares]       o los 1.500 juegos de PC más calificados. Lo hace la app abierta.
           steam sincronizar      Lee lo que tienes en Steam (con sus horas) y lo enlaza con el catálogo; lo hace la app abierta.
+          claude ahora           Deja que Claude trabaje ya, fuera de su horario (00:00 a 08:00), hasta que empiece el siguiente.
           tareas prueba          Encola una tarea de prueba (10 pasos de 3 s) para ver el panel de tareas.
           servidor               Levanta la API y la interfaz sin ventana, para abrirlas en un navegador (desarrollo).
           ayuda                  Muestra esta ayuda.
@@ -94,6 +95,9 @@ public static class CliMode
                 return Enqueue(output, db => [TaskQueue.Enqueue(db, "demo")]);
             case ["steam", "sincronizar"]:
                 return Enqueue(output, db => [Catalog.Steam.EnqueueSync(db)]);
+            case ["claude", "ahora"]:
+                return WithData(output, db =>
+                    output.WriteLine($"Claude puede trabajar hasta {Claude.ClaudeBudget.RunNow(db).ToLocalTime():g}; el límite de la suscripción y el tope por ventana siguen valiendo."));
             case ["catalogo", "cargar", .. var options] when options is [] or ["--consola", _] or ["--saga", _, ..] or ["--pc-populares"]:
                 return Enqueue(output, db => EnqueueLoad(db, options));
             case ["servidor"]:
@@ -121,7 +125,15 @@ public static class CliMode
     }
 
     /// <summary>Encola tareas en la base de la carpeta de datos; las toma la app abierta.</summary>
-    static int Enqueue(TextWriter output, Func<Data.Database, long[]> enqueue)
+    static int Enqueue(TextWriter output, Func<Data.Database, long[]> enqueue) => WithData(output, db =>
+    {
+        var ids = enqueue(db);
+        output.WriteLine(ids.Length == 1
+            ? $"Tarea {ids[0]} encolada; la app abierta la toma en unos segundos."
+            : $"{ids.Length} tareas encoladas; la app abierta las hace de a una y se ven en el panel de tareas.");
+    });
+
+    static int WithData(TextWriter output, Action<Data.Database> action)
     {
         var config = AppConfig.Load(AppConfig.DefaultPath);
         if (!DataFolder.IsReady(config.DataFolder))
@@ -129,10 +141,7 @@ public static class CliMode
             output.WriteLine("Todavía no hay carpeta de datos: abre la app y elige una.");
             return 1;
         }
-        var ids = enqueue(Startup.PrepareData(config));
-        output.WriteLine(ids.Length == 1
-            ? $"Tarea {ids[0]} encolada; la app abierta la toma en unos segundos."
-            : $"{ids.Length} tareas encoladas; la app abierta las hace de a una y se ven en el panel de tareas.");
+        action(Startup.PrepareData(config));
         return 0;
     }
 

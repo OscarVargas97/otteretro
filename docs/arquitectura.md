@@ -117,7 +117,7 @@ Tablas principales. `id` entero salvo donde se indica. Tablas, columnas y valore
 | Tareas y Claude | `task` | id, kind, status (queued/running/done/error), progress (0–100), detail (código para el front), data (punto de control), resume_at, attempts, created_at, finished_at. Una a la vez por tipo; lo que estaba en `running` al arrancar vuelve a la cola (`App/TaskQueue.cs`) |
 | | `review_item` | id, kind (doubtful/unidentified/pending_approval), entity, entity_id, data, status (open/approved/rejected), created_at |
 | | `learning` | id, kind (alias/rule/recipe/route), content, created_at, undone |
-| | `claude_usage` | id, task_id, prompt, model, duration_ms, result (ok/invalid/failed/limit), input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, created_at: una fila por llamada (`Claude/ClaudeRunner.cs`) |
+| | `claude_usage` | id, task_id, prompt, model, duration_ms, result (ok/invalid/failed/limit), input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, created_at: una fila por llamada (`Claude/ClaudeRunner.cs`) |
 | Caché | `api_cache` | key, response, expires_at |
 
 - Las respuestas de IGDB y demás fuentes se guardan en `api_cache`, para no repetir llamadas y respetar sus límites.

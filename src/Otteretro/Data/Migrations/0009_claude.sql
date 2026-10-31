@@ -42,7 +42,7 @@ CREATE TABLE learning (
 );
 
 -- Una fila por llamada a `claude -p` (§11.4). result: ok, invalid (no tenía la forma pedida), failed o limit.
--- Los tokens sirven para estimar cuánto de cada ventana de la suscripción se usó (tope por ventana, F2.2).
+-- cost_usd (el que informa `claude`, pondera el modelo) estima cuánto de cada ventana de la suscripción se usó (tope por ventana, F2.2).
 CREATE TABLE claude_usage (
     id                    INTEGER PRIMARY KEY,
     task_id               INTEGER,
@@ -54,6 +54,7 @@ CREATE TABLE claude_usage (
     output_tokens         INTEGER NOT NULL DEFAULT 0,
     cache_read_tokens     INTEGER NOT NULL DEFAULT 0,
     cache_creation_tokens INTEGER NOT NULL DEFAULT 0,
+    cost_usd              REAL NOT NULL DEFAULT 0,
     created_at            TEXT NOT NULL
 );
 CREATE INDEX claude_usage_created ON claude_usage (created_at);

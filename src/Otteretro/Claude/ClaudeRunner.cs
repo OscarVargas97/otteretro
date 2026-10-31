@@ -82,27 +82,30 @@ public static class ClaudeRunner
         var usage = new ClaudeUsage(0, 0, 0, 0);
         for (var attempt = 1; ; attempt++)
         {
+            ClaudeBudget.Check(db);
             ProcessOutput output;
             var call = Stopwatch.StartNew();
             try { output = await Launch(start, stdin, ct); }
             catch (Win32Exception) { throw new TaskException(ApiError.Of("tasks.claude.notInstalled")); }
 
-            var (value, used, error) = Read<T>(output);
-            if (used is not null) usage = Add(usage, used);
-            Log(db, taskId, name, model, call.Elapsed, error?.Code switch
+            var (value, reply, error) = Read<T>(output);
+            if (reply?.Usage is { } used) usage = Add(usage, used);
+            var limit = ClaudeBudget.LimitReached(db, $"{reply?.Result}\n{output.Stderr}");
+            Log(db, taskId, name, model, call.Elapsed, limit is not null ? "limit" : error?.Code switch
             {
                 null => "ok",
                 "tasks.claude.invalidOutput" => "invalid",
                 _ => "failed",
-            }, used ?? new ClaudeUsage(0, 0, 0, 0));
+            }, reply?.Usage ?? new ClaudeUsage(0, 0, 0, 0), reply?.TotalCostUsd ?? 0);
+            if (limit is not null) throw limit;
             if (error is null) return new ClaudeResult<T>(value!, usage, clock.Elapsed, attempt);
             FileLog.Write(LogLevel.Warning, "Claude", $"Intento {attempt}: {error.Code} {output.Stderr}");
-            // Solo se repite lo que respondió mal; si `claude` falló, preguntar otra vez no lo arregla (el límite es F2.2).
+            // Solo se repite lo que respondió mal; si `claude` falló, preguntar otra vez no lo arregla.
             if (error.Code != "tasks.claude.invalidOutput" || attempt == 2) throw new TaskException(error);
         }
     }
 
-    static (T? Value, ClaudeUsage? Usage, ApiError? Error) Read<T>(ProcessOutput output)
+    static (T? Value, Reply? Reply, ApiError? Error) Read<T>(ProcessOutput output)
     {
         Reply? reply;
         try { reply = JsonSerializer.Deserialize<Reply>(output.Stdout, Snake); }
@@ -110,31 +113,43 @@ public static class ClaudeRunner
         if (reply is null || output.ExitCode != 0 || reply.IsError)
         {
             var detail = reply?.Result ?? (output.Stderr.Trim() is { Length: > 0 } err ? err : $"exit {output.ExitCode}");
-            return (default, reply?.Usage, ApiError.Of("tasks.claude.failed", ("detail", detail)));
+            return (default, reply, ApiError.Of("tasks.claude.failed", ("detail", detail)));
         }
         try
         {
-            if (reply.StructuredOutput is { } node && node.Deserialize<T>(Strict) is { } value) return (value, reply.Usage, null);
+            if (reply.StructuredOutput is { } node && node.Deserialize<T>(Strict) is { } value) return (value, reply, null);
         }
         catch (JsonException) { }
-        return (default, reply.Usage, ApiError.Of("tasks.claude.invalidOutput"));
+        return (default, reply, ApiError.Of("tasks.claude.invalidOutput"));
     }
 
-    static void Log(Database db, long? taskId, string prompt, string? model, TimeSpan duration, string result, ClaudeUsage u)
+    static void Log(Database db, long? taskId, string prompt, string? model, TimeSpan duration, string result, ClaudeUsage u, double cost)
     {
         using var c = db.Open();
         c.Execute("""
-            INSERT INTO claude_usage (task_id, prompt, model, duration_ms, result, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, created_at)
-            VALUES (@taskId, @prompt, @model, @ms, @result, @InputTokens, @OutputTokens, @CacheReadInputTokens, @CacheCreationInputTokens, @now)
-            """, new { taskId, prompt, model, ms = (long)duration.TotalMilliseconds, result, u.InputTokens, u.OutputTokens,
-                u.CacheReadInputTokens, u.CacheCreationInputTokens, now = DateTime.UtcNow.ToString("O") });
+            INSERT INTO claude_usage (task_id, prompt, model, duration_ms, result, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, created_at)
+            VALUES (@taskId, @prompt, @model, @ms, @result, @InputTokens, @OutputTokens, @CacheReadInputTokens, @CacheCreationInputTokens, @cost, @now)
+            """, new
+        {
+            taskId,
+            prompt,
+            model,
+            ms = (long)duration.TotalMilliseconds,
+            result,
+            u.InputTokens,
+            u.OutputTokens,
+            u.CacheReadInputTokens,
+            u.CacheCreationInputTokens,
+            cost,
+            now = ClaudeBudget.UtcNow().ToString("O")
+        });
     }
 
     static ClaudeUsage Add(ClaudeUsage a, ClaudeUsage b) => new(a.InputTokens + b.InputTokens, a.OutputTokens + b.OutputTokens,
         a.CacheReadInputTokens + b.CacheReadInputTokens, a.CacheCreationInputTokens + b.CacheCreationInputTokens);
 
     /// <summary>Lo que se usa de la salida de `claude -p --output-format json`.</summary>
-    record Reply(bool IsError, string? Result, JsonNode? StructuredOutput, ClaudeUsage? Usage);
+    record Reply(bool IsError, string? Result, JsonNode? StructuredOutput, ClaudeUsage? Usage, double TotalCostUsd);
 
     static async Task<ProcessOutput> RunProcess(ProcessStartInfo start, string stdin, CancellationToken ct)
     {

@@ -225,7 +225,10 @@
       "claude": {
         "notInstalled": "No se encontró Claude Code: instálalo e inicia sesión con `claude` en una terminal.",
         "failed": "Claude falló: {detail}",
-        "invalidOutput": "Claude respondió dos veces algo que no tiene la forma esperada."
+        "invalidOutput": "Claude respondió dos veces algo que no tiene la forma esperada.",
+        "limit": "Llegaste al límite de tu suscripción de Claude: sigue sola el {at}.",
+        "schedule": "Espera el horario de Claude: empieza el {at}.",
+        "windowCap": "Usó el {share} % de esta ventana de Claude: sigue sola el {at}."
       }
     },
     "progress": {

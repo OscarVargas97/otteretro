@@ -128,6 +128,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
             Finish(db, t.Id, "done", null, clock.Elapsed);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        catch (Claude.ClaudePausedException e) { Pause(db, t, e); }
         catch (Exception e) when (IsTransient(e) && Retry(db, t, e)) { }
         catch (TaskException e)
         {
@@ -170,6 +171,20 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         });
         Publish(db, t.Id);
         return true;
+    }
+
+    /// <summary>Claude tiene que esperar (límite, tope u horario, F2.2): vuelve a la cola hasta esa hora sin gastar un intento.</summary>
+    void Pause(Database db, Row t, Claude.ClaudePausedException e)
+    {
+        FileLog.Write(LogLevel.Information, "Tasks", $"Tarea {t.Id} ({t.Kind}): espera hasta {e.Until:O} ({e.Reason.Code})");
+        using (var c = db.Open())
+            c.Execute("UPDATE task SET status = 'queued', resume_at = @at, detail = @detail, attempts = MAX(attempts - 1, 0) WHERE id = @Id", new
+            {
+                t.Id,
+                at = e.Until.ToString("O"),
+                detail = JsonSerializer.Serialize(e.Reason, JsonSerializerOptions.Web),
+            });
+        Publish(db, t.Id);
     }
 
     void Finish(Database db, long id, string status, ApiError? detail, TimeSpan elapsed)
