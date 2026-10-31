@@ -2,7 +2,8 @@
 html, body { margin: 0; min-height: 100%; background: var(--bg); }
 .app { min-height: 100vh; }
 
-.sidebar { flex: 1 1 220px; max-width: 240px; min-height: 100vh; box-sizing: border-box; background: var(--surface); border-right: 1px solid var(--line); padding: 16px 8px; display: flex; flex-direction: column; gap: 16px; }
+/* Fijo al desplazar la página (#100); si no cabe, se desplaza solo él. */
+.sidebar { flex: 1 1 220px; max-width: 240px; position: sticky; top: 0; align-self: flex-start; height: 100vh; overflow-y: auto; box-sizing: border-box; background: var(--surface); border-right: 1px solid var(--line); padding: 16px 8px; display: flex; flex-direction: column; gap: 16px; }
 .sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 4px 12px; text-decoration: none; color: var(--ink); }
 .sidebar-logo img { image-rendering: pixelated; }
 .sidebar-logo span { font-family: var(--font-display); font-weight: 700; font-size: 20px; line-height: 24px; }

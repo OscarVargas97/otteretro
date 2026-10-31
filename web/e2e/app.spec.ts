@@ -316,8 +316,13 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   await page.goto(`${base()}/sagas/`);
   const tiles = page.locator(".ot-saga");
   await expect(tiles).toHaveCount(60);
+  const menuTop = async () => (await page.locator(".sidebar").boundingBox())!.y;
+  const before = await menuTop();
   for (let i = 0; i < 5 && (await tiles.count()) < 102; i++) await page.mouse.wheel(0, 20000);
   await expect(tiles).toHaveCount(102);
+  // #100: el menú lateral sigue en su lugar después de bajar.
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(500);
+  expect(await menuTop()).toBe(before);
   many.exec("DELETE FROM saga WHERE id >= 1000");
   many.close();
 
