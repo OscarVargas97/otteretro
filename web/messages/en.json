@@ -509,7 +509,7 @@
       "noneText": "Open a series from Series or with search.",
       "notFound": "This series is no longer in the catalog.",
       "route": "Route",
-      "noRoutes": "Claude hasn't prepared this saga's routes yet. They're prepared at night (`otteretro claude cargar`) or on request, and approved in Review.",
+      "noRoutes": "Claude hasn't prepared this saga's routes yet. They're prepared at night (otteretro claude cargar) or on request, and approved in Review.",
       "recalculate": "Ask Claude to recalculate",
       "queued": "Queued: Claude reviews it during its schedule and the result goes to Review.",
       "why": "Why this order",

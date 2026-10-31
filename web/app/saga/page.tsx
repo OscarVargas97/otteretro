@@ -45,7 +45,7 @@ function Saga() {
     <>
       <section className="hero">
         <div className="hero-main">
-          <Link className="small muted" href="/sagas/">{t("saga.back")}</Link>
+          <Link className="back" href="/sagas/">{t("saga.back")}</Link>
           <span className="small muted">{[...companies, span, t("games", { count: Number(s.games) }), t("ownedCount", { count: Number(s.owned) })].filter(Boolean).join(" · ")}</span>
           <h2 className="hero-title">{emulation ? t("emulation") : s.name}</h2>
           {!emulation && (

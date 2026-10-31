@@ -82,7 +82,8 @@ function Content({ children }: { children: ReactNode }) {
     <div className="app">
       <Sidebar />
       <main className="app-main">
-        <TopBar title={title ? t(`nav.${title}`) : "Otteretro"} />
+        {/* En Saga y Juego el título es el del héroe: la barra no lo repite (#99). */}
+        <TopBar title={title ? t(`nav.${title}`) : "Otteretro"} hideTitle={path === "/saga" || path === "/game"} />
         <UpdateNotice />
         {children}
       </main>

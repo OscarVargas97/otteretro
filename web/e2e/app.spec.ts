@@ -47,7 +47,7 @@ async function expectSearchFits() {
 
 /** Ningún texto se sale de su botón, enlace o título (#20). Los cortes con «…» son a propósito y no cuentan. */
 async function expectTextFits() {
-  const overflowing = await page.locator("button, a, h1, h2, h3, .ot-badge").evaluateAll((els) =>
+  const overflowing = await page.locator(":is(button, a, h1, h2, h3, .ot-badge):not(.sr-only)").evaluateAll((els) =>
     els
       .filter((e) => {
         const s = getComputedStyle(e);

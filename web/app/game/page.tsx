@@ -43,7 +43,7 @@ function Game() {
       <section className="hero">
         <Cover gameId={Number(g.id)} name={g.nameEs} hasCover={g.hasCover} style={{ width: 150, flex: "none" }} />
         <div className="hero-main">
-          {g.sagaId ? <Link className="small muted" href={`/saga/?id=${g.sagaId}`}>‹ {g.sagaName}</Link> : <Link className="small muted" href="/saga/?id=0">‹ {t("emulation")}</Link>}
+          {g.sagaId ? <Link className="back" href={`/saga/?id=${g.sagaId}`}>← {g.sagaName}</Link> : <Link className="back" href="/saga/?id=0">← {t("emulation")}</Link>}
           <h2 className="hero-title">{g.nameEs}</h2>
           {g.originalName && g.originalName !== g.nameEs && <span className="small muted">{g.originalName}</span>}
           <div className="ot-game-meta" style={{ fontSize: 14 }}>
@@ -211,8 +211,8 @@ function Tracking({ game }: { game: GameDetail }) {
         </div>
         {!withStart && <p className="small muted" style={{ margin: 0 }}>{t("game.pendingHint")}</p>}
         <div className="stat">
+          <span className="small muted">{t("game.playtime")}:</span>
           <span className="stat-value">{hours(game.playtime)}</span>
-          <span className="small muted">{t("game.playtime")}</span>
         </div>
         <label className="small muted" htmlFor="notes">{t("game.notes")}</label>
         <textarea id="notes" value={notes} maxLength={10000} onChange={(e) => setNotes(e.target.value)}

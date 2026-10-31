@@ -455,7 +455,7 @@
     "emulation": "Emulación",
     "noSaga": "Juegos sin saga",
     "games": "{count, plural, one {# juego} other {# juegos}}",
-    "ownedCount": "{count, plural, =0 {Ninguno} one {# lo tienes} other {# los tienes}}",
+    "ownedCount": "{count, plural, =0 {No tienes ninguno} one {# lo tienes} other {# los tienes}}",
     "store": {
       "steam": "Steam"
     },
@@ -496,7 +496,7 @@
       "allPlatforms": "Todas las consolas"
     },
     "saga": {
-      "back": "‹ Sagas",
+      "back": "← Sagas",
       "favorite": "Favorita",
       "follow": "Seguir esta saga",
       "following": "✓ Sigues esta saga",
@@ -509,7 +509,7 @@
       "noneText": "Abre una saga desde Sagas o con la búsqueda.",
       "notFound": "Esta saga ya no está en el catálogo.",
       "route": "Ruta",
-      "noRoutes": "Claude todavía no preparó las rutas de esta saga. Se preparan solas de noche (`otteretro claude cargar`) o al pedirlas, y se aprueban en Revisar.",
+      "noRoutes": "Claude todavía no preparó las rutas de esta saga. Se preparan solas de noche (otteretro claude cargar) o al pedirlas, y se aprueban en Revisar.",
       "recalculate": "Pedir a Claude que la recalcule",
       "queued": "Encolado: Claude la revisa en su horario y el resultado llega a Revisar.",
       "why": "Por qué este orden",
