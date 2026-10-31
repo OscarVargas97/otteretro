@@ -88,7 +88,7 @@ public static class CatalogQueries
         return csv.Split(',').OrderBy(p => order.GetValueOrDefault(p, int.MaxValue)).ToArray();
     }
 
-    static HashSet<long> Covers(Database db) =>
+    internal static HashSet<long> Covers(Database db) =>
         Directory.Exists(SteamGridDb.Folder(db))
             ? Directory.EnumerateFiles(SteamGridDb.Folder(db), "*-cover.*")
                 .Select(f => long.TryParse(Path.GetFileName(f).Split('-')[0], out var id) ? id : 0).ToHashSet()

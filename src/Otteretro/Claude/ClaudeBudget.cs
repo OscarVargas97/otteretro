@@ -21,6 +21,14 @@ public sealed class ClaudePausedException(DateTime until, ApiError reason) : Exc
 /// en el horario (00:00 a 08:00 por defecto, en la hora del equipo) hasta el límite de la suscripción; fuera de él, solo
 /// con «Ejecutar ahora» y sin pasar del tope de cada ventana de 5 h (50 % por defecto, #157). Los ajustes van en la tabla `setting`.
 /// </summary>
+/// <param name="PausedUntil">Hasta cuándo espera por el límite de la suscripción (null = no espera).</param>
+/// <param name="RunNowUntil">Hasta cuándo vale «Ejecutar ahora».</param>
+public record ClaudeStatus(string ScheduleStart, string ScheduleEnd, int WindowShare, string? PausedUntil, string? RunNowUntil, bool InSchedule, List<UsageRow> Usage);
+
+public record UsageRow(string Prompt, string? Model, long DurationMs, string Result, long InputTokens, long OutputTokens, double CostUsd, string CreatedAt);
+
+public record ClaudeSettingsRequest(string? ScheduleStart, string? ScheduleEnd, int? WindowShare);
+
 public static partial class ClaudeBudget
 {
     public static Func<DateTime> UtcNow { get; set; } = () => DateTime.UtcNow;
@@ -94,6 +102,50 @@ public static partial class ClaudeBudget
             Set(c, WindowStart, start.ToString("O"));
         }
         return new ClaudePausedException(until, ApiError.Of("tasks.claude.limit", ("at", until.ToString("O"))));
+    }
+
+    /// <summary>Ajustes › Claude (F2.6): horario, tope de día, si está en pausa y las últimas llamadas.</summary>
+    public static ClaudeStatus Status(Database db)
+    {
+        var now = UtcNow();
+        using var c = db.Open();
+        var s = c.Query<(string Name, string Value)>("SELECT name, value FROM setting WHERE machine_id = '' AND name LIKE 'claude.%'")
+            .ToDictionary(r => r.Name, r => r.Value);
+        var (start, end) = Schedule(s);
+        // Con propiedades (no el registro): una suma sin filas no tiene tipo y Dapper no encuentra el constructor.
+        var usage = c.Query<UsageRead>("""
+            SELECT prompt, model, duration_ms AS DurationMs, result, input_tokens + cache_read_tokens + cache_creation_tokens AS InputTokens,
+                   output_tokens AS OutputTokens, cost_usd AS CostUsd, created_at AS CreatedAt
+            FROM claude_usage ORDER BY id DESC LIMIT 50
+            """).Select(u => new UsageRow(u.Prompt, u.Model, u.DurationMs, u.Result, u.InputTokens, u.OutputTokens, u.CostUsd, u.CreatedAt)).ToList();
+        return new ClaudeStatus(start.ToString("HH:mm"), end.ToString("HH:mm"), (int)(Number(s, WindowShare) ?? 50),
+            Date(s, PausedUntil) is { } p && p > now ? p.ToString("O") : null, Date(s, RunNowUntil) is { } r && r > now ? r.ToString("O") : null,
+            InSchedule(s, now), usage);
+    }
+
+    sealed class UsageRead
+    {
+        public string Prompt { get; init; } = "";
+        public string? Model { get; init; }
+        public long DurationMs { get; init; }
+        public string Result { get; init; } = "";
+        public long InputTokens { get; init; }
+        public long OutputTokens { get; init; }
+        public double CostUsd { get; init; }
+        public string CreatedAt { get; init; } = "";
+    }
+
+    /// <summary>Guarda los ajustes que vengan; null si están bien, si no, el error.</summary>
+    public static ApiError? Save(Database db, ClaudeSettingsRequest request)
+    {
+        if (request.ScheduleStart is { } a && !TimeOnly.TryParseExact(a, "HH:mm", out _) || request.ScheduleEnd is { } b && !TimeOnly.TryParseExact(b, "HH:mm", out _))
+            return ApiError.Of("claude.badTime");
+        if (request.WindowShare is < 10 or > 100) return ApiError.Of("claude.badShare");
+        using var c = db.Open();
+        if (request.ScheduleStart is { } start) Set(c, ScheduleStart, start);
+        if (request.ScheduleEnd is { } end) Set(c, ScheduleEnd, end);
+        if (request.WindowShare is { } share) Set(c, WindowShare, share.ToString(CultureInfo.InvariantCulture));
+        return null;
     }
 
     /// <summary>«Ejecutar ahora»: salta el horario hasta que empiece el siguiente. El límite y el tope siguen valiendo.</summary>

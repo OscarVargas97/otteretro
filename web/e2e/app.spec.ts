@@ -34,7 +34,7 @@ test.afterEach(() => {
 /** Ninguna clave sin traducir a la vista (next-intl muestra la ruta de la clave, por ejemplo "nav.home"). */
 async function expectNoRawKeys() {
   const text = await page.locator("body").innerText();
-  expect(text).not.toMatch(/\b(nav|topBar|comingSoon|welcome|settings|dataFolder|update|errors|move|credentials|catalog|notices)\.[a-zA-Z]+/);
+  expect(text).not.toMatch(/\b(nav|topBar|comingSoon|welcome|settings|dataFolder|update|errors|move|credentials|catalog|notices|review|home)\.[a-zA-Z]+/);
 }
 
 /** El buscador mide 320 px y su texto de ejemplo cabe entero (#20): se acorta, no se corta. */
@@ -88,7 +88,7 @@ test("elegir la carpeta de datos lleva al inicio", async () => {
   await page.getByRole("button", { name: /^Use / }).click();
   await expect(page).toHaveURL(`${base()}/`);
   await expect(page.getByRole("heading", { level: 1, name: en.nav.home })).toBeVisible();
-  await expect(page.getByText(en.comingSoon.home.title)).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: en.home.next })).toBeVisible();
   await expect(page.getByText(en.notices.missingKey.replace("{service}", en.credentials.service.igdb))).toBeVisible();
   await expectNoRawKeys();
   await expectSearchFits();
@@ -103,7 +103,8 @@ test("todas las pantallas se ven en inglés", async () => {
     ["collection", en.catalog.collection.emptyTitle],
     ["game", en.catalog.game.noneTitle],
     ["saga", en.catalog.saga.noneTitle],
-    ...(["discover", "review", "downloads", "tools", "steam"] as const).map((s) => [s, en.comingSoon[s].title] as const),
+    ["review", en.review.pendingEmptyTitle],
+    ...(["discover", "downloads", "tools", "steam"] as const).map((s) => [s, en.comingSoon[s].title] as const),
   ] as const;
   for (const [screen, title] of screens) {
     await page.goto(`${base()}/${screen}/`);
@@ -330,4 +331,55 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   await expect(page.getByRole("link", { name: /The Legend of Zelda/ })).toBeVisible();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/saga\/\?id=1/);
+});
+
+test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha y el siguiente juego en Inicio", async () => {
+  // Lo que dejaría `claude cargar` (F2.5): las rutas de Zelda y la mejor versión de Ocarina, por aprobar.
+  const { DatabaseSync } = await import("node:sqlite");
+  const db = new DatabaseSync(join(dataDir("moved"), "data", "otteretro.db"));
+  const criterion = { score: 4, text: "Bien" };
+  const items = [
+    ["saga", 1, { prompt: "ruta-saga", result: [
+      { kind: "release", rationale: "Por fecha de salida.", steps: [{ gameId: 10, versionId: null, reason: "El primero en 3D" }, { gameId: 11, versionId: null, reason: "El último" }], sources: [] },
+      { kind: "community", rationale: "Así se recomienda empezar.", steps: [{ gameId: 10, versionId: 101, reason: "El de 3DS se ve mejor" }, { gameId: 11, versionId: null, reason: "Después, el mundo abierto" }], sources: [{ title: "r/zelda", url: "https://reddit.com/r/zelda" }] },
+    ] }],
+    ["game", 10, { prompt: "mejor-version", result: { gameId: 10, bestVersionId: 101, reason: "Mejor hoy", versions: [
+      { versionId: 100, content: criterion, gameplay: { score: 3, text: "Controles de su época" }, technical: criterion, original: { score: 5, text: "Es el original" } },
+      { versionId: 101, content: criterion, gameplay: { score: 5, text: "Pantalla táctil para el inventario" }, technical: criterion, original: criterion },
+    ] } }],
+  ] as const;
+  for (const [entity, id, data] of items)
+    db.prepare("INSERT INTO review_item (kind, entity, entity_id, data, created_at) VALUES ('pending_approval', ?, ?, ?, '2026-10-31')").run(entity, id, JSON.stringify(data));
+  db.close();
+
+  await page.goto(`${base()}/review/`);
+  await expect(page.getByText("Así se recomienda empezar.")).toBeVisible();
+  await expectNoRawKeys();
+  await expectTextFits();
+  await page.screenshot({ path: "e2e-results/11-revisar-es.png", fullPage: true });
+  for (let i = 0; i < 2; i++) await page.getByRole("button", { name: es.review.approve }).first().click();
+  await expect(page.getByText(es.review.pendingEmptyTitle)).toBeVisible();
+
+  await page.goto(`${base()}/saga/?id=1`);
+  await expect(page.getByText(es.catalog.saga.why)).toBeVisible();
+  await expect(page.getByText("El de 3DS se ve mejor")).toBeVisible();
+  await page.getByRole("button", { name: es.catalog.route.community }).click(); // elegirla es seguirla
+  await expect(page.getByRole("button", { name: es.catalog.route.community })).toHaveAttribute("aria-pressed", "true");
+  await expectNoRawKeys();
+  await expectTextFits();
+  await page.screenshot({ path: "e2e-results/12-saga-ruta-es.png", fullPage: true });
+
+  await page.goto(`${base()}/game/?id=10`);
+  await expect(page.getByRole("heading", { level: 2, name: es.catalog.game.compare })).toBeVisible();
+  await expect(page.getByText("Pantalla táctil para el inventario")).toBeVisible();
+  await page.screenshot({ path: "e2e-results/13-comparativa-es.png", fullPage: true });
+
+  // Ocarina ya está terminado (prueba anterior): lo siguiente es Breath of the Wild.
+  await page.goto(`${base()}/`);
+  await expect(page.getByRole("link", { name: /Breath of the Wild/ })).toBeVisible();
+  await page.screenshot({ path: "e2e-results/14-inicio-es.png", fullPage: true });
+
+  await page.goto(`${base()}/settings/`);
+  await expect(page.getByRole("button", { name: es.settings.claude.runNow })).toBeVisible();
+  await expectNoRawKeys();
 });

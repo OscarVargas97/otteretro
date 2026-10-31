@@ -8,7 +8,7 @@ import { Cover, hours, Platforms, useConsoleName, useIdParam } from "@/component
 import { Empty } from "@/components/Shell";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
-import type { FieldRow, GameDetail, ProgressInfo } from "@/lib/types";
+import type { FieldRow, GameDetail, ProgressInfo, VersionCompare } from "@/lib/types";
 
 const STATUSES = ["pending", "playing", "finished", "completed", "dropped"] as const;
 const FIELDS = ["name_es", "original_name", "year"] as const;
@@ -33,6 +33,8 @@ function Game() {
 
   const g = game.data;
   const platforms = [...new Set(g.versions.map((v) => v.platform))];
+  // La traducción aprobada (Claude, F2.5) o, mientras no la haya, la de IGDB.
+  const description = (g.fields.find((f) => f.field === "summary_es") ?? g.fields.find((f) => f.field === "summary"))?.value;
   const stores = g.versions.flatMap((v) => v.stores.map((s) => ({ ...s, platform: v.platform })));
   const owned = stores.length > 0;
 
@@ -77,6 +79,13 @@ function Game() {
           )}
         </div>
 
+        {description && (
+          <section className="sec">
+            <div className="sec-h"><h2>{t("game.description")}</h2></div>
+            <p style={{ margin: 0 }}>{description}</p>
+          </section>
+        )}
+
         <section className="sec">
           <div className="sec-h"><h2>{t("game.versions")}</h2></div>
           <div className="panel table-wrap" style={{ padding: 0 }}>
@@ -93,6 +102,8 @@ function Game() {
             </table>
           </div>
         </section>
+
+        <Compare gameId={String(g.id)} />
 
         <Sources game={g} />
       </div>
@@ -250,5 +261,40 @@ function FieldEditor({ game, field, rows }: { game: GameDetail; field: (typeof F
       )}
       {(save.error ?? undo.error) && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(save.error ?? undo.error)}</p>}
     </div>
+  );
+}
+
+const CRITERIA = ["content", "gameplay", "technical", "original"] as const;
+
+/** Comparativa de versiones con los 4 criterios por separado (§5.1, §6.4), la que aprobaste en Revisar. */
+function Compare({ gameId }: { gameId: string }) {
+  const t = useTranslations("catalog");
+  const consoleName = useConsoleName();
+  const compare = useQuery({ queryKey: ["game", gameId, "compare"], queryFn: () => request<VersionCompare[]>(`/api/games/${gameId}/compare`) });
+  const versions = compare.data ?? [];
+  if (versions.length < 2) return null; // con una versión no hay nada que comparar
+  const rated = versions.some((v) => v.criteria.some((c) => c.value));
+  return (
+    <section className="sec">
+      <div className="sec-h"><h2>{t("game.compare")}</h2></div>
+      {!rated ? <p className="small muted">{t("game.noCompare")}</p> : (
+        <div className="panel table-wrap" style={{ padding: 0 }}>
+          <table className="t">
+            <thead><tr><th>{t("game.version")}</th>{CRITERIA.map((c) => <th key={c}>{t(`game.criterion.${c}`)}</th>)}</tr></thead>
+            <tbody>
+              {versions.map((v) => (
+                <tr key={v.versionId}>
+                  <td><b>{consoleName(v.platform)}</b> · {t(`kind.${v.kind as "original"}`)}{v.year ? ` · ${v.year}` : ""}{v.best && <span className="ot-badge ot-badge-have" style={{ marginLeft: 6 }}>{t("game.best")}</span>}</td>
+                  {CRITERIA.map((k) => {
+                    const c = v.criteria.find((x) => x.criterion === k);
+                    return <td key={k} title={c?.text ?? undefined}>{c?.value ? <><b>{"●".repeat(Number(c.value))}{"○".repeat(5 - Number(c.value))}</b><br /><span className="small muted">{c.text}</span></> : "—"}</td>;
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }

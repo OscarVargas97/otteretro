@@ -85,7 +85,29 @@
     "about": "Acerca de",
     "language": "Idioma",
     "later": "Bibliotecas, respaldo y el resto de ajustes llegan con su fase.",
-    "credentials": "Cuentas y claves"
+    "credentials": "Cuentas y claves",
+    "claude": {
+      "title": "Claude",
+      "schedule": "Horario en segundo plano",
+      "from": "Desde",
+      "to": "Hasta",
+      "share": "Tope de día con «Ejecutar ahora» (% de cada ventana de 5 h)",
+      "save": "Guardar",
+      "saved": "Guardado",
+      "runNow": "Ejecutar ahora",
+      "runNowUntil": "Puede trabajar hasta el {at}.",
+      "paused": "En pausa por el límite de la suscripción hasta el {at}.",
+      "inSchedule": "Ahora está en su horario.",
+      "outSchedule": "Fuera de su horario: espera a las {start}.",
+      "usage": "Registro de uso",
+      "prompt": "Tarea",
+      "model": "Modelo",
+      "duration": "Duración",
+      "result": "Resultado",
+      "tokens": "Tokens",
+      "date": "Fecha",
+      "noUsage": "Claude todavía no se usó."
+    }
   },
   "dataFolder": {
     "usage": "Ocupa {used} · {free} libres en ese disco",
@@ -246,6 +268,10 @@
     "fields": {
       "empty": "El nombre no puede quedar vacío.",
       "badYear": "El año tiene que estar entre 1970 y 2100."
+    },
+    "claude": {
+      "badTime": "La hora tiene que ser HH:mm.",
+      "badShare": "El tope va de 10 a 100 %."
     }
   },
   "credentials": {
@@ -397,7 +423,6 @@
       "favorite": "Favorita",
       "follow": "Seguir esta saga",
       "following": "✓ Sigues esta saga",
-      "routesLater": "Las rutas (lanzamiento, historia y comunidad) llegan en la fase 2.",
       "allGames": "Todos los juegos",
       "game": "Juego",
       "year": "Año",
@@ -405,7 +430,15 @@
       "state": "Estado",
       "noneTitle": "Elige una saga",
       "noneText": "Abre una saga desde Sagas o con la búsqueda.",
-      "notFound": "Esta saga ya no está en el catálogo."
+      "notFound": "Esta saga ya no está en el catálogo.",
+      "route": "Ruta",
+      "noRoutes": "Claude todavía no preparó las rutas de esta saga. Se preparan solas de noche (`otteretro claude cargar`) o al pedirlas, y se aprueban en Revisar.",
+      "recalculate": "Pedir a Claude que la recalcule",
+      "queued": "Encolado: Claude la revisa en su horario y el resultado llega a Revisar.",
+      "why": "Por qué este orden",
+      "sources": "Fuentes",
+      "recommends": "Versión: {platform}",
+      "progress": "{done} de {total}"
     },
     "collection": {
       "consoles": "Consolas",
@@ -472,25 +505,83 @@
         "igdb": "IGDB",
         "wikidata": "Wikidata",
         "rawg": "RAWG",
-        "hltb": "HowLongToBeat"
+        "hltb": "HowLongToBeat",
+        "claude": "Claude"
       },
       "fix": "Corregir",
       "save": "Guardar",
       "cancel": "Cancelar",
       "undoFix": "Volver al de las fuentes",
       "manualNote": "Lo corregido a mano gana y ninguna carga lo pisa.",
-      "shown": "Se muestra"
+      "shown": "Se muestra",
+      "compare": "Comparativa de versiones",
+      "best": "Recomendada",
+      "noCompare": "Claude todavía no comparó las versiones de este juego.",
+      "description": "Descripción",
+      "criterion": {
+        "content": "Contenido",
+        "gameplay": "Jugabilidad hoy",
+        "technical": "Técnico",
+        "original": "Original"
+      }
     },
     "search": {
       "sagas": "Sagas",
       "games": "Juegos",
       "noResults": "Nada se llama «{query}».",
       "typeMore": "Escribe al menos 2 letras."
+    },
+    "route": {
+      "release": "Lanzamiento",
+      "story": "Historia",
+      "community": "Comunidad"
     }
   },
   "notices": {
     "title": "Avisos",
     "missingKey": "Falta la clave de {service}: sin ella no se cargan sus datos.",
     "openSettings": "Abrir Ajustes"
+  },
+  "review": {
+    "loading": "Cargando…",
+    "tab": {
+      "pending": "Por aprobar ({count})",
+      "learnings": "Aprendizajes ({count})"
+    },
+    "pendingEmptyTitle": "Nada por aprobar",
+    "pendingEmptyText": "Cuando Claude prepare rutas, lo icónico o la mejor versión de una saga, aparecerán aquí para que los apruebes.",
+    "learningsEmptyTitle": "Sin aprendizajes",
+    "learningsEmptyText": "Aquí quedan los cambios que Claude aplicó al catálogo, con su razón, para deshacerlos.",
+    "prompt": {
+      "ruta-saga": "Rutas",
+      "iconico": "Icónico",
+      "mejor-version": "Mejor versión",
+      "clasificar-version": "Clase de versión",
+      "traducir-descripcion": "Descripción en español"
+    },
+    "approve": "Aprobar",
+    "reject": "Rechazar",
+    "change": "Cambio",
+    "reason": "Por qué",
+    "date": "Fecha",
+    "undo": "Deshacer",
+    "undone": "Deshecho",
+    "learning": {
+      "move": "Mover juegos",
+      "merge": "Unir fichas repetidas",
+      "rename": "Renombrar saga"
+    },
+    "sources": "Fuentes",
+    "iconicYes": "Saga icónica",
+    "iconicNo": "No es icónica",
+    "bestVersion": "Compara {count} versiones con los 4 criterios"
+  },
+  "home": {
+    "next": "Siguiente en tus rutas",
+    "nextEmpty": "Sigue una ruta en una saga y aquí verás tu siguiente juego.",
+    "step": "{saga} · {route} · {done} de {total}",
+    "review": "Revisar",
+    "reviewCount": "{count} resultados de Claude por aprobar",
+    "reviewNone": "Nada por revisar."
   }
 }

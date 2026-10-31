@@ -123,6 +123,7 @@ public static class Endpoints
             Open("steam://open/bigpicture") ? TypedResults.Ok() : TypedResults.Conflict(ApiError.Of("steam.notInstalled")));
 
         CatalogEndpoints.Map(api);
+        ClaudeEndpoints.Map(api);
 
         // Panel de tareas: lo pendiente y lo reciente; cada cambio llega después por el evento "task".
         api.MapGet("/tasks", (TaskQueue q) => q.List());

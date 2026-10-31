@@ -85,7 +85,29 @@
     "about": "About",
     "language": "Language",
     "later": "Libraries, backup and the rest of the settings arrive with their phase.",
-    "credentials": "Accounts and keys"
+    "credentials": "Accounts and keys",
+    "claude": {
+      "title": "Claude",
+      "schedule": "Background schedule",
+      "from": "From",
+      "to": "To",
+      "share": "Daytime cap with “Run now” (% of each 5 h window)",
+      "save": "Save",
+      "saved": "Saved",
+      "runNow": "Run now",
+      "runNowUntil": "It can work until {at}.",
+      "paused": "Paused by the subscription limit until {at}.",
+      "inSchedule": "It's within its schedule now.",
+      "outSchedule": "Outside its schedule: waits until {start}.",
+      "usage": "Usage log",
+      "prompt": "Task",
+      "model": "Model",
+      "duration": "Duration",
+      "result": "Result",
+      "tokens": "Tokens",
+      "date": "Date",
+      "noUsage": "Claude hasn't been used yet."
+    }
   },
   "dataFolder": {
     "usage": "Uses {used} · {free} free on that drive",
@@ -246,6 +268,10 @@
     "fields": {
       "empty": "The name can't be empty.",
       "badYear": "The year must be between 1970 and 2100."
+    },
+    "claude": {
+      "badTime": "The time must be HH:mm.",
+      "badShare": "The cap goes from 10 to 100%."
     }
   },
   "credentials": {
@@ -397,7 +423,6 @@
       "favorite": "Favorite",
       "follow": "Follow this series",
       "following": "✓ Following",
-      "routesLater": "Routes (release, story and community) arrive in phase 2.",
       "allGames": "All games",
       "game": "Game",
       "year": "Year",
@@ -405,7 +430,15 @@
       "state": "Status",
       "noneTitle": "Pick a series",
       "noneText": "Open a series from Series or with search.",
-      "notFound": "This series is no longer in the catalog."
+      "notFound": "This series is no longer in the catalog.",
+      "route": "Route",
+      "noRoutes": "Claude hasn't prepared this saga's routes yet. They're prepared at night (`otteretro claude cargar`) or on request, and approved in Review.",
+      "recalculate": "Ask Claude to recalculate",
+      "queued": "Queued: Claude reviews it during its schedule and the result goes to Review.",
+      "why": "Why this order",
+      "sources": "Sources",
+      "recommends": "Version: {platform}",
+      "progress": "{done} of {total}"
     },
     "collection": {
       "consoles": "Consoles",
@@ -472,25 +505,83 @@
         "igdb": "IGDB",
         "wikidata": "Wikidata",
         "rawg": "RAWG",
-        "hltb": "HowLongToBeat"
+        "hltb": "HowLongToBeat",
+        "claude": "Claude"
       },
       "fix": "Correct",
       "save": "Save",
       "cancel": "Cancel",
       "undoFix": "Back to the sources' value",
       "manualNote": "What you correct by hand wins and no load overwrites it.",
-      "shown": "Shown"
+      "shown": "Shown",
+      "compare": "Version comparison",
+      "best": "Recommended",
+      "noCompare": "Claude hasn't compared this game's versions yet.",
+      "description": "Description",
+      "criterion": {
+        "content": "Content",
+        "gameplay": "Gameplay today",
+        "technical": "Technical",
+        "original": "Original"
+      }
     },
     "search": {
       "sagas": "Series",
       "games": "Games",
       "noResults": "Nothing is called “{query}”.",
       "typeMore": "Type at least 2 letters."
+    },
+    "route": {
+      "release": "Release",
+      "story": "Story",
+      "community": "Community"
     }
   },
   "notices": {
     "title": "Notices",
     "missingKey": "The {service} key is missing: its data can't be loaded without it.",
     "openSettings": "Open Settings"
+  },
+  "review": {
+    "loading": "Loading…",
+    "tab": {
+      "pending": "To approve ({count})",
+      "learnings": "Learnings ({count})"
+    },
+    "pendingEmptyTitle": "Nothing to approve",
+    "pendingEmptyText": "When Claude prepares a saga's routes, what's iconic or the best version, they'll show up here for you to approve.",
+    "learningsEmptyTitle": "No learnings",
+    "learningsEmptyText": "The changes Claude made to the catalog stay here, with their reason, so you can undo them.",
+    "prompt": {
+      "ruta-saga": "Routes",
+      "iconico": "Iconic",
+      "mejor-version": "Best version",
+      "clasificar-version": "Version type",
+      "traducir-descripcion": "Spanish description"
+    },
+    "approve": "Approve",
+    "reject": "Reject",
+    "change": "Change",
+    "reason": "Why",
+    "date": "Date",
+    "undo": "Undo",
+    "undone": "Undone",
+    "learning": {
+      "move": "Move games",
+      "merge": "Merge duplicate entries",
+      "rename": "Rename saga"
+    },
+    "sources": "Sources",
+    "iconicYes": "Iconic saga",
+    "iconicNo": "Not iconic",
+    "bestVersion": "Compares {count} versions on the 4 criteria"
+  },
+  "home": {
+    "next": "Next in your routes",
+    "nextEmpty": "Follow a route in a saga and your next game will show up here.",
+    "step": "{saga} · {route} · {done} of {total}",
+    "review": "Review",
+    "reviewCount": "{count} Claude results to approve",
+    "reviewNone": "Nothing to review."
   }
 }

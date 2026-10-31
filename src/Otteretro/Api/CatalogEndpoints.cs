@@ -96,10 +96,10 @@ public static class CatalogEndpoints
         });
     }
 
-    static Database? Db(AppSession s) =>
+    internal static Database? Db(AppSession s) =>
         DataFolder.IsReady(s.Config.DataFolder) ? new Database(DataFolder.DatabasePath(s.Config.DataFolder!)) : null;
 
-    static Conflict<ApiError> NoData() => TypedResults.Conflict(ApiError.Of("move.noDataFolder"));
+    internal static Conflict<ApiError> NoData() => TypedResults.Conflict(ApiError.Of("move.noDataFolder"));
 
     static bool IsDate(string? value) =>
         value is null || DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
