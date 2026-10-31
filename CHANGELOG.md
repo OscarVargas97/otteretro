@@ -16,6 +16,8 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **La ficha compara las versiones** con los cuatro criterios por separado y marca la recomendada; muestra la descripción en español.
 - **Ajustes › Claude**: horario, tope de día opcional, «Ejecutar ahora», qué está haciendo Claude y el registro de cada llamada.
 - **La carga inicial con Claude corre sola durante días**: `otteretro claude cargar` recorre Nintendo, Sony, Microsoft y PC; en cada parte primero ordena el catálogo y después prepara las sagas. Se pausa al llegar al límite de la suscripción y sigue sola, y en el panel de tareas ves en qué parte va. Con `--parte` corre solo una.
+- **Cada tarea dice qué hizo**: al hacer clic en una tarea del panel ves su registro: cuándo empezó o esperó y por qué, cada llamada a Claude con sus tokens, cada cambio que aplicó la depuración (con su número para deshacerlo), lo que dejó en Revisar y cada imagen que bajó con su peso.
+- **Panel de tareas más claro**: arriba lo que corre, después la cola y al final lo terminado, lo más reciente primero; y «Limpiar terminadas» las borra.
 - **No paga dos veces**: lo que Claude ya revisó no se vuelve a pedir mientras sus datos no cambien.
 
 ## Portadas que no se cortan · en revisión

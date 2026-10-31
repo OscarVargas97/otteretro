@@ -106,15 +106,18 @@ public static class SteamGridDb
         for (var i = 0; i < games.Count; i++)
         {
             var (id, name, steam, year, igdbId) = games[i];
+            var got = new List<(string Kind, int Bytes)>();
             var sgdbId = await GameId(api, key, name, year, steam, ct);
             if (sgdbId is not null)
                 foreach (var kind in Kinds)
                     if (Find(run.Db, id, kind) is null && await First(api, key, string.Format(Queries[kind], sgdbId), ct) is { } url)
-                        await Download(http, url, folder, id, kind, ct);
+                        got.Add((kind, await Download(http, url, folder, id, kind, ct)));
             // ponytail: una consulta a IGDB por juego sin portada; de a 500 si la carga completa se hace lenta.
             if (Find(run.Db, id, "cover") is null && igdb is not null && igdbId is not null
                 && (await igdb.Query<IgdbCover>("covers", $"fields image_id; where game = {igdbId}; limit 1;", ct)).FirstOrDefault()?.ImageId is { } image)
-                await Download(http, IgdbImageUrl + image + ".jpg", folder, id, "cover", ct);
+                got.Add(("cover", await Download(http, IgdbImageUrl + image + ".jpg", folder, id, "cover", ct)));
+            run.Log(got.Count == 0 ? ApiError.Of("tasks.log.noImages", ("game", name))
+                : ApiError.Of("tasks.log.images", ("game", name), ("kinds", string.Join(", ", got.Select(g => g.Kind))), ("kb", (got.Sum(g => g.Bytes) / 1024).ToString())));
             // La carga corre a la par: si el juego se fusionó y se borró mientras bajaba, su imagen no queda para el próximo id (#59).
             using (var c = run.Db.Open())
                 if (c.ExecuteScalar<long?>("SELECT id FROM game WHERE id = @id", new { id }) is null) Forget(run.Db, id);
@@ -159,11 +162,13 @@ public static class SteamGridDb
     }
 
     /// <summary>Baja la imagen y la guarda en WebP reducida; si no se puede leer como imagen, tal como vino (#64).</summary>
-    static async Task Download(HttpClient http, string url, string folder, long id, string kind, CancellationToken ct)
+    /// <returns>Lo que pesa en disco.</returns>
+    static async Task<int> Download(HttpClient http, string url, string folder, long id, string kind, CancellationToken ct)
     {
         var bytes = await http.GetByteArrayAsync(url, ct);
         var webp = ToWebp(bytes, kind);
         Write(Path.Combine(folder, $"{id}-{kind}{(webp is null ? Path.GetExtension(new Uri(url).AbsolutePath) : ".webp")}"), webp ?? bytes);
+        return (webp ?? bytes).Length;
     }
 
     /// <summary>Escribe a un temporal y lo renombra al final: un corte no deja una imagen rota.</summary>

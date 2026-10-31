@@ -110,16 +110,18 @@ public static class SagaAnalysis
         foreach (var batch in todo.Chunk(perCall).Select(b => b.ToList()))
         {
             var reply = await ClaudeRunner.Run<TReply>(run.Db, run.Id, prompt, text, new { items = batch.Select(input) }, ct, model);
-            Save(run.Db, prompt, items(batch, reply.Value));
+            var saved = Save(run.Db, prompt, items(batch, reply.Value));
+            run.Log(ApiError.Of($"tasks.log.review.{prompt}", ("count", saved.ToString())));
             foreach (var c in batch) ClaudeFingerprint.Save(run.Db, prompt, key(c), input(c));
         }
     }
 
     /// <summary>Un resultado nuevo reemplaza al que seguía abierto del mismo prompt; lo inventado (ids fuera del lote) se descarta.</summary>
-    static void Save(Database db, string prompt, IEnumerable<Item?> items)
+    static int Save(Database db, string prompt, IEnumerable<Item?> items)
     {
         using var c = db.Open();
         using var t = c.BeginTransaction();
+        var saved = 0;
         foreach (var item in items)
         {
             if (item is null)
@@ -140,8 +142,10 @@ public static class SagaAnalysis
                 data = JsonSerializer.Serialize(new { prompt, result = item.Result }, JsonSerializerOptions.Web),
                 now = DateTime.UtcNow.ToString("O")
             }, t);
+            saved++;
         }
         t.Commit();
+        return saved;
     }
 
     static object SagaInput(Saga s) => new

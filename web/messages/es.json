@@ -261,6 +261,26 @@
         "limit": "Llegaste al límite de tu suscripción de Claude: sigue sola el {at}.",
         "schedule": "Espera el horario de Claude: empieza el {at}.",
         "windowCap": "Usó el {share} % de esta ventana de Claude: sigue sola el {at}."
+      },
+      "log": {
+        "started": "Empezó.",
+        "done": "Terminó ({minutes} min).",
+        "retry": "Falló algo pasajero; reintenta: {detail}",
+        "claude": "Claude ({prompt}, {model}): {result} · {input} tokens de entrada, {output} de salida · {seconds} s",
+        "change": {
+          "move": "Cambio n.º {learning}: movió juegos. {reason}",
+          "merge": "Cambio n.º {learning}: unió fichas repetidas. {reason}",
+          "rename": "Cambio n.º {learning}: corrigió el nombre de una saga. {reason}"
+        },
+        "review": {
+          "ruta-saga": "Dejó {count} rutas de saga en Revisar.",
+          "iconico": "Dejó {count} sagas icónicas en Revisar.",
+          "mejor-version": "Dejó {count} mejores versiones en Revisar.",
+          "clasificar-version": "Dejó {count} clasificaciones de versión en Revisar.",
+          "traducir-descripcion": "Dejó {count} descripciones traducidas en Revisar."
+        },
+        "images": "{game}: bajó {kinds} ({kb} KB).",
+        "noImages": "{game}: no encontró imágenes."
       }
     },
     "progress": {
@@ -358,7 +378,10 @@
       "running": "{progress} %",
       "done": "Terminada",
       "error": "Error"
-    }
+    },
+    "clear": "Limpiar terminadas",
+    "log": "Registro de la tarea",
+    "logEmpty": "Esta tarea todavía no anotó nada."
   },
   "pad": {
     "choose": "Elegir",

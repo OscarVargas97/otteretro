@@ -127,6 +127,9 @@ public static class ClaudeRunner
 
     static void Log(Database db, long? taskId, string prompt, string? model, TimeSpan duration, string result, ClaudeUsage u, double cost)
     {
+        App.TaskQueue.Log(db, taskId, ApiError.Of("tasks.log.claude", ("prompt", prompt), ("model", model ?? "—"), ("result", result),
+            ("input", (u.InputTokens + u.CacheReadInputTokens + u.CacheCreationInputTokens).ToString()), ("output", u.OutputTokens.ToString()),
+            ("seconds", ((int)duration.TotalSeconds).ToString())), result == "ok" ? "info" : "warn");
         using var c = db.Open();
         c.Execute("""
             INSERT INTO claude_usage (task_id, prompt, model, duration_ms, result, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, created_at)

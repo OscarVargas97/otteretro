@@ -13,6 +13,7 @@ export type LanguageRequest = Schemas["LanguageRequest"];
 export type CredentialStatus = Schemas["CredentialStatus"];
 export type CredentialRequest = Schemas["CredentialRequest"];
 export type TaskInfo = Schemas["TaskInfo"];
+export type TaskLogEntry = Schemas["TaskLogEntry"];
 export type SagaCard = Schemas["SagaCard"];
 export type SagaDetail = Schemas["SagaDetail"];
 export type GameCard = Schemas["GameCard"];

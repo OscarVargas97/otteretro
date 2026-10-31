@@ -127,6 +127,11 @@ public static class Endpoints
 
         // Panel de tareas: lo pendiente y lo reciente; cada cambio llega después por el evento "task".
         api.MapGet("/tasks", (TaskQueue q) => q.List());
+        // Registro de una tarea (F2.10) y «Limpiar terminadas» (F2.11).
+        api.MapGet("/tasks/{id:long}/log", Results<Ok<List<TaskLogEntry>>, Conflict<ApiError>> (long id, AppSession s) =>
+            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(TaskQueue.ReadLog(db, id)) : CatalogEndpoints.NoData());
+        api.MapDelete("/tasks/finished", Results<Ok<int>, Conflict<ApiError>> (AppSession s) =>
+            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(TaskQueue.Clear(db)) : CatalogEndpoints.NoData());
 
         // Portada, héroe o logo de un juego desde cache/imagenes. Va en <img src>, así que la clave llega en ?key=.
         api.MapGet("/images/{gameId:long}/{kind}", Results<PhysicalFileHttpResult, NotFound> (long gameId, string kind, AppSession s, HttpResponse response) =>

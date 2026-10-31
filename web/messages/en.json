@@ -261,6 +261,26 @@
         "limit": "You reached your Claude subscription limit: it resumes on its own on {at}.",
         "schedule": "Waiting for Claude’s schedule: it starts on {at}.",
         "windowCap": "It used {share}% of this Claude window: it resumes on its own on {at}."
+      },
+      "log": {
+        "started": "Started.",
+        "done": "Finished ({minutes} min).",
+        "retry": "A temporary failure; retrying: {detail}",
+        "claude": "Claude ({prompt}, {model}): {result} · {input} input tokens, {output} output · {seconds} s",
+        "change": {
+          "move": "Change #{learning}: moved games. {reason}",
+          "merge": "Change #{learning}: merged duplicate entries. {reason}",
+          "rename": "Change #{learning}: fixed a saga name. {reason}"
+        },
+        "review": {
+          "ruta-saga": "Left {count} saga routes in Review.",
+          "iconico": "Left {count} iconic sagas in Review.",
+          "mejor-version": "Left {count} best versions in Review.",
+          "clasificar-version": "Left {count} version classifications in Review.",
+          "traducir-descripcion": "Left {count} translated descriptions in Review."
+        },
+        "images": "{game}: downloaded {kinds} ({kb} KB).",
+        "noImages": "{game}: no images found."
       }
     },
     "progress": {
@@ -358,7 +378,10 @@
       "running": "{progress}%",
       "done": "Done",
       "error": "Error"
-    }
+    },
+    "clear": "Clear finished",
+    "log": "Task log",
+    "logEmpty": "This task has not logged anything yet."
   },
   "pad": {
     "choose": "Select",

@@ -383,3 +383,28 @@ test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha
   await expect(page.getByRole("button", { name: es.settings.claude.runNow })).toBeVisible();
   await expectNoRawKeys();
 });
+
+test("panel de tareas: terminadas por hora de término, registro al hacer clic y limpiar", async () => {
+  const { DatabaseSync } = await import("node:sqlite");
+  const db = new DatabaseSync(join(dataDir("moved"), "data", "otteretro.db"));
+  const now = new Date();
+  const at = (minutes: number) => new Date(now.getTime() - minutes * 60_000).toISOString();
+  db.exec(`
+    INSERT INTO task (id, kind, status, progress, created_at, finished_at) VALUES
+      (900, 'demo', 'done', 100, '${at(30)}', '${at(20)}'), (901, 'demo', 'error', 40, '${at(25)}', '${at(5)}');
+    INSERT INTO task_log (task_id, at, level, message) VALUES
+      (901, '${at(6)}', 'info', '{"code":"tasks.log.images","params":{"game":"Ocarina of Time","kinds":"cover","kb":"80"}}'),
+      (901, '${at(5)}', 'error', '{"code":"tasks.failed","params":{"detail":"sin red"}}');
+  `);
+  db.close();
+  await page.goto(`${base()}/`);
+  await page.getByRole("button", { name: es.topBar.tasks }).click();
+  const panel = page.getByRole("dialog", { name: es.topBar.tasksPanel });
+  await expect(panel.locator("button.ot-task-title")).toHaveText([/#901/, /#900/]); // la que terminó después, arriba
+  await panel.getByRole("button", { name: /#901/ }).click();
+  await expect(panel.getByText("Ocarina of Time: bajó cover (80 KB).")).toBeVisible();
+  await expectNoRawKeys();
+  await page.screenshot({ path: "e2e-results/15-registro-tarea-es.png" });
+  await panel.getByRole("button", { name: es.tasks.clear }).click();
+  await expect(panel.locator("button.ot-task-title")).toHaveCount(0);
+});

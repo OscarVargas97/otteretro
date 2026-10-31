@@ -89,7 +89,7 @@ public static partial class CatalogCleanup
             {
                 var reply = await ClaudeRunner.Run<Reply>(run.Db, run.Id, PromptName, prompt, new { sagas = batch.Select(Input) }, ct,
                     job.SecondPass ? "sonnet" : "haiku");
-                Apply(run.Db, batch, reply.Value.Changes);
+                Apply(run.Db, batch, reply.Value.Changes, run.Id);
                 var unsure = job.SecondPass ? [] : reply.Value.Unsure.Where(id => batch.Any(b => b.Id == id)).ToList();
                 // La huella es la de cómo quedó la saga: si nada vuelve a cambiar, no se pide otra vez.
                 var after = Cases(run.Db, batch.Select(b => b.Id).ToHashSet()).ToDictionary(a => a.Id);
@@ -203,7 +203,7 @@ public static partial class CatalogCleanup
         [.. Regex.Split(s.ToLowerInvariant(), @"[^\p{L}\p{N}]+").Where(w => w.Length >= 4 && w is not "the" and not "game" and not "games")];
 
     /// <summary>Aplica lo que respondió Claude, solo sobre lo que había en el lote; cada cambio queda en `learning`.</summary>
-    public static void Apply(Database db, List<SagaCase> batch, List<Change> changes)
+    public static void Apply(Database db, List<SagaCase> batch, List<Change> changes, long? taskId = null)
     {
         var sagaIds = batch.Select(b => b.Id).ToHashSet();
         var gameIds = batch.SelectMany(b => b.Games.Concat(b.Loose)).Select(g => g.Id).ToHashSet();
@@ -225,12 +225,13 @@ public static partial class CatalogCleanup
                 FileLog.Write(LogLevel.Warning, "Claude", $"Cambio descartado (fuera del lote o incompleto): {JsonSerializer.Serialize(change)}");
                 continue;
             }
-            c.Execute("INSERT INTO learning (kind, content, created_at) VALUES ('rule', @content, @now)", new
+            var learning = c.ExecuteScalar<long>("INSERT INTO learning (kind, content, created_at) VALUES ('rule', @content, @now) RETURNING id", new
             {
                 content = JsonSerializer.Serialize(new { prompt = PromptName, change, before }, Tuples),
                 now = DateTime.UtcNow.ToString("O"),
             }, t);
             t.Commit();
+            TaskQueue.Log(db, taskId, ApiError.Of($"tasks.log.change.{change.Kind}", ("learning", learning.ToString()), ("reason", change.Reason ?? "")));
         }
     }
 

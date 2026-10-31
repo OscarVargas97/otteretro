@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Dapper;
+using Otteretro.App;
 using Otteretro.Claude;
 
 namespace Otteretro.Tests;
@@ -98,6 +99,13 @@ public class CatalogCleanupTests : IAsyncDisposable
         Assert.Equal("Zelda", Scalar<string>("SELECT name FROM saga WHERE id = 1"));
         Assert.Equal(2, Scalar<long>("SELECT saga_id FROM game WHERE id = 30"));
         Assert.Equal(4, Scalar<long>("SELECT count(*) FROM learning WHERE kind = 'rule' AND undone = 0"));
+
+        // F2.10: el registro de la tarea dice qué hizo, lo más nuevo arriba; F2.11: limpiar la borra con su registro.
+        var log = TaskQueue.ReadLog(f.Db, task.Id).Select(l => l.Message.Code).Reverse().ToList();
+        Assert.Equal(["tasks.log.started", "tasks.log.claude", "tasks.log.change.merge", "tasks.log.change.move", "tasks.log.change.move",
+            "tasks.log.change.rename", "tasks.log.done"], log);
+        Assert.Equal(1, TaskQueue.Clear(f.Db));
+        Assert.Empty(TaskQueue.ReadLog(f.Db, task.Id));
 
         // Sin cambios en los datos, otra pasada no llama a Claude.
         Assert.Equal("done", (await f.Run(CatalogCleanup.Enqueue(f.Db))).Status);
