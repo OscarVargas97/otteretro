@@ -148,7 +148,17 @@ test("el panel de tareas y la búsqueda están traducidos", async () => {
 test("Ajustes en inglés: carpeta, idioma y actualización", async () => {
   await page.goto(`${base()}/settings/`);
   await expect(page.getByRole("heading", { level: 1, name: en.nav.settings })).toBeVisible();
+  // #97: pestañas, una sección a la vez; sin ?s= abre la primera.
+  await expect(page.getByRole("tab", { name: en.settings.dataFolder })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByText(dataDir("data"))).toBeVisible();
+  await expect(page.getByRole("button", { name: en.update.check })).toHaveCount(0);
+  await page.getByRole("tab", { name: en.settings.dataFolder }).focus();
+  await page.keyboard.press("End");
+  await expect(page).toHaveURL(/\?s=about$/);
+  await expect(page.getByRole("tab", { name: en.settings.about })).toHaveAttribute("aria-selected", "true");
+  await page.goBack();
+  await expect(page.getByText(dataDir("data"))).toBeVisible();
+  await page.goto(`${base()}/settings/?s=about`);
   // El botón no cambia de ancho mientras busca (#20).
   const check = page.getByRole("button", { name: en.update.check });
   const idle = (await check.boundingBox())!.width;
@@ -167,8 +177,9 @@ test("Ajustes en inglés: carpeta, idioma y actualización", async () => {
 });
 
 test("mover la carpeta de datos muestra el progreso y el resultado traducidos", async () => {
+  await page.getByRole("tab", { name: en.settings.dataFolder }).click();
   await page.getByRole("button", { name: en.dataFolder.moveButton }).click();
-  await page.getByLabel(en.dataFolder.folderLabel).fill(dataDir("moved"));
+  await page.getByLabel(en.dataFolder.folderLabel, { exact: true }).fill(dataDir("moved"));
   await page.getByRole("button", { name: en.dataFolder.move, exact: true }).click();
   await expect(page.getByText(en.dataFolder.moved, { exact: true })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(dataDir("moved")).first()).toBeVisible();
@@ -176,6 +187,7 @@ test("mover la carpeta de datos muestra el progreso y el resultado traducidos", 
 });
 
 test("volver a español en Ajustes cambia todo y se mantiene al recargar", async () => {
+  await page.getByRole("tab", { name: en.settings.language }).click();
   await page.getByLabel(en.settings.language).selectOption("es");
   await expect(page.getByRole("heading", { level: 1, name: es.nav.settings })).toBeVisible();
   await page.reload();
@@ -188,6 +200,7 @@ test("volver a español en Ajustes cambia todo y se mantiene al recargar", async
 });
 
 test("Cuentas y claves: pegar una clave la deja guardada sin mostrarla, y borrarla la deja en falta", async () => {
+  await page.getByRole("tab", { name: es.settings.credentials }).click();
   // Arriba, las tarjetas de lo que usa F1; lo de otras fases, plegado (#57).
   const steam = `${es.credentials.configure}: ${es.credentials.service.steam}`;
   await expect(page.getByRole("button", { name: steam })).toBeVisible();
@@ -426,7 +439,7 @@ test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha
     usageDb.exec(`INSERT INTO claude_usage (prompt, model, duration_ms, result, input_tokens, output_tokens, cost_usd, created_at)
       VALUES ('uso-${i}', 'haiku', 1000, 'ok', 1, 1, 0, '2026-10-31T03:00:00Z')`);
   usageDb.close();
-  await page.goto(`${base()}/settings/`);
+  await page.goto(`${base()}/settings/?s=claude`);
   await expect(page.getByRole("button", { name: es.settings.claude.runNow })).toBeVisible();
   const usageTable = page.locator("table").filter({ hasText: "uso-12" });
   await expect(usageTable.locator("tbody tr")).toHaveCount(10);
@@ -487,7 +500,7 @@ test("Aprendizajes: cada cambio en claro, filtros y corregir con una nota para C
 });
 
 test("Ajustes: consolas habilitadas, al día y reevaluar icónicas", async () => {
-  await page.goto(`${base()}/settings/`);
+  await page.goto(`${base()}/settings/?s=consoles`);
   await expect(page.getByRole("heading", { level: 2, name: es.settings.consoles.title })).toBeVisible();
   const vb = page.getByRole("checkbox", { name: /Virtual Boy/ });
   await expect(vb).toBeChecked();
@@ -505,6 +518,7 @@ test("Ajustes: consolas habilitadas, al día y reevaluar icónicas", async () =>
   await expect(add).toBeVisible();
   await expect(page.getByRole("searchbox", { name: es.settings.consoles.search })).toHaveCount(0);
   await expect(page.getByRole("button", { name: es.settings.consoles.refreshNow })).toBeVisible();
+  await page.getByRole("tab", { name: es.settings.claude.title }).click();
   await expect(page.getByRole("button", { name: es.settings.claude.iconic })).toBeVisible();
   await expectNoRawKeys();
   await page.screenshot({ path: "e2e-results/17-consolas-es.png", fullPage: true });

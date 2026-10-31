@@ -24,7 +24,7 @@ export default function Home() {
       {notices.data?.map((n) => (
         <div key={n.code + (n.params?.service ?? "")} className="notice" role="note" aria-label={tn("title")}>
           <span>{dt(n.code, { service: dt(`credentials.service.${n.params?.service}`) })}</span>
-          <Link className="ot-btn" href="/settings/">{tn("openSettings")}</Link>
+          <Link className="ot-btn" href="/settings/?s=credentials">{tn("openSettings")}</Link>
         </div>
       ))}
       <div className="content">

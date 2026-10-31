@@ -87,6 +87,7 @@
     "language": "Language",
     "later": "Libraries, backup and the rest of the settings arrive with their phase.",
     "credentials": "Accounts and keys",
+    "sections": "Settings sections",
     "claude": {
       "title": "Claude",
       "schedule": "Background schedule",

@@ -33,7 +33,9 @@
 .panel { background: var(--surface); border-radius: var(--radius-lg); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
 .tabs { display: flex; flex-wrap: wrap; gap: var(--space-1); border-bottom: 1px solid var(--line); }
 .tab { padding: var(--space-2) var(--space-3); color: var(--ink-muted); font-weight: 700; text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
-.tab[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tab[aria-current="page"], .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tabs-scroll { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; }
+.tabs-scroll .tab { white-space: nowrap; }
 .table-wrap { overflow-x: auto; }
 table.t { width: 100%; border-collapse: collapse; font-size: 14px; }
 table.t th { text-align: left; font-weight: 700; color: var(--ink-muted); font-size: 12px; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--line); white-space: nowrap; }
