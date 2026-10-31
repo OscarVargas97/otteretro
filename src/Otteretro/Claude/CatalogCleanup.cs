@@ -319,7 +319,7 @@ public static partial class CatalogCleanup
                 foreach (var (game, saga) in move.Games)
                     c.Execute("UPDATE game SET saga_id = @saga WHERE id = @game", new { game, saga }, t);
                 if (move.CreatedSaga is { } created && c.ExecuteScalar<long>("SELECT count(*) FROM game WHERE saga_id = @created", new { created }, t) == 0)
-                    c.Execute("DELETE FROM saga WHERE id = @created", new { created }, t);
+                    c.Execute("DELETE FROM saga WHERE id = @created; DELETE FROM saga_user WHERE saga_id = @created", new { created }, t);
                 break;
             case "merge":
                 var merge = before.Deserialize<MergeBefore>(Tuples)!;

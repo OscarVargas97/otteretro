@@ -38,18 +38,19 @@ export function TaskRows() {
         <span className="ot-task-state">{t(`tasks.status.${task.status}`, { progress })}</span>
         {task.status === "running" && <div className="ot-progress"><span style={{ width: `${progress}%` }} /></div>}
         {task.detail && <span className="ot-task-detail">{describe(task.detail)}</span>}
-        {open === id && <TaskLog id={id} live={task.status === "running"} />}
+        {open === id && <TaskLog id={id} stamp={`${task.status}|${task.progress}|${JSON.stringify(task.detail)}`} />}
       </div>
     );
   });
 }
 
 /** El registro de una tarea, lo más nuevo arriba; mientras corre se pone al día solo. */
-function TaskLog({ id, live }: { id: number; live: boolean }) {
+/** El registro se vuelve a pedir cuando cambia la tarea (llega por SSE, evento `task`): sin sondeos. */
+function TaskLog({ id, stamp }: { id: number; stamp: string }) {
   const t = useDynamicT();
   const describe = useDescribeError();
   const format = useFormatter();
-  const log = useQuery({ queryKey: ["tasks", id, "log"], queryFn: () => request<TaskLogEntry[]>(`/api/tasks/${id}/log`), refetchInterval: live ? 3_000 : false });
+  const log = useQuery({ queryKey: ["tasks", id, "log", stamp], queryFn: () => request<TaskLogEntry[]>(`/api/tasks/${id}/log`), placeholderData: (previous) => previous });
   if (!log.data) return null;
   if (log.data.length === 0) return <p className="small muted" style={{ margin: 0 }}>{t("tasks.logEmpty")}</p>;
   return (

@@ -36,6 +36,9 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **`catalogo depurar --contar` estima con lo real**: usa lo que gastó cada llamada a Claude (la primera depuración gastó unas tres veces lo que se estimaba, sobre todo en respuesta).
 
 ### Arreglos
+- **Un corte al separar el catálogo ya no deja la app sin arrancar**: cada paso escribe un solo archivo y, si se interrumpe, se rehace al abrirla de nuevo.
+- **Deshacer una saga creada por la depuración** también borra lo tuyo de esa saga (favorita, seguimiento).
+- **El registro de una tarea** se pone al día cuando la tarea avanza, sin preguntar cada 3 segundos.
 - **Mudar la carpeta de datos ya no se queda en «Preparando»**: si la mudanza terminaba antes de que llegara la respuesta de haberla empezado, la pantalla volvía a «empezó» y no mostraba el resultado.
 
 ## Portadas que no se cortan · en revisión

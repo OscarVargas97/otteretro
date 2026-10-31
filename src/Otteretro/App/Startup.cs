@@ -19,6 +19,7 @@ public static class Startup
         var db = DataFolder.Open(folder);
         var applied = Migrations.Apply(db);
         Migrations.RegisterMachine(db, config.MachineId);
+        Catalog.IgdbImport.EnqueuePopularity(db);
         FileLog.Write(LogLevel.Information, "Startup", $"Otteretro {Version}; carpeta de datos {folder}; {applied} migraciones nuevas.");
         return db;
     }

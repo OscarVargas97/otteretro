@@ -64,7 +64,7 @@ public class DataTests
         {
             cat.Open();
             var tables = cat.Query<string>("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").ToList();
-            Assert.All(tables, t => Assert.Contains(t, Migrations.CatalogTables));
+            Assert.All(tables, t => Assert.Contains(t, Migrations.CatalogTables.Append("catalog_migration")));
             var columns = tables.SelectMany(t => cat.Query<string>($"SELECT name FROM pragma_table_info('{t}')")).ToList();
             Assert.DoesNotContain("favorite", columns);
             Assert.DoesNotContain("following", columns);
@@ -73,6 +73,34 @@ public class DataTests
             Assert.Equal(2, cat.ExecuteScalar<long>("SELECT count(*) FROM saga"));
         }
         Assert.True(Migrations.Apply(db) > 0); // las que siguen se aplican sobre el catálogo separado
+        Assert.Equal(0, Migrations.Apply(db));
+    }
+
+    /// <summary>
+    /// Revisión de F2: un corte después de copiar el catálogo y antes de terminar deja la migración sin anotar. Al arrancar de
+    /// nuevo se rehace sin fallar ni perder nada, y las columnas propias que hayan quedado en el catálogo se quitan solas.
+    /// </summary>
+    [Fact]
+    public void AnInterruptedSplitIsRedoneOnTheNextStart()
+    {
+        using var tmp = new TempDir();
+        var folder = tmp["datos"];
+        DataFolder.Prepare(folder);
+        var db = DataFolder.Open(folder);
+        Migrations.Apply(db, until: "0012_console_platform.sql");
+        using (var c = db.Open())
+            c.Execute("""
+                INSERT INTO main.saga (id, name, favorite) VALUES (1, 'Metroid', 1);
+                CREATE TABLE catalog.saga (id INTEGER PRIMARY KEY, name TEXT, favorite INTEGER); -- lo que dejó el corte
+                INSERT INTO catalog.saga VALUES (1, 'Metroid', 1);
+                """);
+
+        Assert.True(Migrations.Apply(db) > 0);
+
+        using var after = db.Open();
+        Assert.Equal("Metroid", after.ExecuteScalar<string>("SELECT name FROM saga WHERE id = 1"));
+        Assert.Equal(1, after.ExecuteScalar<long>("SELECT favorite FROM saga_user WHERE saga_id = 1"));
+        Assert.Equal(0, after.ExecuteScalar<long>("SELECT count(*) FROM pragma_table_info('saga', 'catalog') WHERE name = 'favorite'"));
     }
 
     /// <summary>F1.4: las 24 plataformas quedan cargadas y la saga no lleva plataforma (#131).</summary>
@@ -135,7 +163,7 @@ public class DataTests
         using var after = db.Open();
         Assert.Equal("PC", after.ExecuteScalar<string>("SELECT name FROM machine WHERE id = 'pc-viejo'"));
         Assert.Equal("oscuro", after.ExecuteScalar<string>("SELECT value FROM setting WHERE name = 'tema' AND machine_id = ''"));
-        Assert.Equal(total, after.ExecuteScalar<int>("SELECT count(*) FROM migration"));
+        Assert.Equal(total, after.ExecuteScalar<int>("SELECT (SELECT count(*) FROM migration) + (SELECT count(*) FROM catalog.catalog_migration)")); // lo del catálogo se anota en él
         Assert.Equal(0, after.ExecuteScalar<int>("SELECT count(*) FROM sqlite_master WHERE name IN ('migracion', 'equipo', 'ajuste')"));
     }
 

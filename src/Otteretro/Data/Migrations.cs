@@ -18,6 +18,7 @@ public static class Migrations
         RenameLegacyLog(c);
         c.Execute("CREATE TABLE IF NOT EXISTS migration (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL)");
         var done = c.Query<string>("SELECT name FROM migration").ToHashSet();
+        if (HasCatalogLog(c)) done.UnionWith(c.Query<string>("SELECT name FROM catalog.catalog_migration"));
         var assembly = typeof(Migrations).Assembly;
         var applied = 0;
 
@@ -36,13 +37,33 @@ public static class Migrations
                 continue;
             }
             using var reader = new StreamReader(assembly.GetManifestResourceStream(resource)!);
+            var sql = reader.ReadToEnd();
+            // Una transacción escribe un solo archivo: en WAL, SQLite no la hace atómica entre los dos. Lo del catálogo (después de
+            // la separación) se anota en el propio catálogo; esas migraciones no tocan la base propia.
+            var onCatalog = string.CompareOrdinal(name, SplitMigration) > 0 && sql.Contains("catalog.", StringComparison.Ordinal);
             using var t = c.BeginTransaction();
-            c.Execute(reader.ReadToEnd(), transaction: t);
-            Done(c, name, t);
+            c.Execute(sql, transaction: t);
+            if (onCatalog) c.Execute("INSERT INTO catalog.catalog_migration (name, applied_at) VALUES (@name, @date)", new { name, date = DateTime.UtcNow.ToString("O") }, t);
+            else Done(c, name, t);
             t.Commit();
             applied++;
         }
+        DropPersonalColumns(c);
         return applied;
+    }
+
+    static bool HasCatalogLog(SqliteConnection c) =>
+        c.ExecuteScalar<long>("SELECT count(*) FROM catalog.sqlite_master WHERE type = 'table' AND name = 'catalog_migration'") > 0;
+
+    /// <summary>
+    /// Lo propio que quedó en tablas del catálogo se quita (#167). Va aparte de la separación y se mira en cada arranque: si un
+    /// corte la interrumpe, se completa en el siguiente.
+    /// </summary>
+    static void DropPersonalColumns(SqliteConnection c)
+    {
+        foreach (var (table, column) in PersonalColumns)
+            if (c.ExecuteScalar<long>($"SELECT count(*) FROM pragma_table_info('{table}', 'catalog') WHERE name = @column", new { column }) > 0)
+                c.Execute($"ALTER TABLE catalog.{table} DROP COLUMN {column}");
     }
 
     static void Done(SqliteConnection c, string name, SqliteTransaction t) =>
@@ -78,7 +99,12 @@ public static class Migrations
         c.Execute("PRAGMA foreign_keys = OFF");
         try
         {
-            using var t = c.BeginTransaction();
+            // 1. El catálogo, en su archivo. Un intento anterior cortado a medias (la migración no quedó anotada) se rehace desde
+            //    cero: hasta el paso 2, la base propia sigue entera.
+            using (var t = c.BeginTransaction())
+            {
+            foreach (var table in CatalogTables.Append("catalog_migration")) c.Execute($"DROP TABLE IF EXISTS catalog.{table}", transaction: t);
+            c.Execute("CREATE TABLE catalog.catalog_migration (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL)", transaction: t);
             foreach (var table in CatalogTables)
             {
                 var create = schema.Single(x => x.Type == "table" && x.Name == table).Sql;
@@ -90,7 +116,12 @@ public static class Migrations
             }
             foreach (var index in schema.Where(x => x.Type == "index" && CatalogTables.Contains(x.Table)))
                 c.Execute(Regex.Replace(index.Sql, @"^CREATE (UNIQUE )?INDEX\s+(IF NOT EXISTS\s+)?", "CREATE $1INDEX $2catalog."), transaction: t);
+            t.Commit();
+            }
 
+            // 2. Lo propio: solo escribe la base propia (lee el catálogo), así que es atómico. Las columnas propias que quedan en el
+            //    catálogo las quita DropPersonalColumns al final de Apply.
+            using var t2 = c.BeginTransaction();
             c.Execute("""
                 CREATE TABLE main.saga_user (
                     saga_id      INTEGER PRIMARY KEY,
@@ -100,26 +131,23 @@ public static class Migrations
                 );
                 INSERT INTO main.saga_user SELECT id, favorite, following, chosen_route FROM catalog.saga
                 WHERE favorite <> 0 OR following <> 0 OR chosen_route IS NOT NULL;
-                """, transaction: t);
-            foreach (var (table, column) in PersonalColumns)
-                c.Execute($"ALTER TABLE catalog.{table} DROP COLUMN {column}", transaction: t);
-
-            foreach (var table in CatalogTables) c.Execute($"DROP TABLE main.{table}", transaction: t);
+                """, transaction: t2);
+            foreach (var table in CatalogTables) c.Execute($"DROP TABLE main.{table}", transaction: t2);
 
             // Lo propio que apuntaba al catálogo: se rehace sin esa clave foránea, con sus índices.
             var toCatalog = $@"\s+REFERENCES\s+""?({string.Join('|', CatalogTables)})""?\s*\([^)]*\)(\s+ON\s+(DELETE|UPDATE)\s+(SET\s+NULL|SET\s+DEFAULT|CASCADE|RESTRICT|NO\s+ACTION))*";
             foreach (var (_, table, _, sql) in schema.Where(x => x.Type == "table" && !CatalogTables.Contains(x.Name) && Regex.IsMatch(x.Sql, toCatalog)))
             {
-                var columns = string.Join(", ", c.Query<string>($"SELECT name FROM pragma_table_info('{table}', 'main')", transaction: t));
-                c.Execute($"ALTER TABLE main.{table} RENAME TO {table}_old", transaction: t);
-                c.Execute(Regex.Replace(Regex.Replace(sql, toCatalog, ""), @"^CREATE TABLE\s+""?(\w+)""?", "CREATE TABLE main.$1"), transaction: t);
-                c.Execute($"INSERT INTO main.{table} ({columns}) SELECT {columns} FROM main.{table}_old; DROP TABLE main.{table}_old", transaction: t);
+                var columns = string.Join(", ", c.Query<string>($"SELECT name FROM pragma_table_info('{table}', 'main')", transaction: t2));
+                c.Execute($"ALTER TABLE main.{table} RENAME TO {table}_old", transaction: t2);
+                c.Execute(Regex.Replace(Regex.Replace(sql, toCatalog, ""), @"^CREATE TABLE\s+""?(\w+)""?", "CREATE TABLE main.$1"), transaction: t2);
+                c.Execute($"INSERT INTO main.{table} ({columns}) SELECT {columns} FROM main.{table}_old; DROP TABLE main.{table}_old", transaction: t2);
                 foreach (var index in schema.Where(x => x.Type == "index" && x.Table == table))
-                    c.Execute(Regex.Replace(index.Sql, @"^CREATE (UNIQUE )?INDEX\s+(IF NOT EXISTS\s+)?", "CREATE $1INDEX $2main."), transaction: t);
+                    c.Execute(Regex.Replace(index.Sql, @"^CREATE (UNIQUE )?INDEX\s+(IF NOT EXISTS\s+)?", "CREATE $1INDEX $2main."), transaction: t2);
             }
 
-            Done(c, name, t);
-            t.Commit();
+            Done(c, name, t2);
+            t2.Commit();
         }
         finally
         {

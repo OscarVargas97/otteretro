@@ -226,6 +226,15 @@ public static class IgdbImport
 
     record Rated(long Id, long? TotalRatingCount);
 
+    /// <summary>Al arrancar: si hay juegos sin popularidad y nada que la esté trayendo, encola la tarea (también reintenta tras un error).</summary>
+    public static void EnqueuePopularity(Database db)
+    {
+        using var c = db.Open();
+        if (c.ExecuteScalar<long>("SELECT count(*) FROM game WHERE igdb_id IS NOT NULL AND popularity IS NULL LIMIT 1") == 0) return;
+        if (c.ExecuteScalar<long>("SELECT count(*) FROM task WHERE kind = 'igdb.popularity' AND status IN ('queued', 'running')") > 0) return;
+        TaskQueue.Enqueue(db, "igdb.popularity");
+    }
+
     record SteamLink(long Game, string Uid);
 
     /// <summary>
