@@ -67,6 +67,8 @@ public static class ClaudeRunner
         {
             // Una carpeta vacía: que no lea el CLAUDE.md ni la configuración de ningún proyecto.
             WorkingDirectory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "otteretro-claude")).FullName,
+            // La app es WinExe: sin esto Windows abre una terminal por cada llamada.
+            CreateNoWindow = true,
         };
         foreach (var arg in (string[])["-p", prompt, "--output-format", "json", "--json-schema", Schema<T>(),
                      "--restricted", "--tools", Tools, "--strict-mcp-config", "--no-session-persistence"])
