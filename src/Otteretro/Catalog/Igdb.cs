@@ -81,11 +81,11 @@ public record IgdbGame(
     long Id, string Name, long? FirstReleaseDate, int? GameType, int? Category, long[]? Platforms, long? VersionParent,
     long[]? Remakes, long[]? Remasters, long[]? Ports, IgdbNamed[]? Franchises, IgdbNamed[]? Collections,
     IgdbNamed[]? AlternativeNames, IgdbReleaseDate[]? ReleaseDates, IgdbExternal[]? ExternalGames,
-    IgdbNamed? Franchise = null, long? ParentGame = null)
+    IgdbNamed? Franchise = null, long? ParentGame = null, string? Summary = null)
 {
     public const string Fields = "fields name, first_release_date, game_type, category, platforms, version_parent, remakes, remasters, ports, "
         + "franchises.name, collections.name, alternative_names.name, alternative_names.comment, release_dates.platform, release_dates.date, "
-        + "external_games.uid, external_games.category, external_games.external_game_source, franchise.name, parent_game;";
+        + "external_games.uid, external_games.category, external_games.external_game_source, franchise.name, parent_game, summary;";
 
     /// <summary>Juego principal, expansión independiente, remake, remaster, juego ampliado o port. Fuera: DLC, packs, mods, episodios…</summary>
     public static readonly int[] PlayableTypes = [0, 4, 8, 9, 10, 11];

@@ -224,6 +224,7 @@
       },
       "claude": {
         "cleanup": "{done} de {total} sagas revisadas",
+        "sagas": "{done} de {total} sagas preparadas",
         "notInstalled": "No se encontró Claude Code: instálalo e inicia sesión con `claude` en una terminal.",
         "failed": "Claude falló: {detail}",
         "invalidOutput": "Claude respondió dos veces algo que no tiene la forma esperada.",
@@ -310,7 +311,8 @@
         "sync": "Leer lo que tienes en Steam"
       },
       "claude": {
-        "cleanup": "Depurar el catálogo con Claude"
+        "cleanup": "Depurar el catálogo con Claude",
+        "sagas": "Rutas, icónico y mejor versión con Claude"
       },
       "catalog": {
         "extra": "Completar con Wikidata y RAWG"

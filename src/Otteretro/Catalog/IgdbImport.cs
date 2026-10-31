@@ -320,6 +320,12 @@ public static class IgdbImport
         FieldValues.Set(c, "game", id, "original_name", Clean(g.Name), Source, t);
         FieldValues.Set(c, "game", id, "name_es", Clean(SpanishName(g)), Source, t);
         FieldValues.Set(c, "game", id, "year", Year(g.FirstReleaseDate), Source, t);
+        // La descripción (en inglés) no tiene columna: se guarda como dato y Claude la traduce una vez (F2.5).
+        if (!string.IsNullOrWhiteSpace(g.Summary))
+            c.Execute("""
+                INSERT INTO field_value (entity, entity_id, field, value, source) VALUES ('game', @id, 'summary', @Summary, @Source)
+                ON CONFLICT (entity, entity_id, field, source) DO UPDATE SET value = excluded.value
+                """, new { id, g.Summary, Source }, t);
 
         // La saga se elige una vez; recargar otra saga no mueve el juego (Hyrule Warriors sigue en Zelda).
         if (c.ExecuteScalar<long?>("SELECT saga_id FROM game WHERE id = @id", new { id }, t) is null && SagaOf(g, preferred) is { } saga)

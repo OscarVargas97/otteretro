@@ -9,6 +9,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 ### Nuevo
 - **Claude revisa las sagas dudosas y las ordena solo**: une fichas repetidas del mismo juego, pone en su saga los juegos sueltos que son de ella, separa sub-sagas (como Tingle) y corrige nombres. Primero tus sagas. Se lanza con `otteretro catalogo depurar`; con `--contar` dice cuántos casos hay y cuánto gastaría, sin llamar a Claude. Cada cambio se puede deshacer con `otteretro catalogo deshacer <n>`.
 - **Claude trabaja de noche, sin quitarte cuota**: de 00:00 a 08:00 usa la ventana entera; si llega al límite de la suscripción, espera y sigue solo. De día corre solo si lo pides con `otteretro claude ahora`, y ahí se queda en la mitad de cada ventana.
+- **Claude prepara cada saga para que la apruebes**: las tres rutas (lanzamiento, historia y la que recomienda la comunidad, con sus fuentes), si es icónica y sus juegos icónicos, la mejor versión de cada juego con los cuatro criterios, las versiones mal clasificadas (remaster o remake) y la descripción en español. Nada se aplica sin ti: todo queda por aprobar en Revisar. Las descripciones de IGDB ahora se guardan al cargar el catálogo.
 - **No paga dos veces**: lo que Claude ya revisó no se vuelve a pedir mientras sus datos no cambien.
 
 ## Portadas que no se cortan · en revisión
