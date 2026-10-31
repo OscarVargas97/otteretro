@@ -36,6 +36,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **`catalogo depurar --contar` estima con lo real**: usa lo que gastó cada llamada a Claude (la primera depuración gastó unas tres veces lo que se estimaba, sobre todo en respuesta).
 
 ### Arreglos
+- **Sagas abre al instante y se recorre sin esperas**: dibuja de a 60 sagas y agrega más antes de que llegues al final, en vez de las 5.800 juntas.
 - **El registro de uso de Claude va de a 10 llamadas**, con «Anterior» y «Siguiente», y llega a todo el historial (antes mostraba las últimas 50 juntas).
 - **La búsqueda de consolas en IGDB se puede cerrar** (Ajustes › Consolas), con «Cerrar» o con Escape.
 - **Un corte al separar el catálogo ya no deja la app sin arrancar**: cada paso escribe un solo archivo y, si se interrumpe, se rehace al abrirla de nuevo.

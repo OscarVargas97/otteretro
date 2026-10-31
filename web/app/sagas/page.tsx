@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SagaTile, useConsoles } from "@/components/Catalog";
 import { Empty } from "@/components/Shell";
 import { request } from "@/lib/client";
@@ -12,6 +12,7 @@ import type { SagaCard } from "@/lib/types";
 const FILTERS = ["all", "favorite", "following", "iconic", "exclusive", "owned", "pc"] as const;
 const COMPANIES = ["Nintendo", "Sony", "Microsoft"];
 const SORTS = ["recognized", "name", "played", "activity"] as const;
+const STEP = 60; // tarjetas que se agregan cada vez (#96)
 
 /**
  * Sagas (§3.1): cuadrícula con filtros y orden. «Emulación» va siempre al final. El filtro y la plataforma (empresa o consola)
@@ -30,6 +31,21 @@ export default function Sagas() {
   if (kind === "company") params.set("company", value);
   if (kind === "console") params.set("platform", value);
   const sagas = useQuery({ queryKey: ["sagas", filter, where, sort], queryFn: () => request<SagaCard[]>(`/api/sagas?${params}`), placeholderData: (previous) => previous });
+
+  // Scroll infinito (#96): la lista llega entera, pero se dibujan de a 60 y se agregan más varias pantallas antes del final.
+  const view = `${filter}|${where}|${sort}`;
+  const [shown, setShown] = useState({ view, count: STEP });
+  if (shown.view !== view) setShown({ view, count: STEP }); // otro filtro u orden: desde el principio
+  useEffect(() => { window.scrollTo({ top: 0 }); }, [view]);
+  const total = sagas.data?.length ?? 0;
+  const end = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const node = end.current;
+    if (!node || shown.count >= total) return;
+    const watch = new IntersectionObserver(([e]) => { if (e.isIntersecting) setShown((s) => ({ ...s, count: s.count + STEP })); }, { rootMargin: "0px 0px 2500px 0px" });
+    watch.observe(node);
+    return () => watch.disconnect();
+  }, [shown.count, total]);
 
   const chip = (id: string, label: string) => (
     <button key={id} className="chip" type="button" aria-pressed={filter === id} onClick={() => setFilter(id)}>{label}</button>
@@ -60,8 +76,9 @@ export default function Sagas() {
       {nothingLoaded && <Empty title={t("emptyTitle")} text={t("emptyText")} />}
       {!nothingLoaded && sagas.data?.length === 0 && <p className="muted">{t("noMatch")}</p>}
       <div className="grid-cards">
-        {sagas.data?.map((s) => <SagaTile key={s.id} saga={s} />)}
+        {sagas.data?.slice(0, shown.count).map((s) => <SagaTile key={s.id} saga={s} />)}
       </div>
+      <div ref={end} aria-hidden="true" />
     </div>
   );
 }

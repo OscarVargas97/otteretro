@@ -290,6 +290,17 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   `);
   db.close();
 
+  // #96: con más de 60 sagas se dibujan de a 60 y al bajar aparecen las demás.
+  const many = await openDb();
+  many.exec(`WITH RECURSIVE n(i) AS (SELECT 1000 UNION ALL SELECT i + 1 FROM n WHERE i < 1099) INSERT INTO saga (id, name) SELECT i, 'Saga de prueba ' || i FROM n`);
+  await page.goto(`${base()}/sagas/`);
+  const tiles = page.locator(".ot-saga");
+  await expect(tiles).toHaveCount(60);
+  for (let i = 0; i < 5 && (await tiles.count()) < 102; i++) await page.mouse.wheel(0, 20000);
+  await expect(tiles).toHaveCount(102);
+  many.exec("DELETE FROM saga WHERE id >= 1000");
+  many.close();
+
   await page.goto(`${base()}/sagas/`);
   await page.getByRole("link", { name: /The Legend of Zelda/ }).click();
   await expect(page.getByRole("heading", { level: 2, name: "The Legend of Zelda" })).toBeVisible();
