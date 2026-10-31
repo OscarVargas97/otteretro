@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-31, con la #165 a la #168 (exclusivas, más reconocidas, catálogo separado de tus datos), la #162, la #163 y la #164 (consolas que habilitas tú, catálogo al día cada semana y reevaluar icónicas), la #161 (corregir lo que cambió Claude), la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
+> **Última actualización:** 2026-10-31, con la #169 a la #172 (revisión de UI de toda la app, encuesta 15), la #165 a la #168 (exclusivas, más reconocidas, catálogo separado de tus datos), la #162, la #163 y la #164 (consolas que habilitas tú, catálogo al día cada semana y reevaluar icónicas), la #161 (corregir lo que cambió Claude), la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
 
 ## Cómo se mantiene
 
@@ -436,6 +436,12 @@ Así, cada tarea que Claude resolvía pasa a un script y la app depende cada vez
 - **Escribir:** el teclado en pantalla de Steam; fuera de la sesión de Steam, uno propio.
 - **Botón Guía:** menú rápido de Otteretro (volver a Otteretro, ir a Steam, cerrar el juego, capturar). En la sesión de Steam ese botón es de Steam, así que se usa una combinación (por ejemplo Guía + A).
 - Desde F1, **cada pantalla nueva se hace navegable con mando** (#138).
+
+### 12.6 Revisión de UI (encuesta 15, #169 a #172)
+- **Toda la app:** barra superior fija; en Saga y Juego, el camino en la barra; un solo aviso de claves que faltan; enlaces-botón sin subrayado; portada sin bajar con el color de su consola; menú de fases futuras atenuado con su fase; vacíos con la nutria y el siguiente paso; encabezado de Saga y Juego con el arte del juego.
+- **Inicio y Sagas:** «Siguiente en tus rutas» como tarjeta con avance; Revisar solo si hay algo; filtros fijos con el total; tarjeta de saga con insignias y barra de lo que tienes.
+- **Saga y Juego:** ruta con pestañas junto al título y pasos unidos; consolas abreviadas («+N»); recalcular en «⋯»; Seguimiento compacto; Versiones y Comparativa en una tabla con barras de 5; Datos y fuentes plegado con lápiz.
+- **Colección, Revisar, Ajustes y el resto:** consolas con algo, por empresa; Cuadrícula/Lista con íconos; pestañas subrayadas en toda la app; ruta por aprobar con portadas; Ajustes › Claude en tres bloques; registro de uso con costo; panel de tareas con progreso y ✕; bienvenida con la nutria; menú rápido con más accesos.
 
 ## 13. Pendientes
 
