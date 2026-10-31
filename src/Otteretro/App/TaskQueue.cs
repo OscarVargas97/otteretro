@@ -31,6 +31,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         ["catalog.extra"] = Catalog.ExtraSources.Run,
         ["steam.sync"] = Catalog.Steam.Sync,
         ["igdb.steam"] = Catalog.IgdbImport.FromSteam,
+        [Claude.CatalogCleanup.Kind] = Claude.CatalogCleanup.Run,
     };
 
     /// <summary>Las que duran más que esto avisan con una notificación del sistema al terminar.</summary>

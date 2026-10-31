@@ -65,6 +65,10 @@ public static class CliMode
             [--consola X]          una consola (snes, n64, switch, ps2…),
             [--saga X]             una saga (zelda, half-life…; PC se carga así)
             [--pc-populares]       o los 1.500 juegos de PC más calificados. Lo hace la app abierta.
+          catalogo depurar       Claude revisa las sagas dudosas del catálogo (repetidos, juegos que no son de la saga,
+                                 sueltos que sí lo son) de noche y aplica los cambios solo; lo hace la app abierta.
+            [--contar]             Solo cuenta los casos y estima el gasto, sin llamar a Claude.
+          catalogo deshacer <n>  Deshace el cambio n de Claude (el número sale en el registro).
           steam sincronizar      Lee lo que tienes en Steam (con sus horas) y lo enlaza con el catálogo; lo hace la app abierta.
           claude ahora           Deja que Claude trabaje ya, fuera de su horario (00:00 a 08:00), hasta que empiece el siguiente.
           tareas prueba          Encola una tarea de prueba (10 pasos de 3 s) para ver el panel de tareas.
@@ -98,6 +102,19 @@ public static class CliMode
             case ["claude", "ahora"]:
                 return WithData(output, db =>
                     output.WriteLine($"Claude puede trabajar hasta {Claude.ClaudeBudget.RunNow(db).ToLocalTime():g}; el límite de la suscripción y el tope por ventana siguen valiendo."));
+            case ["catalogo", "depurar", "--contar"]:
+                return WithData(output, db =>
+                {
+                    var n = Claude.CatalogCleanup.Measure(db);
+                    output.WriteLine($"{n.Sagas} sagas dudosas con {n.Games} juegos, y {n.Loose} juegos sueltos que parecen de alguna.");
+                    foreach (var (reason, count) in n.Reasons) output.WriteLine($"  {reason}: {count} sagas");
+                    output.WriteLine($"Unas {n.Calls} llamadas a Claude (Haiku), unos {n.Tokens:N0} tokens. Lo que no cambie no se vuelve a pedir.");
+                });
+            case ["catalogo", "depurar"]:
+                return Enqueue(output, db => [Claude.CatalogCleanup.Enqueue(db)]);
+            case ["catalogo", "deshacer", var learning] when long.TryParse(learning, out var id):
+                return WithData(output, db => output.WriteLine(Claude.CatalogCleanup.Undo(db, id)
+                    ? $"Cambio {id} deshecho." : $"No hay un cambio {id} sin deshacer."));
             case ["catalogo", "cargar", .. var options] when options is [] or ["--consola", _] or ["--saga", _, ..] or ["--pc-populares"]:
                 return Enqueue(output, db => EnqueueLoad(db, options));
             case ["servidor"]:

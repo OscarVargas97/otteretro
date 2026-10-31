@@ -223,6 +223,7 @@
         "rawgBadKey": "RAWG didn’t accept the key: check it in Settings › Accounts and keys."
       },
       "claude": {
+        "cleanup": "{done} of {total} sagas reviewed",
         "notInstalled": "Claude Code wasn’t found: install it and sign in by running `claude` in a terminal.",
         "failed": "Claude failed: {detail}",
         "invalidOutput": "Claude answered twice with something that doesn’t have the expected shape.",
@@ -307,6 +308,9 @@
       },
       "steam": {
         "sync": "Read what you own on Steam"
+      },
+      "claude": {
+        "cleanup": "Clean up the catalog with Claude"
       },
       "catalog": {
         "extra": "Complete with Wikidata and RAWG"
