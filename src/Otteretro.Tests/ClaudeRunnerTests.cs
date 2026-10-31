@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.Text.Json;
 using Otteretro.App;
 using Otteretro.Claude;
+using Otteretro.Data;
+using Dapper;
 
 namespace Otteretro.Tests;
 
@@ -16,7 +18,31 @@ public class ClaudeRunnerTests : IDisposable
 
     readonly Func<ProcessStartInfo, string, CancellationToken, Task<ProcessOutput>> real = ClaudeRunner.Launch;
 
-    public void Dispose() => ClaudeRunner.Launch = real;
+    readonly TempDir tmp = new();
+    readonly Database db;
+
+    public ClaudeRunnerTests()
+    {
+        var config = new AppConfig { DataFolder = tmp["datos"] };
+        Assert.Null(DataFolder.Prepare(config.DataFolder));
+        db = Startup.PrepareData(config);
+    }
+
+    public void Dispose()
+    {
+        ClaudeRunner.Launch = real;
+        tmp.Dispose();
+    }
+
+    Task<ClaudeResult<Double>> Run(string prompt = "p", object? input = null, string? model = null) =>
+        ClaudeRunner.Run<Double>(db, 7, "prueba", prompt, input ?? new { }, CancellationToken.None, model);
+
+    /// <summary>El registro de uso (F2.3): resultado y tokens de entrada de cada intento.</summary>
+    List<(string Result, long Input)> Usage()
+    {
+        using var c = db.Open();
+        return c.Query<(string, long)>("SELECT result, input_tokens FROM claude_usage WHERE task_id = 7 AND prompt = 'prueba' ORDER BY id").ToList();
+    }
 
     /// <summary>Un `claude` que responde, en orden, lo que se le pasa.</summary>
     void Fake(params ProcessOutput[] outputs) => ClaudeRunner.Launch = (start, stdin, ct) =>
@@ -40,7 +66,7 @@ public class ClaudeRunnerTests : IDisposable
     {
         Fake(Reply(new { value = 4, note = (string?)null }));
 
-        var r = await ClaudeRunner.Run<Double>("Duplica n.", new { n = 2 }, CancellationToken.None, model: "haiku");
+        var r = await Run("Duplica n.", new { n = 2 }, "haiku");
 
         Assert.Equal(new Double(4, null), r.Value);
         Assert.Equal(new ClaudeUsage(10, 5, 100, 0), r.Usage);
@@ -63,11 +89,12 @@ public class ClaudeRunnerTests : IDisposable
     {
         Fake(Reply(new { value = "cuatro", note = "x" }), Reply(new { value = 4, note = "x" }));
 
-        var r = await ClaudeRunner.Run<Double>("p", new { }, CancellationToken.None);
+        var r = await Run();
 
         Assert.Equal(4, r.Value.Value);
         Assert.Equal(2, r.Attempts);
         Assert.Equal(20, r.Usage.InputTokens); // se cuentan los dos intentos
+        Assert.Equal([("invalid", 10L), ("ok", 10L)], Usage());
     }
 
     [Theory]
@@ -79,7 +106,7 @@ public class ClaudeRunnerTests : IDisposable
         var bad = Reply(JsonSerializer.Deserialize<JsonElement>(structured));
         Fake(bad, bad, bad);
 
-        var e = await Assert.ThrowsAsync<TaskException>(() => ClaudeRunner.Run<Double>("p", new { }, CancellationToken.None));
+        var e = await Assert.ThrowsAsync<TaskException>(() => Run());
 
         Assert.Equal("tasks.claude.invalidOutput", e.Error.Code);
         Assert.Equal(2, calls.Count);
@@ -90,11 +117,12 @@ public class ClaudeRunnerTests : IDisposable
     {
         Fake(Reply(null, isError: true, result: "algo salió mal"), Reply(new { value = 4, note = "x" }));
 
-        var e = await Assert.ThrowsAsync<TaskException>(() => ClaudeRunner.Run<Double>("p", new { }, CancellationToken.None));
+        var e = await Assert.ThrowsAsync<TaskException>(() => Run());
 
         Assert.Equal("tasks.claude.failed", e.Error.Code);
         Assert.Equal("algo salió mal", e.Error.Params!["detail"]);
         Assert.Single(calls);
+        Assert.Equal([("failed", 10L)], Usage());
     }
 
     [Fact]
@@ -102,9 +130,10 @@ public class ClaudeRunnerTests : IDisposable
     {
         Fake(new ProcessOutput(1, "", "no autenticado\n"));
 
-        var e = await Assert.ThrowsAsync<TaskException>(() => ClaudeRunner.Run<Double>("p", new { }, CancellationToken.None));
+        var e = await Assert.ThrowsAsync<TaskException>(() => Run());
 
         Assert.Equal("no autenticado", e.Error.Params!["detail"]);
+        Assert.Equal([("failed", 0L)], Usage());
     }
 
     [Fact]
@@ -112,7 +141,7 @@ public class ClaudeRunnerTests : IDisposable
     {
         ClaudeRunner.Launch = (_, _, _) => throw new Win32Exception(2);
 
-        var e = await Assert.ThrowsAsync<TaskException>(() => ClaudeRunner.Run<Double>("p", new { }, CancellationToken.None));
+        var e = await Assert.ThrowsAsync<TaskException>(() => Run());
 
         Assert.Equal("tasks.claude.notInstalled", e.Error.Code);
     }

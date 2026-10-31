@@ -5,6 +5,8 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
 using Otteretro.Api;
 using Otteretro.App;
+using Otteretro.Data;
+using Dapper;
 
 namespace Otteretro.Claude;
 
@@ -53,10 +55,13 @@ public static class ClaudeRunner
     public static string Schema<T>() => JsonSchemaExporter.GetJsonSchemaAsNode(Strict, typeof(T),
         new JsonSchemaExporterOptions { TreatNullObliviousAsNonNullable = true }).ToJsonString(); // la raíz va como "object", no "object o null"
 
+    /// <param name="db">Donde queda el registro de uso: una fila de `claude_usage` por intento (F2.3).</param>
+    /// <param name="taskId">La tarea que llama, para el registro.</param>
+    /// <param name="name">El nombre del prompt, para el registro.</param>
     /// <param name="prompt">Las instrucciones (normalmente <see cref="Prompt"/>).</param>
     /// <param name="input">Los datos, que van por la entrada estándar como JSON.</param>
     /// <param name="model">haiku, sonnet u opus; null usa el del Claude Code del usuario.</param>
-    public static async Task<ClaudeResult<T>> Run<T>(string prompt, object input, CancellationToken ct, string? model = null)
+    public static async Task<ClaudeResult<T>> Run<T>(Database db, long? taskId, string name, string prompt, object input, CancellationToken ct, string? model = null)
     {
         var start = new ProcessStartInfo(Command)
         {
@@ -78,11 +83,18 @@ public static class ClaudeRunner
         for (var attempt = 1; ; attempt++)
         {
             ProcessOutput output;
+            var call = Stopwatch.StartNew();
             try { output = await Launch(start, stdin, ct); }
             catch (Win32Exception) { throw new TaskException(ApiError.Of("tasks.claude.notInstalled")); }
 
             var (value, used, error) = Read<T>(output);
             if (used is not null) usage = Add(usage, used);
+            Log(db, taskId, name, model, call.Elapsed, error?.Code switch
+            {
+                null => "ok",
+                "tasks.claude.invalidOutput" => "invalid",
+                _ => "failed",
+            }, used ?? new ClaudeUsage(0, 0, 0, 0));
             if (error is null) return new ClaudeResult<T>(value!, usage, clock.Elapsed, attempt);
             FileLog.Write(LogLevel.Warning, "Claude", $"Intento {attempt}: {error.Code} {output.Stderr}");
             // Solo se repite lo que respondió mal; si `claude` falló, preguntar otra vez no lo arregla (el límite es F2.2).
@@ -106,6 +118,16 @@ public static class ClaudeRunner
         }
         catch (JsonException) { }
         return (default, reply.Usage, ApiError.Of("tasks.claude.invalidOutput"));
+    }
+
+    static void Log(Database db, long? taskId, string prompt, string? model, TimeSpan duration, string result, ClaudeUsage u)
+    {
+        using var c = db.Open();
+        c.Execute("""
+            INSERT INTO claude_usage (task_id, prompt, model, duration_ms, result, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, created_at)
+            VALUES (@taskId, @prompt, @model, @ms, @result, @InputTokens, @OutputTokens, @CacheReadInputTokens, @CacheCreationInputTokens, @now)
+            """, new { taskId, prompt, model, ms = (long)duration.TotalMilliseconds, result, u.InputTokens, u.OutputTokens,
+                u.CacheReadInputTokens, u.CacheCreationInputTokens, now = DateTime.UtcNow.ToString("O") });
     }
 
     static ClaudeUsage Add(ClaudeUsage a, ClaudeUsage b) => new(a.InputTokens + b.InputTokens, a.OutputTokens + b.OutputTokens,
