@@ -1377,6 +1377,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/learnings/{id}/correct": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CorrectRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReviewPage"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sagas/{id}/routes": {
         parameters: {
             query?: never;
@@ -1968,6 +2027,9 @@ export interface components {
             /** Format: int32 */
             owned: number | string;
         };
+        CorrectRequest: {
+            note: string;
+        };
         CredentialRequest: {
             value: string;
         };
@@ -2062,6 +2124,19 @@ export interface components {
             detail: string;
             createdAt: string;
             undone: boolean;
+            /** Format: int64 */
+            taskId: null | number | string;
+            /** Format: int64 */
+            sagaId: null | number | string;
+            sagaName: null | string;
+            games: string[];
+            from: string[];
+            to: null | string;
+            toKind: null | string;
+            kept: null | string;
+            nameBefore: null | string;
+            nameAfter: null | string;
+            rules: string[];
         };
         MoveState: {
             step: string;

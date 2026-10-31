@@ -24,6 +24,7 @@ export type GameDetail = Schemas["GameDetail"];
 export type ProgressInfo = Schemas["ProgressInfo"];
 export type FieldRow = Schemas["FieldRow"];
 export type SearchResults = Schemas["SearchResults"];
+export type CorrectRequest = Schemas["CorrectRequest"];
 export type ReviewPage = Schemas["ReviewPage"];
 export type ReviewItem = Schemas["ReviewItem"];
 export type LearningItem = Schemas["LearningItem"];

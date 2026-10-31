@@ -408,3 +408,29 @@ test("panel de tareas: terminadas por hora de término, registro al hacer clic y
   await panel.getByRole("button", { name: es.tasks.clear }).click();
   await expect(panel.locator("button.ot-task-title")).toHaveCount(0);
 });
+
+test("Aprendizajes: cada cambio en claro, filtros y corregir con una nota para Claude", async () => {
+  const { DatabaseSync } = await import("node:sqlite");
+  const db = new DatabaseSync(join(dataDir("moved"), "data", "otteretro.db"));
+  const content = {
+    prompt: "depurar-sagas",
+    change: { kind: "move", reason: "No es de Zelda.", gameIds: [11], toSagaId: null, newSagaName: null },
+    before: { games: [{ item1: 11, item2: 1 }], createdSaga: null },
+  };
+  db.prepare("INSERT INTO learning (kind, content, created_at, task_id) VALUES ('rule', ?, '2026-10-31T15:00:00Z', 37)").run(JSON.stringify(content));
+  db.close();
+  await page.goto(`${base()}/review/`);
+  await page.getByRole("tab", { name: /Aprendizajes/ }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "Tarea #37" })).toBeVisible();
+  await expect(page.getByText(/Breath of the Wild: de The Legend of Zelda a ninguna saga/)).toBeVisible();
+  await page.getByRole("button", { name: es.review.kindFilter.merge }).click();
+  await expect(page.getByText(/ninguna saga/)).toHaveCount(0);
+  await page.getByRole("button", { name: es.review.filterAll }).click();
+  await page.getByRole("button", { name: es.review.correct }).click();
+  await page.getByRole("textbox", { name: es.review.correct }).fill("Breath of the Wild sí es de Zelda");
+  await page.getByRole("button", { name: es.review.send }).click();
+  await expect(page.getByText("Tu corrección: Breath of the Wild sí es de Zelda")).toBeVisible();
+  await expect(page.getByText(es.review.undone)).toBeVisible();
+  await expectNoRawKeys();
+  await page.screenshot({ path: "e2e-results/16-aprendizajes-es.png", fullPage: true });
+});

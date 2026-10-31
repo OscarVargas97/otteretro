@@ -23,6 +23,9 @@ public static class ClaudeEndpoints
 
         api.MapPost("/learnings/{id:long}/undo", Results<Ok<ReviewPage>, NotFound, Conflict<ApiError>> (long id, AppSession s) =>
             Db(s) is not { } db ? NoData() : CatalogCleanup.Undo(db, id) ? TypedResults.Ok(ClaudeReview.Page(db)) : TypedResults.NotFound());
+        // «Corregir» (F2.12): deshace y deja la nota como regla de la saga para la próxima depuración.
+        api.MapPost("/learnings/{id:long}/correct", Results<Ok<ReviewPage>, BadRequest<ApiError>, Conflict<ApiError>> (long id, CorrectRequest request, AppSession s) =>
+            Db(s) is not { } db ? NoData() : CatalogCleanup.Correct(db, id, request.Note) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(ClaudeReview.Page(db)));
 
         api.MapGet("/sagas/{id:long}/routes", Results<Ok<RoutesPage>, Conflict<ApiError>> (long id, AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(ClaudeReview.Routes(db, id)) : NoData());

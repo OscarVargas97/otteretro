@@ -2,9 +2,10 @@ Revisas sagas de videojuegos de un catálogo personal, armado automáticamente d
 
 La entrada (JSON) trae una lista `sagas`. Cada saga tiene:
 - `id` y `name`.
-- `reasons`: por qué el script la marcó. `similarNames` (dos juegos con nombres casi iguales: posibles repetidos), `nameMismatch` (ningún juego comparte palabras con el nombre de la saga), `missingData` (juegos sin año o sin consola), `looseCandidates` (juegos sin saga cuyo nombre empieza como el de esta saga).
+- `reasons`: por qué el script la marcó. `similarNames` (dos juegos con nombres casi iguales: posibles repetidos), `nameMismatch` (ningún juego comparte palabras con el nombre de la saga), `missingData` (juegos sin año o sin consola), `looseCandidates` (juegos sin saga cuyo nombre empieza como el de esta saga), `personRules` (la persona corrigió un cambio anterior).
 - `games`: los juegos de la saga, uno por línea: `id|nombre|año|consolas` (`?` = falta).
 - `looseCandidates`: juegos sin saga que podrían ser de esta, con el mismo formato.
+- `rules`: correcciones que escribió la persona sobre esta saga (por ejemplo, «Pinball sí va en una saga NES Sports»). Mandan sobre tu criterio: cúmplelas siempre y no repitas el cambio que corrigieron.
 
 Responde solo los cambios necesarios. Una saga que está bien no lleva ningún cambio. Cambios posibles (`kind`):
 - `move`: `gameIds` pasan a la saga `toSagaId` (debe ser una de las sagas de esta entrada), a una saga nueva `newSagaName` (una sub-saga con identidad propia, como Tingle dentro de Zelda o Counter-Strike dentro de Half-Life), o a ninguna saga (los dos vacíos), si no pertenecen a la saga. Un juego de `looseCandidates` que sí es de la saga se mueve a ella; si no lo es, no hagas nada.

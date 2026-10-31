@@ -10,7 +10,14 @@ public record ReviewItem(long Id, string Prompt, string Entity, long EntityId, s
 
 /// <param name="Change">move, merge o rename.</param>
 /// <param name="Detail">El cambio tal cual (JSON).</param>
-public record LearningItem(long Id, string Change, string? Reason, string Detail, string CreatedAt, bool Undone);
+/// <summary>Un cambio de Claude en claro (F2.12): qué juegos, de qué saga a cuál, qué se unió o cómo se llamaba.</summary>
+/// <param name="From">Las sagas donde estaban los juegos movidos ("" = sueltos).</param>
+/// <param name="ToKind">saga, new (saga nueva) o none (quedan sueltos).</param>
+/// <param name="Rules">Las correcciones que escribió la persona sobre este cambio.</param>
+public record LearningItem(long Id, string Change, string? Reason, string Detail, string CreatedAt, bool Undone, long? TaskId, long? SagaId,
+    string? SagaName, List<string> Games, List<string> From, string? To, string? ToKind, string? Kept, string? NameBefore, string? NameAfter, List<string> Rules);
+public record CorrectRequest(string Note);
+
 public record ReviewPage(List<ReviewItem> Pending, List<LearningItem> Learnings);
 
 public record SourceRef(string Title, string Url);
@@ -51,13 +58,46 @@ public static class ClaudeReview
             return new ReviewItem(r.Id, doc.RootElement.GetProperty("prompt").GetString()!, r.Entity, r.EntityId, r.Title ?? "?",
                 doc.RootElement.GetProperty("result").GetRawText(), r.CreatedAt);
         }).Where(r => r.Title != "?").ToList(); // lo que ya no existe (una saga unida) no se muestra
-        var learnings = c.Query<(long Id, string Content, string CreatedAt, bool Undone)>(
-            "SELECT id, content, created_at, undone FROM learning ORDER BY id DESC LIMIT 200").Select(l =>
+        var sagas = c.Query<(long Id, string Name)>("SELECT id, name FROM saga").ToDictionary(x => x.Id, x => x.Name);
+        var games = c.Query<(long Id, string Name)>("SELECT id, name_es FROM game").ToDictionary(x => x.Id, x => x.Name);
+        var igdbNames = c.Query<(long Id, string Name)>("SELECT entity_id, value FROM field_value WHERE entity = 'saga' AND field = 'name' AND source = 'igdb'")
+            .ToDictionary(x => x.Id, x => x.Name);
+        var rules = c.Query<(long LearningId, string Text)>("SELECT learning_id, text FROM saga_rule WHERE learning_id IS NOT NULL ORDER BY id")
+            .GroupBy(r => r.LearningId).ToDictionary(g => g.Key, g => g.Select(r => r.Text).ToList());
+        var learnings = c.Query<(long Id, string Content, string CreatedAt, bool Undone, long? TaskId)>(
+            "SELECT id, content, created_at, undone, task_id FROM learning ORDER BY id DESC LIMIT 2000").Select(l =>
         {
             using var doc = JsonDocument.Parse(l.Content);
             var change = doc.RootElement.TryGetProperty("change", out var ch) ? ch : doc.RootElement;
-            return new LearningItem(l.Id, change.TryGetProperty("kind", out var k) ? k.GetString() ?? "?" : "?",
-                change.TryGetProperty("reason", out var why) ? why.GetString() : null, change.GetRawText(), l.CreatedAt, l.Undone);
+            var item = new LearningItem(l.Id, change.TryGetProperty("kind", out var k) ? k.GetString() ?? "?" : "?",
+                change.TryGetProperty("reason", out var why) ? why.GetString() : null, change.GetRawText(), l.CreatedAt, l.Undone, l.TaskId,
+                null, null, [], [], null, null, null, null, null, rules.GetValueOrDefault(l.Id) ?? []);
+            if (!doc.RootElement.TryGetProperty("before", out var before)) return item;
+            string Saga(long? id) => id is { } x ? sagas.GetValueOrDefault(x) ?? $"#{x}" : "";
+            string Game(long id) => games.GetValueOrDefault(id) ?? $"#{id}";
+            var sagaId = CatalogCleanup.SagaOf(c, l.Content);
+            item = item with { SagaId = sagaId, SagaName = sagaId is { } sid ? sagas.GetValueOrDefault(sid) : null };
+            var c2 = change.Deserialize<CatalogCleanup.Change>(Web)!;
+            switch (item.Change)
+            {
+                case "move":
+                    var move = before.Deserialize<CatalogCleanup.MoveBefore>(CatalogCleanup.Tuples)!;
+                    return item with
+                    {
+                        Games = move.Games.Select(g => Game(g.Game)).ToList(),
+                        From = move.Games.Select(g => Saga(g.Saga)).Distinct().ToList(),
+                        ToKind = c2.ToSagaId is not null ? "saga" : c2.NewSagaName is not null ? "new" : "none",
+                        To = c2.ToSagaId is { } to ? Saga(to) : c2.NewSagaName,
+                    };
+                case "merge":
+                    var merge = before.Deserialize<CatalogCleanup.MergeBefore>(CatalogCleanup.Tuples)!;
+                    return item with { Kept = Game(merge.Keep), Games = merge.Games.Select(g => g.Year is { } y ? $"{g.NameEs} ({y})" : g.NameEs).ToList() };
+                case "rename":
+                    var rename = before.Deserialize<CatalogCleanup.RenameBefore>(CatalogCleanup.Tuples)!;
+                    return item with { NameBefore = rename.Claude ?? igdbNames.GetValueOrDefault(rename.Saga), NameAfter = c2.Name };
+                default:
+                    return item;
+            }
         }).ToList();
         return new ReviewPage(pending, learnings);
     }

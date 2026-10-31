@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:52488/"
+      "url": "http://127.0.0.1:60710/"
     }
   ],
   "paths": {
@@ -1176,6 +1176,67 @@
         }
       }
     },
+    "/api/learnings/{id}/correct": {
+      "post": {
+        "tags": [
+          "Otteretro"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/sagas/{id}/routes": {
       "get": {
         "tags": [
@@ -1902,6 +1963,17 @@
           }
         }
       },
+      "CorrectRequest": {
+        "required": [
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string"
+          }
+        }
+      },
       "CredentialRequest": {
         "required": [
           "value"
@@ -2304,7 +2376,18 @@
           "reason",
           "detail",
           "createdAt",
-          "undone"
+          "undone",
+          "taskId",
+          "sagaId",
+          "sagaName",
+          "games",
+          "from",
+          "to",
+          "toKind",
+          "kept",
+          "nameBefore",
+          "nameAfter",
+          "rules"
         ],
         "type": "object",
         "properties": {
@@ -2333,6 +2416,78 @@
           },
           "undone": {
             "type": "boolean"
+          },
+          "taskId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "sagaId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "sagaName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "games": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "from": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "to": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "toKind": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kept": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nameBefore": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nameAfter": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

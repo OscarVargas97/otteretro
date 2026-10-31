@@ -26,7 +26,8 @@ public static partial class CatalogCleanup
 
     // Lo que ve Claude: una línea por juego (id|nombre|año|consolas).
     public record GameLine(long Id, string Line);
-    public record SagaCase(long Id, string Name, List<string> Reasons, List<GameLine> Games, List<GameLine> Loose);
+    /// <param name="Rules">Correcciones de la persona para esta saga (F2.12): Claude las cumple siempre.</param>
+    public record SagaCase(long Id, string Name, List<string> Reasons, List<GameLine> Games, List<GameLine> Loose, List<string> Rules);
 
     // Lo que responde.
     /// <param name="Kind">move: los juegos van a otra saga de la entrada (ToSagaId), a una nueva (NewSagaName) o a ninguna;
@@ -120,6 +121,7 @@ public static partial class CatalogCleanup
         reasons = c.Reasons,
         games = c.Games.Select(g => g.Line),
         looseCandidates = c.Loose.Select(g => g.Line),
+        rules = c.Rules,
     };
 
     /// <summary>Las sagas dudosas, en orden de prioridad. <paramref name="only"/>: solo esas (para armar un lote).</summary>
@@ -132,6 +134,8 @@ public static partial class CatalogCleanup
             FROM game g
             """).ToList();
         var sagas = c.Query<(long Id, string Name, bool Iconic)>("SELECT id, name, iconic FROM saga").ToDictionary(s => s.Id);
+        var rules = c.Query<(long SagaId, string Text)>("SELECT saga_id, text FROM saga_rule ORDER BY id")
+            .GroupBy(r => r.SagaId).ToDictionary(g => g.Key, g => g.Select(r => r.Text).ToList());
         var owned = c.Query<long>("""
             SELECT DISTINCT g.saga_id FROM source s JOIN version v ON v.id = s.version_id JOIN game g ON g.id = v.game_id WHERE g.saga_id IS NOT NULL
             """).ToHashSet();
@@ -165,16 +169,18 @@ public static partial class CatalogCleanup
             if (!sagas.TryGetValue(group.Key, out var saga)) continue;
             var list = group.ToList();
             var looseHere = loose.GetValueOrDefault(group.Key) ?? [];
-            if (list.Count < 2 && looseHere.Count == 0) continue; // una saga de un juego no tiene nada que ordenar
+            var rulesHere = rules.GetValueOrDefault(group.Key) ?? [];
+            if (list.Count < 2 && looseHere.Count == 0 && rulesHere.Count == 0) continue; // una saga de un juego no tiene nada que ordenar
 
             var reasons = new List<string>();
             if (list.GroupBy(g => BaseKey(g.Name)).Any(k => k.Count() > 1)) reasons.Add("similarNames");
             if (Mismatch(saga.Name, list.Select(g => g.Name))) reasons.Add("nameMismatch");
             if (list.Any(g => g.Year is null || g.Platforms is null)) reasons.Add("missingData");
             if (looseHere.Count > 0) reasons.Add("looseCandidates");
+            if (rulesHere.Count > 0) reasons.Add("personRules");
             if (reasons.Count == 0) continue;
 
-            cases.Add((new SagaCase(saga.Id, saga.Name, reasons, list.OrderBy(g => g.Year ?? 9999).Select(g => new GameLine(g.Id, Line(g))).ToList(), looseHere),
+            cases.Add((new SagaCase(saga.Id, saga.Name, reasons, list.OrderBy(g => g.Year ?? 9999).Select(g => new GameLine(g.Id, Line(g))).ToList(), looseHere, rulesHere),
                 owned.Contains(saga.Id), saga.Iconic, list.Count));
         }
         return cases.OrderByDescending(x => x.Owned).ThenByDescending(x => x.Iconic).ThenByDescending(x => x.Size).ThenBy(x => x.Case.Id)
@@ -225,8 +231,9 @@ public static partial class CatalogCleanup
                 FileLog.Write(LogLevel.Warning, "Claude", $"Cambio descartado (fuera del lote o incompleto): {JsonSerializer.Serialize(change)}");
                 continue;
             }
-            var learning = c.ExecuteScalar<long>("INSERT INTO learning (kind, content, created_at) VALUES ('rule', @content, @now) RETURNING id", new
+            var learning = c.ExecuteScalar<long>("INSERT INTO learning (kind, content, created_at, task_id) VALUES ('rule', @content, @now, @taskId) RETURNING id", new
             {
+                taskId,
                 content = JsonSerializer.Serialize(new { prompt = PromptName, change, before }, Tuples),
                 now = DateTime.UtcNow.ToString("O"),
             }, t);
@@ -332,6 +339,45 @@ public static partial class CatalogCleanup
         return true;
     }
 
+    /// <summary>
+    /// «Corregir» (F2.12): deshace el cambio si sigue aplicado y guarda la nota como regla de su saga, que va a Claude en la
+    /// próxima depuración (la saga vuelve a ser un caso y su huella cambia). Null si salió bien; si no, el error.
+    /// </summary>
+    public static ApiError? Correct(Database db, long learningId, string note)
+    {
+        note = note.Trim();
+        if (note.Length is 0 or > 500) return ApiError.Of("claude.badNote");
+        long? sagaId;
+        using (var c = db.Open())
+        {
+            var row = c.QuerySingleOrDefault<(string Content, bool Undone)?>("SELECT content, undone FROM learning WHERE id = @learningId", new { learningId });
+            if (row is not { } r || !r.Content.Contains($"\"prompt\":\"{PromptName}\"")) return ApiError.Of("claude.noLearning");
+            sagaId = SagaOf(c, r.Content);
+            if (sagaId is null) return ApiError.Of("claude.noLearning");
+            if (!r.Undone && !Undo(db, learningId)) return ApiError.Of("claude.noLearning");
+        }
+        using (var c = db.Open())
+            c.Execute("INSERT INTO saga_rule (saga_id, text, learning_id, created_at) VALUES (@sagaId, @note, @learningId, @now)",
+                new { sagaId, note, learningId, now = DateTime.UtcNow.ToString("O") });
+        return null;
+    }
+
+    /// <summary>La saga de un cambio: la que dejaron los juegos movidos (o a la que llegaron, si estaban sueltos), la del juego que quedó al unir, o la renombrada.</summary>
+    internal static long? SagaOf(System.Data.IDbConnection c, string content)
+    {
+        using var doc = JsonDocument.Parse(content);
+        var change = doc.RootElement.GetProperty("change").Deserialize<Change>(JsonSerializerOptions.Web)!;
+        var before = doc.RootElement.GetProperty("before");
+        return change.Kind switch
+        {
+            "move" => before.Deserialize<MoveBefore>(Tuples)!.Games.Select(g => g.Saga).FirstOrDefault(s => s is not null)
+                      ?? change.ToSagaId ?? before.Deserialize<MoveBefore>(Tuples)!.CreatedSaga,
+            "merge" => c.ExecuteScalar<long?>("SELECT saga_id FROM game WHERE id = @KeepGameId", change),
+            "rename" => change.SagaId,
+            _ => null,
+        };
+    }
+
     /// <summary>Las tuplas se guardan como { item1, item2 }.</summary>
-    static readonly JsonSerializerOptions Tuples = new(JsonSerializerOptions.Web) { IncludeFields = true };
+    internal static readonly JsonSerializerOptions Tuples = new(JsonSerializerOptions.Web) { IncludeFields = true };
 }

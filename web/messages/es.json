@@ -295,7 +295,9 @@
     },
     "claude": {
       "badTime": "La hora tiene que ser HH:mm.",
-      "badShare": "El tope va de 10 a 100 %."
+      "badShare": "El tope va de 10 a 100 %.",
+      "badNote": "Escribe qué está mal (hasta 500 caracteres).",
+      "noLearning": "Ese cambio ya no existe o no se puede corregir."
     }
   },
   "credentials": {
@@ -601,7 +603,29 @@
     "sources": "Fuentes",
     "iconicYes": "Saga icónica",
     "iconicNo": "No es icónica",
-    "bestVersion": "Compara {count} versiones con los 4 criterios"
+    "bestVersion": "Compara {count} versiones con los 4 criterios",
+    "filterAll": "Todos",
+    "kindFilter": {
+      "move": "Movidos",
+      "merge": "Unidos",
+      "rename": "Renombrados"
+    },
+    "search": "Buscar saga o juego",
+    "task": "Tarea #{id}",
+    "noTask": "Sin tarea registrada",
+    "moved": "{games}: de {from} a {to}",
+    "loose": "sueltos",
+    "toNew": "una saga nueva, «{name}»",
+    "toNone": "ninguna saga (quedan sueltos)",
+    "merged": "{games} pasó a ser una versión de {kept}",
+    "renamed": "«{before}» pasó a llamarse «{after}»",
+    "correct": "Corregir",
+    "correctPlaceholder": "Qué está mal (Claude lo leerá en la próxima depuración)",
+    "send": "Deshacer y enviar a Claude",
+    "cancel": "Cancelar",
+    "rule": "Tu corrección: {text}",
+    "openSaga": "Ver saga",
+    "count": "{count, plural, one {# cambio} other {# cambios}}"
   },
   "home": {
     "next": "Siguiente en tus rutas",

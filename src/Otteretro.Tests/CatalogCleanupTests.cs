@@ -122,6 +122,37 @@ public class CatalogCleanupTests : IAsyncDisposable
         Assert.Equal("The Legend of Zelda", Scalar<string>("SELECT name FROM saga WHERE id = 1"));
     }
 
+    /// <summary>F2.12: Aprendizajes dice cada cambio con nombres; «Corregir» deshace y la nota va a Claude como regla de la saga.</summary>
+    [Fact]
+    public async Task LearningsReadClearlyAndCorrectionsBecomeRules()
+    {
+        Fake(new CatalogCleanup.Reply([
+            new("merge", "Remake", KeepGameId: 10, MergeGameIds: [11]),
+            new("move", "Tingle tiene saga propia", GameIds: [12], NewSagaName: "Tingle"),
+            new("rename", "Nombre corto", SagaId: 1, Name: "Zelda"),
+        ], []), new CatalogCleanup.Reply([], []));
+        var task = await f.Run(CatalogCleanup.Enqueue(f.Db));
+
+        var page = ClaudeReview.Page(f.Db).Learnings.ToDictionary(l => l.Change);
+        Assert.Equal(("The Legend of Zelda: Ocarina of Time", "The Legend of Zelda: Ocarina of Time 3D (2011)"), (page["merge"].Kept, Assert.Single(page["merge"].Games)));
+        Assert.Equal(["Zelda"], page["move"].From);
+        Assert.Equal(("new", "Tingle"), (page["move"].ToKind, page["move"].To));
+        Assert.Equal(("The Legend of Zelda", "Zelda", 1L), (page["rename"].NameBefore, page["rename"].NameAfter, page["rename"].SagaId));
+        Assert.All(page.Values, l => Assert.Equal(task.Id, l.TaskId));
+
+        Assert.Equal("claude.badNote", CatalogCleanup.Correct(f.Db, page["move"].Id, " ")?.Code);
+        Assert.Null(CatalogCleanup.Correct(f.Db, page["move"].Id, "Tingle es parte de Zelda"));
+        Assert.Equal(1, Scalar<long>("SELECT saga_id FROM game WHERE id = 12")); // se deshizo
+        var after = ClaudeReview.Page(f.Db).Learnings.Single(l => l.Change == "move");
+        Assert.True(after.Undone);
+        Assert.Equal(["Tingle es parte de Zelda"], after.Rules);
+
+        // La saga vuelve a ser un caso y la regla va en la entrada de Claude.
+        Assert.Contains("personRules", Assert.Single(CatalogCleanup.Cases(f.Db, null)).Reasons);
+        await f.Run(CatalogCleanup.Enqueue(f.Db));
+        Assert.Contains("Tingle es parte de Zelda", calls[1][^1]);
+    }
+
     [Fact]
     public async Task UnsureSagasGetASecondLookWithSonnet()
     {

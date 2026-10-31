@@ -295,7 +295,9 @@
     },
     "claude": {
       "badTime": "The time must be HH:mm.",
-      "badShare": "The cap goes from 10 to 100%."
+      "badShare": "The cap goes from 10 to 100%.",
+      "badNote": "Write what is wrong (up to 500 characters).",
+      "noLearning": "That change no longer exists or cannot be corrected."
     }
   },
   "credentials": {
@@ -601,7 +603,29 @@
     "sources": "Sources",
     "iconicYes": "Iconic saga",
     "iconicNo": "Not iconic",
-    "bestVersion": "Compares {count} versions on the 4 criteria"
+    "bestVersion": "Compares {count} versions on the 4 criteria",
+    "filterAll": "All",
+    "kindFilter": {
+      "move": "Moved",
+      "merge": "Merged",
+      "rename": "Renamed"
+    },
+    "search": "Search saga or game",
+    "task": "Task #{id}",
+    "noTask": "No task recorded",
+    "moved": "{games}: from {from} to {to}",
+    "loose": "no saga",
+    "toNew": "a new saga, “{name}”",
+    "toNone": "no saga",
+    "merged": "{games} became a version of {kept}",
+    "renamed": "“{before}” was renamed “{after}”",
+    "correct": "Correct",
+    "correctPlaceholder": "What is wrong (Claude reads it in the next cleanup)",
+    "send": "Undo and send to Claude",
+    "cancel": "Cancel",
+    "rule": "Your correction: {text}",
+    "openSaga": "Open saga",
+    "count": "{count, plural, one {# change} other {# changes}}"
   },
   "home": {
     "next": "Next in your routes",
