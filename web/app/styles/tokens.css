@@ -12,6 +12,10 @@
   --scrim: rgba(5, 8, 10, 0.72);
   color-scheme: dark;
 }
+/* Barras de scroll delgadas y oscuras; la de la página deja su lugar reservado, así nada cambia de ancho al aparecer (#98). */
+html { scrollbar-gutter: stable; }
+* { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+*:hover { scrollbar-color: #3b4952 transparent; }
 /* Estructura común de las pantallas */
 .app { display: flex; flex-wrap: wrap; min-height: 900px; background: var(--bg); color: var(--ink); font-family: var(--font-sans); font-size: 15px; line-height: 22px; }
 .app-main { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; }
@@ -34,7 +38,7 @@
 .tabs { display: flex; flex-wrap: wrap; gap: var(--space-1); border-bottom: 1px solid var(--line); }
 .tab { padding: var(--space-2) var(--space-3); color: var(--ink-muted); font-weight: 700; text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
 .tab[aria-current="page"], .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
-.tabs-scroll { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; }
+.tabs-scroll { flex-wrap: nowrap; overflow-x: auto; }
 .tabs-scroll .tab { white-space: nowrap; }
 .table-wrap { overflow-x: auto; }
 table.t { width: 100%; border-collapse: collapse; font-size: 14px; }

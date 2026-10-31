@@ -158,6 +158,13 @@ test("Ajustes en inglés: carpeta, idioma y actualización", async () => {
   await expect(page.getByRole("tab", { name: en.settings.about })).toHaveAttribute("aria-selected", "true");
   await page.goBack();
   await expect(page.getByText(dataDir("data"))).toBeVisible();
+  // #98: cambiar a una pestaña corta no cambia el ancho (la barra de scroll tiene su lugar reservado).
+  const tabsWidth = async () => (await page.getByRole("tablist").boundingBox())!.width;
+  const wide = await tabsWidth();
+  await page.getByRole("tab", { name: en.settings.language }).click();
+  await expect(page.getByRole("combobox")).toBeVisible();
+  expect(await tabsWidth()).toBe(wide);
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).scrollbarGutter)).toBe("stable");
   await page.goto(`${base()}/settings/?s=about`);
   // El botón no cambia de ancho mientras busca (#20).
   const check = page.getByRole("button", { name: en.update.check });
