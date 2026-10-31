@@ -39,6 +39,21 @@ public class ClaudeReviewTests : IAsyncDisposable
 
     static readonly A.Criterion Good = new(4, "Bien");
 
+    /// <summary>F2.21: la ruta editada en Revisar se aprueba con el nuevo orden, sin pasos inventados; el contador baja.</summary>
+    [Fact]
+    public void AnEditedRouteIsApprovedAsItWasLeft()
+    {
+        var id = Item(A.Routes, "saga", 1, new List<A.Route> { new("release", "Por fecha", [new(10, null, "Primero"), new(11, null, "Después")], []) });
+        Assert.Equal(1, ClaudeReview.PendingCount(f.Db));
+
+        Assert.True(ClaudeReview.Approve(f.Db, id, [new("release", "x", [new(11, null, "y"), new(999, null, "inventado"), new(10, null, "z")], [])]));
+
+        Assert.Equal(0, ClaudeReview.PendingCount(f.Db));
+        var steps = Assert.Single(ClaudeReview.Routes(f.Db, 1).Routes).Steps;
+        Assert.Equal([11L, 10L], steps.Select(st => st.GameId));
+        Assert.Equal("Después", steps[0].Reason); // el texto es el de Claude: editar solo ordena o quita
+    }
+
     [Fact]
     public void ApprovingAppliesEachResult()
     {

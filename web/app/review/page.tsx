@@ -28,9 +28,11 @@ export default function Review() {
   const [tab, setTab] = useState<Tab>("pending");
   const page = useQuery({ queryKey: ["review"], queryFn: () => request<ReviewPage>("/api/review") });
   const act = useMutation({
-    mutationFn: (path: string) => request<ReviewPage>(path, { method: "POST" }),
+    mutationFn: ({ path, body }: { path: string; body?: unknown }) =>
+      request<ReviewPage>(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) }),
     onSuccess: (data) => {
       cache.setQueryData(["review"], data);
+      cache.invalidateQueries({ queryKey: ["review", "count"] });
       cache.invalidateQueries({ queryKey: ["saga"] });
       cache.invalidateQueries({ queryKey: ["home"] });
     },
@@ -54,25 +56,65 @@ export default function Review() {
       {tab === "pending" && (pending.length === 0
         ? <Empty title={t("pendingEmptyTitle")} text={t("pendingEmptyText")} />
         : pending.map((item) => (
-          <section key={item.id} className="panel">
-            <div className="sec-h">
-              <h2>{item.entity === "saga" ? <Link href={`/saga/?id=${item.entityId}`}>{item.title}</Link> : item.title}</h2>
-              <span className="ot-badge ot-badge-info">{t(`prompt.${item.prompt as "ruta-saga"}`)}</span>
-            </div>
-            <Result item={item} />
-            <div className="hero-actions">
-              <button className="ot-btn ot-btn-primary" type="button" disabled={act.isPending} onClick={() => act.mutate(`/api/review/${item.id}/approve`)}>{t("approve")}</button>
-              <button className="ot-btn" type="button" disabled={act.isPending} onClick={() => act.mutate(`/api/review/${item.id}/reject`)}>{t("reject")}</button>
-            </div>
-          </section>
+          <Pending key={item.id} item={item} busy={act.isPending}
+            approve={(routes) => act.mutate(routes ? { path: `/api/review/${item.id}/approve-edited`, body: { routes } } : { path: `/api/review/${item.id}/approve` })}
+            reject={() => act.mutate({ path: `/api/review/${item.id}/reject` })} />
         )))}
 
       {tab === "learnings" && (learnings.length === 0
         ? <Empty title={t("learningsEmptyTitle")} text={t("learningsEmptyText")} />
-        : <Learnings learnings={learnings} busy={act.isPending} undo={(id) => act.mutate(`/api/learnings/${id}/undo`)}
+        : <Learnings learnings={learnings} busy={act.isPending} undo={(id) => act.mutate({ path: `/api/learnings/${id}/undo` })}
             onCorrected={(data) => cache.setQueryData(["review"], data)} />)}
     </div>
   );
+}
+
+/** Un resultado por aprobar. Las rutas se pueden editar antes (F2.21): subir, bajar o quitar pasos. */
+function Pending({ item, busy, approve, reject }: { item: ReviewItem; busy: boolean; approve: (routes?: Route[]) => void; reject: () => void }) {
+  const t = useTranslations("review");
+  const [routes, setRoutes] = useState<Route[] | null>(null);
+  const editable = item.prompt === "ruta-saga";
+  return (
+    <section className="panel">
+      <div className="sec-h">
+        <h2>{item.entity === "saga" ? <Link href={`/saga/?id=${item.entityId}`}>{item.title}</Link> : item.title}</h2>
+        <span className="ot-badge ot-badge-info">{t(`prompt.${item.prompt as "ruta-saga"}`)}</span>
+      </div>
+      {routes ? <RouteEditor routes={routes} onChange={setRoutes} /> : <Result item={item} />}
+      <div className="hero-actions">
+        <button className="ot-btn ot-btn-primary" type="button" disabled={busy} onClick={() => approve(routes ?? undefined)}>{routes ? t("approveEdited") : t("approve")}</button>
+        {editable && !routes && <button className="ot-btn" type="button" onClick={() => setRoutes(JSON.parse(item.result) as Route[])}>{t("edit")}</button>}
+        {routes && <button className="ot-btn" type="button" onClick={() => setRoutes(null)}>{t("cancel")}</button>}
+        <button className="ot-btn" type="button" disabled={busy} onClick={reject}>{t("reject")}</button>
+      </div>
+    </section>
+  );
+}
+
+function RouteEditor({ routes, onChange }: { routes: Route[]; onChange: (routes: Route[]) => void }) {
+  const t = useTranslations("review");
+  const tc = useTranslations("catalog");
+  const update = (r: number, steps: Route["steps"]) => onChange(routes.map((x, i) => (i === r ? { ...x, steps } : x)));
+  const move = (r: number, from: number, to: number) => {
+    const steps = [...routes[r].steps];
+    steps.splice(to, 0, ...steps.splice(from, 1));
+    update(r, steps);
+  };
+  return <>{routes.map((route, r) => (
+    <div key={route.kind}>
+      <b>{tc(`route.${route.kind}`)}</b>
+      <ol className="small" style={{ margin: "4px 0" }}>
+        {route.steps.map((s, i) => (
+          <li key={s.gameId} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <span style={{ flex: 1 }}>{s.reason}</span>
+            <button className="ot-btn" type="button" aria-label={t("stepUp", { step: i + 1 })} disabled={i === 0} onClick={() => move(r, i, i - 1)}>↑</button>
+            <button className="ot-btn" type="button" aria-label={t("stepDown", { step: i + 1 })} disabled={i === route.steps.length - 1} onClick={() => move(r, i, i + 1)}>↓</button>
+            <button className="ot-btn" type="button" aria-label={t("stepRemove", { step: i + 1 })} onClick={() => update(r, route.steps.filter((_, j) => j !== i))}>×</button>
+          </li>
+        ))}
+      </ol>
+    </div>
+  ))}</>;
 }
 
 /** El resultado en palabras, según el prompt. */

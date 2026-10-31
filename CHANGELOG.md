@@ -25,6 +25,9 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **Sagas exclusivas**: el filtro «Exclusivas» muestra las sagas que solo salieron en consolas de una empresa (una versión de PC no les quita lo exclusivo). Se combina con la empresa o la consola, que ahora se elige en una lista.
 - **Más reconocidas**: el orden por defecto de Sagas. Primero las icónicas que aprobaste y después las más calificadas en IGDB, contando solo los juegos de la consola elegida. Al actualizar, una tarea trae la popularidad de los juegos que ya tenías.
 - **Tu catálogo y tus datos, separados**: el catálogo (sagas, juegos, versiones, rutas y consolas) vive en `catalogo/catalogo.db` junto con sus imágenes (`catalogo/imagenes`), y lo tuyo (lo que tienes, progreso, favoritas, claves, ajustes y tareas) sigue en `data/otteretro.db`. Así el catálogo se puede pasar a otra instalación sin nada tuyo. Al actualizar se separa solo y deja una copia de la base de antes (`data/otteretro.antes-del-catalogo.db`).
+- **Revisar tiene contador** en la barra lateral, y una ruta se puede **editar antes de aprobarla**: subir, bajar o quitar pasos.
+- **La nutria celebra** cuando terminas un juego y cuando con eso completas la ruta que sigues.
+- **Sugerencias de automatizar** (Ajustes › Claude): cuando Claude hace 10 veces el mismo cambio por la misma razón, la app lo sugiere y «Crear issue» lo deja en GitHub con la etiqueta `automatizar` (usa `gh`).
 - **No paga dos veces**: lo que Claude ya revisó no se vuelve a pedir mientras sus datos no cambien.
 
 ### Cambios

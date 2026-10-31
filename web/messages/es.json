@@ -15,7 +15,8 @@
     "downloads": "Descargas",
     "tools": "Herramientas",
     "steam": "Steam",
-    "settings": "Ajustes"
+    "settings": "Ajustes",
+    "pending": "{count, plural, one {# por revisar} other {# por revisar}}"
   },
   "topBar": {
     "search": "Buscar sagas y juegos…",
@@ -114,7 +115,12 @@
       "iconic": "Reevaluar sagas icónicas",
       "iconicAll": "Todo el catálogo",
       "iconicQueued": "Encolada: los resultados quedan en Revisar.",
-      "iconicNone": "Esa consola no tiene sagas."
+      "iconicNone": "Esa consola no tiene sagas.",
+      "automation": "Sugerencias de automatizar",
+      "noAutomation": "Nada por ahora: aparece cuando Claude hace {count} veces el mismo cambio por la misma razón.",
+      "automationTimes": "{count, plural, one {# vez} other {# veces}}",
+      "createIssue": "Crear issue",
+      "issueCreated": "Issue creado"
     },
     "consoles": {
       "title": "Consolas",
@@ -325,6 +331,11 @@
     },
     "catalog": {
       "badRefreshDays": "Los días van de 1 a 365."
+    },
+    "automation": {
+      "notFound": "Esa sugerencia ya no está.",
+      "ghMissing": "No se encontró gh (GitHub CLI). Instálalo e inicia sesión con «gh auth login».",
+      "ghFailed": "gh no pudo crear el issue: {detail}"
     }
   },
   "credentials": {
@@ -584,7 +595,10 @@
         "gameplay": "Jugabilidad hoy",
         "technical": "Técnico",
         "original": "Original"
-      }
+      },
+      "cheerGame": "¡Terminaste {name}!",
+      "cheerRoute": "¡Completaste la ruta de {saga}!",
+      "cheerClose": "Cerrar"
     },
     "search": {
       "sagas": "Sagas",
@@ -657,7 +671,12 @@
     "cancel": "Cancelar",
     "rule": "Tu corrección: {text}",
     "openSaga": "Ver saga",
-    "count": "{count, plural, one {# cambio} other {# cambios}}"
+    "count": "{count, plural, one {# cambio} other {# cambios}}",
+    "edit": "Editar",
+    "approveEdited": "Aprobar como quedó",
+    "stepUp": "Subir el paso {step}",
+    "stepDown": "Bajar el paso {step}",
+    "stepRemove": "Quitar el paso {step}"
   },
   "home": {
     "next": "Siguiente en tus rutas",

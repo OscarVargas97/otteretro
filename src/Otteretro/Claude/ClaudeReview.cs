@@ -103,7 +103,11 @@ public static class ClaudeReview
     }
 
     /// <summary>Aplica un resultado por aprobar. False si no existe o ya se resolvió.</summary>
-    public static bool Approve(Database db, long id)
+    /// <param name="editedRoutes">
+    /// Las rutas como quedaron en Revisar (F2.21): pasos reordenados o quitados. Solo valen los juegos y las rutas que propuso
+    /// Claude; lo demás se ignora.
+    /// </param>
+    public static bool Approve(Database db, long id, List<SagaAnalysis.Route>? editedRoutes = null)
     {
         using var c = db.Open();
         using var t = c.BeginTransaction();
@@ -116,7 +120,8 @@ public static class ClaudeReview
         {
             case SagaAnalysis.Routes:
                 var chosen = c.ExecuteScalar<string?>("SELECT kind FROM route WHERE id = (SELECT chosen_route FROM saga_user WHERE saga_id = @EntityId)", new { r.EntityId }, t);
-                foreach (var route in result.Deserialize<List<SagaAnalysis.Route>>(Web)!)
+                var proposed = result.Deserialize<List<SagaAnalysis.Route>>(Web)!;
+                foreach (var route in editedRoutes is null ? proposed : Edited(proposed, editedRoutes))
                 {
                     c.Execute("DELETE FROM route WHERE saga_id = @EntityId AND kind = @Kind", new { r.EntityId, route.Kind }, t);
                     var routeId = c.ExecuteScalar<long>("""
@@ -163,6 +168,18 @@ public static class ClaudeReview
         c.Execute("UPDATE review_item SET status = 'approved' WHERE id = @id", new { id }, t);
         t.Commit();
         return true;
+    }
+
+    static IEnumerable<SagaAnalysis.Route> Edited(List<SagaAnalysis.Route> proposed, List<SagaAnalysis.Route> edited) =>
+        proposed.Select(p => edited.FirstOrDefault(e => e.Kind == p.Kind) is { } e
+            ? p with { Steps = e.Steps.Select(s => p.Steps.FirstOrDefault(x => x.GameId == s.GameId)).OfType<SagaAnalysis.RouteStep>().DistinctBy(s => s.GameId).ToList() }
+            : p);
+
+    /// <summary>Cuántos resultados esperan aprobación: el contador de Revisar en la barra lateral (D3).</summary>
+    public static int PendingCount(Database db)
+    {
+        using var c = db.Open();
+        return c.ExecuteScalar<int>("SELECT count(*) FROM review_item WHERE kind = 'pending_approval' AND status = 'open'");
     }
 
     public static bool Reject(Database db, long id)

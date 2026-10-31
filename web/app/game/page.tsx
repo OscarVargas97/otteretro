@@ -8,7 +8,7 @@ import { Cover, hours, Platforms, useConsoleName, useIdParam } from "@/component
 import { Empty } from "@/components/Shell";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
-import type { FieldRow, GameDetail, ProgressInfo, VersionCompare } from "@/lib/types";
+import type { FieldRow, GameDetail, ProgressInfo, RoutesPage, VersionCompare } from "@/lib/types";
 
 const STATUSES = ["pending", "playing", "finished", "completed", "dropped"] as const;
 const FIELDS = ["name_es", "original_name", "year"] as const;
@@ -148,6 +148,24 @@ function Tracking({ game }: { game: GameDetail }) {
   useEffect(() => setNotes(p.notes ?? ""), [p.notes]);
   const change = (patch: Partial<ProgressInfo>) => save.mutate({ ...p, ...patch });
   const today = new Date().toISOString().slice(0, 10);
+  // La nutria celebra (D11) al terminar un juego y, si con eso completas la ruta que sigues, la ruta.
+  const [cheer, setCheer] = useState<string | null>(null);
+  const isDone = (s?: string | null) => s === "finished" || s === "completed";
+  const setStatus = (s: (typeof STATUSES)[number]) => {
+    const wasDone = isDone(p.status);
+    save.mutate({ ...p, status: s, startedAt: s !== "pending" ? (p.startedAt ?? today) : p.startedAt, finishedAt: ["finished", "completed", "dropped"].includes(s) ? (p.finishedAt ?? today) : p.finishedAt }, {
+      onSuccess: async () => {
+        if (!isDone(s) || wasDone) return;
+        let text = t("game.cheerGame", { name: game.nameEs });
+        if (game.sagaId != null) {
+          const r = await request<RoutesPage>(`/api/sagas/${game.sagaId}/routes`).catch(() => null);
+          const route = r?.routes.find((x) => x.id === r.chosenRoute);
+          if (route?.steps.some((st) => st.gameId === game.id) && route.steps.every((st) => isDone(st.status))) text = t("game.cheerRoute", { saga: game.sagaName ?? "" });
+        }
+        setCheer(text);
+      },
+    });
+  };
   const withStart = p.status !== "pending";
   const withEnd = p.status === "finished" || p.status === "completed" || p.status === "dropped";
 
@@ -161,11 +179,18 @@ function Tracking({ game }: { game: GameDetail }) {
         <div className="chips" role="radiogroup" aria-label={t("game.states")}>
           {STATUSES.map((s) => (
             <button key={s} className="chip chip-lg" type="button" role="radio" aria-checked={p.status === s} aria-pressed={p.status === s}
-              onClick={() => change({ status: s, startedAt: s !== "pending" ? (p.startedAt ?? today) : p.startedAt, finishedAt: ["finished", "completed", "dropped"].includes(s) ? (p.finishedAt ?? today) : p.finishedAt })}>
+              onClick={() => setStatus(s)}>
               {t(`status.${s}`)}
             </button>
           ))}
         </div>
+        {cheer && (
+          <div className="cheer" role="status">
+            <img src="/nutria.png" alt="" width={48} height={48} />
+            <b>{cheer}</b>
+            <button className="ot-btn" type="button" onClick={() => setCheer(null)}>{t("game.cheerClose")}</button>
+          </div>
+        )}
         <div className="fields-row">
           {withStart && (
             <label className="small muted field">{t("game.started")}

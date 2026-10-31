@@ -103,3 +103,7 @@ details.fold[open] summary { border-bottom: 1px solid var(--line); }
 .search-group h3 { margin: var(--space-2) 0 0; font-weight: 700; }
 .search-result { display: flex; justify-content: space-between; gap: var(--space-3); padding: var(--space-2); border-radius: var(--radius-md); color: var(--ink); text-decoration: none; }
 .search-result:hover, .search-result:focus-visible { background: var(--accent-soft); }
+
+/* La nutria celebra (D11): al terminar un juego o completar una ruta. */
+.cheer { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); background: var(--have-soft); color: var(--have); }
+.cheer b { flex: 1; }

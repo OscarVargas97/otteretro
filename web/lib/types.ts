@@ -7,6 +7,7 @@ export type Drive = Schemas["Drive"];
 export type FolderRequest = Schemas["FolderRequest"];
 export type UpdateState = Schemas["UpdateState"];
 export type MoveState = Schemas["MoveState"];
+export type AutomationSuggestion = Schemas["AutomationSuggestion"];
 export type FolderInfo = Schemas["FolderInfo"];
 export type ApiError = Schemas["ApiError"];
 export type LanguageRequest = Schemas["LanguageRequest"];

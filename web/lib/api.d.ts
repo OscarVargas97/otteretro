@@ -1540,6 +1540,206 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/review/{id}/approve-edited": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ApproveRoutesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReviewPage"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/review/count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": number | string;
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/claude/automation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AutomationSuggestion"][];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/claude/automation/{key}/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AutomationSuggestion"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/review/{id}/reject": {
         parameters: {
             query?: never;
@@ -2297,12 +2497,24 @@ export interface components {
                 [key: string]: string;
             };
         };
+        ApproveRoutesRequest: {
+            routes: components["schemas"]["Route"][];
+        };
         AppState: {
             version: string;
             dataFolder: null | string;
             configured: boolean;
             language: string;
             fullscreen: boolean;
+        };
+        AutomationSuggestion: {
+            key: string;
+            change: string;
+            reason: string;
+            /** Format: int32 */
+            count: number | string;
+            examples: string[];
+            issueUrl: null | string;
         };
         ChooseRouteRequest: {
             /** Format: int64 */
@@ -2542,6 +2754,12 @@ export interface components {
             pending: components["schemas"]["ReviewItem"][];
             learnings: components["schemas"]["LearningItem"][];
         };
+        Route: {
+            kind: string;
+            rationale: string;
+            steps: components["schemas"]["RouteStep"][];
+            sources: components["schemas"]["Source"][];
+        };
         RouteInfo: {
             /** Format: int64 */
             id: number | string;
@@ -2554,6 +2772,13 @@ export interface components {
             /** Format: int64 */
             chosenRoute: null | number | string;
             routes: components["schemas"]["RouteInfo"][];
+        };
+        RouteStep: {
+            /** Format: int64 */
+            gameId: number | string;
+            /** Format: int64 */
+            versionId: null | number | string;
+            reason: string;
         };
         RouteStepInfo: {
             /** Format: int32 */
@@ -2603,6 +2828,10 @@ export interface components {
         SearchResults: {
             sagas: components["schemas"]["SagaCard"][];
             games: components["schemas"]["GameCard"][];
+        };
+        Source: {
+            title: string;
+            url: string;
         };
         SourceRef: {
             title: string;

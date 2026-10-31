@@ -15,7 +15,8 @@
     "downloads": "Downloads",
     "tools": "Tools",
     "steam": "Steam",
-    "settings": "Settings"
+    "settings": "Settings",
+    "pending": "{count, plural, one {# to review} other {# to review}}"
   },
   "topBar": {
     "search": "Search sagas and games…",
@@ -114,7 +115,12 @@
       "iconic": "Re-evaluate iconic sagas",
       "iconicAll": "Whole catalog",
       "iconicQueued": "Queued: results go to Review.",
-      "iconicNone": "That console has no sagas."
+      "iconicNone": "That console has no sagas.",
+      "automation": "Automation suggestions",
+      "noAutomation": "Nothing yet: it shows up when Claude makes the same change for the same reason {count} times.",
+      "automationTimes": "{count, plural, one {# time} other {# times}}",
+      "createIssue": "Create issue",
+      "issueCreated": "Issue created"
     },
     "consoles": {
       "title": "Consoles",
@@ -325,6 +331,11 @@
     },
     "catalog": {
       "badRefreshDays": "Days go from 1 to 365."
+    },
+    "automation": {
+      "notFound": "That suggestion is gone.",
+      "ghMissing": "gh (GitHub CLI) was not found. Install it and sign in with “gh auth login”.",
+      "ghFailed": "gh could not create the issue: {detail}"
     }
   },
   "credentials": {
@@ -584,7 +595,10 @@
         "gameplay": "Gameplay today",
         "technical": "Technical",
         "original": "Original"
-      }
+      },
+      "cheerGame": "You finished {name}!",
+      "cheerRoute": "You completed the {saga} route!",
+      "cheerClose": "Close"
     },
     "search": {
       "sagas": "Series",
@@ -657,7 +671,12 @@
     "cancel": "Cancel",
     "rule": "Your correction: {text}",
     "openSaga": "Open saga",
-    "count": "{count, plural, one {# change} other {# changes}}"
+    "count": "{count, plural, one {# change} other {# changes}}",
+    "edit": "Edit",
+    "approveEdited": "Approve as edited",
+    "stepUp": "Move step {step} up",
+    "stepDown": "Move step {step} down",
+    "stepRemove": "Remove step {step}"
   },
   "home": {
     "next": "Next in your routes",

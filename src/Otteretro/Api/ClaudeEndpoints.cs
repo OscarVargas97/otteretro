@@ -7,6 +7,9 @@ namespace Otteretro.Api;
 
 public record ChooseRouteRequest(long? RouteId);
 
+/// <summary>Las rutas como quedaron al editarlas en Revisar (F2.21).</summary>
+public record ApproveRoutesRequest(List<SagaAnalysis.Route> Routes);
+
 /// <summary>Lo que preparó Claude (F2.6): Revisar, rutas de la saga, comparativa de versiones, Inicio › Siguiente y Ajustes › Claude.</summary>
 public static class ClaudeEndpoints
 {
@@ -17,6 +20,22 @@ public static class ClaudeEndpoints
 
         api.MapPost("/review/{id:long}/approve", Results<Ok<ReviewPage>, NotFound, Conflict<ApiError>> (long id, AppSession s) =>
             Db(s) is not { } db ? NoData() : ClaudeReview.Approve(db, id) ? TypedResults.Ok(ClaudeReview.Page(db)) : TypedResults.NotFound());
+
+        api.MapPost("/review/{id:long}/approve-edited", Results<Ok<ReviewPage>, NotFound, Conflict<ApiError>> (long id, ApproveRoutesRequest request, AppSession s) =>
+            Db(s) is not { } db ? NoData() : ClaudeReview.Approve(db, id, request.Routes) ? TypedResults.Ok(ClaudeReview.Page(db)) : TypedResults.NotFound());
+
+        api.MapGet("/review/count", Results<Ok<int>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(ClaudeReview.PendingCount(db)) : NoData());
+
+        // Sugerencias de automatizar y «Crear issue» (§11.5, F2.21).
+        api.MapGet("/claude/automation", Results<Ok<List<AutomationSuggestion>>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(Automation.Suggestions(db)) : NoData());
+
+        api.MapPost("/claude/automation/{key}/issue", async Task<Results<Ok<List<AutomationSuggestion>>, BadRequest<ApiError>, Conflict<ApiError>>> (string key, AppSession s, CancellationToken ct) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            return await Automation.CreateIssue(db, key, ct) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(Automation.Suggestions(db));
+        });
 
         api.MapPost("/review/{id:long}/reject", Results<Ok<ReviewPage>, NotFound, Conflict<ApiError>> (long id, AppSession s) =>
             Db(s) is not { } db ? NoData() : ClaudeReview.Reject(db, id) ? TypedResults.Ok(ClaudeReview.Page(db)) : TypedResults.NotFound());

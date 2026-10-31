@@ -371,14 +371,24 @@ test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha
   await expectNoRawKeys();
   await expectTextFits();
   await page.screenshot({ path: "e2e-results/11-revisar-es.png", fullPage: true });
-  for (let i = 0; i < 2; i++) await page.getByRole("button", { name: es.review.approve }).first().click();
+  // F2.21: el contador de Revisar en la barra lateral, y la ruta de la comunidad editada antes de aprobarla.
+  const reviewLink = page.getByRole("navigation", { name: es.nav.label }).getByRole("link", { name: new RegExp(es.nav.review) });
+  await expect(reviewLink).toContainText("2");
+  await page.getByRole("button", { name: es.review.edit }).click();
+  await page.getByRole("button", { name: es.review.stepUp.replace("{step}", "2") }).nth(1).click();
+  await page.getByRole("button", { name: es.review.approveEdited }).click();
+  await expect(reviewLink).toContainText("1");
+  await page.getByRole("button", { name: es.review.approve }).first().click();
   await expect(page.getByText(es.review.pendingEmptyTitle)).toBeVisible();
+  await expect(reviewLink.locator(".ot-count")).toHaveCount(0);
 
   await page.goto(`${base()}/saga/?id=1`);
   await expect(page.getByText(es.catalog.saga.why)).toBeVisible();
   await expect(page.getByText("El de 3DS se ve mejor")).toBeVisible();
   await page.getByRole("button", { name: es.catalog.route.community }).click(); // elegirla es seguirla
   await expect(page.getByRole("button", { name: es.catalog.route.community })).toHaveAttribute("aria-pressed", "true");
+  // Editada: Breath of the Wild quedó primero.
+  await expect(page.locator(".timeline").first()).toContainText(/Breath of the Wild[\s\S]*Ocarina of Time/);
   await expectNoRawKeys();
   await expectTextFits();
   await page.screenshot({ path: "e2e-results/12-saga-ruta-es.png", fullPage: true });
@@ -392,6 +402,12 @@ test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha
   await page.goto(`${base()}/`);
   await expect(page.getByRole("link", { name: /Breath of the Wild/ })).toBeVisible();
   await page.screenshot({ path: "e2e-results/14-inicio-es.png", fullPage: true });
+
+  // F2.21: terminar Breath of the Wild completa la ruta que sigues: la nutria lo celebra.
+  await page.goto(`${base()}/game/?id=11`);
+  await page.getByRole("radio", { name: es.catalog.status.finished }).click();
+  await expect(page.getByRole("status").filter({ hasText: es.catalog.game.cheerRoute.replace("{saga}", "The Legend of Zelda") })).toBeVisible();
+  await page.screenshot({ path: "e2e-results/14b-nutria-es.png", fullPage: true });
 
   await page.goto(`${base()}/settings/`);
   await expect(page.getByRole("button", { name: es.settings.claude.runNow })).toBeVisible();

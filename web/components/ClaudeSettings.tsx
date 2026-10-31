@@ -5,7 +5,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
-import type { ClaudeSettingsRequest, ClaudeStatus, ConsolesPage } from "@/lib/types";
+import type { AutomationSuggestion, ClaudeSettingsRequest, ClaudeStatus, ConsolesPage } from "@/lib/types";
 
 /** Ajustes › Claude (§10): horario, tope de día, «Ejecutar ahora» y el registro de uso (§11.4). */
 export function ClaudeSettings() {
@@ -67,6 +67,7 @@ export function ClaudeSettings() {
         {iconic.isError && <span className="small muted">{t("iconicNone")}</span>}
       </div>
       {(save.error || runNow.error) && <p className="error small" role="alert">{describe(save.error ?? runNow.error)}</p>}
+      <AutomationSuggestions />
       <b>{t("usage")}</b>
       {s.usage.length === 0 ? <p className="small muted" style={{ margin: 0 }}>{t("noUsage")}</p> : (
         <div className="table-wrap">
@@ -88,5 +89,32 @@ export function ClaudeSettings() {
         </div>
       )}
     </div>
+  );
+}
+
+/** Lo que Claude repite y conviene automatizar (§11.5): «Crear issue» lo deja en GitHub con la etiqueta automatizar. */
+function AutomationSuggestions() {
+  const t = useTranslations("settings.claude");
+  const describe = useDescribeError();
+  const cache = useQueryClient();
+  const list = useQuery({ queryKey: ["claude", "automation"], queryFn: () => request<AutomationSuggestion[]>("/api/claude/automation") });
+  const create = useMutation({
+    mutationFn: (key: string) => request<AutomationSuggestion[]>(`/api/claude/automation/${key}/issue`, { method: "POST" }),
+    onSuccess: (data) => cache.setQueryData(["claude", "automation"], data),
+  });
+  return (
+    <>
+      <b>{t("automation")}</b>
+      {list.data?.length === 0 && <p className="small muted" style={{ margin: 0 }}>{t("noAutomation", { count: 10 })}</p>}
+      {list.data?.map((a) => (
+        <div key={a.key} className="chips" style={{ alignItems: "center" }}>
+          <span className="small"><b>{t("automationTimes", { count: Number(a.count) })}</b> · {a.change} · {a.reason}</span>
+          {a.issueUrl
+            ? <a className="small" href={a.issueUrl} target="_blank" rel="noreferrer">{t("issueCreated")}</a>
+            : <button className="ot-btn" type="button" disabled={create.isPending} onClick={() => create.mutate(a.key)}>{t("createIssue")}</button>}
+        </div>
+      ))}
+      {create.error && <p className="error small" role="alert">{describe(create.error)}</p>}
+    </>
   );
 }
