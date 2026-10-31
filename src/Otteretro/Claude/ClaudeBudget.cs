@@ -25,13 +25,16 @@ public sealed class ClaudePausedException(DateTime until, ApiError reason) : Exc
 /// <param name="RunNowUntil">Hasta cuándo vale «Ejecutar ahora».</param>
 /// <param name="Capped">Si «Ejecutar ahora» para en <see cref="WindowShare"/> (F2.9); si no, usa la ventana entera.</param>
 /// <param name="Task">La tarea de Claude pendiente o corriendo, si hay.</param>
-public record ClaudeStatus(string ScheduleStart, string ScheduleEnd, int WindowShare, bool Capped, string? PausedUntil, string? RunNowUntil, bool InSchedule, ClaudeTask? Task, List<UsageRow> Usage);
+public record ClaudeStatus(string ScheduleStart, string ScheduleEnd, int WindowShare, bool Capped, string? PausedUntil, string? RunNowUntil, bool InSchedule, ClaudeTask? Task);
 
 /// <param name="Status">queued o running.</param>
 /// <param name="ResumeAt">Si espera, hasta cuándo.</param>
 public record ClaudeTask(long Id, string Kind, string Status, long Progress, string? ResumeAt);
 
 public record UsageRow(string Prompt, string? Model, long DurationMs, string Result, long InputTokens, long OutputTokens, double CostUsd, string CreatedAt);
+
+/// <summary>Una página del registro de uso (#95), de la llamada más nueva a la más vieja.</summary>
+public record UsagePage(List<UsageRow> Rows, int Page, int Pages);
 
 public record ClaudeSettingsRequest(string? ScheduleStart, string? ScheduleEnd, int? WindowShare, bool? Capped = null);
 
@@ -118,18 +121,30 @@ public static partial class ClaudeBudget
         var s = c.Query<(string Name, string Value)>("SELECT name, value FROM setting WHERE machine_id = '' AND name LIKE 'claude.%'")
             .ToDictionary(r => r.Name, r => r.Value);
         var (start, end) = Schedule(s);
-        // Con propiedades (no el registro): una suma sin filas no tiene tipo y Dapper no encuentra el constructor.
-        var usage = c.Query<UsageRead>("""
-            SELECT prompt, model, duration_ms AS DurationMs, result, input_tokens + cache_read_tokens + cache_creation_tokens AS InputTokens,
-                   output_tokens AS OutputTokens, cost_usd AS CostUsd, created_at AS CreatedAt
-            FROM claude_usage ORDER BY id DESC LIMIT 50
-            """).Select(u => new UsageRow(u.Prompt, u.Model, u.DurationMs, u.Result, u.InputTokens, u.OutputTokens, u.CostUsd, u.CreatedAt)).ToList();
         var task = c.QueryFirstOrDefault<TaskRead>($"""
             SELECT id, kind, status, progress, resume_at AS ResumeAt FROM task WHERE {Pending} ORDER BY status = 'running' DESC, id LIMIT 1
             """);
         return new ClaudeStatus(start.ToString("HH:mm"), end.ToString("HH:mm"), (int)(Number(s, WindowShare) ?? 50), IsCapped(s),
             Date(s, PausedUntil) is { } p && p > now ? p.ToString("O") : null, Date(s, RunNowUntil) is { } r && r > now ? r.ToString("O") : null,
-            InSchedule(s, now), task is null ? null : new ClaudeTask(task.Id, task.Kind, task.Status, task.Progress, task.ResumeAt), usage);
+            InSchedule(s, now), task is null ? null : new ClaudeTask(task.Id, task.Kind, task.Status, task.Progress, task.ResumeAt));
+    }
+
+    public const int UsagePageSize = 10;
+
+    /// <summary>La página <paramref name="page"/> (desde 1) del registro de uso; una fuera de rango da la última.</summary>
+    public static UsagePage Usage(Database db, int page)
+    {
+        using var c = db.Open();
+        var pages = Math.Max(1, (int)Math.Ceiling(c.ExecuteScalar<long>("SELECT count(*) FROM claude_usage") / (double)UsagePageSize));
+        page = Math.Clamp(page, 1, pages);
+        // Con propiedades (no el registro): una suma sin filas no tiene tipo y Dapper no encuentra el constructor.
+        var rows = c.Query<UsageRead>("""
+            SELECT prompt, model, duration_ms AS DurationMs, result, input_tokens + cache_read_tokens + cache_creation_tokens AS InputTokens,
+                   output_tokens AS OutputTokens, cost_usd AS CostUsd, created_at AS CreatedAt
+            FROM claude_usage ORDER BY id DESC LIMIT @size OFFSET @skip
+            """, new { size = UsagePageSize, skip = (page - 1) * UsagePageSize })
+            .Select(u => new UsageRow(u.Prompt, u.Model, u.DurationMs, u.Result, u.InputTokens, u.OutputTokens, u.CostUsd, u.CreatedAt)).ToList();
+        return new UsagePage(rows, page, pages);
     }
 
     sealed class TaskRead

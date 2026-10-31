@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:49806/"
+      "url": "http://127.0.0.1:49235/"
     }
   ],
   "paths": {
@@ -1982,6 +1982,50 @@
         }
       }
     },
+    "/api/claude/usage": {
+      "get": {
+        "tags": [
+          "Otteretro"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsagePage"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/claude/run-now": {
       "post": {
         "tags": [
@@ -2315,8 +2359,7 @@
           "pausedUntil",
           "runNowUntil",
           "inSchedule",
-          "task",
-          "usage"
+          "task"
         ],
         "type": "object",
         "properties": {
@@ -2361,12 +2404,6 @@
                 "$ref": "#/components/schemas/ClaudeTask"
               }
             ]
-          },
-          "usage": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UsageRow"
-            }
           }
         }
       },
@@ -3943,6 +3980,38 @@
               "string"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "UsagePage": {
+        "required": [
+          "rows",
+          "page",
+          "pages"
+        ],
+        "type": "object",
+        "properties": {
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UsageRow"
+            }
+          },
+          "page": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pages": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },

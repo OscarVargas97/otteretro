@@ -5,7 +5,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
-import type { AutomationSuggestion, ClaudeSettingsRequest, ClaudeStatus, ConsolesPage } from "@/lib/types";
+import type { AutomationSuggestion, ClaudeSettingsRequest, ClaudeStatus, ConsolesPage, UsagePage } from "@/lib/types";
 
 /** Ajustes › Claude (§10): horario, tope de día, «Ejecutar ahora» y el registro de uso (§11.4). */
 export function ClaudeSettings() {
@@ -68,13 +68,29 @@ export function ClaudeSettings() {
       </div>
       {(save.error || runNow.error) && <p className="error small" role="alert">{describe(save.error ?? runNow.error)}</p>}
       <AutomationSuggestions />
+      <UsageLog stamp={status.dataUpdatedAt} />
+    </div>
+  );
+}
+
+/** Registro de uso de a 10 (#95); se pone al día cuando se refresca el estado de Claude. */
+function UsageLog({ stamp }: { stamp: number }) {
+  const t = useTranslations("settings.claude");
+  const format = useFormatter();
+  const [page, setPage] = useState(1);
+  const usage = useQuery({ queryKey: ["claude", "usage", page, stamp], queryFn: () => request<UsagePage>(`/api/claude/usage?page=${page}`), placeholderData: (previous) => previous });
+  const u = usage.data;
+  if (!u) return null;
+  const at = Number(u.page), pages = Number(u.pages);
+  return (
+    <>
       <b>{t("usage")}</b>
-      {s.usage.length === 0 ? <p className="small muted" style={{ margin: 0 }}>{t("noUsage")}</p> : (
+      {u.rows.length === 0 ? <p className="small muted" style={{ margin: 0 }}>{t("noUsage")}</p> : (
         <div className="table-wrap">
           <table className="t">
             <thead><tr><th>{t("date")}</th><th>{t("prompt")}</th><th>{t("model")}</th><th>{t("duration")}</th><th>{t("result")}</th><th>{t("tokens")}</th></tr></thead>
             <tbody>
-              {s.usage.map((u, i) => (
+              {u.rows.map((u, i) => (
                 <tr key={i}>
                   <td className="small">{format.dateTime(new Date(u.createdAt), { dateStyle: "short", timeStyle: "short" })}</td>
                   <td>{u.prompt}</td>
@@ -88,7 +104,14 @@ export function ClaudeSettings() {
           </table>
         </div>
       )}
-    </div>
+      {pages > 1 && (
+        <div className="chips" style={{ alignItems: "center" }}>
+          <button className="ot-btn" type="button" disabled={at <= 1} onClick={() => setPage(at - 1)}>{t("previous")}</button>
+          <span className="small muted">{t("pageOf", { page: at, pages })}</span>
+          <button className="ot-btn" type="button" disabled={at >= pages} onClick={() => setPage(at + 1)}>{t("next")}</button>
+        </div>
+      )}
+    </>
   );
 }
 

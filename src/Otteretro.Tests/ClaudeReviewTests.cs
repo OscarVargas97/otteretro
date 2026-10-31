@@ -121,6 +121,26 @@ public class ClaudeReviewTests : IAsyncDisposable
 
         var status = ClaudeBudget.Status(f.Db);
         Assert.Equal(("23:00", "07:00", 40), (status.ScheduleStart, status.ScheduleEnd, status.WindowShare));
-        Assert.Equal(("ruta-saga", 100L), (Assert.Single(status.Usage).Prompt, status.Usage[0].InputTokens));
+        var usage = ClaudeBudget.Usage(f.Db, 1);
+        Assert.Equal(("ruta-saga", 100L), (Assert.Single(usage.Rows).Prompt, usage.Rows[0].InputTokens));
+    }
+
+    /// <summary>#95: el registro de uso va de a 10, de la llamada más nueva a la más vieja; una página fuera de rango da la última.</summary>
+    [Fact]
+    public void UsageLogIsPaged()
+    {
+        var empty = ClaudeBudget.Usage(f.Db, 1);
+        Assert.Equal((0, 1, 1), (empty.Rows.Count, empty.Page, empty.Pages));
+        using (var c = f.Db.Open())
+            for (var i = 1; i <= 12; i++)
+                c.Execute("""
+                    INSERT INTO claude_usage (prompt, model, duration_ms, result, input_tokens, output_tokens, cost_usd, created_at)
+                    VALUES (@prompt, 'haiku', 1000, 'ok', 1, 1, 0, '2026-10-31T03:00:00Z')
+                    """, new { prompt = $"p{i}" });
+
+        var first = ClaudeBudget.Usage(f.Db, 1);
+        Assert.Equal((10, 1, 2, "p12"), (first.Rows.Count, first.Page, first.Pages, first.Rows[0].Prompt));
+        var last = ClaudeBudget.Usage(f.Db, 9);
+        Assert.Equal((2, "p1"), (last.Page, last.Rows[^1].Prompt));
     }
 }

@@ -409,8 +409,20 @@ test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha
   await expect(page.getByRole("status").filter({ hasText: es.catalog.game.cheerRoute.replace("{saga}", "The Legend of Zelda") })).toBeVisible();
   await page.screenshot({ path: "e2e-results/14b-nutria-es.png", fullPage: true });
 
+  // #95: el registro de uso va de a 10.
+  const usageDb = await openDb();
+  for (let i = 1; i <= 12; i++)
+    usageDb.exec(`INSERT INTO claude_usage (prompt, model, duration_ms, result, input_tokens, output_tokens, cost_usd, created_at)
+      VALUES ('uso-${i}', 'haiku', 1000, 'ok', 1, 1, 0, '2026-10-31T03:00:00Z')`);
+  usageDb.close();
   await page.goto(`${base()}/settings/`);
   await expect(page.getByRole("button", { name: es.settings.claude.runNow })).toBeVisible();
+  const usageTable = page.locator("table").filter({ hasText: "uso-12" });
+  await expect(usageTable.locator("tbody tr")).toHaveCount(10);
+  await page.getByRole("button", { name: es.settings.claude.next }).click();
+  await expect(page.getByRole("cell", { name: "uso-1", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: es.settings.claude.previous }).click();
+  await expect(page.getByRole("cell", { name: "uso-12" })).toBeVisible();
   await expectNoRawKeys();
 });
 

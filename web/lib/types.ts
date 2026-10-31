@@ -35,6 +35,7 @@ export type RouteStepInfo = Schemas["RouteStepInfo"];
 export type VersionCompare = Schemas["VersionCompare"];
 export type NextGame = Schemas["NextGame"];
 export type ClaudeStatus = Schemas["ClaudeStatus"];
+export type UsagePage = Schemas["UsagePage"];
 export type ClaudeSettingsRequest = Schemas["ClaudeSettingsRequest"];
 export type ConsolesPage = Schemas["ConsolesPage"];
 export type ConsoleInfo = Schemas["ConsoleInfo"];

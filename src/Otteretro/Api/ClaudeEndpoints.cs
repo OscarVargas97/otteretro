@@ -73,6 +73,9 @@ public static class ClaudeEndpoints
         api.MapGet("/claude", Results<Ok<ClaudeStatus>, Conflict<ApiError>> (AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(ClaudeBudget.Status(db)) : NoData());
 
+        api.MapGet("/claude/usage", Results<Ok<UsagePage>, Conflict<ApiError>> (AppSession s, int page = 1) =>
+            Db(s) is { } db ? TypedResults.Ok(ClaudeBudget.Usage(db, page)) : NoData());
+
         api.MapPut("/claude", Results<Ok<ClaudeStatus>, BadRequest<ApiError>, Conflict<ApiError>> (ClaudeSettingsRequest request, AppSession s) =>
         {
             if (Db(s) is not { } db) return NoData();
