@@ -29,7 +29,7 @@ public sealed class ApiClient(Database db, HttpMessageHandler? handler = null)
 
     /// <summary>
     /// Devuelve la respuesta de la caché si sigue vigente; si no, la pide (al ritmo de la fuente) y la guarda por `ttl`.
-    /// Una respuesta con error no se guarda y lanza <see cref="HttpRequestException"/>.
+    /// Una respuesta con error, o correcta pero vacía (#78), no se guarda y lanza <see cref="HttpRequestException"/>.
     /// </summary>
     /// <param name="authorize">Pone las claves en la petición; no forman parte de la clave de la caché.</param>
     public async Task<string> Send(string source, HttpMethod method, string url, string? body, TimeSpan ttl,
@@ -38,7 +38,7 @@ public sealed class ApiClient(Database db, HttpMessageHandler? handler = null)
         var key = $"{source} {method} {url}\n{body}";
         using (var c = db.Open())
         {
-            var cached = c.ExecuteScalar<string?>("SELECT response FROM api_cache WHERE key = @key AND expires_at > @now",
+            var cached = c.ExecuteScalar<string?>("SELECT response FROM api_cache WHERE key = @key AND expires_at > @now AND trim(response) <> ''",
                 new { key, now = DateTime.UtcNow.ToString("O") });
             if (cached is not null) return cached;
         }
@@ -57,6 +57,8 @@ public sealed class ApiClient(Database db, HttpMessageHandler? handler = null)
             if (response.Headers.RetryAfter?.Delta is { } wait) error.Data[TaskQueue.RetryAfterKey] = wait;
             throw error;
         }
+        // Todas las fuentes responden JSON: vacía es un corte a medias (#78). Sin código, la cola la reintenta (#59).
+        if (string.IsNullOrWhiteSpace(text)) throw new HttpRequestException($"{source} respondió {(int)response.StatusCode} sin contenido");
 
         using (var c = db.Open())
             c.Execute("INSERT OR REPLACE INTO api_cache (key, response, expires_at) VALUES (@key, @text, @expires)",

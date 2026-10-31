@@ -76,4 +76,27 @@ public class ApiClientTests
         for (var i = 0; i + 4 < calls.Count; i++)
             Assert.True(calls[i + 4] - calls[i] >= TimeSpan.FromSeconds(1), $"5 llamadas en {calls[i + 4] - calls[i]}");
     }
+
+    /// <summary>#78: una respuesta 200 vacía no se guarda y se reintenta; una vacía que ya estaba en caché se vuelve a pedir.</summary>
+    [Fact]
+    public async Task EmptyResponseIsNotCached()
+    {
+        using var tmp = new TempDir();
+        var db = NewDb(tmp);
+        var empty = new ApiClient(db, new FixedServer(""));
+
+        var e = await Assert.ThrowsAsync<HttpRequestException>(() => empty.Send("test-empty", HttpMethod.Get, "https://x/a", null, TimeSpan.FromDays(1)));
+        Assert.Null(e.StatusCode); // pasajero: la cola lo reintenta
+
+        using (var c = db.Open()) // como quedó guardado antes del arreglo
+            Dapper.SqlMapper.Execute(c, "INSERT INTO api_cache (key, response, expires_at) VALUES (@key, '', '2999-01-01')",
+                new { key = "test-empty GET https://x/a\n" });
+        Assert.Equal("{}", await new ApiClient(db, new FixedServer("{}")).Send("test-empty", HttpMethod.Get, "https://x/a", null, TimeSpan.FromDays(1)));
+    }
+
+    sealed class FixedServer(string body) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) =>
+            Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) });
+    }
 }
