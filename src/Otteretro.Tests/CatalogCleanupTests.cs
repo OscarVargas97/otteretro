@@ -73,6 +73,14 @@ public class CatalogCleanupTests : IAsyncDisposable
         Assert.Equal(["similarNames", "looseCandidates"], zelda.Reasons);
         Assert.Equal("20|The Legend of Zelda: Echoes of Wisdom|2024|switch", Assert.Single(zelda.Loose).Line); // Tetris no
         Assert.Equal(1, CatalogCleanup.Measure(f.Db).Calls);
+
+        // Con llamadas hechas, la estimación usa lo que gastó cada una (F2.7: el primer lote ajusta la estimación).
+        using (var c = f.Db.Open())
+            c.Execute("""
+                INSERT INTO claude_usage (prompt, model, duration_ms, result, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, created_at)
+                VALUES ('depurar-sagas', 'haiku', 1, 'ok', 10000, 20000, 4000, 0, 0.01, '2026-10-31'), ('depurar-sagas', 'haiku', 1, 'ok', 20000, 30000, 0, 0, 0.01, '2026-10-31')
+                """);
+        Assert.Equal(42000, CatalogCleanup.Measure(f.Db).Tokens);
     }
 
     [Fact]

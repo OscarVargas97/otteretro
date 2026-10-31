@@ -33,6 +33,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 ### Cambios
 - **Colección**: «Lo tengo» queda marcado al entrar y el número de cada consola sigue al filtro (lo que tienes, lo que te falta o lo que tiene versión de PC).
 - **Las sagas abren al instante**: abrir una saga ya no calcula las 5.800.
+- **`catalogo depurar --contar` estima con lo real**: usa lo que gastó cada llamada a Claude (la primera depuración gastó unas tres veces lo que se estimaba, sobre todo en respuesta).
 
 ### Arreglos
 - **Mudar la carpeta de datos ya no se queda en «Preparando»**: si la mudanza terminaba antes de que llegara la respuesta de haberla empezado, la pantalla volvía a «empezó» y no mostraba el resultado.

@@ -51,9 +51,15 @@ public static partial class CatalogCleanup
         var games = cases.Sum(c => c.Games.Count);
         var loose = cases.Sum(c => c.Loose.Count);
         var calls = (int)Math.Ceiling((games + loose) / (double)BatchGames);
-        // ponytail: ~20 tokens por línea de entrada y ~5 de salida, más ~5.000 de instrucciones por llamada; se corrige con el primer lote (claude_usage).
-        return new Count(cases.Count, games, loose, cases.SelectMany(c => c.Reasons).GroupBy(r => r).ToDictionary(g => g.Key, g => g.Count()),
-            calls, (games + loose) * 25L + calls * 5000L);
+        // Con llamadas hechas, lo que gastó de verdad cada una (entrada y salida). Sin ellas, lo medido en la primera depuración
+        // real (2026-10-31, 744 sagas en 22 llamadas a Haiku): ~15.500 de entrada y ~19.200 de salida por llamada, ~100 por línea.
+        using var c = db.Open();
+        var perCall = c.ExecuteScalar<double?>("""
+            SELECT avg(input_tokens + cache_read_tokens + cache_creation_tokens + output_tokens) FROM claude_usage
+            WHERE prompt = @PromptName AND model = 'haiku' AND result = 'ok'
+            """, new { PromptName });
+        return new Count(cases.Count, games, loose, cases.SelectMany(x => x.Reasons).GroupBy(r => r).ToDictionary(g => g.Key, g => g.Count()),
+            calls, perCall is { } avg ? (long)(calls * avg) : (games + loose) * 100L + calls * 5000L);
     }
 
     public static Task Run(TaskRun run, CancellationToken ct) =>
