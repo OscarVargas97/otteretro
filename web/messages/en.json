@@ -131,6 +131,7 @@
       "enabled": "Enabled",
       "add": "Add console",
       "search": "Search IGDB",
+      "close": "Close",
       "enable": "Enable",
       "already": "Already added",
       "refreshEvery": "Update every (days)",

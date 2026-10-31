@@ -472,6 +472,15 @@ test("Ajustes: consolas habilitadas, al día y reevaluar icónicas", async () =>
   await expect(vb).not.toBeChecked();
   await vb.click();
   await expect(vb).toBeChecked();
+  // #94: la búsqueda en IGDB se cierra con el botón y con Escape.
+  const add = page.getByRole("button", { name: es.settings.consoles.add });
+  await add.click();
+  await page.getByRole("button", { name: es.settings.consoles.close }).click();
+  await expect(add).toBeVisible();
+  await add.click();
+  await page.getByRole("searchbox", { name: es.settings.consoles.search }).press("Escape");
+  await expect(add).toBeVisible();
+  await expect(page.getByRole("searchbox", { name: es.settings.consoles.search })).toHaveCount(0);
   await expect(page.getByRole("button", { name: es.settings.consoles.refreshNow })).toBeVisible();
   await expect(page.getByRole("button", { name: es.settings.claude.iconic })).toBeVisible();
   await expectNoRawKeys();

@@ -18,6 +18,7 @@ export function ConsoleSettings() {
   const [query, setQuery] = useState("");
   const [days, setDays] = useState<number | null>(null);
   const igdb = useQuery({ queryKey: ["consoles", "igdb"], queryFn: () => request<PlatformInfo[]>("/api/consoles/igdb"), enabled: adding });
+  const close = () => { setAdding(false); setQuery(""); }; // #94
   const done = (data: ConsolesPage) => {
     cache.setQueryData(["consoles", "settings"], data);
     cache.invalidateQueries({ queryKey: ["consoles", "igdb"] });
@@ -68,7 +69,11 @@ export function ConsoleSettings() {
         <div className="hero-actions"><button className="ot-btn" type="button" onClick={() => setAdding(true)}>{t("add")}</button></div>
       ) : (
         <div style={{ display: "grid", gap: 6 }}>
-          <input type="search" aria-label={t("search")} placeholder={t("search")} value={query} onChange={(e) => setQuery(e.target.value)} />
+          <div style={{ display: "flex", gap: 6 }}>
+            <input type="search" style={{ flex: 1 }} aria-label={t("search")} placeholder={t("search")} value={query} onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Escape") close(); }} autoFocus />
+            <button className="ot-btn" type="button" onClick={close}>{t("close")}</button>
+          </div>
           <ul style={{ listStyle: "none", margin: 0, padding: 0, maxHeight: 260, overflowY: "auto", display: "grid", gap: 4 }}>
             {igdb.data?.filter((x) => !text || x.name.toLowerCase().includes(text) || x.abbreviation?.toLowerCase().includes(text)).map((x) => {
               const added = x.consoleId != null && enabledIds.has(x.consoleId);
