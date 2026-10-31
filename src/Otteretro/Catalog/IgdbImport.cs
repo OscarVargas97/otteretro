@@ -282,7 +282,8 @@ public static class IgdbImport
         bool Waiting(string kind)
         {
             using var c = db.Open();
-            return c.ExecuteScalar<long>("SELECT count(*) FROM task WHERE kind = @kind AND status = 'queued'", new { kind }) > 0;
+            // También la que corre (#78): si no, cada carga encola otra que vuelve a consultar los juegos sin portada.
+            return c.ExecuteScalar<long>("SELECT count(*) FROM task WHERE kind = @kind AND status IN ('queued', 'running')", new { kind }) > 0;
         }
         if (!Waiting("sgdb.images")) SteamGridDb.Enqueue(db);
         if (!Waiting("catalog.extra")) ExtraSources.Enqueue(db);

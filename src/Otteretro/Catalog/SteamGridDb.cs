@@ -52,7 +52,8 @@ public static class SteamGridDb
     record Image(string Url);
     record Response<T>(bool Success, T? Data);
 
-    public static long Enqueue(Database db) => TaskQueue.Enqueue(db, "sgdb.images", JsonSerializer.Serialize(new Job(), JsonSerializerOptions.Web));
+    public static long Enqueue(Database db, long after = 0) =>
+        TaskQueue.Enqueue(db, "sgdb.images", JsonSerializer.Serialize(new Job(after), JsonSerializerOptions.Web));
 
     /// <summary>Encola la conversión a WebP si quedan imágenes en otro formato y no hay una esperando.</summary>
     public static void EnqueueConvert(Database db)
@@ -101,6 +102,7 @@ public static class SteamGridDb
                 SELECT g.id, COALESCE(g.original_name, g.name_es), (SELECT max(steam_app_id) FROM version v WHERE v.game_id = g.id), g.year, g.igdb_id
                 FROM game g WHERE g.id > @After ORDER BY g.id
                 """, job).ToList();
+        var last = games.Count > 0 ? games[^1].Id : job.After;
         games = games.Where(g => Find(run.Db, g.Id, "cover") is null).ToList();
 
         for (var i = 0; i < games.Count; i++)
@@ -124,6 +126,12 @@ public static class SteamGridDb
             run.Report((i + 1) * 100 / games.Count, ApiError.Of("tasks.sgdb.images", ("done", (i + 1).ToString()), ("total", games.Count.ToString())),
                 JsonSerializer.Serialize(new Job(id), JsonSerializerOptions.Web));
         }
+
+        // Lo que cargó IGDB mientras esta corría (#78): otra pasada solo desde el último juego de la lista.
+        using (var c = run.Db.Open())
+            if (c.ExecuteScalar<long>("SELECT count(*) FROM game WHERE id > @last", new { last }) > 0
+                && c.ExecuteScalar<long>("SELECT count(*) FROM task WHERE kind = 'sgdb.images' AND status = 'queued'") == 0)
+                Enqueue(run.Db, last);
     }
 
     /// <summary>

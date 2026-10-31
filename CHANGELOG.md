@@ -36,6 +36,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **`catalogo depurar --contar` estima con lo real**: usa lo que gastó cada llamada a Claude (la primera depuración gastó unas tres veces lo que se estimaba, sobre todo en respuesta).
 
 ### Arreglos
+- **Ya no aparecen dos «Bajar portadas de SteamGridDB» a la vez**: si una corre, la carga de IGDB no encola otra; lo que entra mientras tanto se baja después, desde donde terminó.
 - **Sagas abre al instante y se recorre sin esperas**: dibuja de a 60 sagas y agrega más antes de que llegues al final, en vez de las 5.800 juntas.
 - **El registro de uso de Claude va de a 10 llamadas**, con «Anterior» y «Siguiente», y llega a todo el historial (antes mostraba las últimas 50 juntas).
 - **La búsqueda de consolas en IGDB se puede cerrar** (Ajustes › Consolas), con «Cerrar» o con Escape.
