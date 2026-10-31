@@ -221,6 +221,11 @@
       "extra": {
         "progress": "{done} of {total} games",
         "rawgBadKey": "RAWG didn’t accept the key: check it in Settings › Accounts and keys."
+      },
+      "claude": {
+        "notInstalled": "Claude Code wasn’t found: install it and sign in by running `claude` in a terminal.",
+        "failed": "Claude failed: {detail}",
+        "invalidOutput": "Claude answered twice with something that doesn’t have the expected shape."
       }
     },
     "progress": {
