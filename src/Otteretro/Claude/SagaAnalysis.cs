@@ -60,9 +60,14 @@ public static class SagaAnalysis
         return TaskQueue.Enqueue(db, Kind, ids is null ? null : JsonSerializer.Serialize(new Job(ids, ids.Count), JsonSerializerOptions.Web));
     }
 
-    public static async Task Run(TaskRun run, CancellationToken ct)
+    public static Task Run(TaskRun run, CancellationToken ct) =>
+        Process(run, run.Data, null, (progress, detail, data) => run.Report(progress, detail, data), ct);
+
+    /// <summary>El análisis de todas las sagas o solo de <paramref name="only"/> (una parte de la carga, F2.8).</summary>
+    /// <param name="data">Punto de control (null = empezar).</param>
+    public static async Task Process(TaskRun run, string? data, HashSet<long>? only, Action<int, ApiError, string> report, CancellationToken ct)
     {
-        var job = run.Data is null ? Start(run.Db) : JsonSerializer.Deserialize<Job>(run.Data, JsonSerializerOptions.Web)!;
+        var job = data is null ? Start(run.Db, only) : JsonSerializer.Deserialize<Job>(data, JsonSerializerOptions.Web)!;
         while (job.Pending.Count > 0)
         {
             var chunk = job.Pending.Take(ChunkSagas).ToList();
@@ -79,19 +84,19 @@ public static class SagaAnalysis
 
             job = job with { Pending = job.Pending.Skip(chunk.Count).ToList() };
             var done = job.Total - job.Pending.Count;
-            run.Report(done * 100 / job.Total, ApiError.Of("tasks.claude.sagas", ("done", done.ToString()), ("total", job.Total.ToString())),
+            report(done * 100 / job.Total, ApiError.Of("tasks.claude.sagas", ("done", done.ToString()), ("total", job.Total.ToString())),
                 JsonSerializer.Serialize(job, JsonSerializerOptions.Web));
         }
     }
 
-    static Job Start(Database db)
+    static Job Start(Database db, HashSet<long>? only)
     {
         using var c = db.Open();
         var ids = c.Query<long>("""
             SELECT s.id FROM saga s JOIN game g ON g.saga_id = s.id GROUP BY s.id
             ORDER BY EXISTS (SELECT 1 FROM source so JOIN version v ON v.id = so.version_id JOIN game g2 ON g2.id = v.game_id WHERE g2.saga_id = s.id) DESC,
                      s.iconic DESC, count(*) DESC, s.id
-            """).ToList();
+            """).Where(id => only is null || only.Contains(id)).ToList();
         return new Job(ids, ids.Count);
     }
 

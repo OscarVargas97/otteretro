@@ -71,6 +71,9 @@ public static class CliMode
           catalogo deshacer <n>  Deshace el cambio n de Claude (el número sale en el registro).
           steam sincronizar      Lee lo que tienes en Steam (con sus horas) y lo enlaza con el catálogo; lo hace la app abierta.
           claude ahora           Deja que Claude trabaje ya, fuera de su horario (00:00 a 08:00), hasta que empiece el siguiente.
+          claude cargar          Carga inicial con Claude, por partes (Nintendo, Sony, Microsoft y PC): cada parte se depura
+                                 y después Claude prepara rutas, icónico y mejor versión para que las apruebes. Dura días.
+            [--parte X]            Solo una parte (nintendo, sony, microsoft o pc).
           tareas prueba          Encola una tarea de prueba (10 pasos de 3 s) para ver el panel de tareas.
           servidor               Levanta la API y la interfaz sin ventana, para abrirlas en un navegador (desarrollo).
           ayuda                  Muestra esta ayuda.
@@ -102,6 +105,14 @@ public static class CliMode
             case ["claude", "ahora"]:
                 return WithData(output, db =>
                     output.WriteLine($"Claude puede trabajar hasta {Claude.ClaudeBudget.RunNow(db).ToLocalTime():g}; el límite de la suscripción y el tope por ventana siguen valiendo."));
+            case ["claude", "cargar", .. var load] when load is [] or ["--parte", _]:
+                return WithData(output, db =>
+                {
+                    var part = load is [_, var p] ? p : null;
+                    output.WriteLine(Claude.InitialLoad.Enqueue(db, part) is { } id
+                        ? $"Tarea {id} encolada; la app abierta la toma y Claude trabaja en su horario."
+                        : $"Parte desconocida: {part}. Partes: {string.Join(", ", Claude.InitialLoad.Parts.Select(x => x.Id))}.");
+                });
             case ["catalogo", "depurar", "--contar"]:
                 return WithData(output, db =>
                 {

@@ -225,6 +225,10 @@
       "claude": {
         "cleanup": "{done} of {total} sagas reviewed",
         "sagas": "{done} of {total} sagas prepared",
+        "load": {
+          "cleanup": "{part}: {done} of {total} sagas reviewed",
+          "sagas": "{part}: {done} of {total} sagas prepared"
+        },
         "notInstalled": "Claude Code wasn’t found: install it and sign in by running `claude` in a terminal.",
         "failed": "Claude failed: {detail}",
         "invalidOutput": "Claude answered twice with something that doesn’t have the expected shape.",
@@ -312,7 +316,8 @@
       },
       "claude": {
         "cleanup": "Clean up the catalog with Claude",
-        "sagas": "Routes, iconic and best version with Claude"
+        "sagas": "Routes, iconic and best version with Claude",
+        "load": "Initial load with Claude, by parts"
       },
       "catalog": {
         "extra": "Complete with Wikidata and RAWG"

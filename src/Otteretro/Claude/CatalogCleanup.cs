@@ -55,11 +55,17 @@ public static partial class CatalogCleanup
             calls, (games + loose) * 25L + calls * 5000L);
     }
 
-    public static async Task Run(TaskRun run, CancellationToken ct)
+    public static Task Run(TaskRun run, CancellationToken ct) =>
+        Process(run, run.Data, null, (progress, detail, data) => run.Report(progress, detail, data), ct);
+
+    /// <summary>La depuración, de todas las sagas dudosas o solo de <paramref name="only"/> (una parte de la carga, F2.8).</summary>
+    /// <param name="data">Punto de control (null = empezar).</param>
+    /// <param name="report">Avance, detalle y punto de control.</param>
+    public static async Task Process(TaskRun run, string? data, HashSet<long>? only, Action<int, ApiError, string> report, CancellationToken ct)
     {
-        var job = run.Data is null
-            ? Start(run.Db)
-            : JsonSerializer.Deserialize<Job>(run.Data, JsonSerializerOptions.Web)!;
+        var job = data is null
+            ? Start(run.Db, only)
+            : JsonSerializer.Deserialize<Job>(data, JsonSerializerOptions.Web)!;
         var prompt = ClaudeRunner.Prompt(PromptName);
         while (true)
         {
@@ -94,16 +100,16 @@ public static partial class CatalogCleanup
             var done = batch.Select(b => b.Id).Concat(skipped).ToHashSet();
             job = job with { Pending = job.Pending.Where(id => !done.Contains(id)).ToList() };
             var reviewed = job.Total - job.Pending.Count;
-            run.Report(job.Total == 0 ? 100 : reviewed * 100 / job.Total,
+            report(job.Total == 0 ? 100 : reviewed * 100 / job.Total,
                 ApiError.Of("tasks.claude.cleanup", ("done", reviewed.ToString()), ("total", job.Total.ToString())),
                 JsonSerializer.Serialize(job, JsonSerializerOptions.Web));
         }
     }
 
     /// <summary>El orden: primero tus sagas, después las icónicas y las más grandes; las de un solo juego no entran (§F2.9).</summary>
-    static Job Start(Database db)
+    static Job Start(Database db, HashSet<long>? only)
     {
-        var ids = Cases(db, null).Select(c => c.Id).ToList();
+        var ids = Cases(db, only).Select(c => c.Id).ToList();
         return new Job(ids, [], ids.Count);
     }
 
