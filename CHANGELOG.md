@@ -2,6 +2,13 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
+## Portadas que no se cortan · en revisión
+
+`fix/78-sgdb-respuesta-vacia`
+
+### Arreglos
+- **La descarga de portadas ya no se corta por una respuesta vacía**: si SteamGridDB (o cualquier otra fuente) responde sin contenido, la tarea lo reintenta más tarde en vez de quedar en error, y esa respuesta vacía no se guarda. Lo que ya había quedado guardado así se vuelve a pedir.
+
 ## Imágenes livianas · en revisión
 
 `feat/64-imagenes-webp`
