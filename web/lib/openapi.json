@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:53398/"
+      "url": "http://127.0.0.1:53072/"
     }
   ],
   "paths": {
@@ -1650,6 +1650,12 @@
               "string"
             ],
             "format": "int32"
+          },
+          "capped": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -1658,9 +1664,11 @@
           "scheduleStart",
           "scheduleEnd",
           "windowShare",
+          "capped",
           "pausedUntil",
           "runNowUntil",
           "inSchedule",
+          "task",
           "usage"
         ],
         "type": "object",
@@ -1679,6 +1687,9 @@
             ],
             "format": "int32"
           },
+          "capped": {
+            "type": "boolean"
+          },
           "pausedUntil": {
             "type": [
               "null",
@@ -1694,11 +1705,61 @@
           "inSchedule": {
             "type": "boolean"
           },
+          "task": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ClaudeTask"
+              }
+            ]
+          },
           "usage": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/UsageRow"
             }
+          }
+        }
+      },
+      "ClaudeTask": {
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "progress",
+          "resumeAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "progress": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "resumeAt": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

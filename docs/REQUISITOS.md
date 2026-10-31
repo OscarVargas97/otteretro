@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-31, con la #158 (sin tope de tareas de Claude; antes #154 y #157: horario nocturno, tope solo de día).
+> **Última actualización:** 2026-10-31, con la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
 
 ## Cómo se mantiene
 
@@ -369,7 +369,7 @@ Se prueba en este orden:
 - **Información de tiendas y versión de PC, precios y versiones nuevas**: se comprueban **solo con la app abierta**, al abrirla y cada cierto intervalo configurable. Con la app cerrada no corre nada; los avisos (como una bajada de precio) llegan la próxima vez que la abras (#75).
 - **Bibliotecas**: se escanean **solo cuando pulsas "Escanear"**. La app no vigila las carpetas.
 - **Carga inicial del catálogo**: **completa**, todas las sagas y juegos, en orden **Nintendo → Sony → Microsoft** (#69). Los scripts bajan primero todos los datos de las APIs. Claude solo juzga, **por lotes de varias sagas por llamada**, para gastar los mínimos tokens.
-- **Horario y tope de Claude**: Claude trabaja en segundo plano **de noche** (00:00 a 08:00 por defecto, ajustable; #154) y ahí usa la ventana entera, **sin tope** de uso ni de tareas (#157, #158). La carga inicial **dura días** por los límites de la suscripción (ventanas de 5 h y semanales): la cola se pausa al llegar al límite y **continúa sola** cuando se renueva. De día solo corre si lo lanzas con «Ejecutar ahora», y entonces se queda en el **50 %** de cada ventana para no quitarte cuota mientras programas (#157).
+- **Horario y tope de Claude**: Claude trabaja en segundo plano **de noche** (00:00 a 08:00 por defecto, ajustable; #154) y ahí usa la ventana entera, **sin tope** de uso ni de tareas (#157, #158). La carga inicial **dura días** por los límites de la suscripción (ventanas de 5 h y semanales): la cola se pausa al llegar al límite y **continúa sola** cuando se renueva. Al empezar el horario, la app **lanza sola** la carga si no hay nada de Claude en la cola; lo que no cambió se salta sin gastar (#159). De día corre si lo lanzas con «Ejecutar ahora», que arranca **de inmediato** (#159); con la casilla «Con tope» se queda en el porcentaje elegido de cada ventana (**50 %** por defecto) para no quitarte cuota mientras programas, y sin ella usa la ventana entera (#157, #160).
 - **Descripciones**: se **traducen al español con Claude una sola vez** y quedan guardadas.
 
 ### 11.3 Claude Code ✅

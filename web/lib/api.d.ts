@@ -1842,16 +1842,28 @@ export interface components {
             scheduleEnd: null | string;
             /** Format: int32 */
             windowShare: null | number | string;
+            capped?: null | boolean;
         };
         ClaudeStatus: {
             scheduleStart: string;
             scheduleEnd: string;
             /** Format: int32 */
             windowShare: number | string;
+            capped: boolean;
             pausedUntil: null | string;
             runNowUntil: null | string;
             inSchedule: boolean;
+            task: null | components["schemas"]["ClaudeTask"];
             usage: components["schemas"]["UsageRow"][];
+        };
+        ClaudeTask: {
+            /** Format: int64 */
+            id: number | string;
+            kind: string;
+            status: string;
+            /** Format: int64 */
+            progress: number | string;
+            resumeAt: null | string;
         };
         CollectionPage: {
             games: components["schemas"]["GameCard"][];

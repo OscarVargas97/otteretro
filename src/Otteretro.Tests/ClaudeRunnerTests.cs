@@ -215,8 +215,9 @@ public class ClaudeRunnerTests : IDisposable
         Assert.Equal(Local(0, days: 1), e.Until);
         Assert.Empty(calls);
 
-        Assert.Equal(Local(0, days: 1), ClaudeBudget.RunNow(db));
+        ClaudeBudget.RunNow(db);
         Assert.Equal(4, (await Run()).Value.Value);
+        Assert.Equal(Local(0, days: 1), DateTime.Parse(ClaudeBudget.Status(db).RunNowUntil!, null, System.Globalization.DateTimeStyles.AdjustToUniversal));
     }
 
     [Fact]
@@ -265,6 +266,48 @@ public class ClaudeRunnerTests : IDisposable
         Assert.Equal("tasks.claude.windowCap", e.Reason.Code);
         Assert.Equal(Local(17), e.Until);
         Assert.Equal(6, calls.Count);
+    }
+
+    /// <summary>F2.9: sin tope marcado, «Ejecutar ahora» usa la ventana entera también de día.</summary>
+    [Fact]
+    public async Task WindowCapCanBeTurnedOff()
+    {
+        var zone = TimeZoneInfo.Local.Id;
+        Fake(Reply(new { value = 4, note = "x" }, cost: 2), Limit($"You've hit your session limit · resets 6am ({zone})"),
+            Reply(new { value = 4, note = "x" }, cost: 1.5), Ok);
+        now = Local(2);
+        await Run();
+        await Assert.ThrowsAsync<ClaudePausedException>(() => Run()); // entran 2 USD por ventana
+
+        Assert.Null(ClaudeBudget.Save(db, new(null, null, null, Capped: false)));
+        Assert.False(ClaudeBudget.Status(db).Capped);
+        now = Local(12);
+        ClaudeBudget.RunNow(db);
+        await Run(); // 1,5 USD: pasa del 50 % sin parar
+        await Run();
+        Assert.Equal(4, calls.Count);
+    }
+
+    /// <summary>F2.9: «Ejecutar ahora» lanza la carga; al empezar el horario se lanza sola, una vez por noche.</summary>
+    [Fact]
+    public void RunNowAndTheScheduleLaunchTheLoad()
+    {
+        now = Local(12);
+        Assert.Null(ClaudeBudget.AutoStart(db)); // fuera del horario
+        var load = ClaudeBudget.RunNow(db);
+        Assert.Equal((InitialLoad.Kind, "queued"), (ClaudeBudget.Status(db).Task!.Kind, ClaudeBudget.Status(db).Task!.Status));
+        Assert.Equal(load, ClaudeBudget.RunNow(db)); // no encola otra
+
+        using (var c = db.Open()) c.Execute("UPDATE task SET status = 'done'");
+        now = Local(0, days: 1).AddMinutes(1);
+        var night = ClaudeBudget.AutoStart(db);
+        Assert.NotNull(night);
+        Assert.NotEqual(load, night);
+        using (var c = db.Open()) c.Execute("UPDATE task SET status = 'done'");
+        now = now.AddHours(2);
+        Assert.Null(ClaudeBudget.AutoStart(db)); // ya se lanzó esta noche
+        now = now.AddDays(1);
+        Assert.NotNull(ClaudeBudget.AutoStart(db));
     }
 
     /// <summary>F2.2: la cola devuelve la tarea a la espera con su punto de control y no le cuenta el intento.</summary>

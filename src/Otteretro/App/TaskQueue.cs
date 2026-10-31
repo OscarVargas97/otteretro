@@ -41,6 +41,9 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
 
     public TimeSpan Poll { get; init; } = TimeSpan.FromSeconds(2);
 
+    /// <summary>Lanza la carga de Claude al empezar su horario (F2.9). Las pruebas lo apagan para no depender de la hora.</summary>
+    public static bool AutoClaude { get; set; } = true;
+
     /// <summary>
     /// Espera antes de cada reintento de un error pasajero (#59): se corta la red, vence el tiempo, o la fuente responde 429 o 5xx.
     /// La tarea vuelve a la cola con su punto de control; pasados estos intentos sin avanzar, queda en error.
@@ -91,6 +94,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
                         using (var c = db.Open()) c.Execute("UPDATE task SET status = 'queued' WHERE status = 'running'");
                         recovered = db.FilePath;
                     }
+                    if (AutoClaude) Claude.ClaudeBudget.AutoStart(db);
                     StartPending(db, ct);
                 }
             }

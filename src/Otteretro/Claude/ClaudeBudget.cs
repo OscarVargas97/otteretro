@@ -23,11 +23,17 @@ public sealed class ClaudePausedException(DateTime until, ApiError reason) : Exc
 /// </summary>
 /// <param name="PausedUntil">Hasta cuándo espera por el límite de la suscripción (null = no espera).</param>
 /// <param name="RunNowUntil">Hasta cuándo vale «Ejecutar ahora».</param>
-public record ClaudeStatus(string ScheduleStart, string ScheduleEnd, int WindowShare, string? PausedUntil, string? RunNowUntil, bool InSchedule, List<UsageRow> Usage);
+/// <param name="Capped">Si «Ejecutar ahora» para en <see cref="WindowShare"/> (F2.9); si no, usa la ventana entera.</param>
+/// <param name="Task">La tarea de Claude pendiente o corriendo, si hay.</param>
+public record ClaudeStatus(string ScheduleStart, string ScheduleEnd, int WindowShare, bool Capped, string? PausedUntil, string? RunNowUntil, bool InSchedule, ClaudeTask? Task, List<UsageRow> Usage);
+
+/// <param name="Status">queued o running.</param>
+/// <param name="ResumeAt">Si espera, hasta cuándo.</param>
+public record ClaudeTask(long Id, string Kind, string Status, long Progress, string? ResumeAt);
 
 public record UsageRow(string Prompt, string? Model, long DurationMs, string Result, long InputTokens, long OutputTokens, double CostUsd, string CreatedAt);
 
-public record ClaudeSettingsRequest(string? ScheduleStart, string? ScheduleEnd, int? WindowShare);
+public record ClaudeSettingsRequest(string? ScheduleStart, string? ScheduleEnd, int? WindowShare, bool? Capped = null);
 
 public static partial class ClaudeBudget
 {
@@ -36,9 +42,9 @@ public static partial class ClaudeBudget
     public static readonly TimeSpan Window = TimeSpan.FromHours(5);
 
     // Ajustes (tabla `setting`, globales). Los valores por defecto valen mientras no se cambian en Ajustes › Claude.
-    public const string ScheduleStart = "claude.scheduleStart", ScheduleEnd = "claude.scheduleEnd", WindowShare = "claude.windowShare";
+    public const string ScheduleStart = "claude.scheduleStart", ScheduleEnd = "claude.scheduleEnd", WindowShare = "claude.windowShare", Capped = "claude.capped";
     // Estado que lleva la app.
-    const string WindowStart = "claude.windowStart", WindowCost = "claude.windowCost", PausedUntil = "claude.pausedUntil", RunNowUntil = "claude.runNowUntil";
+    const string WindowStart = "claude.windowStart", WindowCost = "claude.windowCost", PausedUntil = "claude.pausedUntil", RunNowUntil = "claude.runNowUntil", LastAuto = "claude.lastAuto";
 
     /// <summary>Antes de cada llamada: lanza <see cref="ClaudePausedException"/> si ahora no se puede.</summary>
     public static void Check(Database db)
@@ -65,10 +71,10 @@ public static partial class ClaudeBudget
             Set(c, WindowStart, now.ToString("O"));
             return;
         }
-        // Tope: solo de día, con «Ejecutar ahora» (#157); de noche se usa la ventana entera. Y solo cuando ya se sabe cuánto
-        // entra en una ventana (se aprende al tocar el límite).
+        // Tope: solo de día, con «Ejecutar ahora» y si está marcado (#157, F2.9); de noche se usa la ventana entera. Y solo
+        // cuando ya se sabe cuánto entra en una ventana (se aprende al tocar el límite).
         // ponytail: se mide lo que gasta Otteretro; tus sesiones de Claude Code en la misma ventana no se ven.
-        if (!inSchedule && Number(s, WindowCost) is { } capacity && capacity > 0)
+        if (!inSchedule && IsCapped(s) && Number(s, WindowCost) is { } capacity && capacity > 0)
         {
             var used = c.ExecuteScalar<double>("SELECT COALESCE(SUM(cost_usd), 0) FROM claude_usage WHERE created_at >= @from",
                 new { from = start.Value.ToString("O") });
@@ -118,9 +124,21 @@ public static partial class ClaudeBudget
                    output_tokens AS OutputTokens, cost_usd AS CostUsd, created_at AS CreatedAt
             FROM claude_usage ORDER BY id DESC LIMIT 50
             """).Select(u => new UsageRow(u.Prompt, u.Model, u.DurationMs, u.Result, u.InputTokens, u.OutputTokens, u.CostUsd, u.CreatedAt)).ToList();
-        return new ClaudeStatus(start.ToString("HH:mm"), end.ToString("HH:mm"), (int)(Number(s, WindowShare) ?? 50),
+        var task = c.QueryFirstOrDefault<TaskRead>($"""
+            SELECT id, kind, status, progress, resume_at AS ResumeAt FROM task WHERE {Pending} ORDER BY status = 'running' DESC, id LIMIT 1
+            """);
+        return new ClaudeStatus(start.ToString("HH:mm"), end.ToString("HH:mm"), (int)(Number(s, WindowShare) ?? 50), IsCapped(s),
             Date(s, PausedUntil) is { } p && p > now ? p.ToString("O") : null, Date(s, RunNowUntil) is { } r && r > now ? r.ToString("O") : null,
-            InSchedule(s, now), usage);
+            InSchedule(s, now), task is null ? null : new ClaudeTask(task.Id, task.Kind, task.Status, task.Progress, task.ResumeAt), usage);
+    }
+
+    sealed class TaskRead
+    {
+        public long Id { get; init; }
+        public string Kind { get; init; } = "";
+        public string Status { get; init; } = "";
+        public long Progress { get; init; }
+        public string? ResumeAt { get; init; }
     }
 
     sealed class UsageRead
@@ -145,22 +163,52 @@ public static partial class ClaudeBudget
         if (request.ScheduleStart is { } start) Set(c, ScheduleStart, start);
         if (request.ScheduleEnd is { } end) Set(c, ScheduleEnd, end);
         if (request.WindowShare is { } share) Set(c, WindowShare, share.ToString(CultureInfo.InvariantCulture));
+        if (request.Capped is { } capped) Set(c, Capped, capped ? "1" : "0");
         return null;
     }
 
-    /// <summary>«Ejecutar ahora»: salta el horario hasta que empiece el siguiente. El límite y el tope siguen valiendo.</summary>
-    public static DateTime RunNow(Database db)
+    // Las tareas de Claude que esperan o corren.
+    const string Pending = "kind LIKE 'claude.%' AND status IN ('queued', 'running')";
+
+    /// <summary>
+    /// «Ejecutar ahora» (F2.9): salta el horario hasta que empiece el siguiente y lanza ya la carga (o la tarea de Claude que
+    /// esperaba). El límite de la suscripción sigue valiendo; el tope, si está marcado. Devuelve el id de la tarea.
+    /// </summary>
+    public static long RunNow(Database db)
     {
         var now = UtcNow();
         using var c = db.Open();
-        var s = c.Query<(string Name, string Value)>("SELECT name, value FROM setting WHERE machine_id = '' AND name LIKE 'claude.%'")
-            .ToDictionary(r => r.Name, r => r.Value);
-        var until = NextScheduleStart(s, now);
-        Set(c, RunNowUntil, until.ToString("O"));
-        // Lo que esperaba el horario sale ya.
-        c.Execute("UPDATE task SET resume_at = NULL WHERE status = 'queued' AND kind LIKE 'claude.%' AND detail LIKE '%tasks.claude.schedule%'");
-        return until;
+        var s = Settings(c);
+        Set(c, RunNowUntil, NextScheduleStart(s, now).ToString("O"));
+        // Lo que esperaba el horario o el tope sale ya; lo que espera el límite, no.
+        c.Execute($"UPDATE task SET resume_at = NULL WHERE {Pending} AND status = 'queued' AND detail NOT LIKE '%tasks.claude.limit%'");
+        return Launch(c, db);
     }
+
+    /// <summary>
+    /// Al empezar el horario, una vez por noche: si no hay nada de Claude en la cola, encola la carga (F2.9). Lo que no cambió
+    /// se salta sin llamar a Claude, así que sin cambios termina en segundos. La cola lo llama en cada vuelta.
+    /// </summary>
+    public static long? AutoStart(Database db)
+    {
+        var now = UtcNow();
+        using var c = db.Open();
+        var s = Settings(c);
+        if (!InSchedule(s, now)) return null;
+        var opened = NextScheduleStart(s, now).AddDays(-1); // cuándo empezó este horario
+        if (Date(s, LastAuto) >= opened) return null;
+        Set(c, LastAuto, now.ToString("O"));
+        return Launch(c, db);
+    }
+
+    static long Launch(System.Data.IDbConnection c, Database db) =>
+        c.ExecuteScalar<long?>($"SELECT id FROM task WHERE {Pending} ORDER BY id LIMIT 1") ?? InitialLoad.Enqueue(db)!.Value;
+
+    static Dictionary<string, string> Settings(System.Data.IDbConnection c) =>
+        c.Query<(string Name, string Value)>("SELECT name, value FROM setting WHERE machine_id = '' AND name LIKE 'claude.%'")
+            .ToDictionary(r => r.Name, r => r.Value);
+
+    static bool IsCapped(Dictionary<string, string> s) => !s.TryGetValue(Capped, out var v) || v != "0";
 
     /// <summary>La hora de «resets …» en UTC: «8:10pm», «3pm» o con fecha, «Nov 3, 9am», en la zona que trae entre paréntesis.</summary>
     public static DateTime? ParseReset(string text, DateTime nowUtc)

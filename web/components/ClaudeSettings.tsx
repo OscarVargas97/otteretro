@@ -13,18 +13,22 @@ export function ClaudeSettings() {
   const describe = useDescribeError();
   const format = useFormatter();
   const cache = useQueryClient();
-  const status = useQuery({ queryKey: ["claude"], queryFn: () => request<ClaudeStatus>("/api/claude"), refetchInterval: 30_000 });
+  const status = useQuery({ queryKey: ["claude"], queryFn: () => request<ClaudeStatus>("/api/claude"), refetchInterval: 5_000 });
   const [form, setForm] = useState<ClaudeSettingsRequest | null>(null);
   useEffect(() => {
-    if (status.data && !form) setForm({ scheduleStart: status.data.scheduleStart, scheduleEnd: status.data.scheduleEnd, windowShare: Number(status.data.windowShare) });
+    if (status.data && !form) setForm({ scheduleStart: status.data.scheduleStart, scheduleEnd: status.data.scheduleEnd, windowShare: Number(status.data.windowShare), capped: status.data.capped });
   }, [status.data, form]);
   const done = (data: ClaudeStatus) => cache.setQueryData(["claude"], data);
   const save = useMutation({ mutationFn: (body: ClaudeSettingsRequest) => request<ClaudeStatus>("/api/claude", { method: "PUT", body: JSON.stringify(body) }), onSuccess: done });
-  const runNow = useMutation({ mutationFn: () => request<ClaudeStatus>("/api/claude/run-now", { method: "POST" }), onSuccess: done });
+  const runNow = useMutation({
+    mutationFn: () => request<ClaudeStatus>("/api/claude/run-now", { method: "POST" }),
+    onSuccess: (data) => { done(data); cache.invalidateQueries({ queryKey: ["tasks"] }); },
+  });
 
   if (!status.data || !form) return status.isError ? <p className="error" role="alert">{describe(status.error)}</p> : null;
   const s = status.data;
   const at = (iso: string) => format.dateTime(new Date(iso), { weekday: "long", hour: "2-digit", minute: "2-digit" });
+  const task = s.task;
 
   return (
     <div className="panel">
@@ -32,16 +36,20 @@ export function ClaudeSettings() {
         {s.pausedUntil ? t("paused", { at: at(s.pausedUntil) })
           : s.runNowUntil ? t("runNowUntil", { at: at(s.runNowUntil) })
             : s.inSchedule ? t("inSchedule") : t("outSchedule", { start: s.scheduleStart })}
+        {task && <> {task.status === "running" ? t("taskRunning", { id: Number(task.id), progress: Number(task.progress) })
+          : task.resumeAt ? t("taskWaiting", { id: Number(task.id), at: at(task.resumeAt) })
+            : t("taskQueued", { id: Number(task.id) })}</>}
       </p>
       <form className="chips" style={{ alignItems: "end" }} onSubmit={(e) => { e.preventDefault(); save.mutate(form); }}>
         <label className="small" style={{ display: "grid", gap: 4 }}>{t("from")}<input type="time" value={form.scheduleStart ?? ""} onChange={(e) => setForm({ ...form, scheduleStart: e.target.value })} /></label>
         <label className="small" style={{ display: "grid", gap: 4 }}>{t("to")}<input type="time" value={form.scheduleEnd ?? ""} onChange={(e) => setForm({ ...form, scheduleEnd: e.target.value })} /></label>
-        <label className="small" style={{ display: "grid", gap: 4 }}>{t("share")}<input type="number" min={10} max={100} value={Number(form.windowShare ?? 50)} onChange={(e) => setForm({ ...form, windowShare: Number(e.target.value) })} /></label>
+        <label className="small" style={{ display: "flex", gap: 6, alignItems: "center" }}><input type="checkbox" checked={form.capped ?? true} onChange={(e) => setForm({ ...form, capped: e.target.checked })} />{t("capped")}</label>
+        <label className="small" style={{ display: "grid", gap: 4 }}>{t("share")}<input type="number" min={10} max={100} disabled={form.capped === false} value={Number(form.windowShare ?? 50)} onChange={(e) => setForm({ ...form, windowShare: Number(e.target.value) })} /></label>
         <button className="ot-btn" type="submit" disabled={save.isPending}>{t("save")}</button>
         {save.isSuccess && <span className="small muted">{t("saved")}</span>}
       </form>
       <div className="hero-actions">
-        <button className="ot-btn ot-btn-primary" type="button" disabled={runNow.isPending || s.inSchedule} onClick={() => runNow.mutate()}>{t("runNow")}</button>
+        <button className="ot-btn ot-btn-primary" type="button" disabled={runNow.isPending || task?.status === "running"} onClick={() => runNow.mutate()}>{t("runNow")}</button>
       </div>
       {(save.error || runNow.error) && <p className="error small" role="alert">{describe(save.error ?? runNow.error)}</p>}
       <b>{t("usage")}</b>

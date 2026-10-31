@@ -70,7 +70,7 @@ public static class CliMode
             [--contar]             Solo cuenta los casos y estima el gasto, sin llamar a Claude.
           catalogo deshacer <n>  Deshace el cambio n de Claude (el número sale en el registro).
           steam sincronizar      Lee lo que tienes en Steam (con sus horas) y lo enlaza con el catálogo; lo hace la app abierta.
-          claude ahora           Deja que Claude trabaje ya, fuera de su horario (00:00 a 08:00), hasta que empiece el siguiente.
+          claude ahora           Lanza ya la carga de Claude, fuera de su horario (00:00 a 08:00), hasta que empiece el siguiente.
           claude cargar          Carga inicial con Claude, por partes (Nintendo, Sony, Microsoft y PC): cada parte se depura
                                  y después Claude prepara rutas, icónico y mejor versión para que las apruebes. Dura días.
             [--parte X]            Solo una parte (nintendo, sony, microsoft o pc).
@@ -104,7 +104,7 @@ public static class CliMode
                 return Enqueue(output, db => [Catalog.Steam.EnqueueSync(db)]);
             case ["claude", "ahora"]:
                 return WithData(output, db =>
-                    output.WriteLine($"Claude puede trabajar hasta {Claude.ClaudeBudget.RunNow(db).ToLocalTime():g}; el límite de la suscripción y el tope por ventana siguen valiendo."));
+                    output.WriteLine($"Claude corre ya (tarea {Claude.ClaudeBudget.RunNow(db)}) hasta que empiece su horario; el límite de la suscripción y el tope, si está marcado, siguen valiendo."));
             case ["claude", "cargar", .. var load] when load is [] or ["--parte", _]:
                 return WithData(output, db =>
                 {
