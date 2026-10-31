@@ -58,3 +58,13 @@ CREATE TABLE claude_usage (
     created_at            TEXT NOT NULL
 );
 CREATE INDEX claude_usage_created ON claude_usage (created_at);
+
+-- Huella de los datos con los que se pidió cada resultado (F2.4): si no cambió, no se vuelve a pedir a Claude.
+-- key: de qué es el resultado («saga:12»). Borrar la fila = «recalcular».
+CREATE TABLE claude_fingerprint (
+    prompt     TEXT NOT NULL,
+    key        TEXT NOT NULL,
+    input_hash TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (prompt, key)
+);

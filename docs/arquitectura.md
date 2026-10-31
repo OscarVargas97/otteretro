@@ -118,6 +118,7 @@ Tablas principales. `id` entero salvo donde se indica. Tablas, columnas y valore
 | | `review_item` | id, kind (doubtful/unidentified/pending_approval), entity, entity_id, data, status (open/approved/rejected), created_at |
 | | `learning` | id, kind (alias/rule/recipe/route), content, created_at, undone |
 | | `claude_usage` | id, task_id, prompt, model, duration_ms, result (ok/invalid/failed/limit), input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, created_at: una fila por llamada (`Claude/ClaudeRunner.cs`) |
+| | `claude_fingerprint` | prompt, key, input_hash, updated_at: huella de las entradas de cada resultado de Claude (`Claude/ClaudeFingerprint.cs`, F2.4) |
 | Caché | `api_cache` | key, response, expires_at |
 
 - Las respuestas de IGDB y demás fuentes se guardan en `api_cache`, para no repetir llamadas y respetar sus límites.

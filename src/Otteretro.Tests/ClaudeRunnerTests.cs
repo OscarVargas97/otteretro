@@ -290,3 +290,25 @@ public class ClaudeRunnerTests : IDisposable
         Assert.Equal(("queued", "lote 2", until.ToString("O"), 0L), row);
     }
 }
+
+public class ClaudeFingerprintTests
+{
+    /// <summary>Listo cuando de F2.4: sin cambios no se pide; con un cambio, sí; «recalcular» lo vuelve a pedir.</summary>
+    [Fact]
+    public async Task OnlyChangedDataGoesToClaude()
+    {
+        await using var f = new Fixture();
+        var zelda = new { saga = "Zelda", games = new[] { "Ocarina of Time", "Majora's Mask" } };
+
+        Assert.True(ClaudeFingerprint.Changed(f.Db, "depurar", "saga:1", zelda));
+        ClaudeFingerprint.Save(f.Db, "depurar", "saga:1", zelda);
+        Assert.False(ClaudeFingerprint.Changed(f.Db, "depurar", "saga:1", zelda));
+        Assert.True(ClaudeFingerprint.Changed(f.Db, "ruta-saga", "saga:1", zelda)); // cada prompt lleva la suya
+
+        var more = new { saga = "Zelda", games = new[] { "Ocarina of Time", "Majora's Mask", "Echoes of Wisdom" } };
+        Assert.True(ClaudeFingerprint.Changed(f.Db, "depurar", "saga:1", more));
+
+        ClaudeFingerprint.Forget(f.Db, "depurar");
+        Assert.True(ClaudeFingerprint.Changed(f.Db, "depurar", "saga:1", zelda));
+    }
+}
