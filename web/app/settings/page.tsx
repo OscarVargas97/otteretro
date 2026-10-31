@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { ClaudeSettings } from "@/components/ClaudeSettings";
+import { ConsoleSettings } from "@/components/ConsoleSettings";
 import { CredentialsSettings } from "@/components/Credentials";
 import { DataFolderSettings } from "@/components/DataFolder";
 import { LanguagePicker } from "@/components/LanguagePicker";
@@ -20,6 +21,10 @@ export default function Settings() {
       <section className="sec">
         <div className="sec-h"><h2>{t("credentials")}</h2></div>
         <CredentialsSettings />
+      </section>
+      <section className="sec">
+        <div className="sec-h"><h2>{t("consoles.title")}</h2></div>
+        <ConsoleSettings />
       </section>
       <section className="sec">
         <div className="sec-h"><h2>{t("claude.title")}</h2></div>

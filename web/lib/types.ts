@@ -35,3 +35,6 @@ export type VersionCompare = Schemas["VersionCompare"];
 export type NextGame = Schemas["NextGame"];
 export type ClaudeStatus = Schemas["ClaudeStatus"];
 export type ClaudeSettingsRequest = Schemas["ClaudeSettingsRequest"];
+export type ConsolesPage = Schemas["ConsolesPage"];
+export type ConsoleInfo = Schemas["ConsoleInfo"];
+export type PlatformInfo = Schemas["PlatformInfo"];

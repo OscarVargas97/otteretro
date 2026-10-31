@@ -5,7 +5,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
-import type { ClaudeSettingsRequest, ClaudeStatus } from "@/lib/types";
+import type { ClaudeSettingsRequest, ClaudeStatus, ConsolesPage } from "@/lib/types";
 
 /** Ajustes › Claude (§10): horario, tope de día, «Ejecutar ahora» y el registro de uso (§11.4). */
 export function ClaudeSettings() {
@@ -13,8 +13,14 @@ export function ClaudeSettings() {
   const describe = useDescribeError();
   const format = useFormatter();
   const cache = useQueryClient();
-  const status = useQuery({ queryKey: ["claude"], queryFn: () => request<ClaudeStatus>("/api/claude"), refetchInterval: 5_000 });
+  const status = useQuery({ queryKey: ["claude"], queryFn: () => request<ClaudeStatus>("/api/claude"), refetchInterval: (q) => (q.state.data?.task ? 5_000 : 30_000) });
   const [form, setForm] = useState<ClaudeSettingsRequest | null>(null);
+  const [platform, setPlatform] = useState("");
+  const consoles = useQuery({ queryKey: ["consoles", "settings"], queryFn: () => request<ConsolesPage>("/api/consoles/settings") });
+  const iconic = useMutation({
+    mutationFn: () => request<number>(`/api/claude/iconic${platform ? `?console=${encodeURIComponent(platform)}` : ""}`, { method: "POST" }),
+    onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
+  });
   useEffect(() => {
     if (status.data && !form) setForm({ scheduleStart: status.data.scheduleStart, scheduleEnd: status.data.scheduleEnd, windowShare: Number(status.data.windowShare), capped: status.data.capped });
   }, [status.data, form]);
@@ -50,6 +56,15 @@ export function ClaudeSettings() {
       </form>
       <div className="hero-actions">
         <button className="ot-btn ot-btn-primary" type="button" disabled={runNow.isPending || task?.status === "running"} onClick={() => runNow.mutate()}>{t("runNow")}</button>
+      </div>
+      <div className="chips" style={{ alignItems: "center" }}>
+        <select aria-label={t("iconic")} value={platform} onChange={(e) => setPlatform(e.target.value)}>
+          <option value="">{t("iconicAll")}</option>
+          {consoles.data?.consoles.filter((c) => Number(c.games) > 0).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <button className="ot-btn" type="button" disabled={iconic.isPending} onClick={() => iconic.mutate()}>{t("iconic")}</button>
+        {iconic.isSuccess && <span className="small muted">{t("iconicQueued")}</span>}
+        {iconic.isError && <span className="small muted">{t("iconicNone")}</span>}
       </div>
       {(save.error || runNow.error) && <p className="error small" role="alert">{describe(save.error ?? runNow.error)}</p>}
       <b>{t("usage")}</b>

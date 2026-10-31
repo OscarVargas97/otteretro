@@ -38,6 +38,28 @@ public static class CatalogEndpoints
         api.MapGet("/consoles", Results<Ok<List<ConsoleCount>>, Conflict<ApiError>> (AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(CatalogQueries.Consoles(db)) : NoData());
 
+        // Ajustes › Consolas (F2.13, F2.14): habilitar consolas desde IGDB y el catálogo al día.
+        api.MapGet("/consoles/settings", Results<Ok<ConsolesPage>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(Consoles.Page(db)) : NoData());
+        api.MapGet("/consoles/igdb", async Task<Results<Ok<List<PlatformInfo>>, Conflict<ApiError>>> (AppSession s, SecretBox box, CancellationToken ct) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            try { return TypedResults.Ok(await Consoles.Available(db, IgdbFor(db, s, box), ct)); }
+            catch (TaskException e) { return TypedResults.Conflict(e.Error); }
+        });
+        api.MapPost("/consoles", async Task<Results<Ok<ConsolesPage>, NotFound, Conflict<ApiError>>> (EnableConsoleRequest request, AppSession s, SecretBox box, CancellationToken ct) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            try { return await Consoles.Enable(db, IgdbFor(db, s, box), request.IgdbId, ct) is null ? TypedResults.NotFound() : TypedResults.Ok(Consoles.Page(db)); }
+            catch (TaskException e) { return TypedResults.Conflict(e.Error); }
+        });
+        api.MapPut("/consoles/{id}", Results<Ok<ConsolesPage>, NotFound, Conflict<ApiError>> (string id, ConsoleUpdateRequest request, AppSession s) =>
+            Db(s) is not { } db ? NoData() : Consoles.SetEnabled(db, id, request.Enabled) ? TypedResults.Ok(Consoles.Page(db)) : TypedResults.NotFound());
+        api.MapPut("/catalog/refresh", Results<Ok<ConsolesPage>, BadRequest<ApiError>, Conflict<ApiError>> (RefreshSettingsRequest request, AppSession s) =>
+            Db(s) is not { } db ? NoData() : Consoles.SaveRefreshDays(db, request.Days) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(Consoles.Page(db)));
+        api.MapPost("/catalog/refresh", Results<Ok<long>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(IgdbImport.EnqueueRefresh(db)) : NoData());
+
         api.MapGet("/collection/{platform}", Results<Ok<CollectionPage>, NotFound, Conflict<ApiError>> (string platform, AppSession s, string? filter, string? sort) =>
         {
             if (Db(s) is not { } db) return NoData();
@@ -95,6 +117,9 @@ public static class CatalogEndpoints
                 .Select(k => ApiError.Of("notices.missingKey", ("service", k.Service))).ToList());
         });
     }
+
+    static Igdb IgdbFor(Database db, AppSession s, SecretBox box) =>
+        new(new ApiClient(db, IgdbImport.Handler), new Credentials(db, s.Config.MachineId, box), IgdbImport.Handler);
 
     internal static Database? Db(AppSession s) =>
         DataFolder.IsReady(s.Config.DataFolder) ? new Database(DataFolder.DatabasePath(s.Config.DataFolder!)) : null;

@@ -198,6 +198,7 @@ public static partial class ClaudeBudget
         var opened = NextScheduleStart(s, now).AddDays(-1); // cuándo empezó este horario
         if (Date(s, LastAuto) >= opened) return null;
         Set(c, LastAuto, now.ToString("O"));
+        Catalog.IgdbImport.RefreshIfDue(db, now); // F2.14: el catálogo al día, cada semana
         return Launch(c, db);
     }
 

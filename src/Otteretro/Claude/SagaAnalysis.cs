@@ -44,7 +44,8 @@ public static class SagaAnalysis
     public record Translation(long GameId, string Text);
     public record TranslateReply(List<Translation> Games);
 
-    record Job(List<long> Pending, int Total);
+    /// <param name="Prompts">Solo estos prompts (null = todos), como «Reevaluar icónicas» (F2.15).</param>
+    record Job(List<long> Pending, int Total, List<string>? Prompts = null);
 
     record Version(long Id, long GameId, string Platform, string Kind, long? Year);
     record Game(long Id, long SagaId, string Name, long? Year, List<Version> Versions, string? Summary);
@@ -58,6 +59,24 @@ public static class SagaAnalysis
     {
         var ids = sagaIds?.ToList();
         return TaskQueue.Enqueue(db, Kind, ids is null ? null : JsonSerializer.Serialize(new Job(ids, ids.Count), JsonSerializerOptions.Web));
+    }
+
+    /// <summary>
+    /// «Reevaluar sagas icónicas» (F2.15, #85): olvida lo que Claude dijo de lo icónico de esas sagas (todas, o las que tienen
+    /// juegos en esa consola) y encola solo ese prompt. Null si la consola no tiene sagas.
+    /// </summary>
+    public static long? EnqueueIconic(Database db, string? console = null)
+    {
+        List<long> ids;
+        if (console is null) ids = Start(db, null).Pending;
+        else
+            using (var c = db.Open())
+                ids = c.Query<long>("""
+                    SELECT DISTINCT g.saga_id FROM game g JOIN version v ON v.game_id = g.id WHERE v.platform = @console AND g.saga_id IS NOT NULL
+                    """, new { console }).ToList();
+        if (ids.Count == 0) return null;
+        foreach (var id in ids) ClaudeFingerprint.Forget(db, Iconic, $"saga:{id}");
+        return TaskQueue.Enqueue(db, Kind, JsonSerializer.Serialize(new Job(ids, ids.Count, [Iconic]), JsonSerializerOptions.Web));
     }
 
     public static Task Run(TaskRun run, CancellationToken ct) =>
@@ -75,11 +94,12 @@ public static class SagaAnalysis
             var games = sagas.SelectMany(s => s.Games).ToList();
             var multi = games.Where(g => g.Versions.Count > 1).ToList(); // con una sola versión no hay nada que comparar
 
-            await Step<Saga, RoutesReply>(run, Routes, "sonnet", 3, sagas.Where(s => s.Games.Count > 1), s => $"saga:{s.Id}", SagaInput, RouteItems, ct);
-            await Step<Saga, IconicReply>(run, Iconic, "sonnet", 20, sagas, s => $"saga:{s.Id}", SagaInput, IconicItems, ct);
-            await Step<Game, BestReply>(run, BestVersion, "sonnet", 30, multi, g => $"game:{g.Id}", VersionInput, BestItems, ct);
-            await Step<Game, ClassifyReply>(run, Classify, "haiku", 50, multi, g => $"game:{g.Id}", VersionInput, ClassifyItems, ct);
-            await Step<Game, TranslateReply>(run, Translate, "haiku", 30, games.Where(g => g.Summary is not null), g => $"game:{g.Id}",
+            bool Wants(string prompt) => job.Prompts is null || job.Prompts.Contains(prompt);
+            if (Wants(Routes)) await Step<Saga, RoutesReply>(run, Routes, "sonnet", 3, sagas.Where(s => s.Games.Count > 1), s => $"saga:{s.Id}", SagaInput, RouteItems, ct);
+            if (Wants(Iconic)) await Step<Saga, IconicReply>(run, Iconic, "sonnet", 20, sagas, s => $"saga:{s.Id}", SagaInput, IconicItems, ct);
+            if (Wants(BestVersion)) await Step<Game, BestReply>(run, BestVersion, "sonnet", 30, multi, g => $"game:{g.Id}", VersionInput, BestItems, ct);
+            if (Wants(Classify)) await Step<Game, ClassifyReply>(run, Classify, "haiku", 50, multi, g => $"game:{g.Id}", VersionInput, ClassifyItems, ct);
+            if (Wants(Translate)) await Step<Game, TranslateReply>(run, Translate, "haiku", 30, games.Where(g => g.Summary is not null), g => $"game:{g.Id}",
                 g => new { id = g.Id, name = g.Name, summary = g.Summary }, TranslateItems, ct);
 
             job = job with { Pending = job.Pending.Skip(chunk.Count).ToList() };

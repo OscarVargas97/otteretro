@@ -110,7 +110,28 @@
       "result": "Result",
       "tokens": "Tokens",
       "date": "Date",
-      "noUsage": "Claude hasn't been used yet."
+      "noUsage": "Claude hasn't been used yet.",
+      "iconic": "Re-evaluate iconic sagas",
+      "iconicAll": "Whole catalog",
+      "iconicQueued": "Queued: results go to Review.",
+      "iconicNone": "That console has no sagas."
+    },
+    "consoles": {
+      "title": "Consoles",
+      "help": "The consoles that are loaded and kept up to date. Disabling one does not delete its games.",
+      "games": "{count} games",
+      "refreshedAt": "up to date on {at}",
+      "never": "not loaded",
+      "enabled": "Enabled",
+      "add": "Add console",
+      "search": "Search IGDB",
+      "enable": "Enable",
+      "already": "Already added",
+      "refreshEvery": "Update every (days)",
+      "save": "Save",
+      "refreshNow": "Update now",
+      "lastRefresh": "Last update: {at}",
+      "queued": "Queued."
     }
   },
   "dataFolder": {
@@ -229,7 +250,8 @@
         "pcBySaga": "PC has too many games to load at once: it is loaded by saga.",
         "unknownPlatform": "“{platform}” is not one of the catalog consoles.",
         "steam": "{done} of {total} Steam games",
-        "popular": "Popular PC games: {done} of {total}"
+        "popular": "Popular PC games: {done} of {total}",
+        "refresh": "Up to date: {done} of {total} consoles ({platform})"
       },
       "sgdb": {
         "images": "{done} of {total} games",
@@ -280,7 +302,8 @@
           "traducir-descripcion": "Left {count} translated descriptions in Review."
         },
         "images": "{game}: downloaded {kinds} ({kb} KB).",
-        "noImages": "{game}: no images found."
+        "noImages": "{game}: no images found.",
+        "refresh": "{platform}: {count} new or changed games."
       }
     },
     "progress": {
@@ -298,6 +321,9 @@
       "badShare": "The cap goes from 10 to 100%.",
       "badNote": "Write what is wrong (up to 500 characters).",
       "noLearning": "That change no longer exists or cannot be corrected."
+    },
+    "catalog": {
+      "badRefreshDays": "Days go from 1 to 365."
     }
   },
   "credentials": {
@@ -357,7 +383,8 @@
         "saga": "Load a saga from IGDB",
         "platform": "Load a console from IGDB",
         "steam": "Find your Steam games on IGDB",
-        "popular": "Load popular PC games from IGDB"
+        "popular": "Load popular PC games from IGDB",
+        "refresh": "Update the catalog from IGDB"
       },
       "sgdb": {
         "images": "Download covers from SteamGridDB",

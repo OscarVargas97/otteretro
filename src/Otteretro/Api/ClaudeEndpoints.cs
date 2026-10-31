@@ -34,6 +34,10 @@ public static class ClaudeEndpoints
             Db(s) is not { } db ? NoData() : ClaudeReview.Choose(db, id, request.RouteId) ? TypedResults.Ok(ClaudeReview.Routes(db, id)) : TypedResults.NotFound());
 
         // Pedir a Claude que recalcule la saga: olvida sus huellas y la encola.
+        // «Reevaluar sagas icónicas» (F2.15): de todo el catálogo o de una consola (?console=).
+        api.MapPost("/claude/iconic", Results<Ok<long>, NotFound, Conflict<ApiError>> (AppSession s, string? console) =>
+            Db(s) is not { } db ? NoData() : SagaAnalysis.EnqueueIconic(db, console) is { } id ? TypedResults.Ok(id) : TypedResults.NotFound());
+
         api.MapPost("/sagas/{id:long}/recalculate", Results<Ok<long>, Conflict<ApiError>> (long id, AppSession s) =>
         {
             if (Db(s) is not { } db) return NoData();

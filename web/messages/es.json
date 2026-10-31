@@ -110,7 +110,28 @@
       "result": "Resultado",
       "tokens": "Tokens",
       "date": "Fecha",
-      "noUsage": "Claude todavía no se usó."
+      "noUsage": "Claude todavía no se usó.",
+      "iconic": "Reevaluar sagas icónicas",
+      "iconicAll": "Todo el catálogo",
+      "iconicQueued": "Encolada: los resultados quedan en Revisar.",
+      "iconicNone": "Esa consola no tiene sagas."
+    },
+    "consoles": {
+      "title": "Consolas",
+      "help": "Las consolas que se cargan y se mantienen al día. Deshabilitar una no borra sus juegos.",
+      "games": "{count} juegos",
+      "refreshedAt": "al día al {at}",
+      "never": "sin cargar",
+      "enabled": "Habilitada",
+      "add": "Agregar consola",
+      "search": "Buscar en IGDB",
+      "enable": "Habilitar",
+      "already": "Ya está",
+      "refreshEvery": "Actualizar cada (días)",
+      "save": "Guardar",
+      "refreshNow": "Actualizar ahora",
+      "lastRefresh": "Última actualización: {at}",
+      "queued": "En la cola de tareas."
     }
   },
   "dataFolder": {
@@ -229,7 +250,8 @@
         "pcBySaga": "PC tiene demasiados juegos para cargarlos de una vez: se cargan por saga.",
         "unknownPlatform": "«{platform}» no es una de las consolas del catálogo.",
         "steam": "{done} de {total} juegos de Steam",
-        "popular": "PC populares: {done} de {total} juegos"
+        "popular": "PC populares: {done} de {total} juegos",
+        "refresh": "Al día: {done} de {total} consolas ({platform})"
       },
       "sgdb": {
         "images": "{done} de {total} juegos",
@@ -280,7 +302,8 @@
           "traducir-descripcion": "Dejó {count} descripciones traducidas en Revisar."
         },
         "images": "{game}: bajó {kinds} ({kb} KB).",
-        "noImages": "{game}: no encontró imágenes."
+        "noImages": "{game}: no encontró imágenes.",
+        "refresh": "{platform}: {count} juegos nuevos o cambiados."
       }
     },
     "progress": {
@@ -298,6 +321,9 @@
       "badShare": "El tope va de 10 a 100 %.",
       "badNote": "Escribe qué está mal (hasta 500 caracteres).",
       "noLearning": "Ese cambio ya no existe o no se puede corregir."
+    },
+    "catalog": {
+      "badRefreshDays": "Los días van de 1 a 365."
     }
   },
   "credentials": {
@@ -357,7 +383,8 @@
         "saga": "Cargar una saga de IGDB",
         "platform": "Cargar una consola de IGDB",
         "steam": "Buscar en IGDB tus juegos de Steam",
-        "popular": "Cargar los juegos de PC populares de IGDB"
+        "popular": "Cargar los juegos de PC populares de IGDB",
+        "refresh": "Actualizar el catálogo desde IGDB"
       },
       "sgdb": {
         "images": "Bajar portadas de SteamGridDB",

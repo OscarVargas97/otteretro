@@ -434,3 +434,18 @@ test("Aprendizajes: cada cambio en claro, filtros y corregir con una nota para C
   await expectNoRawKeys();
   await page.screenshot({ path: "e2e-results/16-aprendizajes-es.png", fullPage: true });
 });
+
+test("Ajustes: consolas habilitadas, al día y reevaluar icónicas", async () => {
+  await page.goto(`${base()}/settings/`);
+  await expect(page.getByRole("heading", { level: 2, name: es.settings.consoles.title })).toBeVisible();
+  const vb = page.getByRole("checkbox", { name: /Virtual Boy/ });
+  await expect(vb).toBeChecked();
+  await vb.click(); // cambia cuando responde la API
+  await expect(vb).not.toBeChecked();
+  await vb.click();
+  await expect(vb).toBeChecked();
+  await expect(page.getByRole("button", { name: es.settings.consoles.refreshNow })).toBeVisible();
+  await expect(page.getByRole("button", { name: es.settings.claude.iconic })).toBeVisible();
+  await expectNoRawKeys();
+  await page.screenshot({ path: "e2e-results/17-consolas-es.png", fullPage: true });
+});

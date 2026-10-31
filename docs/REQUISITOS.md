@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-31, con la #161 (corregir lo que cambió Claude), la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
+> **Última actualización:** 2026-10-31, con la #162, la #163 y la #164 (consolas que habilitas tú, catálogo al día cada semana y reevaluar icónicas), la #161 (corregir lo que cambió Claude), la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
 
 ## Cómo se mantiene
 
@@ -57,7 +57,7 @@ Otteretro es una app **personal** para:
 
 ## 4. Consolas ✅
 
-**Incluidas: 24 sistemas** (Switch 2 desde la #152).
+**Incluidas: 24 sistemas** (Switch 2 desde la #152), y las que habilites tú (#162).
 
 | Empresa | Sistemas |
 |---|---|
@@ -70,6 +70,8 @@ Otteretro es una app **personal** para:
 - Los add-ons van dentro de su consola base y las variantes, junto con su consola.
 - Las consolas sin emulación también se catalogan.
 - El estado de la emulación es un dato que se actualiza, no un valor fijo.
+- **Sumar consolas** (#162): en Ajustes › Consolas se agrega cualquier plataforma de IGDB, una a la vez, y al habilitarla se cargan sus juegos. Una consola deshabilitada no se carga ni se pone al día.
+- **Juegos nuevos** (#163): cada semana (editable) la app trae de IGDB lo nuevo o cambiado de las consolas habilitadas.
 - Un juego va a la saga de su colección de IGDB cuando esa colección no lleva el nombre de su franquicia: Counter-Strike tiene su propia saga aunque IGDB lo ponga en Half-Life (#153).
 - Un juego de una saga sin ninguna de estas consolas (Game & Watch, CD-i, Satellaview…) se muestra en la saga atenuado, con «Sin consola en Otteretro», y no cuenta para la colección (#152).
 

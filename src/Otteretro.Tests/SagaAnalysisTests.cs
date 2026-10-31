@@ -68,6 +68,19 @@ public class SagaAnalysisTests : IAsyncDisposable
             """).ToList();
     }
 
+    /// <summary>F2.15: reevaluar lo icónico (de todo o de una consola) solo le pregunta eso a Claude, aunque nada haya cambiado.</summary>
+    [Fact]
+    public async Task ReevaluatingIconicAsksOnlyThat()
+    {
+        Fake();
+        Assert.Null(SagaAnalysis.EnqueueIconic(f.Db, "ps2")); // sin sagas en esa consola
+        Assert.Equal("done", (await f.Run(SagaAnalysis.EnqueueIconic(f.Db, "n64")!.Value)).Status);
+        Assert.Single(calls);
+        Assert.Contains("iconic", calls[0]);
+        Assert.Equal("done", (await f.Run(SagaAnalysis.EnqueueIconic(f.Db)!.Value)).Status);
+        Assert.Equal(2, calls.Count); // otra vez, aunque los datos no cambiaron
+    }
+
     [Fact]
     public async Task EachPromptSavesItsResultForReview()
     {

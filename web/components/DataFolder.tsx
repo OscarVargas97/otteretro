@@ -60,7 +60,8 @@ export function DataFolderSettings() {
   const move = useMutation({
     mutationFn: (body: FolderRequest) => request<MoveState>("/api/data-folder/move", { method: "POST", body: JSON.stringify(body) }),
     onSuccess: (state) => {
-      cache.setQueryData(["move"], state);
+      // El aviso de fin por SSE puede llegar antes que esta respuesta: no se pisa con el «empezó».
+      cache.setQueryData<MoveState>(["move"], (old) => (old && !old.running && old.destination === state.destination ? old : state));
       setMode(null);
     },
   });
