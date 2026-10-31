@@ -2,6 +2,15 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
+## Claude ordena el catálogo · en revisión
+
+`fase/f2-claude`
+
+### Nuevo
+- **Claude revisa las sagas dudosas y las ordena solo**: une fichas repetidas del mismo juego, pone en su saga los juegos sueltos que son de ella, separa sub-sagas (como Tingle) y corrige nombres. Primero tus sagas. Se lanza con `otteretro catalogo depurar`; con `--contar` dice cuántos casos hay y cuánto gastaría, sin llamar a Claude. Cada cambio se puede deshacer con `otteretro catalogo deshacer <n>`.
+- **Claude trabaja de noche, sin quitarte cuota**: de 00:00 a 08:00 usa la ventana entera; si llega al límite de la suscripción, espera y sigue solo. De día corre solo si lo pides con `otteretro claude ahora`, y ahí se queda en la mitad de cada ventana.
+- **No paga dos veces**: lo que Claude ya revisó no se vuelve a pedir mientras sus datos no cambien.
+
 ## Portadas que no se cortan · en revisión
 
 `fix/78-sgdb-respuesta-vacia`
