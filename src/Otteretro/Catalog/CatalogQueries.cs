@@ -5,8 +5,10 @@ using Otteretro.Data;
 namespace Otteretro.Catalog;
 
 /// <param name="Id">0 = «Emulación», los juegos sin saga (§6.2).</param>
+/// <param name="Exclusive">La empresa de la que es exclusiva: todas sus versiones de consola son de ella; PC no cuenta (#165).</param>
+/// <param name="Popularity">Calificaciones en IGDB de sus juegos (en la consola filtrada, si hay): «más reconocidas» (#166).</param>
 public record SagaCard(long Id, string Name, bool Favorite, bool Following, bool Iconic, string[] Platforms, int Games, int Owned,
-    long? CoverGameId, long Playtime, string? LastPlayed);
+    long? CoverGameId, long Playtime, string? LastPlayed, string? Exclusive, long Popularity);
 
 /// <param name="Stores">Tiendas donde lo tienes (por ahora, steam).</param>
 /// <param name="Playtime">Minutos jugados según las tiendas.</param>
@@ -14,7 +16,8 @@ public record GameCard(long Id, string Name, int? Year, string[] Platforms, bool
     long? SagaId, string? SagaName, string[] Stores);
 
 public record SagaDetail(SagaCard Saga, List<GameCard> Games);
-public record ConsoleCount(string Id, string Name, string? Company, int Games, int Owned);
+/// <param name="WithPc">Juegos de la consola que también tienen versión de PC (el filtro «Versión PC» de Colección).</param>
+public record ConsoleCount(string Id, string Name, string? Company, int Games, int Owned, int WithPc);
 
 /// <param name="Unlinked">Lo que tienes en una tienda y todavía no está en el catálogo (solo en PC): aparece igual.</param>
 public record CollectionPage(List<GameCard> Games, List<StoreEntry> Unlinked);
@@ -80,13 +83,12 @@ public static class CatalogQueries
         FROM game g LEFT JOIN saga s ON s.id = g.saga_id LEFT JOIN progress p ON p.game_id = g.id
         """;
 
-    /// <summary>Orden de las consolas (el de la semilla) para mostrar las plataformas siempre igual.</summary>
-    static string[] Ordered(SqliteConnection c, string? csv)
-    {
-        if (string.IsNullOrEmpty(csv)) return [];
-        var order = c.Query<string>("SELECT id FROM console ORDER BY rowid").Select((id, i) => (id, i)).ToDictionary(x => x.id, x => x.i);
-        return csv.Split(',').OrderBy(p => order.GetValueOrDefault(p, int.MaxValue)).ToArray();
-    }
+    /// <summary>Orden de las consolas (el de la semilla), para mostrar las plataformas siempre igual. Se lee una vez por consulta.</summary>
+    static Dictionary<string, int> ConsoleOrder(SqliteConnection c) =>
+        c.Query<string>("SELECT id FROM console ORDER BY rowid").Select((id, i) => (id, i)).ToDictionary(x => x.id, x => x.i);
+
+    static string[] Ordered(Dictionary<string, int> order, string? csv) =>
+        string.IsNullOrEmpty(csv) ? [] : csv.Split(',').OrderBy(p => order.GetValueOrDefault(p, int.MaxValue)).ToArray();
 
     internal static HashSet<long> Covers(Database db) =>
         Directory.Exists(SteamGridDb.Folder(db))
@@ -97,45 +99,62 @@ public static class CatalogQueries
     static List<GameCard> Games(Database db, SqliteConnection c, string where, object? args)
     {
         var covers = Covers(db);
+        var order = ConsoleOrder(c);
         return c.Query<GameRow>($"{GameSelect} {where}", args)
-            .Select(r => new GameCard(r.Id, r.Name, (int?)r.Year, Ordered(c, r.Platforms), r.Owned != 0, r.Status, r.Playtime,
+            .Select(r => new GameCard(r.Id, r.Name, (int?)r.Year, Ordered(order, r.Platforms), r.Owned != 0, r.Status, r.Playtime,
                 covers.Contains(r.Id), r.SagaId, r.SagaName, r.Stores?.Split(',') ?? []))
             .ToList();
     }
 
-    /// <param name="filter">favorite, following, iconic, owned, missing o pc.</param>
-    /// <param name="sort">name, iconic, played o activity.</param>
-    public static List<SagaCard> Sagas(Database db, string? filter = null, string? platform = null, string? company = null, string? sort = null)
+    /// <param name="filter">favorite, following, iconic, exclusive, owned, missing o pc.</param>
+    /// <param name="sort">name, recognized, played o activity.</param>
+    /// <param name="only">Solo esa saga (la ficha de una saga, F2.19): no arma las demás.</param>
+    public static List<SagaCard> Sagas(Database db, string? filter = null, string? platform = null, string? company = null, string? sort = null, long? only = null)
     {
         using var c = db.Open();
-        var aggs = c.Query<SagaAgg>("""
+        var one = only switch { null => "", 0 => "g.saga_id IS NULL", _ => "g.saga_id = @only" }; // sin coalesce: así usa el índice
+        var aggs = c.Query<SagaAgg>($"""
             SELECT coalesce(g.saga_id, 0) AS SagaId, count(DISTINCT g.id) AS Games,
                    count(DISTINCT CASE WHEN o.id IS NOT NULL THEN g.id END) AS Owned,
                    group_concat(DISTINCT v.platform) AS Platforms,
                    coalesce(sum(o.playtime), 0) AS Playtime, max(o.last_played) AS LastPlayed
             FROM game g LEFT JOIN version v ON v.game_id = g.id LEFT JOIN source o ON o.version_id = v.id
+            {Where(one)}
             GROUP BY coalesce(g.saga_id, 0)
-            """).ToDictionary(a => a.SagaId);
+            """, new { only }).ToDictionary(a => a.SagaId);
+        // La popularidad, aparte: con las versiones en el JOIN se sumaría una vez por versión.
+        var onPlatform = string.IsNullOrEmpty(platform) ? "" : "EXISTS (SELECT 1 FROM version v WHERE v.game_id = g.id AND v.platform = @platform)";
+        var popularity = c.Query<(long SagaId, long Popularity)>($"""
+            SELECT coalesce(g.saga_id, 0), coalesce(sum(g.popularity), 0) FROM game g {Where(one, onPlatform)}
+            GROUP BY coalesce(g.saga_id, 0)
+            """, new { only, platform }).ToDictionary(p => p.SagaId, p => p.Popularity);
         // La portada de una saga: la del primer juego (por año) que la tenga.
         var covers = Covers(db);
-        var coverOf = c.Query<(long SagaId, long Id)>("SELECT coalesce(saga_id, 0), id FROM game ORDER BY year IS NULL, year, id")
+        var coverOf = c.Query<(long SagaId, long Id)>($"SELECT coalesce(saga_id, 0), id FROM game g {Where(one)} ORDER BY year IS NULL, year, id", new { only })
             .Where(g => covers.Contains(g.Id)).GroupBy(g => g.SagaId).ToDictionary(g => g.Key, g => g.First().Id);
 
-        var rows = c.Query<SagaRow>("SELECT id, name, favorite, following, iconic FROM saga").ToList();
+        var rows = c.Query<SagaRow>($"""
+            SELECT s.id, s.name, coalesce(u.favorite, 0) AS Favorite, coalesce(u.following, 0) AS Following, s.iconic
+            FROM saga s LEFT JOIN saga_user u ON u.saga_id = s.id {(only is null ? "" : "WHERE s.id = @only")}
+            """, new { only }).ToList();
         if (aggs.ContainsKey(0)) rows.Add(new SagaRow());
         var companies = c.Query<(string Id, string? Company)>("SELECT id, company FROM console").ToDictionary(x => x.Id, x => x.Company);
+        var order = ConsoleOrder(c);
 
         var cards = rows.Select(s =>
         {
             var a = aggs.GetValueOrDefault(s.Id) ?? new SagaAgg { SagaId = s.Id };
-            return new SagaCard(s.Id, s.Name, s.Favorite != 0, s.Following != 0, s.Iconic != 0, Ordered(c, a.Platforms), (int)a.Games, (int)a.Owned,
-                coverOf.TryGetValue(s.Id, out var cover) ? cover : null, a.Playtime, a.LastPlayed);
+            var platforms = Ordered(order, a.Platforms);
+            return new SagaCard(s.Id, s.Name, s.Favorite != 0, s.Following != 0, s.Iconic != 0, platforms, (int)a.Games, (int)a.Owned,
+                coverOf.TryGetValue(s.Id, out var cover) ? cover : null, a.Playtime, a.LastPlayed,
+                s.Id == 0 ? null : ExclusiveOf(platforms, companies), popularity.GetValueOrDefault(s.Id));
         });
         cards = filter switch
         {
             "favorite" => cards.Where(s => s.Favorite),
             "following" => cards.Where(s => s.Following),
             "iconic" => cards.Where(s => s.Iconic),
+            "exclusive" => cards.Where(s => s.Exclusive is not null && (string.IsNullOrEmpty(company) || s.Exclusive == company)),
             "owned" => cards.Where(s => s.Owned > 0),
             "missing" => cards.Where(s => s.Owned < s.Games),
             "pc" => cards.Where(s => s.Platforms.Contains("pc")),
@@ -146,16 +165,28 @@ public static class CatalogQueries
         var byName = cards.OrderBy(s => s.Id == 0).ThenBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase);
         return (sort switch
         {
-            "iconic" => cards.OrderBy(s => s.Id == 0).ThenByDescending(s => s.Iconic).ThenBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase),
+            // Primero lo icónico que aprobaste, después lo más calificado en IGDB (#166).
+            "recognized" => cards.OrderBy(s => s.Id == 0).ThenByDescending(s => s.Iconic).ThenByDescending(s => s.Popularity)
+                .ThenBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase),
             "played" => cards.OrderBy(s => s.Id == 0).ThenByDescending(s => s.Playtime).ThenBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase),
             "activity" => cards.OrderBy(s => s.Id == 0).ThenByDescending(s => s.LastPlayed ?? "").ThenBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase),
             _ => byName,
         }).ToList();
     }
 
+    static string Where(params string[] conditions) =>
+        conditions.Where(x => x != "").ToArray() is { Length: > 0 } all ? "WHERE " + string.Join(" AND ", all) : "";
+
+    /// <summary>La empresa de la que es exclusiva una saga: todas sus consolas son de una sola; PC y PC VR no cuentan (#165).</summary>
+    internal static string? ExclusiveOf(IEnumerable<string> platforms, Dictionary<string, string?> companies)
+    {
+        var owners = platforms.Where(p => p is not ("pc" or "pcvr")).Select(p => companies.GetValueOrDefault(p)).Distinct().ToList();
+        return owners is [{ } only] ? only : null;
+    }
+
     public static SagaDetail? Saga(Database db, long id)
     {
-        var card = Sagas(db).FirstOrDefault(s => s.Id == id);
+        var card = Sagas(db, only: id).FirstOrDefault();
         if (card is null) return null;
         using var c = db.Open();
         var games = Games(db, c, id == 0 ? "WHERE g.saga_id IS NULL ORDER BY g.year IS NULL, g.year, g.name_es" : "WHERE g.saga_id = @id ORDER BY g.year IS NULL, g.year, g.name_es", new { id });
@@ -165,18 +196,24 @@ public static class CatalogQueries
     public static bool SetSagaFlags(Database db, long id, bool? favorite, bool? following)
     {
         using var c = db.Open();
-        return c.Execute("UPDATE saga SET favorite = coalesce(@favorite, favorite), following = coalesce(@following, following) WHERE id = @id",
-            new { id, favorite, following }) > 0;
+        if (c.ExecuteScalar<long>("SELECT count(*) FROM saga WHERE id = @id", new { id }) == 0) return false;
+        c.Execute("""
+            INSERT INTO saga_user (saga_id, favorite, following) VALUES (@id, coalesce(@favorite, 0), coalesce(@following, 0))
+            ON CONFLICT (saga_id) DO UPDATE SET favorite = coalesce(@favorite, favorite), following = coalesce(@following, following)
+            """, new { id, favorite, following });
+        return true;
     }
 
     public static List<ConsoleCount> Consoles(Database db)
     {
         using var c = db.Open();
-        return c.Query<(string Id, string Name, string? Company, long Games, long Owned)>("""
-            SELECT c.id, c.name, c.company, count(DISTINCT v.game_id), count(DISTINCT CASE WHEN o.id IS NOT NULL THEN v.game_id END)
+        // Los mismos números que los filtros de Colección (F2.18): lo que tienes de esa consola y lo que además sale en PC.
+        return c.Query<(string Id, string Name, string? Company, long Games, long Owned, long WithPc)>("""
+            SELECT c.id, c.name, c.company, count(DISTINCT v.game_id), count(DISTINCT CASE WHEN o.id IS NOT NULL THEN v.game_id END),
+                   count(DISTINCT CASE WHEN EXISTS (SELECT 1 FROM version p WHERE p.game_id = v.game_id AND p.platform = 'pc') THEN v.game_id END)
             FROM console c LEFT JOIN version v ON v.platform = c.id LEFT JOIN source o ON o.version_id = v.id
             GROUP BY c.id ORDER BY c.rowid
-            """).Select(r => new ConsoleCount(r.Id, r.Name, r.Company, (int)r.Games, (int)r.Owned)).ToList();
+            """).Select(r => new ConsoleCount(r.Id, r.Name, r.Company, (int)r.Games, (int)r.Owned, (int)r.WithPc)).ToList();
     }
 
     /// <param name="filter">owned, missing o pc (tiene versión de PC).</param>

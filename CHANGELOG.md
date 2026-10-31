@@ -22,7 +22,14 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **Consolas que habilitas tú**: en Ajustes › Consolas marcas o desmarcas cada consola, y «Agregar consola» busca entre todas las de IGDB. Al habilitar una, se cargan sus juegos; las deshabilitadas no se vuelven a cargar.
 - **Catálogo al día solo**: cada semana (los días se cambian en Ajustes › Consolas) la app busca en IGDB lo nuevo o cambiado de cada consola habilitada y lo suma. «Actualizar ahora» lo hace al instante.
 - **Reevaluar sagas icónicas**: en Ajustes › Claude, Claude vuelve a decidir qué sagas son icónicas, de todas las consolas o de una.
+- **Sagas exclusivas**: el filtro «Exclusivas» muestra las sagas que solo salieron en consolas de una empresa (una versión de PC no les quita lo exclusivo). Se combina con la empresa o la consola, que ahora se elige en una lista.
+- **Más reconocidas**: el orden por defecto de Sagas. Primero las icónicas que aprobaste y después las más calificadas en IGDB, contando solo los juegos de la consola elegida. Al actualizar, una tarea trae la popularidad de los juegos que ya tenías.
+- **Tu catálogo y tus datos, separados**: el catálogo (sagas, juegos, versiones, rutas y consolas) vive en `catalogo/catalogo.db` junto con sus imágenes (`catalogo/imagenes`), y lo tuyo (lo que tienes, progreso, favoritas, claves, ajustes y tareas) sigue en `data/otteretro.db`. Así el catálogo se puede pasar a otra instalación sin nada tuyo. Al actualizar se separa solo y deja una copia de la base de antes (`data/otteretro.antes-del-catalogo.db`).
 - **No paga dos veces**: lo que Claude ya revisó no se vuelve a pedir mientras sus datos no cambien.
+
+### Cambios
+- **Colección**: «Lo tengo» queda marcado al entrar y el número de cada consola sigue al filtro (lo que tienes, lo que te falta o lo que tiene versión de PC).
+- **Las sagas abren al instante**: abrir una saga ya no calcula las 5.800.
 
 ### Arreglos
 - **Mudar la carpeta de datos ya no se queda en «Preparando»**: si la mudanza terminaba antes de que llegara la respuesta de haberla empezado, la pantalla volvía a «empezó» y no mostraba el resultado.

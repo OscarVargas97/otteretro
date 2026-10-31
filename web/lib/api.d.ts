@@ -2348,6 +2348,8 @@ export interface components {
             games: number | string;
             /** Format: int32 */
             owned: number | string;
+            /** Format: int32 */
+            withPc: number | string;
         };
         ConsoleInfo: {
             id: string;
@@ -2586,6 +2588,9 @@ export interface components {
             /** Format: int64 */
             playtime: number | string;
             lastPlayed: null | string;
+            exclusive: null | string;
+            /** Format: int64 */
+            popularity: number | string;
         };
         SagaDetail: {
             saga: components["schemas"]["SagaCard"];

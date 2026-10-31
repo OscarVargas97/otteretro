@@ -11,7 +11,7 @@ using SkiaSharp;
 namespace Otteretro.Catalog;
 
 /// <summary>
-/// Portadas 2:3, héroes y logos de SteamGridDB (F1.7) en `cache/imagenes/{juego}-{tipo}.{ext}`.
+/// Portadas 2:3, héroes y logos de SteamGridDB (F1.7) en `catalogo/imagenes/{juego}-{tipo}.{ext}` (van con el catálogo, #167).
 /// La tarea `sgdb.images` recorre los juegos sin portada, con punto de control; la encola cada carga de IGDB.
 /// Si SteamGridDB no tiene una portada segura del juego, se usa la carátula oficial de IGDB (#61).
 /// Se guardan en WebP y al tamaño que muestra la app (#64); `sgdb.webp` convierte las que se bajaron antes.
@@ -67,7 +67,7 @@ public static class SteamGridDb
         ? Directory.GetFiles(Folder(db)).Where(f => Path.GetExtension(f) != ".webp" && !Path.GetFileName(f).StartsWith('.')).Order().ToArray()
         : [];
 
-    public static string Folder(Database db) => Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(db.FilePath)!)!, "cache", "imagenes");
+    public static string Folder(Database db) => Path.Combine(Path.GetDirectoryName(db.CatalogPath)!, "imagenes"); // van con el catálogo (#167)
 
     /// <summary>Borra las imágenes de un juego que ya no existe.</summary>
     public static void Forget(Database db, long gameId)

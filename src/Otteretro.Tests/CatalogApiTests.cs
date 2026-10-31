@@ -21,7 +21,8 @@ public class CatalogApiTests : IAsyncLifetime
         using (var c = f.Db.Open())
         {
             c.Execute("""
-                INSERT INTO saga (id, name, favorite, iconic) VALUES (1, 'The Legend of Zelda', 1, 1), (2, 'Half-Life', 0, 0);
+                INSERT INTO saga (id, name, iconic) VALUES (1, 'The Legend of Zelda', 1), (2, 'Half-Life', 0);
+                INSERT INTO saga_user (saga_id, favorite) VALUES (1, 1);
                 INSERT INTO game (id, saga_id, name_es, original_name, year) VALUES
                     (10, 1, 'Ocarina of Time', 'Ocarina of Time', 1998), (11, 1, 'Breath of the Wild', 'Breath of the Wild', 2017),
                     (20, 2, 'Half-Life', 'Half-Life', 1998), (30, NULL, 'Tetris', 'Tetris', 1989);
@@ -63,11 +64,30 @@ public class CatalogApiTests : IAsyncLifetime
         Assert.Equal([2L], (await Get<List<SagaCard>>("/api/sagas?filter=owned"))!.Select(s => s.Id));
         Assert.Equal([1L, 0L], (await Get<List<SagaCard>>("/api/sagas?company=Nintendo"))!.Select(s => s.Id));
         Assert.Equal(2L, (await Get<List<SagaCard>>("/api/sagas?sort=played"))![0].Id);
-        Assert.Equal(1L, (await Get<List<SagaCard>>("/api/sagas?sort=iconic"))![0].Id);
+        Assert.Equal(1L, (await Get<List<SagaCard>>("/api/sagas?sort=recognized"))![0].Id);
 
         var follow = await http.PutAsJsonAsync("/api/sagas/2", new SagaFlagsRequest(null, true));
         Assert.True((await follow.Content.ReadFromJsonAsync<SagaDetail>())!.Saga.Following);
         Assert.Equal(["Tetris"], (await Get<SagaDetail>("/api/sagas/0"))!.Games.Select(g => g.Name));
+    }
+
+    /// <summary>F2.16 y F2.17: exclusivas de una empresa (PC no cuenta) y «más reconocidas» (icónico, después popularidad en IGDB).</summary>
+    [Fact]
+    public async Task ExclusivesAndMostRecognized()
+    {
+        using (var c = f.Db.Open())
+            c.Execute("""
+                INSERT INTO saga (id, name) VALUES (3, 'Persona'), (4, 'Halo');
+                INSERT INTO game (id, saga_id, name_es, popularity) VALUES (40, 3, 'Persona 5', 50), (50, 4, 'Halo', 2000);
+                INSERT INTO version (game_id, platform) VALUES (40, 'ps2'), (40, 'switch'), (50, 'xbox'), (50, 'pc');
+                UPDATE game SET popularity = 900 WHERE id = 20;
+                """);
+
+        Assert.Equal([4L, 1L], (await Get<List<SagaCard>>("/api/sagas?filter=exclusive"))!.Select(s => s.Id)); // Persona no; Half-Life es solo PC
+        Assert.Equal([1L], (await Get<List<SagaCard>>("/api/sagas?filter=exclusive&company=Nintendo"))!.Select(s => s.Id));
+        Assert.Equal("Microsoft", (await Get<SagaDetail>("/api/sagas/4"))!.Saga.Exclusive);
+        Assert.Equal([1L, 4L, 2L, 3L, 0L], (await Get<List<SagaCard>>("/api/sagas?sort=recognized"))!.Select(s => s.Id));
+        Assert.Equal([1L, 3L], (await Get<List<SagaCard>>("/api/sagas?sort=recognized&platform=switch"))!.Select(s => s.Id));
     }
 
     [Fact]

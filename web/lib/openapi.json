@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:57241/"
+      "url": "http://127.0.0.1:60076/"
     }
   ],
   "paths": {
@@ -2209,7 +2209,8 @@
           "name",
           "company",
           "games",
-          "owned"
+          "owned",
+          "withPc"
         ],
         "type": "object",
         "properties": {
@@ -2234,6 +2235,14 @@
             "format": "int32"
           },
           "owned": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "withPc": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "integer",
@@ -3302,7 +3311,9 @@
           "owned",
           "coverGameId",
           "playtime",
-          "lastPlayed"
+          "lastPlayed",
+          "exclusive",
+          "popularity"
         ],
         "type": "object",
         "properties": {
@@ -3370,6 +3381,20 @@
               "null",
               "string"
             ]
+          },
+          "exclusive": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "popularity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
           }
         }
       },

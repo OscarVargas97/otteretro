@@ -9,7 +9,7 @@ Errores propios de este stack que `otter:pr-reviewer` revisa además de su check
 - **Operaciones largas, una a la vez**: si un doble clic o dos pestañas pueden lanzar la misma operación dos veces, tiene que haber un cerrojo (la revisión de F0 encontró dos mudanzas simultáneas que podían borrar origen y destino).
 - **Escrituras atómicas**: `config.json` y cualquier archivo que la app reescribe se escriben a un temporal y se reemplazan; un corte no puede dejarlo a medias.
 - **Rutas**: rutas de red, discos que no están, mayúsculas en Windows y separadores; en Linux todo puede parecer el mismo disco.
-- **Lo que se guarda con el id de una fila se borra con ella** (archivos en la caché, como las imágenes de `cache/imagenes/{juego}-…`): SQLite reusa los ids, y otra fila heredaría lo del borrado (la revisión de F1 lo encontró con las portadas).
+- **Lo que se guarda con el id de una fila se borra con ella** (archivos en la caché, como las imágenes de `catalogo/imagenes/{juego}-…`): SQLite reusa los ids, y otra fila heredaría lo del borrado (la revisión de F1 lo encontró con las portadas).
 
 ## Backend (C# .NET 10, ASP.NET Core, SQLite con Dapper)
 

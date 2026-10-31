@@ -9,7 +9,7 @@ import { GameTile, hours, useConsoles } from "@/components/Catalog";
 import { Empty } from "@/components/Shell";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
-import type { CollectionPage } from "@/lib/types";
+import type { CollectionPage, ConsoleCount } from "@/lib/types";
 
 const FILTERS = ["all", "owned", "missing", "pc"] as const;
 const SORTS = ["saga", "name", "year"] as const;
@@ -19,6 +19,12 @@ export default function CollectionScreen() {
   return <Suspense><Collection /></Suspense>;
 }
 
+/** El número de cada consola sigue al filtro elegido (F2.18). */
+function countFor(c: ConsoleCount, filter: (typeof FILTERS)[number]) {
+  const games = Number(c.games), owned = Number(c.owned);
+  return { all: games, owned, missing: games - owned, pc: Number(c.withPc) }[filter];
+}
+
 /** Colección (§4): por consola, con PC como una más. En PC, la tienda y las horas, y lo que aún no está en el catálogo. */
 function Collection() {
   const t = useTranslations("catalog");
@@ -26,7 +32,7 @@ function Collection() {
   const describe = useDescribeError();
   const router = useRouter();
   const consoles = useConsoles();
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("owned"); // lo tuyo primero (F2.18)
   const [sort, setSort] = useState<(typeof SORTS)[number]>("saga");
   const [view, setView] = useState<"grid" | "list">("grid");
   // Sin consola en la URL, la primera que tenga juegos.
@@ -49,7 +55,7 @@ function Collection() {
         {consoles.data?.map((c) => (
           <button key={c.id} type="button" className="ot-nav-item" aria-current={c.id === selected ? "page" : undefined} onClick={() => router.replace(`/collection/?console=${c.id}`)}>
             <span>{c.name}</span>
-            <span className="small muted tabular">{c.games}</span>
+            <span className="small muted tabular">{countFor(c, filter)}</span>
           </button>
         ))}
       </nav>

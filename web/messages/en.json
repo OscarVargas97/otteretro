@@ -251,7 +251,8 @@
         "unknownPlatform": "“{platform}” is not one of the catalog consoles.",
         "steam": "{done} of {total} Steam games",
         "popular": "Popular PC games: {done} of {total}",
-        "refresh": "Up to date: {done} of {total} consoles ({platform})"
+        "refresh": "Up to date: {done} of {total} consoles ({platform})",
+        "popularity": "Popularity: {done} of {total} games"
       },
       "sgdb": {
         "images": "{done} of {total} games",
@@ -384,7 +385,8 @@
         "platform": "Load a console from IGDB",
         "steam": "Find your Steam games on IGDB",
         "popular": "Load popular PC games from IGDB",
-        "refresh": "Update the catalog from IGDB"
+        "refresh": "Update the catalog from IGDB",
+        "popularity": "Fetch popularity from IGDB"
       },
       "sgdb": {
         "images": "Download covers from SteamGridDB",
@@ -460,19 +462,22 @@
         "favorite": "★ Favorites",
         "following": "Following",
         "iconic": "Iconic",
+        "exclusive": "Exclusives",
         "owned": "With games I own",
         "pc": "With PC games"
       },
       "sortBy": "Sort by",
       "sort": {
-        "iconic": "Most iconic",
+        "recognized": "Most recognized",
         "name": "Name",
         "played": "Most played",
         "activity": "Recent activity"
       },
       "emptyTitle": "No series yet",
       "emptyText": "Series and their games are loaded from IGDB. Paste the account in Settings › Accounts and keys and load one with “otteretro catalogo cargar --saga zelda”.",
-      "noMatch": "No series match this filter."
+      "noMatch": "No series match this filter.",
+      "platform": "Company or console",
+      "allPlatforms": "All consoles"
     },
     "saga": {
       "back": "‹ Series",

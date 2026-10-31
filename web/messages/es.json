@@ -251,7 +251,8 @@
         "unknownPlatform": "«{platform}» no es una de las consolas del catálogo.",
         "steam": "{done} de {total} juegos de Steam",
         "popular": "PC populares: {done} de {total} juegos",
-        "refresh": "Al día: {done} de {total} consolas ({platform})"
+        "refresh": "Al día: {done} de {total} consolas ({platform})",
+        "popularity": "Popularidad: {done} de {total} juegos"
       },
       "sgdb": {
         "images": "{done} de {total} juegos",
@@ -384,7 +385,8 @@
         "platform": "Cargar una consola de IGDB",
         "steam": "Buscar en IGDB tus juegos de Steam",
         "popular": "Cargar los juegos de PC populares de IGDB",
-        "refresh": "Actualizar el catálogo desde IGDB"
+        "refresh": "Actualizar el catálogo desde IGDB",
+        "popularity": "Traer la popularidad desde IGDB"
       },
       "sgdb": {
         "images": "Bajar portadas de SteamGridDB",
@@ -460,19 +462,22 @@
         "favorite": "★ Favoritas",
         "following": "Que sigo",
         "iconic": "Icónicas",
+        "exclusive": "Exclusivas",
         "owned": "Con juegos que tengo",
         "pc": "Con juegos de PC"
       },
       "sortBy": "Ordenar por",
       "sort": {
-        "iconic": "Más icónicas",
+        "recognized": "Más reconocidas",
         "name": "Nombre",
         "played": "Más jugadas",
         "activity": "Última actividad"
       },
       "emptyTitle": "Aún no hay sagas",
       "emptyText": "Las sagas y sus juegos se cargan desde IGDB. Pega la cuenta en Ajustes › Cuentas y claves y carga una saga con «otteretro catalogo cargar --saga zelda».",
-      "noMatch": "Ninguna saga cumple el filtro."
+      "noMatch": "Ninguna saga cumple el filtro.",
+      "platform": "Empresa o consola",
+      "allPlatforms": "Todas las consolas"
     },
     "saga": {
       "back": "‹ Sagas",

@@ -30,6 +30,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         ["igdb.platform"] = Catalog.IgdbImport.Platform,
         ["igdb.refresh"] = Catalog.IgdbImport.Refresh,
         ["igdb.popular"] = Catalog.IgdbImport.Popular,
+        ["igdb.popularity"] = Catalog.IgdbImport.Popularity,
         ["sgdb.images"] = Catalog.SteamGridDb.Images,
         ["sgdb.webp"] = Catalog.SteamGridDb.Convert,
         ["catalog.extra"] = Catalog.ExtraSources.Run,
@@ -253,7 +254,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
     }
 
     Database? CurrentDb() =>
-        DataFolder.IsReady(session.Config.DataFolder) ? new Database(DataFolder.DatabasePath(session.Config.DataFolder!)) : null;
+        DataFolder.IsReady(session.Config.DataFolder) ? DataFolder.Open(session.Config.DataFolder!) : null;
 
     static string Now() => DateTime.UtcNow.ToString("O");
 

@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using Dapper;
 using Microsoft.Data.Sqlite;
 
@@ -10,7 +11,8 @@ public static class Migrations
     const string Marker = ".Migrations.";
 
     /// <summary>Devuelve cuántas migraciones aplicó.</summary>
-    public static int Apply(Database db)
+    /// <param name="until">Para las pruebas: la última que se aplica (una base como la de una versión anterior).</param>
+    public static int Apply(Database db, string? until = null)
     {
         using var c = db.Open();
         RenameLegacyLog(c);
@@ -25,16 +27,104 @@ public static class Migrations
         {
             var name = resource[(resource.IndexOf(Marker, StringComparison.Ordinal) + Marker.Length)..];
             if (done.Contains(name)) continue;
+            if (until is not null && string.CompareOrdinal(name, until) > 0) break;
 
+            if (name == SplitMigration)
+            {
+                SplitCatalog(db, c, name);
+                applied++;
+                continue;
+            }
             using var reader = new StreamReader(assembly.GetManifestResourceStream(resource)!);
             using var t = c.BeginTransaction();
             c.Execute(reader.ReadToEnd(), transaction: t);
-            c.Execute("INSERT INTO migration (name, applied_at) VALUES (@name, @date)",
-                new { name, date = DateTime.UtcNow.ToString("O") }, t);
+            Done(c, name, t);
             t.Commit();
             applied++;
         }
         return applied;
+    }
+
+    static void Done(SqliteConnection c, string name, SqliteTransaction t) =>
+        c.Execute("INSERT INTO migration (name, applied_at) VALUES (@name, @date)", new { name, date = DateTime.UtcNow.ToString("O") }, t);
+
+    const string SplitMigration = "0013_catalog.sql";
+
+    /// <summary>Las tablas del catálogo, que pasan a `catalogo.db` (#167). Las migraciones siguientes las crean con `catalog.`.</summary>
+    public static readonly string[] CatalogTables = ["console", "console_platform", "saga", "game", "version", "version_criterion",
+        "field_value", "route", "route_step", "learning", "saga_rule", "claude_fingerprint"];
+
+    /// <summary>Columnas propias que vivían en tablas del catálogo: pasan a `saga_user` (o se van, si nadie las usa).</summary>
+    static readonly (string Table, string Column)[] PersonalColumns =
+        [("saga", "favorite"), ("saga", "following"), ("saga", "chosen_route"), ("version", "export_to_steam")];
+
+    /// <summary>
+    /// Separa el catálogo de lo propio (#167): copia sus tablas a la base adjunta, verifica las filas, pasa favorita, sigo y ruta
+    /// elegida a `saga_user` y recién entonces borra las de la base propia. Las tablas propias que apuntaban al catálogo se
+    /// rehacen sin esa clave foránea (SQLite no las admite entre archivos). Antes deja una copia de la base, si tenía juegos.
+    /// </summary>
+    static void SplitCatalog(Database db, SqliteConnection c, string name)
+    {
+        var schema = c.Query<(string Type, string Name, string Table, string Sql)>(
+            "SELECT type, name, tbl_name, sql FROM main.sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%'").ToList();
+        if (c.ExecuteScalar<long>("SELECT count(*) FROM main.game") > 0)
+        {
+            c.Execute("PRAGMA main.wal_checkpoint(TRUNCATE)");
+            var backup = Path.ChangeExtension(db.FilePath, ".antes-del-catalogo.db");
+            if (!File.Exists(backup)) File.Copy(db.FilePath, backup);
+        }
+
+        // Con las claves foráneas activas, borrar una tabla borra en cascada lo que apunta a ella.
+        c.Execute("PRAGMA foreign_keys = OFF");
+        try
+        {
+            using var t = c.BeginTransaction();
+            foreach (var table in CatalogTables)
+            {
+                var create = schema.Single(x => x.Type == "table" && x.Name == table).Sql;
+                c.Execute(Regex.Replace(create, @"^CREATE TABLE\s+""?(\w+)""?", "CREATE TABLE catalog.$1"), transaction: t);
+                c.Execute($"INSERT INTO catalog.{table} SELECT * FROM main.{table}", transaction: t);
+                var (from, to) = (c.ExecuteScalar<long>($"SELECT count(*) FROM main.{table}", transaction: t),
+                    c.ExecuteScalar<long>($"SELECT count(*) FROM catalog.{table}", transaction: t));
+                if (from != to) throw new InvalidOperationException($"{table}: {from} filas, se copiaron {to}");
+            }
+            foreach (var index in schema.Where(x => x.Type == "index" && CatalogTables.Contains(x.Table)))
+                c.Execute(Regex.Replace(index.Sql, @"^CREATE (UNIQUE )?INDEX\s+(IF NOT EXISTS\s+)?", "CREATE $1INDEX $2catalog."), transaction: t);
+
+            c.Execute("""
+                CREATE TABLE main.saga_user (
+                    saga_id      INTEGER PRIMARY KEY,
+                    favorite     INTEGER NOT NULL DEFAULT 0,
+                    following    INTEGER NOT NULL DEFAULT 0,
+                    chosen_route INTEGER
+                );
+                INSERT INTO main.saga_user SELECT id, favorite, following, chosen_route FROM catalog.saga
+                WHERE favorite <> 0 OR following <> 0 OR chosen_route IS NOT NULL;
+                """, transaction: t);
+            foreach (var (table, column) in PersonalColumns)
+                c.Execute($"ALTER TABLE catalog.{table} DROP COLUMN {column}", transaction: t);
+
+            foreach (var table in CatalogTables) c.Execute($"DROP TABLE main.{table}", transaction: t);
+
+            // Lo propio que apuntaba al catálogo: se rehace sin esa clave foránea, con sus índices.
+            var toCatalog = $@"\s+REFERENCES\s+""?({string.Join('|', CatalogTables)})""?\s*\([^)]*\)(\s+ON\s+(DELETE|UPDATE)\s+(SET\s+NULL|SET\s+DEFAULT|CASCADE|RESTRICT|NO\s+ACTION))*";
+            foreach (var (_, table, _, sql) in schema.Where(x => x.Type == "table" && !CatalogTables.Contains(x.Name) && Regex.IsMatch(x.Sql, toCatalog)))
+            {
+                var columns = string.Join(", ", c.Query<string>($"SELECT name FROM pragma_table_info('{table}', 'main')", transaction: t));
+                c.Execute($"ALTER TABLE main.{table} RENAME TO {table}_old", transaction: t);
+                c.Execute(Regex.Replace(Regex.Replace(sql, toCatalog, ""), @"^CREATE TABLE\s+""?(\w+)""?", "CREATE TABLE main.$1"), transaction: t);
+                c.Execute($"INSERT INTO main.{table} ({columns}) SELECT {columns} FROM main.{table}_old; DROP TABLE main.{table}_old", transaction: t);
+                foreach (var index in schema.Where(x => x.Type == "index" && x.Table == table))
+                    c.Execute(Regex.Replace(index.Sql, @"^CREATE (UNIQUE )?INDEX\s+(IF NOT EXISTS\s+)?", "CREATE $1INDEX $2main."), transaction: t);
+            }
+
+            Done(c, name, t);
+            t.Commit();
+        }
+        finally
+        {
+            c.Execute("PRAGMA foreign_keys = ON");
+        }
     }
 
     /// <summary>

@@ -58,6 +58,14 @@ async function expectTextFits() {
   expect(overflowing, "textos que no caben").toEqual([]);
 }
 
+/** La base de la app con el catálogo adjunto, como la abre la app (#92): las tablas se nombran sin prefijo. */
+async function openDb() {
+  const { DatabaseSync } = await import("node:sqlite");
+  const db = new DatabaseSync(join(dataDir("moved"), "data", "otteretro.db"));
+  db.exec(`ATTACH DATABASE '${join(dataDir("moved"), "catalogo", "catalogo.db").replaceAll("'", "''")}' AS catalog`);
+  return db;
+}
+
 test("sin carpeta de datos, abre el asistente en español", async () => {
   await page.goto(url());
   await expect(page).toHaveURL(/\/welcome\//);
@@ -269,8 +277,7 @@ test("con mando se recorre la app: foco, barra de botones, buscar con el teclado
 
 test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección a mano, colección de PC y búsqueda", async () => {
   // Un catálogo pequeño, como el que dejaría una carga de IGDB y de Steam.
-  const { DatabaseSync } = await import("node:sqlite");
-  const db = new DatabaseSync(join(dataDir("moved"), "data", "otteretro.db"));
+  const db = await openDb();
   db.exec(`
     INSERT INTO saga (id, name, iconic) VALUES (1, 'The Legend of Zelda', 1), (2, 'Half-Life', 0);
     INSERT INTO game (id, saga_id, name_es, original_name, year) VALUES
@@ -317,6 +324,14 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   await page.getByRole("button", { name: es.catalog.game.undoFix }).click();
   await expect(page.getByRole("heading", { level: 2, name: "Ocarina of Time" })).toBeVisible();
 
+  // F2.18: «Lo tengo» por defecto y el número de cada consola sigue al filtro.
+  await page.goto(`${base()}/collection/?console=n64`);
+  await expect(page.getByRole("button", { name: es.catalog.collection.filter.owned })).toHaveAttribute("aria-pressed", "true");
+  const n64 = page.getByRole("navigation", { name: es.catalog.collection.consoles }).getByRole("button", { name: /Nintendo 64/ });
+  await expect(n64).toContainText("0");
+  await page.getByRole("button", { name: es.catalog.collection.filter.all }).click();
+  await expect(n64).toContainText("1");
+
   await page.goto(`${base()}/collection/?console=pc`);
   await expect(page.getByRole("link", { name: /Half-Life/ })).toBeVisible();
   await expect(page.getByText("Algo que IGDB no tiene")).toBeVisible();
@@ -335,8 +350,7 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
 
 test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha y el siguiente juego en Inicio", async () => {
   // Lo que dejaría `claude cargar` (F2.5): las rutas de Zelda y la mejor versión de Ocarina, por aprobar.
-  const { DatabaseSync } = await import("node:sqlite");
-  const db = new DatabaseSync(join(dataDir("moved"), "data", "otteretro.db"));
+  const db = await openDb();
   const criterion = { score: 4, text: "Bien" };
   const items = [
     ["saga", 1, { prompt: "ruta-saga", result: [
@@ -385,8 +399,7 @@ test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha
 });
 
 test("panel de tareas: terminadas por hora de término, registro al hacer clic y limpiar", async () => {
-  const { DatabaseSync } = await import("node:sqlite");
-  const db = new DatabaseSync(join(dataDir("moved"), "data", "otteretro.db"));
+  const db = await openDb();
   const now = new Date();
   const at = (minutes: number) => new Date(now.getTime() - minutes * 60_000).toISOString();
   db.exec(`
@@ -410,8 +423,7 @@ test("panel de tareas: terminadas por hora de término, registro al hacer clic y
 });
 
 test("Aprendizajes: cada cambio en claro, filtros y corregir con una nota para Claude", async () => {
-  const { DatabaseSync } = await import("node:sqlite");
-  const db = new DatabaseSync(join(dataDir("moved"), "data", "otteretro.db"));
+  const db = await openDb();
   const content = {
     prompt: "depurar-sagas",
     change: { kind: "move", reason: "No es de Zelda.", gameIds: [11], toSagaId: null, newSagaName: null },

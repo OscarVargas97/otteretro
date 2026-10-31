@@ -19,6 +19,62 @@ public class DataTests
         Assert.Equal(1, c.ExecuteScalar<int>("SELECT count(*) FROM sqlite_master WHERE name = 'machine'"));
     }
 
+    /// <summary>
+    /// F2.20 (#92): una base de antes se separa al actualizar. El catálogo queda en su archivo sin nada propio (tabla por tabla),
+    /// lo propio sigue en la base de la persona con sus filas, favorita y sigo pasan a saga_user y queda una copia de antes.
+    /// </summary>
+    [Fact]
+    public void TheCatalogIsSplitFromYourDataWithNothingOfYours()
+    {
+        using var tmp = new TempDir();
+        var folder = tmp["datos"];
+        DataFolder.Prepare(folder);
+        var db = DataFolder.Open(folder);
+        Migrations.Apply(db, until: "0012_console_platform.sql");
+        Migrations.RegisterMachine(db, "pc");
+        using (var c = db.Open())
+            c.Execute("""
+                INSERT INTO main.saga (id, name, favorite, following) VALUES (1, 'Metroid', 1, 1), (2, 'Halo', 0, 0);
+                INSERT INTO main.game (id, saga_id, name_es) VALUES (10, 1, 'Metroid'), (20, 2, 'Halo');
+                INSERT INTO main.version (id, game_id, platform) VALUES (100, 10, 'nes'), (200, 20, 'xbox');
+                INSERT INTO main.field_value (entity, entity_id, field, value, source) VALUES ('game', 10, 'year', '1986', 'igdb');
+                INSERT INTO main.progress (game_id, status) VALUES (10, 'finished');
+                INSERT INTO main.source (kind, store, store_id, name, version_id) VALUES ('store', 'steam', '1', 'Halo', 200);
+                """);
+
+        Assert.Equal(1, Migrations.Apply(db, until: "0013_catalog.sql"));
+
+        Assert.True(File.Exists(Path.ChangeExtension(db.FilePath, ".antes-del-catalogo.db")));
+        using (var c = db.Open())
+        {
+            Assert.Equal(0, c.ExecuteScalar<long>($"SELECT count(*) FROM main.sqlite_master WHERE type = 'table' AND name IN ({string.Join(',', Migrations.CatalogTables.Select(t => $"'{t}'"))})"));
+            Assert.Equal((1L, 1L), c.QuerySingle<(long, long)>("SELECT favorite, following FROM saga_user WHERE saga_id = 1"));
+            Assert.Equal("finished", c.ExecuteScalar<string>("SELECT status FROM progress WHERE game_id = 10"));
+            Assert.Equal("Halo", c.ExecuteScalar<string>("SELECT g.name_es FROM source o JOIN version v ON v.id = o.version_id JOIN game g ON g.id = v.game_id"));
+            Assert.Equal("1986", c.ExecuteScalar<string>("SELECT value FROM field_value WHERE entity_id = 10"));
+            Assert.Empty(c.Query("PRAGMA main.foreign_key_check"));
+            Assert.Empty(c.Query("PRAGMA catalog.foreign_key_check"));
+            // Borrar un juego del catálogo ya no borra en cascada tu progreso (SQLite no las admite entre archivos).
+            c.Execute("DELETE FROM version WHERE game_id = 10; DELETE FROM game WHERE id = 10");
+            Assert.Equal(1, c.ExecuteScalar<long>("SELECT count(*) FROM progress"));
+        }
+
+        // El catálogo solo: sus tablas y ninguna columna propia.
+        using (var cat = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={db.CatalogPath}"))
+        {
+            cat.Open();
+            var tables = cat.Query<string>("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").ToList();
+            Assert.All(tables, t => Assert.Contains(t, Migrations.CatalogTables));
+            var columns = tables.SelectMany(t => cat.Query<string>($"SELECT name FROM pragma_table_info('{t}')")).ToList();
+            Assert.DoesNotContain("favorite", columns);
+            Assert.DoesNotContain("following", columns);
+            Assert.DoesNotContain("chosen_route", columns);
+            Assert.DoesNotContain("export_to_steam", columns);
+            Assert.Equal(2, cat.ExecuteScalar<long>("SELECT count(*) FROM saga"));
+        }
+        Assert.True(Migrations.Apply(db) > 0); // las que siguen se aplican sobre el catálogo separado
+    }
+
     /// <summary>F1.4: las 24 plataformas quedan cargadas y la saga no lleva plataforma (#131).</summary>
     [Fact]
     public void CatalogHasThe24Platforms()
@@ -90,7 +146,7 @@ public class DataTests
         var path = tmp["Otteretro"];
         Assert.Null(DataFolder.Prepare(path));
         Assert.True(DataFolder.IsReady(path));
-        Assert.True(Directory.Exists(Path.Combine(path, "cache", "imagenes")));
+        Assert.True(Directory.Exists(Path.Combine(path, "catalogo", "imagenes")));
     }
 
     [Theory]

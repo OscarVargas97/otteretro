@@ -133,13 +133,13 @@ public static class Endpoints
         api.MapDelete("/tasks/finished", Results<Ok<int>, Conflict<ApiError>> (AppSession s) =>
             CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(TaskQueue.Clear(db)) : CatalogEndpoints.NoData());
 
-        // Portada, héroe o logo de un juego desde cache/imagenes. Va en <img src>, así que la clave llega en ?key=.
+        // Portada, héroe o logo de un juego desde catalogo/imagenes. Va en <img src>, así que la clave llega en ?key=.
         api.MapGet("/images/{gameId:long}/{kind}", Results<PhysicalFileHttpResult, NotFound> (long gameId, string kind, AppSession s, HttpResponse response) =>
         {
             // La ventana pregunta siempre (con ETag): si la imagen cambió, no se queda con la vieja (#58).
             response.Headers.CacheControl = "no-cache";
             if (!Catalog.SteamGridDb.Kinds.Contains(kind) || !DataFolder.IsReady(s.Config.DataFolder)) return TypedResults.NotFound();
-            var file = Catalog.SteamGridDb.Find(new Database(DataFolder.DatabasePath(s.Config.DataFolder!)), gameId, kind);
+            var file = Catalog.SteamGridDb.Find(DataFolder.Open(s.Config.DataFolder!), gameId, kind);
             return file is null ? TypedResults.NotFound() : TypedResults.PhysicalFile(file, ImageType(file), enableRangeProcessing: false);
         });
 
@@ -169,7 +169,7 @@ public static class Endpoints
     };
 
     static Credentials? CredentialsOf(AppSession s, SecretBox box) =>
-        DataFolder.IsReady(s.Config.DataFolder) ? new(new Database(DataFolder.DatabasePath(s.Config.DataFolder!)), s.Config.MachineId, box) : null;
+        DataFolder.IsReady(s.Config.DataFolder) ? new(DataFolder.Open(s.Config.DataFolder!), s.Config.MachineId, box) : null;
 
     static AppState State(AppSession s) =>
         new(Startup.Version, s.Config.DataFolder, DataFolder.IsReady(s.Config.DataFolder), s.Config.EffectiveLanguage, s.Fullscreen);

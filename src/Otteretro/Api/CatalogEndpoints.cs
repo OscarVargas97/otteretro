@@ -122,7 +122,7 @@ public static class CatalogEndpoints
         new(new ApiClient(db, IgdbImport.Handler), new Credentials(db, s.Config.MachineId, box), IgdbImport.Handler);
 
     internal static Database? Db(AppSession s) =>
-        DataFolder.IsReady(s.Config.DataFolder) ? new Database(DataFolder.DatabasePath(s.Config.DataFolder!)) : null;
+        DataFolder.IsReady(s.Config.DataFolder) ? DataFolder.Open(s.Config.DataFolder!) : null;
 
     internal static Conflict<ApiError> NoData() => TypedResults.Conflict(ApiError.Of("move.noDataFolder"));
 

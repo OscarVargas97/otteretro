@@ -240,9 +240,9 @@ public static class FolderMove
     /// <summary>Vuelca el WAL a la base y suelta las conexiones, para copiar o mover el archivo sin que esté en uso.</summary>
     static void CloseDatabase(string folder)
     {
-        var path = DataFolder.DatabasePath(folder);
-        if (File.Exists(path))
+        foreach (var path in (string[])[DataFolder.DatabasePath(folder), DataFolder.CatalogPath(folder)])
         {
+            if (!File.Exists(path)) continue;
             using var c = new SqliteConnection($"Data Source={path}");
             c.Open();
             using var cmd = c.CreateCommand();

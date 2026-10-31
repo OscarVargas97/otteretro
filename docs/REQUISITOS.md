@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-31, con la #162, la #163 y la #164 (consolas que habilitas tú, catálogo al día cada semana y reevaluar icónicas), la #161 (corregir lo que cambió Claude), la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
+> **Última actualización:** 2026-10-31, con la #165 a la #168 (exclusivas, más reconocidas, catálogo separado de tus datos), la #162, la #163 y la #164 (consolas que habilitas tú, catálogo al día cada semana y reevaluar icónicas), la #161 (corregir lo que cambió Claude), la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
 
 ## Cómo se mantiene
 
@@ -86,8 +86,10 @@ Otteretro es una app **personal** para:
                                    guarda una sola cosa: dónde está la carpeta de datos
 
 <carpeta de datos>\             ← la ELIGES tú la primera vez que abres la app (ej. E:\Otteretro)
-├── data\otteretro.db           ← registro + catálogo
-├── cache\imagenes\             ← portadas y arte de SteamGridDB
+├── data\otteretro.db           ← lo tuyo: lo que tienes, progreso, favoritas, claves, ajustes
+├── catalogo\                   ← el catálogo, sin nada tuyo, para poder distribuirlo (#167)
+│   ├── catalogo.db             ← sagas, juegos, versiones, rutas, consolas
+│   └── imagenes\               ← portadas y arte de SteamGridDB
 └── Herramientas\               ← la ÚNICA biblioteca de herramientas
     ├── Emuladores\<Consola>\<Instalación>\<versión>\
     ├── Ports\<Consola>\<Port>\<versión>\
@@ -144,6 +146,9 @@ E:\Consolas\  ·  D:\Juegos\…    ← bibliotecas de JUEGOS (las que quieras, e
 - **La carga es por partes** (scripts y Claude): nunca todas las sagas de PC de golpe, para que termine y no agote la suscripción. PC va después de Microsoft (#69, #131).
 - **Todo lo que tienes aparece siempre.**
 - Para cada juego se indica **si existe versión de PC**.
+- **Exclusivas** (#165): una saga es exclusiva de una empresa si todas sus versiones de consola son de ella; una versión de PC no le quita lo exclusivo.
+- **Más reconocidas** (#166): primero las icónicas aprobadas y después la popularidad en IGDB (cuánta gente calificó sus juegos, en la consola que mires).
+- **El catálogo va aparte de lo tuyo** (#167), con sus imágenes, para poder distribuirlo algún día sin tus datos. Cómo se distribuye queda para después.
 
 ### 6.2 Modelo ✅
 **Saga → Juego → Versión** (consola o PC; original, remaster o remake) **→ Origen** (un archivo en una biblioteca o tu cuenta en una tienda de PC).

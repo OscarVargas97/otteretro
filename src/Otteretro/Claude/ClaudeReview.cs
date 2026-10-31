@@ -115,7 +115,7 @@ public static class ClaudeReview
         switch (doc.RootElement.GetProperty("prompt").GetString())
         {
             case SagaAnalysis.Routes:
-                var chosen = c.ExecuteScalar<string?>("SELECT kind FROM route WHERE id = (SELECT chosen_route FROM saga WHERE id = @EntityId)", new { r.EntityId }, t);
+                var chosen = c.ExecuteScalar<string?>("SELECT kind FROM route WHERE id = (SELECT chosen_route FROM saga_user WHERE saga_id = @EntityId)", new { r.EntityId }, t);
                 foreach (var route in result.Deserialize<List<SagaAnalysis.Route>>(Web)!)
                 {
                     c.Execute("DELETE FROM route WHERE saga_id = @EntityId AND kind = @Kind", new { r.EntityId, route.Kind }, t);
@@ -131,7 +131,10 @@ public static class ClaudeReview
                             """, new { routeId, position = ++position, step.GameId, step.VersionId, step.Reason }, t);
                     // La ruta que seguías se renueva; sin ninguna elegida, se sigue la de la comunidad.
                     if (route.Kind == (chosen ?? "community"))
-                        c.Execute("UPDATE saga SET chosen_route = @routeId WHERE id = @EntityId", new { routeId, r.EntityId }, t);
+                        c.Execute("""
+                            INSERT INTO saga_user (saga_id, chosen_route) VALUES (@EntityId, @routeId)
+                            ON CONFLICT (saga_id) DO UPDATE SET chosen_route = excluded.chosen_route
+                            """, new { routeId, r.EntityId }, t);
                 }
                 break;
             case SagaAnalysis.Iconic:
@@ -178,7 +181,7 @@ public static class ClaudeReview
     public static RoutesPage Routes(Database db, long sagaId)
     {
         using var c = db.Open();
-        var chosen = c.ExecuteScalar<long?>("SELECT chosen_route FROM saga WHERE id = @sagaId", new { sagaId });
+        var chosen = c.ExecuteScalar<long?>("SELECT chosen_route FROM saga_user WHERE saga_id = @sagaId", new { sagaId });
         var covers = Catalog.CatalogQueries.Covers(db);
         var routes = c.Query<(long Id, string Kind, string? Rationale, string? Sources)>(
             "SELECT id, kind, rationale, sources FROM route WHERE saga_id = @sagaId AND approved = 1 ORDER BY CASE kind WHEN 'release' THEN 0 WHEN 'story' THEN 1 ELSE 2 END",
@@ -203,8 +206,13 @@ public static class ClaudeReview
         using var c = db.Open();
         if (routeId is not null && c.ExecuteScalar<long>("SELECT count(*) FROM route WHERE id = @routeId AND saga_id = @sagaId", new { routeId, sagaId }) == 0)
             return false;
-        return c.Execute("UPDATE saga SET chosen_route = @routeId, following = CASE WHEN @routeId IS NULL THEN following ELSE 1 END WHERE id = @sagaId",
-            new { routeId, sagaId }) > 0;
+        if (c.ExecuteScalar<long>("SELECT count(*) FROM saga WHERE id = @sagaId", new { sagaId }) == 0) return false;
+        c.Execute("""
+            INSERT INTO saga_user (saga_id, chosen_route, following) VALUES (@sagaId, @routeId, @routeId IS NOT NULL)
+            ON CONFLICT (saga_id) DO UPDATE SET chosen_route = excluded.chosen_route,
+                following = CASE WHEN excluded.chosen_route IS NULL THEN following ELSE 1 END
+            """, new { routeId, sagaId });
+        return true;
     }
 
     public static List<VersionCompare> Compare(Database db, long gameId)
@@ -225,7 +233,7 @@ public static class ClaudeReview
     {
         using var c = db.Open();
         var routes = c.Query<(long SagaId, string SagaName, long RouteId, string Kind)>("""
-            SELECT s.id, s.name, r.id, r.kind FROM saga s JOIN route r ON r.id = s.chosen_route WHERE s.following = 1 ORDER BY s.favorite DESC, s.name
+            SELECT s.id, s.name, r.id, r.kind FROM saga_user u JOIN saga s ON s.id = u.saga_id JOIN route r ON r.id = u.chosen_route WHERE u.following = 1 ORDER BY u.favorite DESC, s.name
             """).ToList();
         var next = new List<NextGame>();
         var covers = Catalog.CatalogQueries.Covers(db);

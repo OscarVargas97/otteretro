@@ -195,6 +195,37 @@ public static class IgdbImport
         QueueFollowUps(run.Db);
     }
 
+    /// <summary>
+    /// F2.17 (#89): completa la popularidad de los juegos cargados antes de guardarla, de a 500 por consulta. Sigue sola tras
+    /// un reinicio: pide lo que aún no la tiene (los que IGDB no calificó quedan en 0).
+    /// </summary>
+    public static async Task Popularity(TaskRun run, CancellationToken ct)
+    {
+        var igdb = Client(run);
+        long total, left;
+        using (var c = run.Db.Open()) total = c.ExecuteScalar<long>("SELECT count(*) FROM game WHERE igdb_id IS NOT NULL AND popularity IS NULL");
+        do
+        {
+            List<long> ids;
+            using (var c = run.Db.Open()) ids = c.Query<long>("SELECT igdb_id FROM game WHERE igdb_id IS NOT NULL AND popularity IS NULL LIMIT 500").ToList();
+            if (ids.Count == 0) break;
+            var rated = (await igdb.Query<Rated>("games", $"fields total_rating_count; where id = ({string.Join(',', ids)}); limit 500;", ct))
+                .ToDictionary(r => r.Id, r => r.TotalRatingCount ?? 0);
+            using (var c = run.Db.Open())
+            {
+                using var t = c.BeginTransaction();
+                foreach (var id in ids)
+                    c.Execute("UPDATE game SET popularity = @pop WHERE igdb_id = @id", new { id, pop = rated.GetValueOrDefault(id) }, t);
+                t.Commit();
+                left = c.ExecuteScalar<long>("SELECT count(*) FROM game WHERE igdb_id IS NOT NULL AND popularity IS NULL");
+            }
+            run.Report((int)((total - left) * 100 / Math.Max(total, 1)), ApiError.Of("tasks.igdb.popularity",
+                ("done", (total - left).ToString()), ("total", total.ToString())));
+        } while (left > 0);
+    }
+
+    record Rated(long Id, long? TotalRatingCount);
+
     record SteamLink(long Game, string Uid);
 
     /// <summary>
@@ -368,6 +399,8 @@ public static class IgdbImport
         FieldValues.Set(c, "game", id, "original_name", Clean(g.Name), Source, t);
         FieldValues.Set(c, "game", id, "name_es", Clean(SpanishName(g)), Source, t);
         FieldValues.Set(c, "game", id, "year", Year(g.FirstReleaseDate), Source, t);
+        // Cuánta gente lo calificó en IGDB: la medida de «más reconocidas» (#89, decisión #166).
+        c.Execute("UPDATE game SET popularity = @pop WHERE id = @id", new { id, pop = g.TotalRatingCount ?? 0 }, t);
         // La descripción (en inglés) no tiene columna: se guarda como dato y Claude la traduce una vez (F2.5).
         if (!string.IsNullOrWhiteSpace(g.Summary))
             c.Execute("""
