@@ -237,16 +237,17 @@ public class ClaudeRunnerTests : IDisposable
     }
 
     /// <summary>
-    /// F2.2 y #155: el límite de sesión enseña cuánto entra en una ventana (lo gastado en ella); en la ventana siguiente,
-    /// al llegar al 50 % de eso se espera a que termine.
+    /// F2.2 y #157: el límite de sesión enseña cuánto entra en una ventana (lo gastado en ella). De noche no hay tope;
+    /// de día, con «Ejecutar ahora», al llegar al 50 % de eso se espera a que termine la ventana.
     /// </summary>
     [Fact]
-    public async Task WindowCapStopsAtHalfOfWhatTheLimitTaught()
+    public async Task WindowCapOnlyAppliesToRunNowDuringTheDay()
     {
         var zone = TimeZoneInfo.Local.Id;
         Fake(Reply(new { value = 4, note = "x" }, cost: 1), Reply(new { value = 4, note = "x" }, cost: 1),
             Limit($"You've hit your session limit · resets 6am ({zone})"),
-            Reply(new { value = 4, note = "x" }, cost: 0.5), Reply(new { value = 4, note = "x" }, cost: 0.5), Ok);
+            Reply(new { value = 4, note = "x" }, cost: 1.5), Ok, // de noche pasa del 50 % sin parar
+            Reply(new { value = 4, note = "x" }, cost: 1), Ok);
 
         now = Local(2);
         await Run();
@@ -255,11 +256,15 @@ public class ClaudeRunnerTests : IDisposable
 
         now = Local(6);
         await Run();
+        await Run();
+
+        now = Local(12);
+        ClaudeBudget.RunNow(db);
         await Run(); // 1 USD = 50 % de 2
         var e = await Assert.ThrowsAsync<ClaudePausedException>(() => Run());
         Assert.Equal("tasks.claude.windowCap", e.Reason.Code);
-        Assert.Equal(Local(11), e.Until);
-        Assert.Equal(5, calls.Count);
+        Assert.Equal(Local(17), e.Until);
+        Assert.Equal(6, calls.Count);
     }
 
     /// <summary>F2.2: la cola devuelve la tarea a la espera con su punto de control y no le cuenta el intento.</summary>

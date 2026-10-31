@@ -17,9 +17,9 @@ public sealed class ClaudePausedException(DateTime until, ApiError reason) : Exc
 }
 
 /// <summary>
-/// Cuándo puede llamar Otteretro a Claude sin quitarte cuota (F2.2, decisiones #154 y #155):
-/// en el horario (00:00 a 08:00 por defecto, en la hora del equipo), sin pasar del tope de cada ventana de 5 h
-/// (50 % por defecto) y nunca con el límite de la suscripción alcanzado. Los ajustes van en la tabla `setting`.
+/// Cuándo puede llamar Otteretro a Claude sin quitarte cuota (F2.2, decisiones #154 y #157):
+/// en el horario (00:00 a 08:00 por defecto, en la hora del equipo) hasta el límite de la suscripción; fuera de él, solo
+/// con «Ejecutar ahora» y sin pasar del tope de cada ventana de 5 h (50 % por defecto, #157). Los ajustes van en la tabla `setting`.
 /// </summary>
 public static partial class ClaudeBudget
 {
@@ -43,7 +43,8 @@ public static partial class ClaudeBudget
         if (Date(s, PausedUntil) is { } paused && paused > now)
             throw new ClaudePausedException(paused, ApiError.Of("tasks.claude.limit", ("at", paused.ToString("O"))));
 
-        if (!InSchedule(s, now) && !(Date(s, RunNowUntil) > now))
+        var inSchedule = InSchedule(s, now);
+        if (!inSchedule && !(Date(s, RunNowUntil) > now))
         {
             var next = NextScheduleStart(s, now);
             throw new ClaudePausedException(next, ApiError.Of("tasks.claude.schedule", ("at", next.ToString("O"))));
@@ -56,9 +57,10 @@ public static partial class ClaudeBudget
             Set(c, WindowStart, now.ToString("O"));
             return;
         }
-        // Tope: solo cuando ya se sabe cuánto entra en una ventana (se aprende al tocar el límite).
+        // Tope: solo de día, con «Ejecutar ahora» (#157); de noche se usa la ventana entera. Y solo cuando ya se sabe cuánto
+        // entra en una ventana (se aprende al tocar el límite).
         // ponytail: se mide lo que gasta Otteretro; tus sesiones de Claude Code en la misma ventana no se ven.
-        if (Number(s, WindowCost) is { } capacity && capacity > 0)
+        if (!inSchedule && Number(s, WindowCost) is { } capacity && capacity > 0)
         {
             var used = c.ExecuteScalar<double>("SELECT COALESCE(SUM(cost_usd), 0) FROM claude_usage WHERE created_at >= @from",
                 new { from = start.Value.ToString("O") });
