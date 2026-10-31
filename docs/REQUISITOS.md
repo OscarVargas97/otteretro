@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-30, con la #153 (sub-sagas: Counter-Strike fuera de Half-Life).
+> **Última actualización:** 2026-10-31, con la #158 (sin tope de tareas de Claude; antes #154 y #157: horario nocturno, tope solo de día).
 
 ## Cómo se mantiene
 
@@ -369,7 +369,7 @@ Se prueba en este orden:
 - **Información de tiendas y versión de PC, precios y versiones nuevas**: se comprueban **solo con la app abierta**, al abrirla y cada cierto intervalo configurable. Con la app cerrada no corre nada; los avisos (como una bajada de precio) llegan la próxima vez que la abras (#75).
 - **Bibliotecas**: se escanean **solo cuando pulsas "Escanear"**. La app no vigila las carpetas.
 - **Carga inicial del catálogo**: **completa**, todas las sagas y juegos, en orden **Nintendo → Sony → Microsoft** (#69). Los scripts bajan primero todos los datos de las APIs. Claude solo juzga, **por lotes de varias sagas por llamada**, para gastar los mínimos tokens.
-- **Tope de Claude**: la carga inicial no tiene tope propio, pero **dura días** por los límites de la suscripción (ventanas de 5 h y semanales): la cola se pausa al llegar al límite y **continúa sola** cuando se renueva. Después, cada ejecución tiene un tope configurable de tareas: al llegar a él, la app se pausa y avisa.
+- **Horario y tope de Claude**: Claude trabaja en segundo plano **de noche** (00:00 a 08:00 por defecto, ajustable; #154) y ahí usa la ventana entera, **sin tope** de uso ni de tareas (#157, #158). La carga inicial **dura días** por los límites de la suscripción (ventanas de 5 h y semanales): la cola se pausa al llegar al límite y **continúa sola** cuando se renueva. De día solo corre si lo lanzas con «Ejecutar ahora», y entonces se queda en el **50 %** de cada ventana para no quitarte cuota mientras programas (#157).
 - **Descripciones**: se **traducen al español con Claude una sola vez** y quedan guardadas.
 
 ### 11.3 Claude Code ✅
