@@ -90,7 +90,7 @@ public static partial class Dats
     }
 
     /// <summary>Reemplaza los DAT de una consola por los de libretro. Devuelve cuántas entradas quedaron.</summary>
-    static async Task<int> Download(Database db, string console, CancellationToken ct)
+    internal static async Task<int> Download(Database db, string console, CancellationToken ct)
     {
         var http = Handler is null ? Shared : new HttpClient(Handler);
         var entries = new List<(string Source, Entry Entry)>();
@@ -171,7 +171,7 @@ public static partial class Dats
         run.Log(ApiError.Of("dat.log.summary", ("verified", verified.ToString()), ("missing", missing.ToString())));
     }
 
-    static async Task<string> Sha1(string path, CancellationToken ct)
+    internal static async Task<string> Sha1(string path, CancellationToken ct)
     {
         await using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20, FileOptions.SequentialScan | FileOptions.Asynchronous);
         return Convert.ToHexString(await SHA1.HashDataAsync(file, ct));

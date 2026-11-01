@@ -492,6 +492,19 @@
       "unsupported": "Sending to the recycle bin is not available on this system yet.",
       "unavailable": "{path} is on a drive without a recycle bin (network or removable): remove it by hand if you want to delete it.",
       "failed": "Could not send {path} to the recycle bin."
+    },
+    "import": {
+      "overlapsDisk": "That folder overlaps the disk {name}: choose one outside its folders.",
+      "file": "Importing {path}",
+      "log": {
+        "moved": "{path} → {to}",
+        "unknown": "{path}: its console is unknown, so it stays where it is. Put it in a folder named after the console.",
+        "archive": "{path}: compressed files cannot be imported yet.",
+        "conflict": "{path}: a different file already exists at {to}, it is not overwritten.",
+        "noSpace": "{path}: not enough space on {disk}.",
+        "noDat": "Could not download the DAT for {console}: importing without verifying.",
+        "summary": "Imported: {moved}. Not imported: {skipped}."
+      }
     }
   },
   "credentials": {
@@ -572,7 +585,8 @@
         "move": "Move a location or a folder",
         "adopt": "Migrate a location to the new layout",
         "scan": "Scan your drives",
-        "verify": "Verify files by hash"
+        "verify": "Verify files by hash",
+        "import": "Import a folder"
       },
       "disk": {
         "migrate": "Move to the standard drive layout"
@@ -726,7 +740,14 @@
       "scanQueued": "Scanning: follow it in the tasks panel.",
       "verify": "Verify",
       "verifyHelp": "Hashes your files for this console and checks them against No-Intro or Redump, offline.",
-      "verifyQueued": "Verifying: follow it in the tasks panel."
+      "verifyQueued": "Verifying: follow it in the tasks panel.",
+      "import": "Import folder",
+      "importHelp": "Brings the games in a folder to your disks, each in its place.",
+      "importLabel": "Folder to import",
+      "importPlaceholder": "D:\\Downloads\\Games",
+      "importHint": "Each game moves to Juegos on its disk: it is copied, verified and only then deleted from here. Anything whose console is unknown stays in the folder.",
+      "importCancel": "Cancel",
+      "importQueued": "Import queued: follow it in the tasks panel."
     },
     "game": {
       "noneTitle": "Pick a game",

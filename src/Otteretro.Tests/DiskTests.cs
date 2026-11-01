@@ -171,6 +171,12 @@ public class DiskTests
         Assert.True(File.Exists(tmp["portable.txt"]));
     }
 
+    static void Write(string path, string text)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, text);
+    }
+
     static void Write(string path, int size = 10_000)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -455,6 +461,96 @@ public class DiskTests
 
         // Repetirla no hace nada.
         await Done(f, DiskTasks.EnqueueMigrate(f.Db));
+    }
+
+    /// <summary>#193: cada juego de una carpeta va a su consola y su juego; lo que no se puede ubicar o chocaría se queda donde está.</summary>
+    [Fact]
+    public async Task ImportsAFolderAndLeavesWhatItCannotPlace()
+    {
+        await using var f = new Fixture();
+        var (disk, _) = Disk.Create(f.Db, f.Tmp["Otteretro"], "E:");
+        var (other, _) = Disk.Create(f.Db, f.Tmp["Otro"], "F:");
+        var games = f.Tmp[@"Otteretro\Juegos"];
+        var iso = new byte[0x100];
+        "GZ2P01"u8.CopyTo(iso);
+        new byte[] { 0xC2, 0x33, 0x9F, 0x3D }.CopyTo(iso, 0x1C);
+        var from = f.Tmp["Descargas"];
+        Directory.CreateDirectory(from);
+        File.WriteAllBytes(Path.Combine(from, "The Legend of Zelda Twilight Princess (Europe).iso"), iso);
+        Write(Path.Combine(from, "Zelda [01006BB00C6F0000][v0].nsp"));
+        Write(Path.Combine(from, @"sueltos\Zelda parche [01006BB00C6F0800][v1].nsp"));
+        Write(Path.Combine(from, "Metroid Fusion.gba"));
+        Write(Path.Combine(from, "misterio.iso"));
+        Write(Path.Combine(from, "pack.zip"));
+        Write(Path.Combine(from, @"PlayStation\Crash\Crash.cue"), "FILE \"Crash.bin\" BINARY\n  TRACK 01 MODE2/2352\n");
+        Write(Path.Combine(from, @"PlayStation\Crash\Crash.bin"));
+        Write(Path.Combine(from, "Choque.gba"), "nuevo");
+        Write(f.Tmp[@"Otro\Juegos\Game Boy Advance\Choque\Choque.gba"], "el que ya tenías");
+        using (var c = f.Db.Open())
+        {
+            c.Execute("""
+                INSERT INTO game (id, name_es) VALUES (8, 'The Legend of Zelda: Twilight Princess'), (9, 'Zelda'), (10, 'Metroid Fusion');
+                INSERT INTO version (id, game_id, platform) VALUES (18, 8, 'gc'), (19, 9, 'switch'), (20, 10, 'gba');
+                INSERT INTO console_destination (console_id, library_id) VALUES ('gba', @other);
+                INSERT INTO dat_entry (console, source, name, sha1) VALUES ('gc', 'redump', 'Legend of Zelda, The - Twilight Princess (Europe)', @sha1);
+                """, new { other, sha1 = Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(iso)) });
+        }
+        // Los DAT de las demás consolas no se pueden bajar acá: se importa igual, sin verificar.
+        Dats.Handler = new FailingHandler();
+        try
+        {
+            Assert.Equal("import.overlapsDisk", Import.Enqueue(f.Db, games).Error?.Code);
+            Assert.Equal("import.overlapsDisk", Import.Enqueue(f.Db, f.Tmp.Path).Error?.Code);
+            Assert.Equal("path.notFound", Import.Enqueue(f.Db, f.Tmp["no-existe"]).Error?.Code);
+            await Done(f, Import.Enqueue(f.Db, from).Task!.Value);
+        }
+        finally { Dats.Handler = null; }
+
+        // Cada uno a su lugar; el UPD, a la carpeta de su BASE; el .cue con su .bin.
+        Assert.True(File.Exists(Path.Combine(games, @"GameCube\The Legend of Zelda - Twilight Princess\The Legend of Zelda Twilight Princess (Europe).iso")));
+        Assert.True(File.Exists(Path.Combine(games, @"Switch\Zelda\Zelda [01006BB00C6F0000][v0].nsp")));
+        Assert.True(File.Exists(Path.Combine(games, @"Switch\Zelda\Zelda parche [01006BB00C6F0800][v1].nsp")));
+        Assert.True(File.Exists(Path.Combine(games, @"PlayStation\Crash\Crash.bin")));
+        // GBA eligió otro disco.
+        Assert.True(File.Exists(f.Tmp[@"Otro\Juegos\Game Boy Advance\Metroid Fusion\Metroid Fusion.gba"]));
+
+        // Lo que no se pudo ubicar sigue en el origen, y lo que ya no tiene nada se quitó.
+        Assert.Equal(["Choque.gba", "misterio.iso", "pack.zip"], Directory.EnumerateFileSystemEntries(from).Select(Path.GetFileName).Order());
+
+        using (var c = f.Db.Open())
+        {
+            var tp = c.QuerySingle<(string Disk, long? Version, bool Verified)>("SELECT library_id, version_id, verified FROM source WHERE console = 'gc'");
+            Assert.Equal((disk, (long?)18, true), tp);
+            Assert.Equal(19, c.ExecuteScalar<long>("SELECT version_id FROM source WHERE component = 'UPD'"));
+            Assert.Equal(other, c.ExecuteScalar<string>("SELECT library_id FROM source WHERE version_id = 20"));
+        }
+    }
+
+    sealed class FailingHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) => throw new HttpRequestException("sin red");
+    }
+
+    /// <summary>#193: mover entre discos copia a un temporal y verifica; si ya está igual (se cortó antes de borrar) termina, y uno distinto nunca se pisa.</summary>
+    [Fact]
+    public async Task MoveInKeepsTheSourceUntilTheCopyIsVerified()
+    {
+        await using var f = new Fixture();
+        Write(f.Tmp[@"a\juego.iso"], "datos");
+        var to = f.Tmp[@"b\juego.iso"];
+        Import.MoveIn(f.Tmp[@"a\juego.iso"], to, forceCopy: true);
+        Assert.Equal("datos", File.ReadAllText(to));
+        Assert.False(File.Exists(f.Tmp[@"a\juego.iso"]));
+        Assert.False(File.Exists(to + ".parte"));
+
+        Write(f.Tmp[@"a\juego.iso"], "datos"); // se cortó antes de borrar el origen
+        Import.MoveIn(f.Tmp[@"a\juego.iso"], to, forceCopy: true);
+        Assert.False(File.Exists(f.Tmp[@"a\juego.iso"]));
+
+        Write(f.Tmp[@"a\juego.iso"], "otro contenido");
+        Assert.Throws<TaskException>(() => Import.MoveIn(f.Tmp[@"a\juego.iso"], to));
+        Assert.Equal("otro contenido", File.ReadAllText(f.Tmp[@"a\juego.iso"]));
+        Assert.Equal("datos", File.ReadAllText(to));
     }
 
     /// <summary>#160: lo que tiene un disco, por tipo y con su tamaño, y mover lo marcado (carpetas y archivos sueltos) a otro.</summary>

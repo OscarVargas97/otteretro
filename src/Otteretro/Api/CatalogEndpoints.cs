@@ -15,6 +15,7 @@ public record VerifyRequest(string? Console, long? GameId);
 
 /// <summary>El ejecutable de un juego de PC suelto, relativo a su carpeta (#182).</summary>
 public record ExecutableRequest(string Path);
+public record ImportRequest(string Path);
 /// <param name="Ids">Las filas de <c>source</c> que se quitan del disco (#224).</param>
 public record TrashRequest(List<long> Ids);
 
@@ -90,6 +91,14 @@ public static class CatalogEndpoints
         // «Escanear» en Colección (#178): la tarea que reconoce los archivos de cada disco.
         api.MapPost("/collection/scan", Results<Ok<long>, Conflict<ApiError>> (AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(Libraries.Scan.Enqueue(db)) : NoData());
+
+        // «Importar carpeta» (#193): cada juego de esa carpeta a su lugar, movido con copia y hash.
+        api.MapPost("/collection/import", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (ImportRequest request, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var (task, error) = Libraries.Import.Enqueue(db, request.Path);
+            return error is null ? TypedResults.Ok(task!.Value) : TypedResults.BadRequest(error);
+        });
 
         // «Verificar» (#179): el SHA-1 contra No-Intro o Redump, de una consola o de un juego.
         api.MapPost("/collection/verify", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (VerifyRequest request, AppSession s) =>
