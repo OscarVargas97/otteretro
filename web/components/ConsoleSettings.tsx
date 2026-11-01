@@ -4,10 +4,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFormatter, useTranslations } from "next-intl";
 import Link from "next/link";
 import { useState } from "react";
+import { librariesQuery } from "@/components/Libraries";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
 import { optimistic } from "@/lib/optimistic";
-import type { ConsoleInfo, ConsolesPage, CoversInfo, PlatformInfo } from "@/lib/types";
+import type { ConsoleFolder, ConsoleInfo, ConsolesPage, CoversInfo, PlatformInfo } from "@/lib/types";
 
 const GROUPS = ["nintendo", "playstation", "xbox", "pc", "other"] as const;
 const groupOf = (c: ConsoleInfo): (typeof GROUPS)[number] =>
@@ -60,6 +61,8 @@ export function ConsoleSettings() {
     mutationFn: () => request<CoversInfo>("/api/covers", { method: "POST" }),
     onSuccess: (data) => { cache.setQueryData(["covers"], data); cache.invalidateQueries({ queryKey: ["tasks"] }); },
   });
+
+  const folders = useQuery(consoleFoldersQuery);
 
   if (!page.data) return page.isError ? <p className="error" role="alert">{describe(page.error)}</p> : null;
   const p = page.data;
@@ -157,6 +160,7 @@ export function ConsoleSettings() {
                     </label>
                     {badge(c)}
                     <span className="small muted tabular console-games">{t("games", { count: Number(c.games) })}</span>
+                    {folders.data?.filter((x) => x.console === c.id).map((x) => <ConsoleLocation key={`${x.libraryId}/${x.relative}`} folder={x} />)}
                   </li>
                 ))}
               </ul>
@@ -165,6 +169,43 @@ export function ConsoleSettings() {
         })}
       </section>
       {error && <p className="error small" role="alert">{describe(error)}</p>}
+    </div>
+  );
+}
+
+export const consoleFoldersQuery = { queryKey: ["libraries", "consoles"], queryFn: () => request<ConsoleFolder[]>("/api/libraries/consoles") };
+
+/** En qué biblioteca están los juegos de una consola, y moverlos a otra (#190). */
+function ConsoleLocation({ folder }: { folder: ConsoleFolder }) {
+  const t = useTranslations("settings.consoles.location");
+  const describe = useDescribeError();
+  const cache = useQueryClient();
+  const libraries = useQuery(librariesQuery).data ?? [];
+  const others = libraries.filter((l) => l.connected && l.id !== folder.libraryId);
+  const [open, setOpen] = useState(false);
+  const [to, setTo] = useState("");
+  const move = useMutation({
+    mutationFn: () => request<number>(`/api/libraries/${folder.libraryId}/move-folder`,
+      { method: "POST", body: JSON.stringify({ relative: folder.relative, toLibrary: to || others[0]?.id }) }),
+    onSuccess: () => { setOpen(false); cache.invalidateQueries({ queryKey: ["tasks"] }); },
+  });
+  const name = libraries.find((l) => l.id === folder.libraryId)?.name ?? folder.libraryId;
+  return (
+    <div className="console-location small">
+      <span className="muted">{t("in", { library: name })}</span>
+      {move.isSuccess && <span className="muted" role="status"> · {t("queued")}</span>}
+      {!open && others.length > 0 && <button className="ot-btn ot-btn-sm ot-btn-ghost" type="button" onClick={() => { setOpen(true); setTo(others[0].id); move.reset(); }}>{t("move")}</button>}
+      {open && (
+        <span style={{ display: "inline-flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+          <label className="muted" htmlFor={`to-${folder.libraryId}-${folder.relative}`}>{t("to")}</label>
+          <select id={`to-${folder.libraryId}-${folder.relative}`} value={to} onChange={(e) => setTo(e.target.value)}>
+            {others.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </select>
+          <button className="ot-btn ot-btn-sm" type="button" onClick={() => setOpen(false)}>{t("cancel")}</button>
+          <button className="ot-btn ot-btn-sm ot-btn-primary" type="button" disabled={move.isPending} onClick={() => move.mutate()}>{t("confirm")}</button>
+        </span>
+      )}
+      {move.isError && <p className="error small" style={{ margin: 0 }}>{describe(move.error)}</p>}
     </div>
   );
 }

@@ -75,24 +75,18 @@ function LibraryRow({ library: l }: { library: LibraryInfo }) {
   const locale = useLocale();
   const describe = useDescribeError();
   const cache = useQueryClient();
-  const all = useQuery(librariesQuery).data ?? [];
-  const [mode, setMode] = useState<"rename" | "move" | "moveFolder" | "reconnect" | "remove" | null>(null);
+  const [mode, setMode] = useState<"rename" | "move" | "reconnect" | "remove" | null>(null);
   const [value, setValue] = useState("");
-  const [toLibrary, setToLibrary] = useState(l.id);
-  const [toRelative, setToRelative] = useState("");
   const [queued, setQueued] = useState(false);
 
   const run = useMutation({
-    mutationFn: async (kind: "rename" | "move" | "moveFolder" | "reconnect" | "remove" | "migrate") => {
+    mutationFn: async (kind: "rename" | "move" | "reconnect" | "remove" | "migrate") => {
       const base = `/api/libraries/${l.id}`;
       switch (kind) {
         case "rename": return request<LibraryInfo[]>(base, { method: "PUT", body: JSON.stringify({ name: value }) });
         case "remove": return request<LibraryInfo[]>(base, { method: "DELETE" });
         case "reconnect": return request<LibraryInfo[]>(`${base}/reconnect`, post({ path: value || null }));
         case "move": await request<number>(`${base}/move`, post({ path: value })); return null;
-        case "moveFolder":
-          await request<number>(`${base}/move-folder`, post({ relative: value, toLibrary, toRelative: toRelative || null }));
-          return null;
         case "migrate": await request<number>(`${base}/migrate`, post({})); return null;
       }
     },
@@ -103,7 +97,7 @@ function LibraryRow({ library: l }: { library: LibraryInfo }) {
       setMode(null);
     },
   });
-  const open = (m: typeof mode, initial = "") => { setMode(m); setValue(initial); setToLibrary(l.id); setToRelative(""); run.reset(); };
+  const open = (m: typeof mode, initial = "") => { setMode(m); setValue(initial); run.reset(); };
 
   return (
     <section className="panel">
@@ -128,29 +122,11 @@ function LibraryRow({ library: l }: { library: LibraryInfo }) {
           {!l.connected && <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" onClick={() => open("reconnect")}>{t("reconnect")}</button>}
           <button className="ot-btn ot-btn-sm" type="button" onClick={() => open("rename", l.name)}>{t("rename")}</button>
           {l.connected && <button className="ot-btn ot-btn-sm" type="button" onClick={() => open("move")}>{t("move")}</button>}
-          {l.connected && <button className="ot-btn ot-btn-sm" type="button" onClick={() => open("moveFolder")}>{t("moveFolder")}</button>}
           <button className="ot-btn ot-btn-sm ot-btn-ghost" type="button" onClick={() => open("remove")}>{t("remove")}</button>
         </div>
       )}
 
-      {mode === "moveFolder" && (
-        <div className="form-block">
-          <p className="small" style={{ margin: 0 }}>{t("moveFolderHelp")}</p>
-          <label className="small muted" htmlFor={`folder-${l.id}`}>{t("folder")}</label>
-          <input id={`folder-${l.id}`} value={value} onChange={(e) => setValue(e.target.value)} placeholder={t("folderPlaceholder")} />
-          <label className="small muted" htmlFor={`to-library-${l.id}`}>{t("toLibrary")}</label>
-          <select id={`to-library-${l.id}`} value={toLibrary} onChange={(e) => setToLibrary(e.target.value)}>
-            {all.filter((x) => x.connected).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-          </select>
-          <label className="small muted" htmlFor={`to-relative-${l.id}`}>{t("toRelative")}</label>
-          <input id={`to-relative-${l.id}`} value={toRelative} onChange={(e) => setToRelative(e.target.value)} placeholder={value || t("folderPlaceholder")} />
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="ot-btn" type="button" onClick={() => setMode(null)}>{t("cancel")}</button>
-            <button className="ot-btn ot-btn-primary" type="button" disabled={!value || run.isPending} onClick={() => run.mutate("moveFolder")}>{t("moveFolder")}</button>
-          </div>
-        </div>
-      )}
-      {mode && mode !== "remove" && mode !== "moveFolder" && (
+      {mode && mode !== "remove" && (
         <div className="form-block">
           <p className="small" style={{ margin: 0 }}>{t(`${mode}Help`)}</p>
           <input aria-label={t(mode)} value={value} onChange={(e) => setValue(e.target.value)}

@@ -16,6 +16,9 @@ public record LibraryMarker(
 
 /// <param name="Connected">Está en su última ruta y su marcador tiene el mismo id.</param>
 /// <param name="Legacy">Todavía tiene la estructura antigua (`<Consola>\Juegos|Emuladores|Ports`): adoptarla la migra.</param>
+/// <summary>La carpeta de una consola en una biblioteca (#190).</summary>
+public record ConsoleFolder(string Console, string LibraryId, string Relative);
+
 public record LibraryInfo(string Id, string Name, string Kind, string Path, bool Connected, long? Free, long? Total, bool Legacy);
 
 /// <summary>Bibliotecas de juegos (§5): marcador, registro, crear, adoptar, renombrar, quitar sin borrar y reconectar.</summary>
@@ -124,6 +127,23 @@ public static class Library
         using (var c = db.Open()) c.Execute("UPDATE library SET name = @name WHERE id = @id", new { id, name = name.Trim() });
         if (library.Connected && ReadMarker(library.Path) is { } marker) WriteMarker(library.Path, marker with { Name = name.Trim() });
         return null;
+    }
+
+    /// <summary>
+    /// Dónde están los juegos de cada consola (#190): las carpetas de primer nivel de cada biblioteca conectada que se llaman
+    /// como la consola (su nombre o su id, sin distinguir mayúsculas). Una consola puede estar en varias bibliotecas.
+    /// </summary>
+    public static List<ConsoleFolder> ConsoleFolders(Database db)
+    {
+        using var c = db.Open();
+        var consoles = c.Query<(string Id, string Name)>("SELECT id, name FROM console").ToList();
+        var found = new List<ConsoleFolder>();
+        foreach (var library in List(db).Where(l => l.Connected))
+            foreach (var folder in Directory.EnumerateDirectories(library.Path).Select(Path.GetFileName))
+                if (consoles.FirstOrDefault(k => string.Equals(k.Name, folder, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(k.Id, folder, StringComparison.OrdinalIgnoreCase)) is { Id: not null } console)
+                    found.Add(new ConsoleFolder(console.Id, library.Id, folder!));
+        return found;
     }
 
     /// <summary>Saca la biblioteca del registro. Nunca borra archivos, ni el marcador.</summary>

@@ -70,7 +70,7 @@
       "welcome": "Bienvenida",
       "dataFolder": "Carpeta de datos",
       "backup": "Respaldo",
-      "libraries": "Bibliotecas",
+      "libraries": "Bibliotecas de juegos",
       "steam": "Steam",
       "keys": "Claves",
       "initialLoad": "Carga inicial"
@@ -185,9 +185,17 @@
         "download": "Bajar portadas",
         "running": "En curso",
         "noKey": "Falta la clave de SteamGridDB"
+      },
+      "location": {
+        "in": "Sus juegos: {library}",
+        "move": "Mover a otra biblioteca",
+        "to": "A",
+        "cancel": "Cancelar",
+        "confirm": "Mover",
+        "queued": "quedó en el panel de tareas"
       }
     },
-    "libraries": "Bibliotecas"
+    "libraries": "Bibliotecas de juegos"
   },
   "dataFolder": {
     "open": "Abrir carpeta",
@@ -793,11 +801,11 @@
     "progress": "{done} de {total} jugados"
   },
   "libraries": {
-    "emptyTitle": "Aún no hay bibliotecas",
+    "emptyTitle": "Aún no hay bibliotecas de juegos",
     "emptyText": "Adopta la carpeta donde ya tienes tus juegos o crea una nueva en cualquier disco.",
     "adopt": "Adoptar una carpeta",
     "create": "Crear una biblioteca",
-    "adoptHelp": "Registra una carpeta que ya tiene juegos. Si tiene la estructura antigua (Consola\\Juegos, Emuladores, Ports), se migra sola a la nueva: los juegos quedan en Consola\\Juego y los emuladores y ports pasan a Herramientas.",
+    "adoptHelp": "Registra una carpeta que ya tiene juegos. Si trae la estructura antigua (Consola\\Juegos) con emuladores o ports mezclados, se ordena sola: los juegos quedan en Consola\\Juego y los emuladores y ports se llevan a Herramientas, que no es una biblioteca.",
     "createHelp": "Elige una carpeta vacía o nueva, en cualquier disco o en la red (\\\\nas\\roms). Las carpetas de cada consola se crean cuando hacen falta.",
     "path": "Carpeta",
     "pathPlaceholder": "Por ejemplo E:\\Consolas",
@@ -821,13 +829,7 @@
     "moveHelp": "Elige una carpeta vacía o nueva. Se copia, se verifica cada archivo, se ponen al día las rutas de los emuladores y recién entonces se borra el origen. Si se corta, sigue donde quedó.",
     "remove": "Quitar",
     "removeHelp": "Se quita «{name}» de Otteretro. No se borra ningún archivo: puedes volver a adoptarla cuando quieras.",
-    "removeConfirm": "Quitar sin borrar",
-    "moveFolder": "Mover una carpeta",
-    "moveFolderHelp": "Una consola o un juego (por ejemplo Switch, o Switch\\Zelda) pasa a otra biblioteca o a otra ruta de esta. Se copia, se verifica y recién entonces se borra el origen; las rutas de los emuladores se ponen al día.",
-    "folder": "Carpeta dentro de la biblioteca",
-    "folderPlaceholder": "Por ejemplo Switch",
-    "toLibrary": "Biblioteca de destino",
-    "toRelative": "Ruta en el destino (opcional: si la dejas vacía, la misma)"
+    "removeConfirm": "Quitar sin borrar"
   },
   "tools": {
     "emptyTitle": "Aún no hay emuladores ni ports",
