@@ -172,7 +172,14 @@
       "enable": "Habilitar",
       "already": "Ya está",
       "refreshNow": "Actualizar ahora",
-      "queued": "En la cola de tareas."
+      "queued": "En la cola de tareas.",
+      "covers": {
+        "title": "Portadas",
+        "count": "{have, number} de {total, number} juegos con portada",
+        "download": "Bajar portadas",
+        "running": "En curso",
+        "noKey": "Falta la clave de SteamGridDB"
+      }
     }
   },
   "dataFolder": {

@@ -52,6 +52,24 @@ public static class SteamGridDb
     record Image(string Url);
     record Response<T>(bool Success, T? Data);
 
+    /// <summary>Ajustes › Consolas › Portadas (#132): cuántos juegos tienen portada, si hay una descarga en cola o corriendo y si hay clave.</summary>
+    public record CoversInfo(long Have, long Total, bool Running, bool HasKey);
+
+    public static CoversInfo Status(Database db, bool hasKey)
+    {
+        using var c = db.Open();
+        var games = c.Query<long>("SELECT id FROM game").ToHashSet();
+        var running = c.ExecuteScalar<long>("SELECT count(*) FROM task WHERE kind = 'sgdb.images' AND status IN ('queued', 'running')") > 0;
+        return new(CatalogQueries.Covers(db).Count(games.Contains), games.Count, running, hasKey);
+    }
+
+    /// <summary>«Bajar portadas»: encola la descarga desde el principio (salta los que ya tienen), salvo que ya haya una.</summary>
+    public static CoversInfo Request(Database db, bool hasKey)
+    {
+        if (hasKey && !Status(db, hasKey).Running) Enqueue(db);
+        return Status(db, hasKey);
+    }
+
     public static long Enqueue(Database db, long after = 0) =>
         TaskQueue.Enqueue(db, "sgdb.images", JsonSerializer.Serialize(new Job(after), JsonSerializerOptions.Web));
 

@@ -212,4 +212,21 @@ public class SteamGridDbTests
         await using var f = new Fixture();
         Assert.Equal("tasks.sgdb.noKey", (await f.Run(SteamGridDb.Enqueue(f.Db))).Detail!.Code);
     }
+
+    /// <summary>#132: «Bajar portadas» cuenta las que hay, encola una sola descarga y sin clave no encola.</summary>
+    [Fact]
+    public async Task RequestingCoversQueuesOnlyOne()
+    {
+        await using var f = new Fixture();
+        using (var c = f.Db.Open()) c.Execute("INSERT INTO game (id, name_es, original_name) VALUES (1, 'A', 'A'), (2, 'B', 'B'), (99, 'C', 'C')");
+        Directory.CreateDirectory(SteamGridDb.Folder(f.Db));
+        File.WriteAllBytes(Path.Combine(SteamGridDb.Folder(f.Db), "1-cover.webp"), [1]);
+        File.WriteAllBytes(Path.Combine(SteamGridDb.Folder(f.Db), "500-cover.webp"), [1]); // de un juego que ya no está: no cuenta
+
+        Assert.Equal(new SteamGridDb.CoversInfo(1, 3, false, false), SteamGridDb.Request(f.Db, hasKey: false));
+        Assert.True(SteamGridDb.Request(f.Db, hasKey: true).Running);
+        Assert.True(SteamGridDb.Request(f.Db, hasKey: true).Running);
+        using var check = f.Db.Open();
+        Assert.Equal(1, check.ExecuteScalar<long>("SELECT count(*) FROM task WHERE kind = 'sgdb.images'"));
+    }
 }
