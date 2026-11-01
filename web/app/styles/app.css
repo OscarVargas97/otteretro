@@ -111,3 +111,14 @@ details.fold[open] summary { border-bottom: 1px solid var(--line); }
 /* La nutria celebra (D11): al terminar un juego o completar una ruta. */
 .cheer { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); background: var(--have-soft); color: var(--have); }
 .cheer b { flex: 1; }
+
+/* Ajustes rehecho (#109 a #111): bloques, frases con campos y filas que nunca se parten en dos líneas. */
+.settings-blocks { display: flex; flex-direction: column; gap: var(--space-4); }
+.settings-blocks h2 { margin: 0; font-size: 16px; line-height: 22px; }
+.sentence { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.console-group { margin: var(--space-2) 0 var(--space-1); font-weight: 700; }
+.console-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.console-row { display: flex; align-items: center; gap: var(--space-3); min-height: 36px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.console-row:last-child { border-bottom: 0; }
+.console-name { display: flex; align-items: center; gap: var(--space-2); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.console-games { margin-left: auto; text-align: right; min-width: 96px; }

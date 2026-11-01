@@ -225,12 +225,14 @@ public class IgdbImportTests
         Assert.Equal("dc", await Consoles.Enable(f.Db, igdb, 23, CancellationToken.None));
         long load;
         using (var c = f.Db.Open()) load = c.ExecuteScalar<long>("SELECT id FROM task WHERE kind = 'igdb.platform'");
+        Assert.Equal(0, Consoles.Page(f.Db).Consoles.Single(k => k.Id == "dc").Loading); // en la cola: «Cargando 0 %» (#109)
         var loaded = await f.Run(load);
         Assert.True(loaded.Status == "done", System.Text.Json.JsonSerializer.Serialize(loaded.Detail));
         var page = Consoles.Page(f.Db);
         var dc = page.Consoles.Single(k => k.Id == "dc");
         Assert.Equal((1, true), (dc.Games, dc.Enabled));
         Assert.NotNull(dc.RefreshedAt);
+        Assert.Null(dc.Loading);
 
         using (var c = f.Db.Open()) c.Execute("UPDATE console SET refreshed_at = '2026-10-01T00:00:00Z'");
         var refresh = await f.Run(IgdbImport.EnqueueRefresh(f.Db));

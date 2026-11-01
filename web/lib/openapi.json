@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:57928/"
+      "url": "http://127.0.0.1:63407/"
     }
   ],
   "paths": {
@@ -2720,7 +2720,8 @@
           "company",
           "enabled",
           "refreshedAt",
-          "games"
+          "games",
+          "loading"
         ],
         "type": "object",
         "properties": {
@@ -2748,6 +2749,15 @@
           "games": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "loading": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
               "integer",
               "string"
             ],

@@ -2720,6 +2720,8 @@ export interface components {
             refreshedAt: null | string;
             /** Format: int32 */
             games: number | string;
+            /** Format: int32 */
+            loading: null | number | string;
         };
         ConsolesPage: {
             consoles: components["schemas"]["ConsoleInfo"][];

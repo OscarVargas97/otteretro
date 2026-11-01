@@ -6,9 +6,17 @@ import { useState } from "react";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
 import { optimistic } from "@/lib/optimistic";
-import type { ConsolesPage, PlatformInfo } from "@/lib/types";
+import type { ConsoleInfo, ConsolesPage, PlatformInfo } from "@/lib/types";
 
-/** Ajustes › Consolas (F2.13, F2.14): las consolas habilitadas, agregar otras de IGDB y cada cuánto se pone al día el catálogo. */
+const GROUPS = ["nintendo", "playstation", "xbox", "pc", "other"] as const;
+const groupOf = (c: ConsoleInfo): (typeof GROUPS)[number] =>
+  c.id === "pc" || c.id === "pcvr" ? "pc" : c.company === "Nintendo" ? "nintendo" : c.company === "Sony" ? "playstation" : c.company === "Microsoft" ? "xbox" : "other";
+const day = (iso: string) => iso.slice(0, 10);
+
+/**
+ * Ajustes › Consolas (F2.13, F2.14, #109): arriba cada cuánto se pone al día el catálogo; abajo las consolas en filas por
+ * empresa. La fecha de carga va una sola vez arriba y una fila solo lleva insignia si difiere.
+ */
 export function ConsoleSettings() {
   const t = useTranslations("settings.consoles");
   const describe = useDescribeError();
@@ -38,7 +46,7 @@ export function ConsoleSettings() {
   });
   const saveDays = useMutation({
     mutationFn: (d: number) => request<ConsolesPage>("/api/catalog/refresh", { method: "PUT", body: JSON.stringify({ days: d }) }),
-    onSuccess: done,
+    onSuccess: (data) => { done(data); setDays(null); },
   });
   const refresh = useMutation({
     mutationFn: () => request<number>("/api/catalog/refresh", { method: "POST" }),
@@ -47,60 +55,91 @@ export function ConsoleSettings() {
 
   if (!page.data) return page.isError ? <p className="error" role="alert">{describe(page.error)}</p> : null;
   const p = page.data;
-  const date = (iso: string) => format.dateTime(new Date(iso), { dateStyle: "medium" });
+  const date = (iso: string) => format.dateTime(new Date(iso), { day: "numeric", month: "short" });
   const enabledIds = new Set(p.consoles.filter((c) => c.enabled).map((c) => c.id));
   const text = query.trim().toLowerCase();
   const error = toggle.error ?? enable.error ?? saveDays.error ?? refresh.error ?? igdb.error;
 
+  // La fecha de carga más común entre las habilitadas va arriba; una fila solo dice algo si difiere.
+  const loaded = p.consoles.filter((c) => c.enabled && c.refreshedAt).map((c) => day(c.refreshedAt!));
+  const common = loaded.sort((a, b) => loaded.filter((x) => x === b).length - loaded.filter((x) => x === a).length)[0];
+  const allSame = !!common && p.consoles.every((c) => !c.enabled || (c.refreshedAt && day(c.refreshedAt) === common && c.loading == null));
+  const badge = (c: ConsoleInfo) => {
+    if (!c.enabled) return null;
+    if (c.loading != null) return <span className="ot-badge ot-badge-info">{t("loading", { progress: Number(c.loading) })}</span>;
+    if (!c.refreshedAt) return <span className="ot-badge">{Number(c.games) > 0 ? t("partial") : t("notLoaded")}</span>;
+    if (day(c.refreshedAt) !== common) return <span className="ot-badge">{t("upToDateAt", { at: date(c.refreshedAt) })}</span>;
+    return null;
+  };
+
+  const last = p.lastRefresh ? new Date(p.lastRefresh) : null;
+  const next = last ? new Date(last.getTime() + Number(p.refreshDays) * 86_400_000) : null;
+  const soon = next && next.getTime() - Date.now() < 7 * 86_400_000;
+  const commitDays = () => { if (days != null && days !== Number(p.refreshDays) && days >= 1) saveDays.mutate(days); };
+
   return (
-    <div className="panel" style={{ display: "grid", gap: 10 }}>
-      <p className="small muted" style={{ margin: 0 }}>{t("help")}</p>
-      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 4, gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
-        {p.consoles.map((c) => (
-          <li key={c.id}>
-            <label className="small" style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
-              <input type="checkbox" checked={c.enabled} onChange={(e) => toggle.mutate({ id: c.id, enabled: e.target.checked })} />
-              <span>
-                <b>{c.name}</b>{" "}
-                <span className="muted">· {t("games", { count: Number(c.games) })} · {c.refreshedAt ? t("refreshedAt", { at: date(c.refreshedAt) }) : t("never")}</span>
-              </span>
-            </label>
-          </li>
-        ))}
-      </ul>
-      {!adding ? (
-        <div className="hero-actions"><button className="ot-btn" type="button" onClick={() => setAdding(true)}>{t("add")}</button></div>
-      ) : (
-        <div style={{ display: "grid", gap: 6 }}>
-          <div style={{ display: "flex", gap: 6 }}>
-            <input type="search" style={{ flex: 1 }} aria-label={t("search")} placeholder={t("search")} value={query} onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Escape") close(); }} autoFocus />
-            <button className="ot-btn" type="button" onClick={close}>{t("close")}</button>
-          </div>
-          <ul style={{ listStyle: "none", margin: 0, padding: 0, maxHeight: 260, overflowY: "auto", display: "grid", gap: 4 }}>
-            {igdb.data?.filter((x) => !text || x.name.toLowerCase().includes(text) || x.abbreviation?.toLowerCase().includes(text)).map((x) => {
-              const added = x.consoleId != null && enabledIds.has(x.consoleId);
-              return (
-                <li key={x.igdbId} className="small" style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <span style={{ flex: 1 }}>{x.name}{x.abbreviation ? <span className="muted"> · {x.abbreviation}</span> : null}</span>
-                  {added ? <span className="muted">{t("already")}</span>
-                    : <button className="ot-btn" type="button" disabled={enable.isPending} onClick={() => enable.mutate(Number(x.igdbId))}>{t("enable")}</button>}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-      <form className="chips" style={{ alignItems: "end" }} onSubmit={(e) => { e.preventDefault(); saveDays.mutate(days ?? Number(p.refreshDays)); }}>
-        <label className="small" style={{ display: "grid", gap: 4 }}>
-          {t("refreshEvery")}
-          <input type="number" min={1} max={365} value={days ?? Number(p.refreshDays)} onChange={(e) => setDays(Number(e.target.value))} />
-        </label>
-        <button className="ot-btn" type="submit" disabled={saveDays.isPending}>{t("save")}</button>
-        <button className="ot-btn" type="button" disabled={refresh.isPending} onClick={() => refresh.mutate()}>{t("refreshNow")}</button>
+    <div className="settings-blocks">
+      <section className="panel">
+        <form className="sentence" onSubmit={(e) => { e.preventDefault(); commitDays(); }}>
+          <label htmlFor="refresh-days">{t("every")}</label>
+          <input id="refresh-days" type="number" min={1} max={365} style={{ width: 72 }} value={days ?? Number(p.refreshDays)}
+            onChange={(e) => setDays(Number(e.target.value))} onBlur={commitDays} />
+          <span>{t("days")}</span>
+          {last && <span className="small muted">· {t("lastAgo", { ago: format.relativeTime(last) })}</span>}
+          {next && <span className="small muted">· {t("nextOn", { when: format.dateTime(next, soon ? { weekday: "long" } : { day: "numeric", month: "short" }) })}</span>}
+          <button className="ot-btn" type="button" style={{ marginLeft: "auto" }} disabled={refresh.isPending} onClick={() => refresh.mutate()}>{t("refreshNow")}</button>
+        </form>
         {refresh.isSuccess && <span className="small muted">{t("queued")}</span>}
-      </form>
-      {p.lastRefresh && <p className="small muted" style={{ margin: 0 }}>{t("lastRefresh", { at: date(p.lastRefresh) })}</p>}
+      </section>
+
+      <section className="panel">
+        <div className="version-row">
+          <span className="small muted">{common ? (allSame ? t("allUpToDate", { at: date(common) }) : t("mostUpToDate", { at: date(common) })) : t("help")}</span>
+          {!adding && <button className="ot-btn" type="button" onClick={() => setAdding(true)}>{t("add")}</button>}
+        </div>
+        {adding && (
+          <div style={{ display: "grid", gap: 6 }}>
+            <div style={{ display: "flex", gap: 6 }}>
+              <input type="search" style={{ flex: 1 }} aria-label={t("search")} placeholder={t("search")} value={query} onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Escape") close(); }} autoFocus />
+              <button className="ot-btn" type="button" onClick={close}>{t("close")}</button>
+            </div>
+            <ul className="console-list" style={{ maxHeight: 260, overflowY: "auto" }}>
+              {igdb.data?.filter((x) => !text || x.name.toLowerCase().includes(text) || x.abbreviation?.toLowerCase().includes(text)).map((x) => {
+                const added = x.consoleId != null && enabledIds.has(x.consoleId);
+                return (
+                  <li key={x.igdbId} className="console-row">
+                    <span className="console-name">{x.name}{x.abbreviation ? <span className="muted"> · {x.abbreviation}</span> : null}</span>
+                    {added ? <span className="small muted">{t("already")}</span>
+                      : <button className="ot-btn ot-btn-sm" type="button" disabled={enable.isPending} onClick={() => enable.mutate(Number(x.igdbId))}>{t("enable")}</button>}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+        {GROUPS.map((g) => {
+          const rows = p.consoles.filter((c) => groupOf(c) === g);
+          if (rows.length === 0) return null;
+          return (
+            <div key={g}>
+              <h3 className="small muted console-group">{t(`group.${g}`)}</h3>
+              <ul className="console-list">
+                {rows.map((c) => (
+                  <li key={c.id} className={`console-row${c.enabled ? "" : " muted"}`}>
+                    <label className="console-name">
+                      <input type="checkbox" role="switch" checked={c.enabled} onChange={(e) => toggle.mutate({ id: c.id, enabled: e.target.checked })} />
+                      <b>{c.name}</b>
+                    </label>
+                    {badge(c)}
+                    <span className="small muted tabular console-games">{t("games", { count: Number(c.games) })}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
+      </section>
       {error && <p className="error small" role="alert">{describe(error)}</p>}
     </div>
   );

@@ -5,7 +5,8 @@ using Otteretro.Data;
 namespace Otteretro.Catalog;
 
 /// <param name="RefreshedAt">Hasta cuándo trajo IGDB sus juegos (F2.14); null = nunca se cargó.</param>
-public record ConsoleInfo(string Id, string Name, string? Company, bool Enabled, string? RefreshedAt, int Games);
+/// <param name="Loading">El avance (0 a 100) de su carga desde IGDB, si está en la cola o corriendo (#109).</param>
+public record ConsoleInfo(string Id, string Name, string? Company, bool Enabled, string? RefreshedAt, int Games, int? Loading);
 
 /// <param name="RefreshDays">Cada cuántos días se actualiza el catálogo (F2.14).</param>
 public record ConsolesPage(List<ConsoleInfo> Consoles, int RefreshDays, string? LastRefresh);
@@ -25,10 +26,12 @@ public static class Consoles
     public static ConsolesPage Page(Database db)
     {
         using var c = db.Open();
-        var consoles = c.Query<(string Id, string Name, string? Company, bool Enabled, string? RefreshedAt, long Games)>("""
-            SELECT k.id, k.name, k.company, k.enabled, k.refreshed_at, (SELECT count(DISTINCT game_id) FROM version v WHERE v.platform = k.id)
+        var consoles = c.Query<(string Id, string Name, string? Company, bool Enabled, string? RefreshedAt, long Games, long? Loading)>("""
+            SELECT k.id, k.name, k.company, k.enabled, k.refreshed_at, (SELECT count(DISTINCT game_id) FROM version v WHERE v.platform = k.id),
+                   (SELECT t.progress FROM task t WHERE t.kind = 'igdb.platform' AND t.status IN ('queued', 'running')
+                    AND json_extract(t.data, '$.platform') = k.id ORDER BY t.id DESC LIMIT 1)
             FROM console k ORDER BY k.rowid
-            """).Select(r => new ConsoleInfo(r.Id, r.Name, r.Company, r.Enabled, r.RefreshedAt, (int)r.Games)).ToList();
+            """).Select(r => new ConsoleInfo(r.Id, r.Name, r.Company, r.Enabled, r.RefreshedAt, (int)r.Games, (int?)r.Loading)).ToList();
         var settings = c.Query<(string Name, string Value)>("SELECT name, value FROM setting WHERE machine_id = '' AND name LIKE 'catalog.%'")
             .ToDictionary(r => r.Name, r => r.Value);
         return new ConsolesPage(consoles, settings.TryGetValue(IgdbImport.RefreshDays, out var d) && int.TryParse(d, out var n) ? n : 7,

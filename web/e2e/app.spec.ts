@@ -560,7 +560,13 @@ test("las pestañas nunca tienen barra: a 700 px lo que no cabe va a «Más ▾�
 test("Ajustes: consolas habilitadas, al día y reevaluar icónicas", async () => {
   await page.goto(`${base()}/settings/?s=consoles`);
   await expect(page.getByRole("tabpanel", { name: es.settings.consoles.title })).toBeVisible();
-  const vb = page.getByRole("checkbox", { name: /Virtual Boy/ });
+  // #109: filas por empresa en una sola línea y la fecha de carga, a lo más, una vez.
+  const heights = await page.locator(".console-row").evaluateAll((rows) => rows.map((r) => r.getBoundingClientRect().height));
+  expect(heights.length).toBeGreaterThan(20);
+  expect(Math.max(...heights)).toBeLessThan(48);
+  expect(await page.getByText(/al día al/i).count()).toBeLessThanOrEqual(1);
+  await expect(page.getByRole("heading", { level: 3, name: es.settings.consoles.group.nintendo })).toBeVisible();
+  const vb = page.getByRole("switch", { name: /Virtual Boy/ });
   await expect(vb).toBeChecked();
   await vb.click(); // cambia al tocar (#107)
   await expect(vb).not.toBeChecked();
@@ -576,8 +582,10 @@ test("Ajustes: consolas habilitadas, al día y reevaluar icónicas", async () =>
   await expect(add).toBeVisible();
   await expect(page.getByRole("searchbox", { name: es.settings.consoles.search })).toHaveCount(0);
   await expect(page.getByRole("button", { name: es.settings.consoles.refreshNow })).toBeVisible();
+  await expectNoRawKeys();
+  await page.screenshot({ path: "e2e-results/17-consolas-es.png", fullPage: true });
   await page.getByRole("tab", { name: es.settings.claude.title }).click();
   await expect(page.getByRole("button", { name: es.settings.claude.iconic })).toBeVisible();
   await expectNoRawKeys();
-  await page.screenshot({ path: "e2e-results/17-consolas-es.png", fullPage: true });
+  await page.screenshot({ path: "e2e-results/18-claude-es.png", fullPage: true });
 });
