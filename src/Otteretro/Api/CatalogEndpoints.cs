@@ -15,7 +15,10 @@ public record VerifyRequest(string? Console, long? GameId);
 
 /// <summary>El ejecutable de un juego de PC suelto, relativo a su carpeta (#182).</summary>
 public record ExecutableRequest(string Path);
-public record ImportRequest(string Path);
+/// <param name="Skip">Lo que se desmarcó en la vista previa, relativo a la carpeta.</param>
+public record ImportRequest(string Path, List<string>? Skip = null);
+public record PreviewRequest(string Path);
+public record RegionsRequest(List<string> Order);
 public record ConvertRequest(string Console);
 /// <param name="Ids">Las filas de <c>source</c> que se quitan del disco (#224).</param>
 public record TrashRequest(List<long> Ids);
@@ -97,8 +100,25 @@ public static class CatalogEndpoints
         api.MapPost("/collection/import", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (ImportRequest request, AppSession s) =>
         {
             if (Db(s) is not { } db) return NoData();
-            var (task, error) = Libraries.Import.Enqueue(db, request.Path);
+            var (task, error) = Libraries.Import.Enqueue(db, request.Path, request.Skip);
             return error is null ? TypedResults.Ok(task!.Value) : TypedResults.BadRequest(error);
+        });
+
+        // La vista previa de esa carpeta (#197): qué hay, una versión por juego. No mueve nada.
+        api.MapPost("/collection/import/preview", Results<Ok<Libraries.MegapackPreview>, BadRequest<ApiError>, Conflict<ApiError>> (PreviewRequest request, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            if (Libraries.Import.CheckFolder(db, request.Path) is { } error) return TypedResults.BadRequest(error);
+            return TypedResults.Ok(Libraries.Megapack.Preview(db, request.Path, s.Config.RegionOrder ?? [.. Libraries.Megapack.DefaultRegions]));
+        });
+
+        api.MapPut("/collection/regions", Results<Ok, BadRequest<ApiError>> (RegionsRequest request, AppSession s) =>
+        {
+            if (request.Order.Count != Libraries.Megapack.DefaultRegions.Length || request.Order.Except(Libraries.Megapack.DefaultRegions).Any())
+                return TypedResults.BadRequest(ApiError.Of("import.badRegions"));
+            s.Config.RegionOrder = request.Order;
+            s.Config.Save(s.ConfigPath);
+            return TypedResults.Ok();
         });
 
         // «Convertir» (#233): lo que ya tienes de una consola al formato liviano.

@@ -509,9 +509,13 @@
         "archiveFailed": "{path}: no se pudo descomprimir (dañado o le falta una parte). Se queda donde está.",
         "password": "{path}: ninguna contraseña de tu lista lo abre. Suma la suya en Ajustes › Cuentas y claves.",
         "noGames": "{path}: no trae ningún juego. Se queda donde está.",
-        "archiveDone": "{path}: importado y borrado."
+        "archiveDone": "{path}: importado y borrado.",
+        "extra": "{path}: es un hack, beta o demo; no se importa solo.",
+        "duplicate": "{path}: ya tienes ese juego; se salta.",
+        "replaced": "{path}: reemplaza al tuyo, que no estaba verificado y fue a la papelera."
       },
-      "extracting": "Descomprimiendo {path}"
+      "extracting": "Descomprimiendo {path}",
+      "badRegions": "Ese orden de regiones no es válido."
     },
     "convert": {
       "notConvertible": "Esa consola no tiene formato liviano.",
@@ -772,12 +776,36 @@
       "importHelp": "Trae los juegos de una carpeta a sus discos, cada uno en su lugar.",
       "importLabel": "Carpeta que quieres importar",
       "importPlaceholder": "D:\\Descargas\\Juegos",
-      "importHint": "Cada juego se mueve a Juegos en su disco: se copia, se verifica y recién entonces se borra de acá. Lo que no se sepa de qué consola es se queda en la carpeta.",
+      "importHint": "Primero ves qué hay. Cada juego se mueve a Juegos en su disco: se copia, se verifica y recién entonces se borra de acá. Lo que no se sepa de qué consola es se queda en la carpeta.",
       "importCancel": "Cancelar",
       "importQueued": "Importación en cola: mira su avance en el panel de tareas.",
       "convert": "Convertir",
       "convertHelp": "Pasa lo que tienes de esta consola a RVZ o CHD. El original se borra después de comprobar la copia.",
-      "convertQueued": "Conversión en cola: mira su avance en el panel de tareas."
+      "convertQueued": "Conversión en cola: mira su avance en el panel de tareas.",
+      "importSee": "Ver qué hay",
+      "importRun": "Importar ({count})",
+      "importEmpty": "No encontré juegos en esa carpeta.",
+      "importAll": "Todas",
+      "importOnlyCatalog": "Solo lo que está en el catálogo",
+      "importSaga": "Saga",
+      "importConsole": "Consola",
+      "importNoConsole": "Sin consola",
+      "importMore": "Ver {count} más",
+      "importCount": "{selected} de {total} marcados",
+      "importRegions": "Orden de regiones",
+      "importUp": "Subir {region}",
+      "importRegion": {
+        "es": "Con español",
+        "Europe": "Europa",
+        "USA": "USA",
+        "Japan": "Japón",
+        "World": "Mundo"
+      },
+      "importReason": {
+        "extra": "Hack, beta o demo",
+        "region": "Otra versión",
+        "owned": "Ya lo tienes verificado"
+      }
     },
     "game": {
       "noneTitle": "Elige un juego",

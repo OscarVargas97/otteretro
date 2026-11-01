@@ -6,6 +6,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Suspense, useState } from "react";
 import { GameTile, hours, useConsoles } from "@/components/Catalog";
+import { ImportFolder } from "@/components/ImportFolder";
 import { Empty } from "@/components/Shell";
 import { useDescribeError } from "@/lib/i18n";
 import { Rows, Tiles } from "@/components/Skeleton";
@@ -40,16 +41,8 @@ function Collection() {
   const [view, setView] = useState<"grid" | "list">("grid");
   const cache = useQueryClient();
   // «Escanear» (#178): la tarea que reconoce tus archivos; al terminar, el panel de tareas refresca Colección.
-  // «Importar carpeta» (#193): cada juego de esa carpeta a su lugar.
+  // «Importar carpeta» (#193, #197): cada juego de esa carpeta a su lugar, con una vista previa.
   const [importing, setImporting] = useState(false);
-  const [importPath, setImportPath] = useState("");
-  const importFolder = useMutation({
-    mutationFn: () => request<number>("/api/collection/import", { method: "POST", body: JSON.stringify({ path: importPath }) }),
-    onSuccess: () => {
-      setImporting(false);
-      setImportPath("");
-    },
-  });
   const scan = useMutation({
     mutationFn: () => request<number>("/api/collection/scan", { method: "POST" }),
     onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
@@ -127,19 +120,7 @@ function Collection() {
             {t("collection.summary", { console: current.name, games: t("games", { count: Number(current.games) }), owned: t("ownedCount", { count: Number(current.owned) }) })}
           </div>
         )}
-        {importing && (
-          <form className="panel" style={{ display: "grid", gap: 8 }} onSubmit={(e) => { e.preventDefault(); importFolder.mutate(); }}>
-            <label className="small muted" htmlFor="import-path">{t("collection.importLabel")}</label>
-            <input id="import-path" value={importPath} onChange={(e) => setImportPath(e.target.value)} placeholder={t("collection.importPlaceholder")} />
-            <span className="small muted">{t("collection.importHint")}</span>
-            <div className="hero-actions">
-              <button className="ot-btn ot-btn-primary ot-btn-sm" type="submit" disabled={!importPath.trim() || importFolder.isPending}>{t("collection.import")}</button>
-              <button className="ot-btn ot-btn-sm" type="button" onClick={() => setImporting(false)}>{t("collection.importCancel")}</button>
-            </div>
-            {importFolder.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(importFolder.error)}</p>}
-          </form>
-        )}
-        {importFolder.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("collection.importQueued")}</p>}
+        {importing && <ImportFolder onClose={() => setImporting(false)} />}
         {scan.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("collection.scanQueued")}</p>}
         {scan.isError && <p className="error small" role="alert">{describe(scan.error)}</p>}
         {convert.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("collection.convertQueued")}</p>}

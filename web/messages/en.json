@@ -509,9 +509,13 @@
         "archiveFailed": "{path}: could not be extracted (damaged or a part is missing). It stays where it is.",
         "password": "{path}: no password in your list opens it. Add it in Settings › Accounts and keys.",
         "noGames": "{path}: it contains no games. It stays where it is.",
-        "archiveDone": "{path}: imported and deleted."
+        "archiveDone": "{path}: imported and deleted.",
+        "extra": "{path}: it is a hack, beta or demo; it is not imported automatically.",
+        "duplicate": "{path}: you already have that game; skipped.",
+        "replaced": "{path}: replaces yours, which was not verified and went to the recycle bin."
       },
-      "extracting": "Extracting {path}"
+      "extracting": "Extracting {path}",
+      "badRegions": "That region order is not valid."
     },
     "convert": {
       "notConvertible": "That console has no light format.",
@@ -772,12 +776,36 @@
       "importHelp": "Brings the games in a folder to your disks, each in its place.",
       "importLabel": "Folder to import",
       "importPlaceholder": "D:\\Downloads\\Games",
-      "importHint": "Each game moves to Juegos on its disk: it is copied, verified and only then deleted from here. Anything whose console is unknown stays in the folder.",
+      "importHint": "First you see what is there. Each game moves to Juegos on its disk: it is copied, verified and only then deleted from here. Anything whose console is unknown stays in the folder.",
       "importCancel": "Cancel",
       "importQueued": "Import queued: follow it in the tasks panel.",
       "convert": "Convert",
       "convertHelp": "Turns what you have of this console into RVZ or CHD. The original is deleted after checking the copy.",
-      "convertQueued": "Conversion queued: follow it in the tasks panel."
+      "convertQueued": "Conversion queued: follow it in the tasks panel.",
+      "importSee": "See what is there",
+      "importRun": "Import ({count})",
+      "importEmpty": "No games found in that folder.",
+      "importAll": "All",
+      "importOnlyCatalog": "Only what is in the catalog",
+      "importSaga": "Saga",
+      "importConsole": "Console",
+      "importNoConsole": "No console",
+      "importMore": "Show {count} more",
+      "importCount": "{selected} of {total} marked",
+      "importRegions": "Region order",
+      "importUp": "Move {region} up",
+      "importRegion": {
+        "es": "With Spanish",
+        "Europe": "Europe",
+        "USA": "USA",
+        "Japan": "Japan",
+        "World": "World"
+      },
+      "importReason": {
+        "extra": "Hack, beta or demo",
+        "region": "Another version",
+        "owned": "You already have it verified"
+      }
     },
     "game": {
       "noneTitle": "Pick a game",

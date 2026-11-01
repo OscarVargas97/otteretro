@@ -17,7 +17,8 @@ public static partial class Import
     public const string Kind = "library.import";
 
     /// <param name="EntryDisk">Es la `Entrada\` de ese disco (#221): lo reconocido va a ese mismo disco, y solo si se identificó con seguridad (#222).</param>
-    public record Job(string Path, string? EntryDisk = null);
+    /// <param name="Skip">Lo que se desmarcó en la vista previa (#197), relativo a la carpeta.</param>
+    public record Job(string Path, string? EntryDisk = null, List<string>? Skip = null);
 
     /// <summary>Las extensiones que dicen la consola. Las de disco (iso, chd, cue…) no: esas salen de su cabecera, su carpeta o su hash.</summary>
     static readonly Dictionary<string, string> ByExtension = new(StringComparer.OrdinalIgnoreCase)
@@ -51,18 +52,25 @@ public static partial class Import
     };
 
     /// <summary>Valida la carpeta y encola. No se importa desde las carpetas de un disco ni desde una que contenga un disco.</summary>
-    public static (long? Task, ApiError? Error) Enqueue(Database db, string path)
+    public static (long? Task, ApiError? Error) Enqueue(Database db, string path, List<string>? skip = null)
     {
-        if (string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path)) return (null, ApiError.Of("path.notAbsolute"));
-        if (!Directory.Exists(path)) return (null, ApiError.Of("path.notFound"));
+        if (CheckFolder(db, path) is { } error) return (null, error);
+        return (TaskQueue.Enqueue(db, Kind, JsonSerializer.Serialize(new Job(Disk.Normalize(path), null, skip), JsonSerializerOptions.Web)), null);
+    }
+
+    /// <summary>Se puede importar: existe y no se cruza con un disco.</summary>
+    public static ApiError? CheckFolder(Database db, string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path)) return ApiError.Of("path.notAbsolute");
+        if (!Directory.Exists(path)) return ApiError.Of("path.notFound");
         foreach (var d in Disk.List(db))
         {
             var mine = d.Type == "disk"
                 ? Disk.DiskFolders.Values.Select(f => Path.Combine(d.Path, f)).Any(f => Disk.Same(path, f) || Disk.Inside(path, f))
                 : Disk.Inside(path, d.Path);
-            if (mine || Disk.Same(path, d.Path) || Disk.Inside(d.Path, path)) return (null, ApiError.Of("import.overlapsDisk", ("name", d.Name)));
+            if (mine || Disk.Same(path, d.Path) || Disk.Inside(d.Path, path)) return ApiError.Of("import.overlapsDisk", ("name", d.Name));
         }
-        return (TaskQueue.Enqueue(db, Kind, JsonSerializer.Serialize(new Job(Disk.Normalize(path)), JsonSerializerOptions.Web)), null);
+        return null;
     }
 
     /// <summary>Encola la importación de la `Entrada\` de un disco, salvo que ya haya una esperando.</summary>
@@ -86,7 +94,7 @@ public static partial class Import
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return true; }
     }
 
-    record Item(string Path, string? Console, string? TitleId, string? Component);
+    internal record Item(string Path, string? Console, string? TitleId, string? Component);
 
     public static async Task Run(TaskRun run, CancellationToken ct)
     {
@@ -103,6 +111,11 @@ public static partial class Import
         // Lo que dejó a medias una extracción cortada no se importa: esa extracción se repite.
         var files = Directory.EnumerateFiles(job.Path, "*", new EnumerationOptions { RecurseSubdirectories = true })
             .Where(f => !f.Contains(Extracting + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (job.Skip is { Count: > 0 } skip)
+        {
+            var skipped = skip.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            files = files.Where(f => !skipped.Contains(Path.GetRelativePath(job.Path, f))).ToList();
+        }
         if (entryDisk is not null)
         {
             files = files.Where(f => !InUse(f)).ToList();
@@ -148,7 +161,7 @@ public static partial class Import
     {
         var parts = Archives.Parts(main);
         if (p.EntryDisk is not null && parts.Any(InUse)) return; // sigue llegando alguna parte
-        var label = ArchiveSuffix().Replace(Path.GetFileName(main), "");
+        var label = Label(main);
         var target = p.EntryDisk is { } disk
             ? Path.Combine(disk.Path, Extracting, label)
             : Path.Combine(Path.GetDirectoryName(main)!, label + Extracting);
@@ -193,8 +206,11 @@ public static partial class Import
         if (Directory.Exists(folder) && !Directory.EnumerateFileSystemEntries(folder).Any()) Directory.Delete(folder);
     }
 
+    /// <summary>El nombre de un comprimido sin su extensión ni su número de parte.</summary>
+    internal static string Label(string main) => ArchiveSuffix().Replace(Path.GetFileName(main), "");
+
     /// <summary>Las carpetas del camino desde la elegida, incluida ella: una que se llama como una consola la dice.</summary>
-    static string[] Folders(string folder, string root) =>
+    internal static string[] Folders(string folder, string root) =>
         Path.GetRelativePath(root, folder).Split(Path.DirectorySeparatorChar).Prepend(Path.GetFileName(root)).Reverse().ToArray();
 
     static void RemoveRow(Database db, DiskInfo disk, string path)
@@ -249,6 +265,33 @@ public static partial class Import
                 p.Skipped++;
                 p.Waiting++;
                 continue;
+            }
+
+            // Lo que llega solo no trae hacks, betas ni demos (§9.4); en la vista previa lo decides tú.
+            if (p.EntryDisk is not null && Megapack.IsExtra(archive?.Label ?? name))
+            {
+                run.Log(ApiError.Of("import.log.extra", ("path", archive?.Path ?? item.Path)));
+                p.Skipped++;
+                continue;
+            }
+
+            // Duplicados (§9.4): si ya lo tienes se salta, salvo que el nuevo esté verificado y el tuyo no.
+            if (version is not null && item.Component is null && Megapack.DiscOf(name) is null && Owned(db, version.Value, item.Path) is { } owned)
+            {
+                if (datName is null || owned.Verified)
+                {
+                    run.Log(ApiError.Of("import.log.duplicate", ("path", archive?.Path ?? item.Path)));
+                    p.Skipped++;
+                    continue;
+                }
+                // Reemplazar: el tuyo va a la papelera, para poder recuperarlo. Si no se puede, los dos se quedan como están.
+                if (Disk.TrashSources(db, [owned.Id]) is { } trashError)
+                {
+                    run.Log(trashError, "warn");
+                    p.Skipped++;
+                    continue;
+                }
+                run.Log(ApiError.Of("import.log.replaced", ("path", item.Path)));
             }
 
             var disk = p.EntryDisk ?? DiskOf(db, console);
@@ -318,13 +361,16 @@ public static partial class Import
         File.Delete(from);
     }
 
-    static Item Classify(string file, IEnumerable<string> folders, List<(string Id, string Name)> consoles)
-    {
-        var ext = Path.GetExtension(file);
-        // Una carpeta del camino que se llama como una consola manda, también la que se eligió («…\GameCube»).
-        var console = folders.Select(s => consoles.FirstOrDefault(k => string.Equals(k.Name, s, StringComparison.OrdinalIgnoreCase)
+    /// <summary>La consola por una carpeta del camino o por la extensión; null si eso no alcanza.</summary>
+    internal static string? ConsoleOf(string file, IEnumerable<string> folders, List<(string Id, string Name)> consoles) =>
+        folders.Select(s => consoles.FirstOrDefault(k => string.Equals(k.Name, s, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(k.Id, s, StringComparison.OrdinalIgnoreCase)).Id).FirstOrDefault(id => id is not null)
-            ?? ByExtension.GetValueOrDefault(ext);
+            ?? ByExtension.GetValueOrDefault(Path.GetExtension(file));
+
+    internal static Item Classify(string file, IEnumerable<string> folders, List<(string Id, string Name)> consoles)
+    {
+        // Una carpeta del camino que se llama como una consola manda, también la que se eligió («…\GameCube»).
+        var console = ConsoleOf(file, folders, consoles);
         var serial = Scan.Serial(file);
         // El serial de un disco: G y D son de GameCube; R y S, de Wii.
         console ??= serial?[0] switch { 'G' or 'D' => "gc", 'R' or 'S' => "wii", _ => null };
@@ -353,6 +399,16 @@ public static partial class Import
         var match = db.QueryFirstOrDefault<(string Console, string Name)?>(
             "SELECT console, name FROM dat_entry WHERE sha1 = @sha1 AND (@known IS NULL OR console = @known)", new { sha1, known = item.Console });
         return (sha1, match?.Console, match?.Name);
+    }
+
+    /// <summary>Lo que ya tienes de esa versión, sin contar lo que espera en `Entrada\\`.</summary>
+    static (long Id, bool Verified)? Owned(Database db, long version, string path)
+    {
+        using var c = db.Open();
+        return c.QueryFirstOrDefault<(long, bool)?>("""
+            SELECT id, verified FROM source WHERE kind = 'file' AND version_id = @version AND component IS NULL AND substr(relative_path, 1, 8) <> 'Entrada\\'
+            ORDER BY verified DESC LIMIT 1
+            """, new { version });
     }
 
     static long? VersionOfBase(Database db, string? baseId)

@@ -45,6 +45,10 @@ public sealed class AppConfig
     /// <summary>Idioma elegido en Ajustes; null = el del sistema (#140). Va acá y no en la base porque el asistente corre antes de que exista.</summary>
     public string? Language { get; set; }
 
+    /// <summary>El orden de regiones al elegir una versión por juego (§9.4, #197). `es` es «tiene español».</summary>
+    [JsonPropertyName("ordenRegiones")]
+    public List<string>? RegionOrder { get; set; }
+
     /// <summary>El menú lateral retraído a una franja de íconos (#130). Va acá porque el puerto local cambia en cada arranque y el navegador no lo recordaría.</summary>
     [JsonPropertyName("menuRetraido")]
     public bool MenuCollapsed { get; set; }

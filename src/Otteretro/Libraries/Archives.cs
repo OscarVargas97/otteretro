@@ -15,6 +15,18 @@ public static partial class Archives
     /// <summary>Es la parte por la que se abre: `x.zip`, `x.7z`, `x.rar`, `x.part1.rar` o `x.7z.001`.</summary>
     public static bool IsMain(string file) => IsArchive(file) && !LaterPart().IsMatch(Path.GetFileName(file));
 
+    /// <summary>El primer archivo de juego de adentro, solo con el índice; null si no se puede leer sin contraseña.</summary>
+    public static string? FirstGame(string main)
+    {
+        try
+        {
+            using var archive = ArchiveFactory.OpenArchive(Parts(main).Select(p => new FileInfo(p)).ToList(), new ReaderOptions());
+            return archive.Entries.Where(e => !e.IsDirectory).Select(e => e.Key)
+                .FirstOrDefault(k => k is not null && Scan.GameExtensions.Contains(Path.GetExtension(k)) && !IsArchive(k));
+        }
+        catch (Exception e) when (e is not OperationCanceledException) { return null; }
+    }
+
     /// <summary>Todas las partes del comprimido, empezando por la que lo abre.</summary>
     public static List<string> Parts(string main)
     {

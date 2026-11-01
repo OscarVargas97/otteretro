@@ -1503,6 +1503,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/collection/import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PreviewRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MegapackPreview"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/collection/regions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RegionsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/collection/convert": {
         parameters: {
             query?: never;
@@ -4715,6 +4818,7 @@ export interface components {
         };
         ImportRequest: {
             path: string;
+            skip?: null | string[];
         };
         LanguageRequest: {
             language: string;
@@ -4751,6 +4855,10 @@ export interface components {
             name?: null | string;
             /** @default game */
             type: string;
+        };
+        MegapackPreview: {
+            items: components["schemas"]["PreviewItem"][];
+            regions: string[];
         };
         MenuRequest: {
             collapsed: boolean;
@@ -4802,6 +4910,22 @@ export interface components {
             company: null | string;
             consoleId: null | string;
         };
+        PreviewItem: {
+            path: string;
+            console: null | string;
+            name: string;
+            /** Format: int64 */
+            gameId: null | number | string;
+            game: null | string;
+            /** Format: int64 */
+            sagaId: null | number | string;
+            saga: null | string;
+            selected: boolean;
+            reason: null | string;
+        };
+        PreviewRequest: {
+            path: string;
+        };
         ProgressInfo: {
             status: string;
             startedAt: null | string;
@@ -4817,6 +4941,9 @@ export interface components {
         RefreshSettingsRequest: {
             /** Format: int32 */
             days: number | string;
+        };
+        RegionsRequest: {
+            order: string[];
         };
         RenameRequest: {
             name: string;
