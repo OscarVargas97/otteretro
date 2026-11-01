@@ -146,12 +146,28 @@ public static class Downloads
         var path = Path.Combine(folder, name);
         // Si ya terminó en una vuelta anterior, no se repite.
         if (File.Exists(path)) return;
+        await CheckAvailable(link, name, ct);
         await service.DownloadFileTaskAsync(link.Url, path, ct);
         ct.ThrowIfCancellationRequested();
         if (failure is OperationCanceledException) throw failure;
         if (failure is not null) throw new HttpRequestException(failure.Message, failure);
         if (!File.Exists(path)) throw new TaskException(ApiError.Of("download.failed", ("file", name)));
         if (link.Size is { } size && new FileInfo(path).Length != size) throw new TaskException(ApiError.Of("download.failed", ("file", name)));
+    }
+
+    static readonly HttpClient Probe = new() { Timeout = TimeSpan.FromSeconds(30) };
+
+    /// <summary>Un enlace muerto o prohibido falla enseguida y con su motivo; un corte de red, en cambio, lo reintenta la cola.</summary>
+    static async Task CheckAvailable(ResolvedLink link, string name, CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, link.Url);
+        request.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(0, 0);
+        request.Headers.UserAgent.ParseAdd("Otteretro");
+        foreach (var (key, value) in link.Headers ?? []) request.Headers.TryAddWithoutValidation(key, value);
+        using var response = await Probe.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+        var code = (int)response.StatusCode;
+        if (code is >= 400 and < 500 and not (408 or 416 or 429))
+            throw new TaskException(ApiError.Of("download.unavailable", ("file", name), ("status", code.ToString())));
     }
 
     static string FileNameOf(Uri url)

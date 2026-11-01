@@ -543,7 +543,8 @@
       "progress": "Downloading {file}",
       "log": {
         "done": "{name}: finished and moved to {path}."
-      }
+      },
+      "unavailable": "{file}: the site answered {status}; the link is not available."
     }
   },
   "credentials": {

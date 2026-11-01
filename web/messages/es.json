@@ -543,7 +543,8 @@
       "progress": "Bajando {file}",
       "log": {
         "done": "{name}: terminó y pasó a {path}."
-      }
+      },
+      "unavailable": "{file}: el sitio respondió {status}; el enlace no está disponible."
     }
   },
   "credentials": {

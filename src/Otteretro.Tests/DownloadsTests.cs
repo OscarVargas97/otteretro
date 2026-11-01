@@ -38,6 +38,12 @@ public class DownloadsTests : IAsyncDisposable
         Interlocked.Increment(ref requests);
         try
         {
+            if (c.Request.Url!.AbsolutePath.Contains("no-existe"))
+            {
+                c.Response.StatusCode = 404;
+                c.Response.Close();
+                return;
+            }
             long from = 0, to = content.Length - 1;
             c.Response.Headers["Accept-Ranges"] = "bytes";
             if (c.Request.Headers["Range"] is { } range)
@@ -134,15 +140,8 @@ public class DownloadsTests : IAsyncDisposable
     {
         await using var f = new Fixture();
         var (disk, _) = Disk.Create(f.Db, f.Tmp["Otteretro"], "E:");
-        server.Close();
-        var delays = App.TaskQueue.RetryDelays;
-        App.TaskQueue.RetryDelays = [];
-        try
-        {
-            var done = await f.Run(Downloads.Enqueue(f.Db, "x", disk, [baseUrl + "a.bin"]).Task!.Value);
-            Assert.NotEqual("done", done.Status);
-        }
-        finally { App.TaskQueue.RetryDelays = delays; }
+        var done = await f.Run(Downloads.Enqueue(f.Db, "x", disk, [baseUrl + "no-existe.bin"]).Task!.Value);
+        Assert.Equal("error", done.Status);
         Assert.False(Directory.Exists(f.Tmp[@"Otteretro\Entrada\x"]));
     }
 }
