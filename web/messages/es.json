@@ -1,0 +1,733 @@
+{
+  "languageName": "Español",
+  "tabs": {
+    "more": "Más"
+  },
+  "app": {
+    "unreachable": "No se pudo hablar con la app: {detail}. Ciérrala y vuelve a abrirla."
+  },
+  "nav": {
+    "label": "Principal",
+    "home": "Inicio",
+    "sagas": "Sagas",
+    "saga": "Saga",
+    "collection": "Colección",
+    "game": "Juego",
+    "discover": "Descubrir",
+    "review": "Revisar",
+    "downloads": "Descargas",
+    "tools": "Herramientas",
+    "steam": "Steam",
+    "settings": "Ajustes",
+    "pending": "{count, plural, one {# por revisar} other {# por revisar}}"
+  },
+  "topBar": {
+    "search": "Buscar sagas y juegos…",
+    "shortcut": "CTRL K",
+    "tasks": "Tareas",
+    "tasksPanel": "Tareas en segundo plano",
+    "noTasksTitle": "No hay tareas en curso",
+    "noTasksText": "Aquí verás escaneos, descargas, respaldos y el trabajo de Claude.",
+    "connected": "Conectado a la app",
+    "reconnecting": "Reconectando…",
+    "searchLabel": "Buscar",
+    "searchPlaceholder": "Sagas, juegos, emuladores, ajustes…",
+    "goToSteam": "Ir a Steam"
+  },
+  "comingSoon": {
+    "badge": "Llega en la fase {phase}",
+    "home": {
+      "title": "Todavía no hay nada que mostrar",
+      "text": "Cuando se cargue el catálogo verás aquí el siguiente juego de cada ruta, lo pendiente de revisar y las novedades."
+    },
+    "discover": {
+      "title": "Nada que recomendar todavía",
+      "text": "Claude te recomendará sagas según lo que te gusta y te dirá por qué."
+    },
+    "review": {
+      "title": "Nada que revisar",
+      "text": "Aquí aparecerá lo que la app decidió con dudas: identificaciones, rutas por aprobar y aprendizajes de Claude."
+    },
+    "downloads": {
+      "title": "No hay descargas",
+      "text": "Aquí verás JDownloader, los megapacks y cada paso de la importación."
+    },
+    "tools": {
+      "title": "Aún no hay emuladores ni ports",
+      "text": "Aquí se instalarán y actualizarán emuladores, ports, complementos y archivos de sistema."
+    },
+    "steam": {
+      "title": "Nada que exportar",
+      "text": "Aquí verás qué juegos se llevan a Steam, con su categoría por saga y su arte."
+    }
+  },
+  "welcome": {
+    "steps": {
+      "welcome": "Bienvenida",
+      "dataFolder": "Carpeta de datos",
+      "backup": "Respaldo",
+      "libraries": "Bibliotecas",
+      "steam": "Steam",
+      "keys": "Claves",
+      "initialLoad": "Carga inicial"
+    },
+    "phase": "Fase {phase}",
+    "stepOf": "Paso {step} de {total}",
+    "intro": "Cataloga tus sagas, organiza tus juegos, emuladores y ports en cualquier disco, y llévalo todo a Steam. Esto toma unos minutos.",
+    "start": "Empezar",
+    "chooseTitle": "Elige la carpeta de datos",
+    "chooseText": "Aquí van la base de datos, las Herramientas (emuladores, ports, BIOS) y la caché de imágenes. Ocupa bastante: elige un disco con espacio. Para cambiar de PC basta con mover esta carpeta.",
+    "freeOf": "{free} libres de {total}",
+    "otherPath": "O escribe otra ruta",
+    "back": "Atrás",
+    "preparing": "Preparando…",
+    "use": "Usar {path}",
+    "nextSteps": "Los pasos siguientes (respaldo, bibliotecas, Steam, claves y carga inicial) se activan con su fase."
+  },
+  "settings": {
+    "dataFolder": "Carpeta de datos",
+    "about": "Acerca de",
+    "general": "General",
+    "language": "Idioma",
+    "later": "Bibliotecas, respaldo y el resto de ajustes llegan con su fase.",
+    "credentials": "Cuentas y claves",
+    "sections": "Secciones de Ajustes",
+    "claude": {
+      "title": "Claude",
+      "schedule": "Horario",
+      "runsFrom": "Corre de",
+      "runsTo": "a",
+      "dayCap": "De día, parar al",
+      "dayCapOff": "De día, sin tope: puede usar toda la ventana de 5 h",
+      "dayCapEnd": "% de cada ventana de 5 h",
+      "now": "Ahora",
+      "use": "Uso",
+      "iconicScope": "Qué sagas reevaluar",
+      "when": "Cuándo",
+      "input": "Entrada",
+      "output": "Salida",
+      "cost": "Costo",
+      "resultCode": {
+        "limit": "límite de la suscripción",
+        "invalid": "respuesta con forma inesperada",
+        "failed": "falló"
+      },
+      "from": "Desde",
+      "to": "Hasta",
+      "share": "% de cada ventana de 5 h",
+      "runNow": "Ejecutar ahora",
+      "runNowUntil": "Puede trabajar hasta el {at}.",
+      "taskRunning": "Trabajando: tarea #{id} ({progress} %).",
+      "taskWaiting": "La tarea #{id} espera hasta el {at}.",
+      "taskQueued": "La tarea #{id} está en la cola.",
+      "paused": "En pausa por el límite de la suscripción hasta el {at}.",
+      "inSchedule": "Ahora está en su horario.",
+      "outSchedule": "Fuera de su horario: espera a las {start}.",
+      "prompt": "Tarea",
+      "model": "Modelo",
+      "duration": "Duración",
+      "noUsage": "Claude todavía no se usó.",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "pageOf": "Página {page} de {pages}",
+      "iconic": "Reevaluar sagas icónicas",
+      "iconicAll": "Todo el catálogo",
+      "iconicQueued": "Encolada: los resultados quedan en Revisar.",
+      "iconicNone": "Esa consola no tiene sagas.",
+      "automation": "Sugerencias de automatizar",
+      "noAutomation": "Nada por ahora: aparece cuando Claude hace {count} veces el mismo cambio por la misma razón.",
+      "automationTimes": "{count, plural, one {# vez} other {# veces}}",
+      "createIssue": "Crear issue",
+      "issueCreated": "Issue creado"
+    },
+    "consoles": {
+      "title": "Consolas",
+      "help": "Las consolas que se cargan y se mantienen al día. Deshabilitar una no borra sus juegos.",
+      "every": "Se pone al día cada",
+      "days": "días",
+      "lastAgo": "última {ago}",
+      "nextOn": "próxima el {when}",
+      "allUpToDate": "Todo al día al {at}",
+      "mostUpToDate": "Al día al {at}, salvo lo marcado",
+      "upToDateAt": "Al día al {at}",
+      "notLoaded": "Sin cargar",
+      "partial": "Carga incompleta",
+      "loading": "Cargando {progress} %",
+      "group": {
+        "nintendo": "Nintendo",
+        "playstation": "PlayStation",
+        "xbox": "Xbox",
+        "pc": "PC",
+        "other": "Otras"
+      },
+      "games": "{count, plural, one {# juego} other {# juegos}}",
+      "add": "Agregar consola",
+      "search": "Buscar en IGDB",
+      "close": "Cerrar",
+      "enable": "Habilitar",
+      "already": "Ya está",
+      "refreshNow": "Actualizar ahora",
+      "queued": "En la cola de tareas."
+    }
+  },
+  "dataFolder": {
+    "open": "Abrir carpeta",
+    "difference": "«Mover» lleva todo a otra carpeta y borra la actual cuando termina de copiar y comprobar. «Usar otra carpeta» empieza a usar una que ya existe (por ejemplo, la de otro PC) sin tocar la actual.",
+    "dismiss": "Cerrar aviso",
+    "usage": "Ocupa {used} · {free} libres en ese disco",
+    "usageMeasuring": "Midiendo lo que ocupa · {free} libres en ese disco",
+    "moveButton": "Mover…",
+    "useButton": "Usar otra carpeta",
+    "contents": "Base de datos, Herramientas, caché de imágenes y registro de errores.",
+    "moveHelp": "Se copiará todo a la carpeta nueva, se comprobará cada archivo y solo entonces se borrará la actual. En el mismo disco se mueve al instante. La carpeta nueva tiene que estar vacía o no existir.",
+    "useHelp": "La app empezará a usar esa carpeta (por ejemplo, una que traes de otro PC). La actual no se mueve ni se borra. Si la carpeta elegida está vacía, empezarás de cero.",
+    "driveChip": "{path} · {free} libres",
+    "folderLabel": "Carpeta",
+    "placeholder": "Por ejemplo E:\\Otteretro",
+    "cancel": "Cancelar",
+    "move": "Mover",
+    "useThis": "Usar esta carpeta",
+    "progress": "{step} hacia {destination}",
+    "dontClose": "No cierres la app hasta que termine.",
+    "moved": "Movida",
+    "nowIn": "Tus datos ahora están en {destination}.",
+    "error": "Error",
+    "taskTitle": "Mover la carpeta de datos",
+    "taskDone": "Listo",
+    "taskNowIn": "Ahora está en {destination}"
+  },
+  "move": {
+    "step": {
+      "preparing": "Preparando",
+      "moving": "Moviendo",
+      "copying": "Copiando",
+      "verifying": "Verificando",
+      "deletingSource": "Borrando la carpeta anterior",
+      "done": "Listo",
+      "error": "Error"
+    }
+  },
+  "update": {
+    "channel": {
+      "title": "Actualizaciones",
+      "stable": "Estable",
+      "testing": "Pruebas",
+      "custom": "Otro origen",
+      "stableHint": "Las versiones publicadas en GitHub: probadas y con su lista de novedades.",
+      "testingHint": "Lo último en desarrollo, antes de publicarse. Puede traer errores.",
+      "customHint": "Una carpeta, una dirección web o el repo de GitHub de quien arma su propia versión de Otteretro.",
+      "origin": "Origen de las actualizaciones",
+      "originPlaceholder": "D:\\paquetes o https://github.com/usuario/otteretro",
+      "use": "Usar"
+    },
+    "taskTitle": "Actualización de Otteretro",
+    "checking": "Buscando…",
+    "ready": "Lista",
+    "error": "Error",
+    "checkingDetail": "Comprobando si hay una versión nueva",
+    "downloadingDetail": "Descargando la versión {version}",
+    "readyDetail": "La versión {version} se instalará al cerrar la app",
+    "failedFallback": "No se pudo actualizar.",
+    "unavailable": "No disponible",
+    "upToDate": "Estás al día",
+    "upToDateText": "Otteretro {version} es la versión más reciente · comprobado a las {time}",
+    "downloadingBadge": "Descargando {version}",
+    "downloadingText": "{progress} % · puedes seguir usando la app",
+    "readyBadge": "{version} lista",
+    "readyText": "Se instalará al cerrar la app, o ahora mismo si reinicias.",
+    "restartNow": "Reiniciar ahora",
+    "check": "Buscar actualización",
+    "notice": "<b>Otteretro {version} está lista.</b> Se instalará cuando cierres la app, o ahora mismo si reinicias.",
+    "reason": {
+      "noSource": "No hay un origen de actualizaciones configurado.",
+      "notInstalled": "Las actualizaciones solo funcionan en la app instalada.",
+      "failed": "No se pudo buscar o descargar la actualización. El detalle está en el registro.",
+      "withSystem": "Se actualiza con el sistema: llega con la próxima actualización de PlayOS o NixOS."
+    },
+    "withSystemBadge": "Con el sistema"
+  },
+  "errors": {
+    "http": "La app respondió con un error ({status}).",
+    "unknown": "Algo salió mal ({code}).",
+    "path": {
+      "notAbsolute": "La ruta tiene que ser completa, por ejemplo E:\\Otteretro.",
+      "isFile": "Esa ruta es un archivo, no una carpeta."
+    },
+    "folder": {
+      "createFailed": "No se pudo crear la carpeta: {detail}"
+    },
+    "move": {
+      "inProgress": "Espera a que termine la mudanza de la carpeta de datos.",
+      "noDataFolder": "No hay carpeta de datos.",
+      "sameFolder": "Es la misma carpeta que la actual.",
+      "insideCurrent": "La nueva carpeta no puede estar dentro de la actual.",
+      "destinationNotEmpty": "La carpeta de destino tiene que estar vacía.",
+      "driveNotFound": "No se encuentra el disco {drive}.",
+      "notEnoughSpace": "No hay espacio en {drive}: hacen falta {needed} y hay {free} libres.",
+      "driveUnavailable": "No se puede usar {drive}: {detail}",
+      "failedNothingMoved": "No se movió nada; tus datos siguen en {path}. {detail}",
+      "copyMismatch": "No se movió nada; tus datos siguen en {path}. El archivo {detail} no se copió bien.",
+      "failedDataAt": "La mudanza se cortó y tus datos quedaron en {path}. Usa «Usar otra carpeta» con esa ruta. {detail}",
+      "sourceNotDeleted": "Los datos ya están en la carpeta nueva, pero no se pudo borrar del todo {path}: {detail} Puedes borrarla a mano.",
+      "tasksRunning": "Espera a que terminen las tareas en curso antes de mover la carpeta de datos."
+    },
+    "update": {
+      "channel": "Ese canal no existe.",
+      "noOrigin": "Escribe una carpeta, una dirección o un repo de GitHub.",
+      "nothingDownloaded": "No hay ninguna actualización descargada."
+    },
+    "language": {
+      "unsupported": "Ese idioma no está disponible: {language}."
+    },
+    "credentials": {
+      "empty": "Pega un valor antes de guardar.",
+      "noKeyring": "No hay llavero del sistema para guardar la clave. En Linux, Otteretro necesita gnome-keyring abierto."
+    },
+    "link": {
+      "openFailed": "No se pudo abrir el enlace: el sistema no tiene un navegador para abrirlo."
+    },
+    "steam": {
+      "notInstalled": "No se pudo abrir Steam. ¿Está instalado en este equipo?"
+    },
+    "tasks": {
+      "failed": "Falló: {detail}",
+      "retrying": "Falló la conexión: reintento {attempt} de {total} en {minutes} min.",
+      "demo": {
+        "step": "Paso {step} de {total}"
+      },
+      "igdb": {
+        "saga": "{name}: {done} de {total} juegos",
+        "platform": "{platform}: {done} de {total} juegos",
+        "noKey": "Falta la cuenta de IGDB: pega el Client ID y el Client Secret de Twitch en Ajustes › Cuentas y claves.",
+        "badKey": "Twitch no aceptó la cuenta de IGDB: revisa el Client ID y el Client Secret en Ajustes › Cuentas y claves.",
+        "sagaNotFound": "IGDB no tiene ninguna saga que se llame «{query}».",
+        "pcBySaga": "PC tiene demasiados juegos para cargarlos de una vez: se cargan por saga.",
+        "unknownPlatform": "«{platform}» no es una de las consolas del catálogo.",
+        "steam": "{done} de {total} juegos de Steam",
+        "popular": "PC populares: {done} de {total} juegos",
+        "refresh": "Al día: {done} de {total} consolas ({platform})",
+        "popularity": "Popularidad: {done} de {total} juegos"
+      },
+      "sgdb": {
+        "images": "{done} de {total} juegos",
+        "webp": "{done} de {total} imágenes pasadas a WebP",
+        "noKey": "Falta la clave de SteamGridDB: pégala en Ajustes › Cuentas y claves.",
+        "badKey": "SteamGridDB no aceptó la clave: revísala en Ajustes › Cuentas y claves."
+      },
+      "steam": {
+        "synced": "{count} juegos en tu cuenta de Steam",
+        "noKey": "Falta la clave de Steam Web API: pégala en Ajustes › Cuentas y claves.",
+        "badKey": "Steam no aceptó la clave de Steam Web API: revísala en Ajustes › Cuentas y claves.",
+        "noAccount": "No se encontró una cuenta de Steam en este equipo: abre Steam e inicia sesión una vez.",
+        "failed": "Steam no respondió bien ({status}). Prueba más tarde."
+      },
+      "extra": {
+        "progress": "{done} de {total} juegos",
+        "rawgBadKey": "RAWG no aceptó la clave: revísala en Ajustes › Cuentas y claves."
+      },
+      "claude": {
+        "cleanup": "{done} de {total} sagas revisadas",
+        "sagas": "{done} de {total} sagas preparadas",
+        "load": {
+          "cleanup": "{part}: {done} de {total} sagas revisadas",
+          "sagas": "{part}: {done} de {total} sagas preparadas"
+        },
+        "notInstalled": "No se encontró Claude Code: instálalo e inicia sesión con `claude` en una terminal.",
+        "failed": "Claude falló: {detail}",
+        "invalidOutput": "Claude respondió dos veces algo que no tiene la forma esperada.",
+        "limit": "Llegaste al límite de tu suscripción de Claude: sigue sola el {at}.",
+        "schedule": "Espera el horario de Claude: empieza el {at}.",
+        "windowCap": "Usó el {share} % de esta ventana de Claude: sigue sola el {at}."
+      },
+      "log": {
+        "started": "Empezó.",
+        "done": "Terminó ({minutes} min).",
+        "retry": "Falló algo pasajero; reintenta: {detail}",
+        "claude": "Claude ({prompt}, {model}): {result} · {input} tokens de entrada, {output} de salida · {seconds} s",
+        "change": {
+          "move": "Cambio n.º {learning}: movió juegos. {reason}",
+          "merge": "Cambio n.º {learning}: unió fichas repetidas. {reason}",
+          "rename": "Cambio n.º {learning}: corrigió el nombre de una saga. {reason}"
+        },
+        "review": {
+          "ruta-saga": "Dejó {count} rutas de saga en Revisar.",
+          "iconico": "Dejó {count} sagas icónicas en Revisar.",
+          "mejor-version": "Dejó {count} mejores versiones en Revisar.",
+          "clasificar-version": "Dejó {count} clasificaciones de versión en Revisar.",
+          "traducir-descripcion": "Dejó {count} descripciones traducidas en Revisar."
+        },
+        "images": "{game}: bajó {kinds} ({kb} KB).",
+        "noImages": "{game}: no encontró imágenes.",
+        "refresh": "{platform}: {count} juegos nuevos o cambiados."
+      }
+    },
+    "progress": {
+      "badStatus": "Ese estado no existe.",
+      "badDate": "La fecha no es válida.",
+      "badRating": "La nota va de 1 a 10.",
+      "notesTooLong": "Las notas son demasiado largas."
+    },
+    "fields": {
+      "empty": "El nombre no puede quedar vacío.",
+      "badYear": "El año tiene que estar entre 1970 y 2100."
+    },
+    "claude": {
+      "badTime": "La hora tiene que ser HH:mm.",
+      "badShare": "El tope va de 10 a 100 %.",
+      "badNote": "Escribe qué está mal (hasta 500 caracteres).",
+      "noLearning": "Ese cambio ya no existe o no se puede corregir."
+    },
+    "catalog": {
+      "badRefreshDays": "Los días van de 1 a 365."
+    },
+    "automation": {
+      "notFound": "Esa sugerencia ya no está.",
+      "ghMissing": "No se encontró gh (GitHub CLI). Instálalo e inicia sesión con «gh auth login».",
+      "ghFailed": "gh no pudo crear el issue: {detail}"
+    }
+  },
+  "credentials": {
+    "saved": "Guardada",
+    "missing": "Falta",
+    "savedOn": "Guardada el {date}",
+    "paste": "Pegar",
+    "change": "Cambiar",
+    "delete": "Borrar",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "getIt": "Conseguirla ↗",
+    "bitwarden": "Se guardan cifradas solo en este equipo. Tu respaldo es Bitwarden: en otro PC, pégalas de nuevo desde ahí.",
+    "service": {
+      "github": "GitHub",
+      "steam": "Steam Web API",
+      "igdb": "IGDB (Twitch)",
+      "screenscraper": "ScreenScraper",
+      "steamgriddb": "SteamGridDB",
+      "rawg": "RAWG (opcional)",
+      "retroachievements": "RetroAchievements",
+      "myjdownloader": "MyJDownloader"
+    },
+    "field": {
+      "token": "Token",
+      "apiKey": "Clave de API",
+      "clientId": "Client ID",
+      "clientSecret": "Client secret",
+      "user": "Usuario",
+      "password": "Contraseña",
+      "email": "Correo"
+    },
+    "later": "Más adelante ({count})",
+    "laterHint": "Todavía no hacen falta: cada una se pide cuando llega su fase.",
+    "phase": "Fase {phase}",
+    "partial": "Falta {missing} de {total}",
+    "configure": "Configurar",
+    "close": "Cerrar",
+    "purpose": {
+      "github": "Respaldo de tus partidas en un repositorio privado tuyo.",
+      "steam": "Lo que tienes en Steam, con sus horas.",
+      "igdb": "Sagas, juegos y versiones del catálogo.",
+      "screenscraper": "Identificar ROMs que no coinciden con los DAT.",
+      "steamgriddb": "Portadas, fondos y logos.",
+      "rawg": "Completa años que IGDB no tiene.",
+      "retroachievements": "Tus logros en juegos retro.",
+      "myjdownloader": "Mandar descargas a JDownloader."
+    }
+  },
+  "tasks": {
+    "kind": {
+      "demo": "Tarea de prueba",
+      "igdb": {
+        "saga": "Cargar una saga de IGDB",
+        "platform": "Cargar una consola de IGDB",
+        "steam": "Buscar en IGDB tus juegos de Steam",
+        "popular": "Cargar los juegos de PC populares de IGDB",
+        "refresh": "Actualizar el catálogo desde IGDB",
+        "popularity": "Traer la popularidad desde IGDB"
+      },
+      "sgdb": {
+        "images": "Bajar portadas de SteamGridDB",
+        "webp": "Pasar las imágenes a WebP"
+      },
+      "steam": {
+        "sync": "Leer lo que tienes en Steam"
+      },
+      "claude": {
+        "cleanup": "Depurar el catálogo con Claude",
+        "sagas": "Rutas, icónico y mejor versión con Claude",
+        "load": "Carga inicial con Claude, por partes"
+      },
+      "catalog": {
+        "extra": "Completar con Wikidata y RAWG"
+      }
+    },
+    "status": {
+      "queued": "En cola",
+      "running": "{progress} %",
+      "done": "Terminada",
+      "error": "Error"
+    },
+    "clear": "Limpiar terminadas",
+    "log": "Registro de la tarea",
+    "logEmpty": "Esta tarea todavía no anotó nada."
+  },
+  "pad": {
+    "choose": "Elegir",
+    "back": "Volver",
+    "close": "Cerrar",
+    "search": "Buscar",
+    "quickMenu": "Menú rápido",
+    "noGame": "Ningún juego abierto",
+    "goToSteam": "Ir a Steam",
+    "keyboard": "Teclado",
+    "shift": "Mayús",
+    "space": "Espacio",
+    "delete": "Borrar",
+    "done": "Listo",
+    "menu": "Menú"
+  },
+  "catalog": {
+    "owned": "Lo tengo",
+    "missing": "Me falta",
+    "noConsole": "Sin consola en Otteretro",
+    "favorite": "Favorita",
+    "following": "La sigues",
+    "emulation": "Emulación",
+    "noSaga": "Juegos sin saga",
+    "games": "{count, plural, one {# juego} other {# juegos}}",
+    "ownedCount": "{count, plural, =0 {No tienes ninguno} one {# lo tienes} other {# los tienes}}",
+    "store": {
+      "steam": "Steam"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "playing": "Jugando",
+      "finished": "Terminado",
+      "completed": "100 %",
+      "dropped": "Abandonado"
+    },
+    "kind": {
+      "original": "original",
+      "remaster": "remaster",
+      "remake": "remake"
+    },
+    "sagas": {
+      "filters": "Filtros",
+      "filter": {
+        "all": "Todas",
+        "favorite": "★ Favoritas",
+        "following": "Que sigo",
+        "iconic": "Icónicas",
+        "exclusive": "Exclusivas",
+        "owned": "Con juegos que tengo",
+        "pc": "Con juegos de PC"
+      },
+      "sortBy": "Ordenar por",
+      "sort": {
+        "recognized": "Más reconocidas",
+        "name": "Nombre",
+        "played": "Más jugadas",
+        "activity": "Última actividad"
+      },
+      "emptyTitle": "Aún no hay sagas",
+      "emptyText": "Las sagas y sus juegos se cargan desde IGDB. Pega la cuenta en Ajustes › Cuentas y claves y carga una saga con «otteretro catalogo cargar --saga zelda».",
+      "noMatch": "Ninguna saga cumple el filtro.",
+      "platform": "Empresa o consola",
+      "allPlatforms": "Todas las consolas"
+    },
+    "saga": {
+      "back": "← Sagas",
+      "favorite": "Favorita",
+      "follow": "Seguir esta saga",
+      "following": "✓ Sigues esta saga",
+      "allGames": "Todos los juegos",
+      "game": "Juego",
+      "year": "Año",
+      "platforms": "Consolas",
+      "state": "Estado",
+      "noneTitle": "Elige una saga",
+      "noneText": "Abre una saga desde Sagas o con la búsqueda.",
+      "notFound": "Esta saga ya no está en el catálogo.",
+      "route": "Ruta",
+      "noRoutes": "Claude todavía no preparó las rutas de esta saga. Se preparan solas de noche (otteretro claude cargar) o al pedirlas, y se aprueban en Revisar.",
+      "recalculate": "Pedir a Claude que la recalcule",
+      "queued": "Encolado: Claude la revisa en su horario y el resultado llega a Revisar.",
+      "why": "Por qué este orden",
+      "sources": "Fuentes",
+      "recommends": "Versión: {platform}",
+      "progress": "{done} de {total}"
+    },
+    "collection": {
+      "consoles": "Consolas",
+      "filters": "Filtros",
+      "filter": {
+        "all": "Todos",
+        "owned": "Lo tengo",
+        "missing": "Me falta",
+        "pc": "Versión PC"
+      },
+      "sortLabel": "Ordenar",
+      "sort": {
+        "saga": "Por saga",
+        "name": "Por nombre",
+        "year": "Por año"
+      },
+      "view": "Vista",
+      "grid": "Cuadrícula",
+      "list": "Lista",
+      "summary": "{console} · {games} · {owned}",
+      "unlinked": "En tus tiendas, todavía sin datos del catálogo",
+      "unlinkedHint": "Aparecen igual; al cargar su saga desde IGDB pasan a la cuadrícula.",
+      "emptyTitle": "No hay juegos de esta consola",
+      "emptyText": "Carga sus juegos con «otteretro catalogo cargar --consola {console}» o, para PC, sincroniza Steam.",
+      "name": "Juego",
+      "saga": "Saga",
+      "year": "Año",
+      "store": "Tienda",
+      "hours": "Horas",
+      "lastPlayed": "Última vez"
+    },
+    "game": {
+      "noneTitle": "Elige un juego",
+      "noneText": "Abre un juego desde Colección, una saga o la búsqueda.",
+      "notFound": "Este juego ya no está en el catálogo.",
+      "favorite": "★ Favorito",
+      "versions": "Versiones",
+      "version": "Versión",
+      "have": "Tienes",
+      "where": "Dónde lo tienes",
+      "tracking": "Seguimiento",
+      "lastPlayed": "Última vez: {date}",
+      "never": "Última vez: nunca",
+      "states": "Estado",
+      "started": "Empezado",
+      "finished": "Terminado el",
+      "completed": "Completado el",
+      "dropped": "Abandonado el",
+      "rating": "Tu nota",
+      "noRating": "—",
+      "notes": "Notas",
+      "playtime": "Tiempo jugado",
+      "pendingHint": "Las fechas aparecen al empezarlo.",
+      "saving": "Guardando…",
+      "saved": "Guardado",
+      "sources": "Datos y fuentes",
+      "field": {
+        "name_es": "Nombre en español",
+        "original_name": "Nombre original",
+        "year": "Año"
+      },
+      "source": {
+        "manual": "A mano",
+        "igdb": "IGDB",
+        "wikidata": "Wikidata",
+        "rawg": "RAWG",
+        "hltb": "HowLongToBeat",
+        "claude": "Claude"
+      },
+      "fix": "Corregir",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "undoFix": "Volver al de las fuentes",
+      "manualNote": "Lo corregido a mano gana y ninguna carga lo pisa.",
+      "shown": "Se muestra",
+      "compare": "Comparativa de versiones",
+      "best": "Recomendada",
+      "noCompare": "Claude todavía no comparó las versiones de este juego.",
+      "description": "Descripción",
+      "criterion": {
+        "content": "Contenido",
+        "gameplay": "Jugabilidad hoy",
+        "technical": "Técnico",
+        "original": "Original"
+      },
+      "cheerGame": "¡Terminaste {name}!",
+      "cheerRoute": "¡Completaste la ruta de {saga}!",
+      "cheerClose": "Cerrar"
+    },
+    "search": {
+      "sagas": "Sagas",
+      "games": "Juegos",
+      "noResults": "Nada se llama «{query}».",
+      "typeMore": "Escribe al menos 2 letras."
+    },
+    "route": {
+      "release": "Lanzamiento",
+      "story": "Historia",
+      "community": "Comunidad"
+    }
+  },
+  "notices": {
+    "title": "Avisos",
+    "missingKey": "Falta la clave de {service}: sin ella no se cargan sus datos.",
+    "openSettings": "Abrir Ajustes"
+  },
+  "review": {
+    "tabs": "Secciones de Revisar",
+    "tab": {
+      "pending": "Por aprobar ({count})",
+      "learnings": "Aprendizajes ({count})"
+    },
+    "pendingEmptyTitle": "Nada por aprobar",
+    "pendingEmptyText": "Cuando Claude prepare rutas, lo icónico o la mejor versión de una saga, aparecerán aquí para que los apruebes.",
+    "learningsEmptyTitle": "Sin aprendizajes",
+    "learningsEmptyText": "Aquí quedan los cambios que Claude aplicó al catálogo, con su razón, para deshacerlos.",
+    "prompt": {
+      "ruta-saga": "Rutas",
+      "iconico": "Icónico",
+      "mejor-version": "Mejor versión",
+      "clasificar-version": "Clase de versión",
+      "traducir-descripcion": "Descripción en español"
+    },
+    "approve": "Aprobar",
+    "reject": "Rechazar",
+    "change": "Cambio",
+    "reason": "Por qué",
+    "date": "Fecha",
+    "undo": "Deshacer",
+    "undone": "Deshecho",
+    "learning": {
+      "move": "Mover juegos",
+      "merge": "Unir fichas repetidas",
+      "rename": "Renombrar saga"
+    },
+    "sources": "Fuentes",
+    "iconicYes": "Saga icónica",
+    "iconicNo": "No es icónica",
+    "bestVersion": "Compara {count} versiones con los 4 criterios",
+    "filterAll": "Todos",
+    "kindFilter": {
+      "move": "Movidos",
+      "merge": "Unidos",
+      "rename": "Renombrados"
+    },
+    "search": "Buscar saga o juego",
+    "task": "Tarea #{id}",
+    "noTask": "Sin tarea registrada",
+    "moved": "{games}: de {from} a {to}",
+    "loose": "sueltos",
+    "toNew": "una saga nueva, «{name}»",
+    "toNone": "ninguna saga (quedan sueltos)",
+    "merged": "{games} pasó a ser una versión de {kept}",
+    "renamed": "«{before}» pasó a llamarse «{after}»",
+    "correct": "Corregir",
+    "correctPlaceholder": "Qué está mal (Claude lo leerá en la próxima depuración)",
+    "send": "Deshacer y enviar a Claude",
+    "cancel": "Cancelar",
+    "rule": "Tu corrección: {text}",
+    "openSaga": "Ver saga",
+    "count": "{count, plural, one {# cambio} other {# cambios}}",
+    "edit": "Editar",
+    "approveEdited": "Aprobar como quedó",
+    "stepUp": "Subir el paso {step}",
+    "stepDown": "Bajar el paso {step}",
+    "stepRemove": "Quitar el paso {step}"
+  },
+  "home": {
+    "next": "Siguiente en tus rutas",
+    "nextEmpty": "Sigue una ruta en una saga y aquí verás tu siguiente juego.",
+    "step": "{saga} · {route} · {done} de {total}",
+    "review": "Revisar",
+    "reviewCount": "{count} resultados de Claude por aprobar",
+    "reviewNone": "Nada por revisar."
+  }
+}

@@ -1,0 +1,80 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace Otteretro.App;
+
+/// <summary>
+/// Lo único que vive fuera de la carpeta de datos (en %LocalAppData%\Otteretro\config.json en Windows
+/// y en $XDG_CONFIG_HOME/otteretro/config.json en Linux):
+/// dónde está esa carpeta, de dónde llegan las actualizaciones y la identidad de este equipo.
+/// Las claves del JSON no cambian: los config.json de F0 se siguen leyendo igual.
+/// </summary>
+public sealed class AppConfig
+{
+    [JsonPropertyName("carpetaDatos")]
+    public string? DataFolder { get; set; }
+
+    /// <summary>Con el canal «custom»: una carpeta, una URL o el repo de GitHub de quien tiene su propia versión (#180).</summary>
+    [JsonPropertyName("origenActualizaciones")]
+    public string? UpdateSource { get; set; }
+
+    /// <summary>
+    /// De dónde se actualiza (#180): «stable» (releases de main), «testing» (prereleases de dev) o «custom» (UpdateSource).
+    /// Sin canal, un config.json de antes con origen sigue con él; si no, Estable.
+    /// </summary>
+    [JsonPropertyName("canalActualizaciones")]
+    public string? UpdateChannel { get; set; }
+
+    public static readonly string[] UpdateChannels = ["stable", "testing", "custom"];
+
+    [JsonIgnore]
+    public string EffectiveUpdateChannel => UpdateChannel is { } c && UpdateChannels.Contains(c) ? c : string.IsNullOrEmpty(UpdateSource) ? "stable" : "custom";
+
+    [JsonPropertyName("equipoId")]
+    public string MachineId { get; set; } = Guid.NewGuid().ToString();
+
+    /// <summary>Idioma elegido en Ajustes; null = el del sistema (#140). Va acá y no en la base porque el asistente corre antes de que exista.</summary>
+    public string? Language { get; set; }
+
+    /// <summary>Idiomas con catálogo en web/messages. El primero es el base.</summary>
+    public static readonly string[] Languages = ["es", "en"];
+
+    [JsonIgnore]
+    public string EffectiveLanguage => Language is { } l && Languages.Contains(l) ? l : SystemLanguage();
+
+    /// <summary>Español si el sistema está en español; si no, inglés.</summary>
+    public static string SystemLanguage() =>
+        System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "es" ? "es" : "en";
+
+    static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+
+    /// <summary>OTTERETRO_CONFIG permite usar otra configuración (desarrollo y pruebas) sin tocar la real.</summary>
+    public static string DefaultPath => Environment.GetEnvironmentVariable("OTTERETRO_CONFIG") ?? (OperatingSystem.IsWindows()
+        ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Otteretro", "config.json")
+        // En Linux, ApplicationData es $XDG_CONFIG_HOME o ~/.config.
+        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "otteretro", "config.json"));
+
+    public static AppConfig Load(string path)
+    {
+        if (File.Exists(path))
+        {
+            var text = File.ReadAllText(path);
+            var loaded = JsonSerializer.Deserialize<AppConfig>(text, Json) ?? new();
+            // Sin equipoId, cada arranque inventaría otro y las claves guardadas de este equipo no se encontrarían (#59).
+            if (!JsonDocument.Parse(text).RootElement.TryGetProperty("equipoId", out _)) loaded.Save(path);
+            return loaded;
+        }
+        var config = new AppConfig();
+        config.Save(path);
+        return config;
+    }
+
+    public void Save(string path)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        // Escribir aparte y reemplazar: un corte a mitad nunca deja config.json roto.
+        var temp = path + ".tmp";
+        File.WriteAllText(temp, JsonSerializer.Serialize(this, Json));
+        File.Move(temp, path, overwrite: true);
+    }
+}
