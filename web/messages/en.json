@@ -476,6 +476,11 @@
         "notInDat": "{path}: its hash is not in the DAT.",
         "summary": "{verified} verified and {missing} with no match."
       }
+    },
+    "review": {
+      "notFound": "That file is no longer in Review.",
+      "pickGame": "Pick the game.",
+      "noVersion": "That game has no version on the file's console."
     }
   },
   "credentials": {
@@ -806,6 +811,8 @@
     "tabs": "Review sections",
     "tab": {
       "pending": "To approve ({count})",
+      "doubtful": "Doubtful ({count})",
+      "unidentified": "Unidentified ({count})",
       "learnings": "Learnings ({count})"
     },
     "pendingEmptyTitle": "Nothing to approve",
@@ -841,7 +848,8 @@
     "kindFilter": {
       "move": "Moved",
       "merge": "Merged",
-      "rename": "Renamed"
+      "rename": "Renamed",
+      "alias": "Aliases"
     },
     "search": "Search saga or game",
     "task": "Task #{id}",
@@ -864,7 +872,22 @@
     "stepUp": "Move step {step} up",
     "stepDown": "Move step {step} down",
     "stepRemove": "Remove step {step}",
-    "openClaude": "Open Settings › Claude"
+    "openClaude": "Open Settings › Claude",
+    "aliased": "“{text}” is {game}",
+    "files": {
+      "doubtfulEmptyTitle": "Nothing doubtful",
+      "doubtfulEmptyText": "When Claude assigns a file the scan did not recognize, it shows up here for you to confirm.",
+      "unidentifiedEmptyTitle": "Everything identified",
+      "unidentifiedEmptyText": "Files that neither the scan nor Claude recognize show up here for you to pick their game.",
+      "openCollection": "Open Collection",
+      "proposed": "Claude says: {name}",
+      "noProposal": "Claude did not know: {reason}",
+      "assigned": "Assigned to",
+      "confirm": "Confirm",
+      "change": "Change game",
+      "search": "Search for the game",
+      "noResults": "No {console} game with that name."
+    }
   },
   "home": {
     "next": "Next in your routes",

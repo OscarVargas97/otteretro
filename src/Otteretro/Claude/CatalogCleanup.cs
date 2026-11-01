@@ -309,6 +309,13 @@ public static partial class CatalogCleanup
         using var t = c.BeginTransaction();
         var content = c.ExecuteScalar<string?>("SELECT content FROM learning WHERE id = @learningId AND undone = 0", new { learningId }, t);
         if (content is null) return false;
+        // Un alias (#181) solo deja de usarse: lo ya asignado por él se queda.
+        if (c.ExecuteScalar<string>("SELECT kind FROM learning WHERE id = @learningId", new { learningId }, t) == "alias")
+        {
+            c.Execute("UPDATE learning SET undone = 1 WHERE id = @learningId", new { learningId }, t);
+            t.Commit();
+            return true;
+        }
         using var doc = JsonDocument.Parse(content);
         var change = doc.RootElement.GetProperty("change").Deserialize<Change>(JsonSerializerOptions.Web)!;
         var before = doc.RootElement.GetProperty("before");

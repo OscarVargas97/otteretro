@@ -112,6 +112,41 @@ public static class Identify
         return version is not null;
     }
 
+    /// <summary>
+    /// Resolver un archivo de Revisar (#181): sin juego confirma lo de Claude; con juego lo cambia o lo elige, y queda como alias
+    /// tuyo. En Switch vale para todo lo del mismo TitleID base que esté en Revisar. Devuelve el error, o null.
+    /// </summary>
+    public static ApiError? Resolve(Database db, long reviewId, long? gameId)
+    {
+        using var c = db.Open();
+        using var t = c.BeginTransaction();
+        var item = c.QuerySingleOrDefault<(string Kind, long SourceId, string Console, string RelativePath, string? Component, string? TitleId)>("""
+            SELECT r.kind, o.id, o.console, o.relative_path, o.component, o.title_id FROM review_item r JOIN source o ON o.id = r.entity_id
+            WHERE r.id = @reviewId AND r.entity = 'source' AND r.status = 'open' AND r.kind IN ('doubtful', 'unidentified')
+            """, new { reviewId }, t);
+        if (item.SourceId == 0) return ApiError.Of("review.notFound");
+        if (gameId is null && item.Kind != "doubtful") return ApiError.Of("review.pickGame");
+        long? version = null;
+        if (gameId is not null)
+        {
+            version = c.ExecuteScalar<long?>("SELECT id FROM version WHERE game_id = @gameId AND platform = @Console ORDER BY id LIMIT 1", new { gameId, item.Console }, t);
+            if (version is null) return ApiError.Of("review.noVersion");
+        }
+        var group = c.Query<(long Review, long Source, string? TitleId)>("""
+            SELECT r.id, o.id, o.title_id FROM review_item r JOIN source o ON o.id = r.entity_id
+            WHERE r.entity = 'source' AND r.status = 'open' AND r.kind IN ('doubtful', 'unidentified') AND o.console = @Console AND o.component IS NOT NULL
+            """, new { item.Console }, t).Where(g => item.Component is not null && Scan.BaseOf(g.TitleId!) == Scan.BaseOf(item.TitleId!)).ToList();
+        if (group.Count == 0) group = [(reviewId, item.SourceId, item.TitleId)];
+        foreach (var (review, source, _) in group)
+        {
+            if (version is not null) c.Execute("UPDATE source SET version_id = @version WHERE id = @source", new { version, source }, t);
+            c.Execute("UPDATE review_item SET status = 'approved' WHERE id = @review", new { review }, t);
+        }
+        if (gameId is not null) AddAlias(c, t, Scan.AliasText(item.RelativePath), item.Console, gameId.Value, "manual", null);
+        t.Commit();
+        return null;
+    }
+
     /// <summary>Un alias (§11.1): ese nombre de archivo, en esa consola, es ese juego. El escaneo lo usa antes que Claude.</summary>
     public static void AddAlias(System.Data.IDbConnection c, System.Data.IDbTransaction? t, string text, string console, long gameId, string origin, long? taskId)
     {

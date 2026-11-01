@@ -2163,6 +2163,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/review/{id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ResolveFileRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReviewPage"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/review/{id}/reject": {
         parameters: {
             query?: never;
@@ -4426,6 +4485,22 @@ export interface components {
             size: null | number | string;
             verified: boolean;
         };
+        FileReview: {
+            /** Format: int64 */
+            id: number | string;
+            kind: string;
+            /** Format: int64 */
+            sourceId: number | string;
+            path: string;
+            console: string;
+            component: null | string;
+            titleId: null | string;
+            proposed: null | string;
+            reason: null | string;
+            /** Format: int64 */
+            gameId: null | number | string;
+            gameName: null | string;
+        };
         FolderInfo: {
             path: null | string;
             /** Format: int64 */
@@ -4597,6 +4672,10 @@ export interface components {
         RenameRequest: {
             name: string;
         };
+        ResolveFileRequest: {
+            /** Format: int64 */
+            gameId: null | number | string;
+        };
         ReviewItem: {
             /** Format: int64 */
             id: number | string;
@@ -4612,6 +4691,7 @@ export interface components {
             pending: components["schemas"]["ReviewItem"][];
             /** Format: int32 */
             activeLearnings: number | string;
+            files: components["schemas"]["FileReview"][];
         };
         Route: {
             kind: string;

@@ -84,6 +84,39 @@ public class IdentifyTests : IAsyncDisposable
             Assert.Equal(1, c.ExecuteScalar<long>("SELECT count(*) FROM review_item WHERE kind = 'unidentified' AND status = 'open'"));
     }
 
+    /// <summary>#181: en Revisar se confirma lo de Claude o se elige el juego; la elección queda como alias y se puede deshacer.</summary>
+    [Fact]
+    public async Task ReviewConfirmsOrPicksTheGameAndLearnsAnAlias()
+    {
+        Library.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
+        foreach (var file in new[] { @"GameCube\juego raro.iso", @"GameCube\basura.iso", @"Switch\x\Sin nombre [0100AAAA00000000][v0].nsp",
+                     @"Switch\x\Sin nombre [0100AAAA00000800][v65536].nsp" })
+            Write(f.Tmp[$@"e\Otteretro\Juegos\{file}"]);
+        Assert.Equal("done", (await f.Run(Scan.Enqueue(f.Db))).Status);
+        Assert.Equal("done", (await f.Run(Identify.EnqueueIfNeeded(f.Db)!.Value)).Status);
+
+        var page = ClaudeReview.Page(f.Db);
+        Assert.Equal(4, page.Files.Count);
+        Assert.Equal(4, ClaudeReview.PendingCount(f.Db));
+        var junk = page.Files.Single(x => x.Kind == "unidentified");
+        Assert.Equal("review.pickGame", Identify.Resolve(f.Db, junk.Id, null)?.Code);
+        Assert.Equal("review.noVersion", Identify.Resolve(f.Db, junk.Id, 1)?.Code); // Hyrule Warriors no sale en GameCube
+        Assert.Null(Identify.Resolve(f.Db, junk.Id, 8));
+        // Confirmar el BASE de Switch resuelve también su UPD.
+        Assert.Null(Identify.Resolve(f.Db, page.Files.First(x => x.Console == "switch").Id, null));
+
+        page = ClaudeReview.Page(f.Db);
+        Assert.Equal("juego raro.iso", Path.GetFileName(Assert.Single(page.Files).Path));
+        using var c = f.Db.Open();
+        Assert.Equal(18, c.ExecuteScalar<long>("SELECT version_id FROM source WHERE relative_path LIKE '%basura%'"));
+        var alias = c.QuerySingle<(long Id, string Content)>("SELECT id, content FROM learning WHERE kind = 'alias' AND content LIKE '%basura%'");
+        Assert.Contains("\"origin\":\"manual\"", alias.Content);
+        var learned = ClaudeReview.Learnings(f.Db, "alias", null, 0, 10).Items.Single(l => l.Id == alias.Id);
+        Assert.Equal(("basura", "The Legend of Zelda: Twilight Princess"), (learned.NameBefore, learned.NameAfter));
+        Assert.True(CatalogCleanup.Undo(f.Db, alias.Id));
+        Assert.Equal(1, c.ExecuteScalar<long>("SELECT undone FROM learning WHERE id = @Id", new { alias.Id }));
+    }
+
     static void Write(string path)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);

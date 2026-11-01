@@ -476,6 +476,11 @@
         "notInDat": "{path}: su hash no está en el DAT.",
         "summary": "{verified} verificados y {missing} sin coincidencia."
       }
+    },
+    "review": {
+      "notFound": "Ese archivo ya no está en Revisar.",
+      "pickGame": "Elige el juego.",
+      "noVersion": "Ese juego no tiene versión en la consola del archivo."
     }
   },
   "credentials": {
@@ -806,6 +811,8 @@
     "tabs": "Secciones de Revisar",
     "tab": {
       "pending": "Por aprobar ({count})",
+      "doubtful": "Dudosas ({count})",
+      "unidentified": "Sin identificar ({count})",
       "learnings": "Aprendizajes ({count})"
     },
     "pendingEmptyTitle": "Nada por aprobar",
@@ -841,7 +848,8 @@
     "kindFilter": {
       "move": "Movidos",
       "merge": "Unidos",
-      "rename": "Renombrados"
+      "rename": "Renombrados",
+      "alias": "Alias"
     },
     "search": "Buscar saga o juego",
     "task": "Tarea #{id}",
@@ -864,7 +872,22 @@
     "stepUp": "Subir el paso {step}",
     "stepDown": "Bajar el paso {step}",
     "stepRemove": "Quitar el paso {step}",
-    "openClaude": "Abrir Ajustes › Claude"
+    "openClaude": "Abrir Ajustes › Claude",
+    "aliased": "«{text}» es {game}",
+    "files": {
+      "doubtfulEmptyTitle": "Nada dudoso",
+      "doubtfulEmptyText": "Cuando Claude asigne un archivo que el escaneo no reconoció, aparecerá aquí para que lo confirmes.",
+      "unidentifiedEmptyTitle": "Todo identificado",
+      "unidentifiedEmptyText": "Los archivos que ni el escaneo ni Claude reconozcan aparecerán aquí para que elijas su juego.",
+      "openCollection": "Abrir Colección",
+      "proposed": "Claude dice: {name}",
+      "noProposal": "Claude no supo: {reason}",
+      "assigned": "Asignado a",
+      "confirm": "Confirmar",
+      "change": "Cambiar juego",
+      "search": "Buscar el juego",
+      "noResults": "Ningún juego de {console} con ese nombre."
+    }
   },
   "home": {
     "next": "Siguiente en tus rutas",
