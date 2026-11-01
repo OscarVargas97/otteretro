@@ -4,9 +4,10 @@ using Otteretro.Data;
 
 namespace Otteretro.Api;
 
-public record AppState(string Version, string? DataFolder, bool Configured, string Language, bool Fullscreen);
+public record AppState(string Version, string? DataFolder, bool Configured, string Language, bool Fullscreen, bool MenuCollapsed);
 public record FolderRequest(string Path);
 public record LanguageRequest(string Language);
+public record MenuRequest(bool Collapsed);
 /// <param name="Channel">stable, testing o custom (#180).</param>
 /// <param name="Origin">Con custom: carpeta, URL o repo de GitHub.</param>
 public record UpdateChannelInfo(string Channel, string? Origin);
@@ -76,6 +77,14 @@ public static class Endpoints
             s.Config.Language = request.Language;
             s.Config.Save(s.ConfigPath);
             return TypedResults.Ok(State(s));
+        });
+
+        // Retraer o expandir el menú lateral (#130): se recuerda en config.json.
+        api.MapPut("/menu", (MenuRequest request, AppSession s) =>
+        {
+            s.Config.MenuCollapsed = request.Collapsed;
+            s.Config.Save(s.ConfigPath);
+            return State(s);
         });
 
         api.MapGet("/drives", () => Mounts.Offer(DriveInfo.GetDrives()
@@ -199,5 +208,5 @@ public static class Endpoints
         DataFolder.IsReady(s.Config.DataFolder) ? new(DataFolder.Open(s.Config.DataFolder!), s.Config.MachineId, box) : null;
 
     static AppState State(AppSession s) =>
-        new(Startup.Version, s.Config.DataFolder, DataFolder.IsReady(s.Config.DataFolder), s.Config.EffectiveLanguage, s.Fullscreen);
+        new(Startup.Version, s.Config.DataFolder, DataFolder.IsReady(s.Config.DataFolder), s.Config.EffectiveLanguage, s.Fullscreen, s.Config.MenuCollapsed);
 }

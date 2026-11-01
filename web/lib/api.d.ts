@@ -272,6 +272,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/menu": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MenuRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AppState"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/drives": {
         parameters: {
             query?: never;
@@ -2809,6 +2848,7 @@ export interface components {
             configured: boolean;
             language: string;
             fullscreen: boolean;
+            menuCollapsed: boolean;
         };
         AutomationSuggestion: {
             key: string;
@@ -3011,6 +3051,9 @@ export interface components {
             items: components["schemas"]["LearningItem"][];
             /** Format: int32 */
             total: number | string;
+        };
+        MenuRequest: {
+            collapsed: boolean;
         };
         MoveState: {
             step: string;
