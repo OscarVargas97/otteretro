@@ -34,7 +34,7 @@ function Game() {
   const compare = useQuery({ ...compareQuery(id ?? ""), enabled: id !== null });
   const hero = useHeroArt(game.data?.hasHero ? Number(game.data.id) : null);
 
-  if (id === null) return <div className="content"><Empty title={t("game.noneTitle")} text={t("game.noneText")} /></div>;
+  if (id === null) return <div className="content"><Empty title={t("game.noneTitle")} text={t("game.noneText")}><Link className="ot-btn ot-btn-primary" href="/sagas/">{t("goToSagas")}</Link></Empty></div>;
   if (game.isError) return <div className="content"><p className="error" role="alert">{describe(game.error)}</p></div>;
   if (!game.data || compare.isPending) return <PageSkeleton cover />;
 
@@ -49,9 +49,8 @@ function Game() {
     <div className="accented" style={hero.style}>
       <section className="hero">
         {hero.art}
-        <Cover gameId={Number(g.id)} name={g.nameEs} hasCover={g.hasCover} style={{ width: 150, flex: "none" }} />
+        <Cover gameId={Number(g.id)} name={g.nameEs} hasCover={g.hasCover} platform={platforms[0]} style={{ width: 150, flex: "none" }} />
         <div className="hero-main">
-          {g.sagaId ? <Link className="back" href={`/saga/?id=${g.sagaId}`}>← {g.sagaName}</Link> : <Link className="back" href="/saga/?id=0">← {t("emulation")}</Link>}
           <h2 className="hero-title">{g.nameEs}</h2>
           {g.originalName && g.originalName !== g.nameEs && <span className="small muted">{g.originalName}</span>}
           <div className="ot-game-meta" style={{ fontSize: 14 }}>

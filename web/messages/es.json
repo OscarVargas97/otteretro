@@ -19,7 +19,8 @@
     "tools": "Herramientas",
     "steam": "Steam",
     "settings": "Ajustes",
-    "pending": "{count, plural, one {# por revisar} other {# por revisar}}"
+    "pending": "{count, plural, one {# por revisar} other {# por revisar}}",
+    "comingIn": "Llega en la fase {phase}"
   },
   "topBar": {
     "search": "Buscar sagas y juegos…",
@@ -32,7 +33,8 @@
     "reconnecting": "Reconectando…",
     "searchLabel": "Buscar",
     "searchPlaceholder": "Sagas, juegos, emuladores, ajustes…",
-    "goToSteam": "Ir a Steam"
+    "goToSteam": "Ir a Steam",
+    "crumbs": "Camino"
   },
   "comingSoon": {
     "badge": "Llega en la fase {phase}",
@@ -654,12 +656,17 @@
       "release": "Lanzamiento",
       "story": "Historia",
       "community": "Comunidad"
-    }
+    },
+    "goToSagas": "Ver Sagas",
+    "openConsoles": "Abrir Consolas",
+    "openCredentials": "Abrir Cuentas y claves"
   },
   "notices": {
     "title": "Avisos",
     "missingKey": "Falta la clave de {service}: sin ella no se cargan sus datos.",
-    "openSettings": "Abrir Ajustes"
+    "openSettings": "Abrir Ajustes",
+    "missingKeys": "Faltan claves de {services}: sin ellas no se cargan sus datos.",
+    "openCredentials": "Cuentas y claves"
   },
   "review": {
     "tabs": "Secciones de Revisar",
@@ -720,7 +727,8 @@
     "approveEdited": "Aprobar como quedó",
     "stepUp": "Subir el paso {step}",
     "stepDown": "Bajar el paso {step}",
-    "stepRemove": "Quitar el paso {step}"
+    "stepRemove": "Quitar el paso {step}",
+    "openClaude": "Abrir Ajustes › Claude"
   },
   "home": {
     "next": "Siguiente en tus rutas",
@@ -728,6 +736,7 @@
     "step": "{saga} · {route} · {done} de {total}",
     "review": "Revisar",
     "reviewCount": "{count} resultados de Claude por aprobar",
-    "reviewNone": "Nada por revisar."
+    "reviewNone": "Nada por revisar.",
+    "nextEmptyTitle": "Todavía no sigues ninguna ruta"
   }
 }

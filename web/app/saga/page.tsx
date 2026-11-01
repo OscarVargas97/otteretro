@@ -42,7 +42,7 @@ function Saga() {
     },
   });
 
-  if (id === null) return <div className="content"><Empty title={t("saga.noneTitle")} text={t("saga.noneText")} /></div>;
+  if (id === null) return <div className="content"><Empty title={t("saga.noneTitle")} text={t("saga.noneText")}><Link className="ot-btn ot-btn-primary" href="/sagas/">{t("goToSagas")}</Link></Empty></div>;
   if (saga.isError) return <div className="content"><p className="error" role="alert">{describe(saga.error)}</p><Link href="/sagas/">{t("saga.back")}</Link></div>;
   if (!saga.data || (id !== "0" && routes.isPending)) return <PageSkeleton />;
 
@@ -57,7 +57,6 @@ function Saga() {
       <section className="hero">
         {hero.art}
         <div className="hero-main">
-          <Link className="back" href="/sagas/">{t("saga.back")}</Link>
           <span className="small muted">{[...companies, span, t("games", { count: Number(s.games) }), t("ownedCount", { count: Number(s.owned) })].filter(Boolean).join(" · ")}</span>
           <h2 className="hero-title">{emulation ? t("emulation") : s.name}</h2>
           {!emulation && (
@@ -155,7 +154,7 @@ function Routes({ sagaId }: { sagaId: string }) {
         {chosen.steps.map((s) => (
           <li key={s.position} style={{ minWidth: 140, maxWidth: 160 }}>
             <Link href={`/game/?id=${s.gameId}`} style={{ textDecoration: "none", color: "var(--ink)" }}>
-              <Cover gameId={s.gameId} name={s.name} hasCover={s.hasCover} />
+              <Cover gameId={s.gameId} name={s.name} hasCover={s.hasCover} platform={s.versionPlatform} />
               <p className="ot-game-name" title={s.name}>{Number(s.position)}. {s.name}</p>
             </Link>
             <span className="chips" style={{ gap: 4 }}>

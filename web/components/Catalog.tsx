@@ -29,13 +29,19 @@ export function hours(minutes: number | string | null | undefined) {
   return m <= 0 ? "—" : m < 60 ? `${m} min` : `${Math.round(m / 60)} h`;
 }
 
-/** Portada 2:3. Sin imagen de SteamGridDB, el nombre sobre el fondo. */
-export function Cover({ gameId, name, hasCover, style }: { gameId: number | string; name: string; hasCover: boolean; style?: React.CSSProperties }) {
-  return hasCover ? (
-    <div className="ot-cover" style={{ backgroundImage: `url("${imageUrl(gameId, "cover")}")`, backgroundSize: "cover", backgroundPosition: "center", ...style }} role="img" aria-label={name} />
-  ) : (
-    <div className="ot-cover" style={style}>{name}</div>
-  );
+// Tono de cada consola (#169): la portada que aún no se bajó es un degradado de su color.
+const CONSOLE_HUE: Record<string, number> = {
+  nes: 0, gb: 80, snes: 265, vb: 350, n64: 140, gba: 240, gc: 270, ds: 205, wii: 195, "3ds": 355, wiiu: 190, switch: 358, switch2: 358,
+  ps1: 220, ps2: 228, psp: 232, ps3: 215, vita: 205, ps4: 222, ps5: 212, xbox: 110, x360: 100, xone: 120, xseries: 125, pc: 30, pcvr: 30,
+};
+
+/** Portada 2:3. Sin imagen de SteamGridDB, el nombre sobre un degradado del color de su consola. */
+export function Cover({ gameId, name, hasCover, platform, style }: { gameId: number | string; name: string; hasCover: boolean; platform?: string | null; style?: React.CSSProperties }) {
+  if (hasCover)
+    return <div className="ot-cover" style={{ backgroundImage: `url("${imageUrl(gameId, "cover")}")`, backgroundSize: "cover", backgroundPosition: "center", ...style }} role="img" aria-label={name} />;
+  const hue = platform ? CONSOLE_HUE[platform] : undefined;
+  const tint = hue === undefined ? undefined : { background: `linear-gradient(160deg, hsl(${hue} 45% 34%), hsl(${hue} 35% 14%))` };
+  return <div className="ot-cover" style={{ ...tint, ...style }}>{name}</div>;
 }
 
 export function Platforms({ ids }: { ids: string[] }) {
@@ -49,7 +55,7 @@ export function GameTile({ game }: { game: GameCard }) {
   const id = Number(game.id);
   return (
     <Link className={`ot-game${game.owned ? "" : " is-missing"}${game.platforms.length === 0 ? " is-unplayable" : ""}`} href={`/game/?id=${id}`} style={{ textDecoration: "none", color: "var(--ink)" }}>
-      <Cover gameId={id} name={game.name} hasCover={game.hasCover} />
+      <Cover gameId={id} name={game.name} hasCover={game.hasCover} platform={game.platforms[0]} />
       <p className="ot-game-name" title={game.name}>{game.name}</p>
       <div className="ot-game-meta">
         <Platforms ids={game.platforms} />

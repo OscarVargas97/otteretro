@@ -80,7 +80,7 @@ function Collection() {
         )}
         {page.isError && <p className="error small" role="alert">{describe(page.error)}</p>}
         {page.data && games.length === 0 && unlinked.length === 0 && (
-          <Empty title={t("collection.emptyTitle")} text={t("collection.emptyText", { console: selected ?? "" })} />
+          <Empty title={t("collection.emptyTitle")} text={t("collection.emptyText", { console: selected ?? "" })}><Link className="ot-btn" href="/settings/?s=consoles">{t("openConsoles")}</Link></Empty>
         )}
 
         {view === "grid" ? (

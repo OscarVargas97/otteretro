@@ -7,20 +7,21 @@ import { useTranslations } from "next-intl";
 import { request } from "@/lib/client";
 import { normalizePath, useAppState } from "./Shell";
 
-// Clave en nav.* de cada entrada.
-const MAIN = [
+// Clave en nav.* de cada entrada; `phase`, la fase en que llega: hasta entonces se ve atenuada y no se abre (#169).
+type Entry = { href: string; key: "home" | "sagas" | "collection" | "discover" | "review" | "downloads" | "tools" | "steam" | "settings"; phase?: number };
+const MAIN: Entry[] = [
   { href: "/", key: "home" },
   { href: "/sagas/", key: "sagas" },
   { href: "/collection/", key: "collection" },
-  { href: "/discover/", key: "discover" },
+  { href: "/discover/", key: "discover", phase: 9 },
   { href: "/review/", key: "review" },
-] as const;
-const SECONDARY = [
-  { href: "/downloads/", key: "downloads" },
-  { href: "/tools/", key: "tools" },
-  { href: "/steam/", key: "steam" },
+];
+const SECONDARY: Entry[] = [
+  { href: "/downloads/", key: "downloads", phase: 8 },
+  { href: "/tools/", key: "tools", phase: 4 },
+  { href: "/steam/", key: "steam", phase: 6 },
   { href: "/settings/", key: "settings" },
-] as const;
+];
 
 /** Barra lateral (componente NavItem del sistema de diseño). Los contadores llegan con cada módulo; Revisar lleva el suyo (D3). */
 export function Sidebar() {
@@ -35,7 +36,12 @@ export function Sidebar() {
     const target = normalizePath(href);
     return target === current || (target !== "/" && current.startsWith(target)) ? "page" : undefined;
   };
-  const item = (e: (typeof MAIN)[number] | (typeof SECONDARY)[number]) => (
+  const item = (e: Entry) => e.phase ? (
+    <span key={e.href} className="ot-nav-item is-future" aria-disabled="true" title={t("comingIn", { phase: e.phase })}>
+      {t(e.key)}
+      <span className="ot-badge">F{e.phase}</span>
+    </span>
+  ) : (
     <Link key={e.href} className="ot-nav-item" href={e.href} aria-current={isActive(e.href)}>
       {t(e.key)}
       {!!counts[e.key] && <span className="ot-count" aria-label={t("pending", { count: counts[e.key]! })}>{counts[e.key]}</span>}

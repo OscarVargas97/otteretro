@@ -55,7 +55,7 @@ export default function Review() {
       <div id="review-panel" role="tabpanel" aria-labelledby={`tab-${tab}`} style={{ display: "contents" }}>
 
       {tab === "pending" && (pending.length === 0
-        ? <Empty title={t("pendingEmptyTitle")} text={t("pendingEmptyText")} />
+        ? <Empty title={t("pendingEmptyTitle")} text={t("pendingEmptyText")}><Link className="ot-btn" href="/settings/?s=claude">{t("openClaude")}</Link></Empty>
         : pending.map((item) => (
           <Pending key={item.id} item={item} busy={act.isPending}
             approve={(routes) => act.mutate(routes ? { path: `/api/review/${item.id}/approve-edited`, body: { routes } } : { path: `/api/review/${item.id}/approve` })}

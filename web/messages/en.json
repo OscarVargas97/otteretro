@@ -19,7 +19,8 @@
     "tools": "Tools",
     "steam": "Steam",
     "settings": "Settings",
-    "pending": "{count, plural, one {# to review} other {# to review}}"
+    "pending": "{count, plural, one {# to review} other {# to review}}",
+    "comingIn": "Coming in phase {phase}"
   },
   "topBar": {
     "search": "Search sagas and games…",
@@ -32,7 +33,8 @@
     "reconnecting": "Reconnecting…",
     "searchLabel": "Search",
     "searchPlaceholder": "Sagas, games, emulators, settings…",
-    "goToSteam": "Go to Steam"
+    "goToSteam": "Go to Steam",
+    "crumbs": "Breadcrumb"
   },
   "comingSoon": {
     "badge": "Coming in phase {phase}",
@@ -654,12 +656,17 @@
       "release": "Release",
       "story": "Story",
       "community": "Community"
-    }
+    },
+    "goToSagas": "Browse sagas",
+    "openConsoles": "Open Consoles",
+    "openCredentials": "Open Accounts and keys"
   },
   "notices": {
     "title": "Notices",
     "missingKey": "The {service} key is missing: its data can't be loaded without it.",
-    "openSettings": "Open Settings"
+    "openSettings": "Open Settings",
+    "missingKeys": "Keys are missing for {services}: their data can't be loaded without them.",
+    "openCredentials": "Accounts and keys"
   },
   "review": {
     "tabs": "Review sections",
@@ -720,7 +727,8 @@
     "approveEdited": "Approve as edited",
     "stepUp": "Move step {step} up",
     "stepDown": "Move step {step} down",
-    "stepRemove": "Remove step {step}"
+    "stepRemove": "Remove step {step}",
+    "openClaude": "Open Settings › Claude"
   },
   "home": {
     "next": "Next in your routes",
@@ -728,6 +736,7 @@
     "step": "{saga} · {route} · {done} of {total}",
     "review": "Review",
     "reviewCount": "{count} Claude results to approve",
-    "reviewNone": "Nothing to review."
+    "reviewNone": "Nothing to review.",
+    "nextEmptyTitle": "You're not following any route yet"
   }
 }

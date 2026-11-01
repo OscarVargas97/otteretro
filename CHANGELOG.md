@@ -2,9 +2,17 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
-## 0.3.0 · en desarrollo
+## 0.3.0 · Pulido de UI · en desarrollo
 
-`dev` (abierta por `feat/114-releases`) · lo que entra para la próxima release; sale como prerelease en el canal Pruebas.
+`fase/f2.5-pulido` · lo que entra para la próxima release; sale como prerelease en el canal Pruebas.
+
+### Cambios
+- **La barra de arriba queda fija** al bajar, y en una saga o un juego muestra el camino («Sagas › saga › juego») para volver con un clic.
+- **Un solo aviso de claves**: dice todos los servicios que no tienen clave y lleva a Cuentas y claves.
+- **Las portadas que aún no bajan** se ven con el color de su consola, no grises.
+- **Descubrir, Descargas, Herramientas y Steam** se ven atenuadas en el menú con la fase en que llegan, y no se abren.
+- **Cada pantalla vacía** dice qué hacer y lleva ahí con un botón.
+- Los botones que son enlaces ya no van subrayados.
 
 ## 0.2.0 · Claude ordena el catálogo
 

@@ -87,8 +87,8 @@ function Content({ children }: { children: ReactNode }) {
     <div className="app">
       <Sidebar />
       <main className="app-main">
-        {/* En Saga y Juego el título es el del héroe: la barra no lo repite (#99). */}
-        <TopBar title={title ? t(`nav.${title}`) : "Otteretro"} hideTitle={path === "/saga" || path === "/game"} />
+        {/* En Saga y Juego el título es el del héroe; la barra lleva el camino (#169). */}
+        <TopBar title={title ? t(`nav.${title}`) : "Otteretro"} crumbs={path === "/saga" || path === "/game" ? path : undefined} />
         <UpdateNotice />
         {/* El marco va primero (#105); la pantalla, cuando se sabe que hay carpeta de datos (sin ella sus consultas fallan). */}
         {state.data?.configured && children}

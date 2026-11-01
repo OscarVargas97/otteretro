@@ -116,7 +116,11 @@ test("elegir la carpeta de datos lleva al inicio", async () => {
   await expect(page).toHaveURL(`${base()}/`);
   await expect(page.getByRole("heading", { level: 1, name: en.nav.home })).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: en.home.next })).toBeVisible();
-  await expect(page.getByText(en.notices.missingKey.replace("{service}", en.credentials.service.igdb))).toBeVisible();
+  // #169: un solo aviso con todos los servicios sin clave y el botón a Cuentas y claves.
+  const notice = page.getByRole("note", { name: en.notices.title });
+  await expect(notice).toHaveCount(1);
+  await expect(notice).toContainText(en.credentials.service.igdb);
+  await expect(notice.getByRole("link", { name: en.notices.openCredentials })).toHaveAttribute("href", "/settings/?s=credentials");
   await expectNoRawKeys();
   await expectSearchFits();
   await expectTextFits();
@@ -133,6 +137,12 @@ test("todas las pantallas se ven en inglés", async () => {
     ["review", en.review.pendingEmptyTitle],
     ...(["discover", "downloads", "tools", "steam"] as const).map((s) => [s, en.comingSoon[s].title] as const),
   ] as const;
+  // #169: las de fases futuras se ven atenuadas con su fase y no se abren desde el menú.
+  await page.goto(`${base()}/`);
+  for (const s of ["discover", "downloads", "tools", "steam"] as const) {
+    await expect(page.locator(".sidebar").getByRole("link", { name: en.nav[s] })).toHaveCount(0);
+    await expect(page.locator(".sidebar .is-future", { hasText: en.nav[s] })).toHaveAttribute("aria-disabled", "true");
+  }
   for (const [screen, title] of screens) {
     await page.goto(`${base()}/${screen}/`);
     await expect(page.getByRole("heading", { level: 1, name: en.nav[screen] })).toBeVisible();
@@ -363,6 +373,8 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   // #100: el menú lateral sigue en su lugar después de bajar.
   expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(500);
   expect(await menuTop()).toBe(before);
+  // #169: la barra superior también queda arriba.
+  expect((await page.locator(".top").boundingBox())!.y).toBe(0);
   many.exec("DELETE FROM saga WHERE id >= 1000");
   many.close();
 
@@ -391,6 +403,12 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
 
   await page.getByRole("link", { name: "Ocarina of Time" }).click();
   await expect(page.getByRole("heading", { level: 2, name: "Ocarina of Time" })).toBeVisible();
+  // #169: el camino en la barra, con un enlace por parte, y la portada sin bajar con el color de su consola.
+  const crumbs = page.getByRole("navigation", { name: es.topBar.crumbs });
+  await expect(crumbs.getByRole("link", { name: es.nav.sagas })).toHaveAttribute("href", "/sagas/");
+  await expect(crumbs.getByRole("link", { name: "The Legend of Zelda" })).toHaveAttribute("href", "/saga/?id=1");
+  await expect(crumbs.getByText("Ocarina of Time")).toHaveAttribute("aria-current", "page");
+  expect(await page.locator(".hero .ot-cover").evaluate((e) => getComputedStyle(e).backgroundImage)).toContain("linear-gradient");
   await page.getByRole("radio", { name: es.catalog.status.finished }).click();
   await expect(page.getByLabel(es.catalog.game.finished)).toBeVisible();
   await page.getByLabel(es.catalog.game.rating).selectOption("9");
