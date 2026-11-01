@@ -10,38 +10,37 @@ import { DataFolderSettings } from "@/components/DataFolder";
 import { LanguagePicker } from "@/components/LanguagePicker";
 import { StorageSettings } from "@/components/Libraries";
 import { useAppState } from "@/components/Shell";
-import { SideNav } from "@/components/SideNav";
+import { Tabs } from "@/components/Tabs";
 import { UpdateChannel, VersionAndUpdate } from "@/components/Update";
 
-/** Las secciones de Ajustes en grupos, en orden (#97, #111, #196). La que viene en `?s=` se abre; sin ella, Carpeta de datos. */
-const GROUPS = [
-  { id: "library", items: ["storage", "consoles"] },
-  { id: "accounts", items: ["credentials", "claude"] },
-  { id: "app", items: ["dataFolder", "general"] },
-] as const;
-type Section = (typeof GROUPS)[number]["items"][number];
-const SECTIONS: readonly Section[] = GROUPS.flatMap((g) => g.items);
-/** Las secciones de antes (#111, #199). */
+/** Las pestañas de Ajustes, en orden (#97, #111). La que viene en `?s=` se abre; sin ella, la primera. */
+const SECTIONS = ["dataFolder", "storage", "credentials", "consoles", "claude", "general"] as const;
+/** Las pestañas de antes (#111, #199). */
 const OLD: Record<string, Section> = { language: "general", about: "general", libraries: "storage" };
+type Section = (typeof SECTIONS)[number];
 
 export default function Settings() {
-  return <Suspense><SettingsSections /></Suspense>;
+  return <Suspense><SettingsTabs /></Suspense>;
 }
 
-function SettingsSections() {
+/** Pestañas arriba y una sola columna centrada (#200). */
+function SettingsTabs() {
   const t = useTranslations("settings");
   const router = useRouter();
   const asked = useSearchParams().get("s");
-  const current: Section = SECTIONS.find((s) => s === asked) ?? OLD[asked ?? ""] ?? "dataFolder";
+  const current: Section = SECTIONS.find((s) => s === asked) ?? OLD[asked ?? ""] ?? SECTIONS[0];
   const title = (s: Section) => t(s === "consoles" ? "consoles.title" : s === "claude" ? "claude.title" : s);
 
   return (
     <div className="content">
-      {/* Sin segundo título (#108): la sección elegida ya lo dice. */}
-      <SideNav groups={GROUPS.map((g) => ({ label: t(`groups.${g.id}`), items: g.items.map((s) => ({ id: s, label: title(s) })) }))}
-        current={current} label={t("sections")} panel="settings-panel" onSelect={(s) => router.push(`/settings/?s=${s}`)}>
-        <Panel section={current} />
-      </SideNav>
+      <div className="centered">
+        <Tabs tabs={SECTIONS.map((s) => ({ id: s, label: title(s) }))} current={current} label={t("sections")} panel="settings-panel"
+          onSelect={(s) => router.push(`/settings/?s=${s}`)} />
+        {/* Sin segundo título (#108): la pestaña ya lo dice. */}
+        <section className="sec" id="settings-panel" role="tabpanel" aria-labelledby={`tab-${current}`}>
+          <Panel section={current} />
+        </section>
+      </div>
     </div>
   );
 }

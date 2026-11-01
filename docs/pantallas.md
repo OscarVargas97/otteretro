@@ -227,7 +227,7 @@ Estados (§0.5): **vacío** (la nutria, «Escanear una carpeta» y «Explorar sa
 
 ## 10. Ajustes
 
-**Diseño (#196):** las secciones agrupadas en una lista a la izquierda y una sola columna de contenido con ancho máximo; el mismo diseño en Herramientas, Steam y Descargas (#197).
+**Diseño (#200, reemplaza la #196 y la #197):** pestañas arriba y una sola columna de contenido centrada con ancho máximo; nunca dos columnas de bloques. Herramientas, igual.
 
 | Sección | Contenido |
 |---|---|
