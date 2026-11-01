@@ -44,10 +44,17 @@ table.t a:hover { text-decoration: underline; }
 .grid-cards { display: flex; flex-wrap: wrap; gap: var(--space-4); }
 .panel { background: var(--surface); border-radius: var(--radius-lg); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
 .tabs { display: flex; flex-wrap: wrap; gap: var(--space-1); border-bottom: 1px solid var(--line); }
-.tab { padding: var(--space-2) var(--space-3); color: var(--ink-muted); font-weight: 700; text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tab { padding: var(--space-2) var(--space-3); color: var(--ink-muted); font: inherit; font-weight: 700; text-decoration: none; background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; white-space: nowrap; }
 .tab[aria-current="page"], .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
-.tabs-scroll { flex-wrap: nowrap; overflow-x: auto; }
-.tabs-scroll .tab { white-space: nowrap; }
+/* Una sola línea, sin barra (#108): lo que no cabe va a «Más ▾» (components/Tabs.tsx). */
+.tabs-row { position: relative; }
+.tabs-line { flex-wrap: nowrap; overflow: visible; }
+.tabs-ruler { position: absolute; top: 0; left: 0; visibility: hidden; pointer-events: none; border: 0; }
+.tabs-more { position: relative; }
+.tabs-more-scrim { position: fixed; inset: 0; z-index: 30; }
+.tabs-more-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 31; min-width: 200px; display: flex; flex-direction: column; padding: var(--space-1); background: var(--surface-raised); border-radius: var(--radius-md); box-shadow: var(--shadow-float); }
+.tabs-more-item { font: inherit; text-align: left; padding: var(--space-2) var(--space-3); border: 0; border-radius: var(--radius-sm); background: none; color: var(--ink); cursor: pointer; white-space: nowrap; }
+.tabs-more-item:hover, .tabs-more-item:focus-visible { background: var(--accent-soft); }
 .table-wrap { overflow-x: auto; }
 table.t { width: 100%; border-collapse: collapse; font-size: 14px; }
 table.t th { text-align: left; font-weight: 700; color: var(--ink-muted); font-size: 12px; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--line); white-space: nowrap; }

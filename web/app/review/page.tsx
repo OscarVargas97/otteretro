@@ -8,6 +8,7 @@ import { Empty } from "@/components/Shell";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
 import { Panels } from "@/components/Skeleton";
+import { Tabs } from "@/components/Tabs";
 import { usePaged } from "@/lib/paged";
 import { reviewQuery } from "@/lib/queries";
 import type { LearningItem, LearningPage, ReviewItem, ReviewPage } from "@/lib/types";
@@ -48,14 +49,10 @@ export default function Review() {
 
   return (
     <div className="content">
-      <div className="chips" role="tablist">
-        {(["pending", "learnings"] as const).map((k) => (
-          <button key={k} className="chip" type="button" role="tab" aria-selected={tab === k} aria-pressed={tab === k} onClick={() => setTab(k)}>
-            {t(`tab.${k}`, { count: k === "pending" ? pending.length : Number(activeLearnings) })}
-          </button>
-        ))}
-      </div>
+      <Tabs tabs={(["pending", "learnings"] as const).map((k) => ({ id: k, label: t(`tab.${k}`, { count: k === "pending" ? pending.length : Number(activeLearnings) }) }))}
+        current={tab} onSelect={(k) => setTab(k as Tab)} label={t("tabs")} panel="review-panel" />
       {act.error && <p className="error small" role="alert">{describe(act.error)}</p>}
+      <div id="review-panel" role="tabpanel" aria-labelledby={`tab-${tab}`} style={{ display: "contents" }}>
 
       {tab === "pending" && (pending.length === 0
         ? <Empty title={t("pendingEmptyTitle")} text={t("pendingEmptyText")} />
@@ -67,6 +64,7 @@ export default function Review() {
 
       {tab === "learnings" && <Learnings busy={act.isPending} undo={(id) => act.mutate({ path: `/api/learnings/${id}/undo` })}
         onCorrected={(data) => { cache.setQueryData(["review"], data); cache.invalidateQueries({ queryKey: ["learnings"] }); }} />}
+      </div>
     </div>
   );
 }
@@ -109,9 +107,9 @@ function RouteEditor({ routes, onChange }: { routes: Route[]; onChange: (routes:
         {route.steps.map((s, i) => (
           <li key={s.gameId} style={{ display: "flex", gap: 6, alignItems: "center" }}>
             <span style={{ flex: 1 }}>{s.reason}</span>
-            <button className="ot-btn" type="button" aria-label={t("stepUp", { step: i + 1 })} disabled={i === 0} onClick={() => move(r, i, i - 1)}>↑</button>
-            <button className="ot-btn" type="button" aria-label={t("stepDown", { step: i + 1 })} disabled={i === route.steps.length - 1} onClick={() => move(r, i, i + 1)}>↓</button>
-            <button className="ot-btn" type="button" aria-label={t("stepRemove", { step: i + 1 })} onClick={() => update(r, route.steps.filter((_, j) => j !== i))}>×</button>
+            <button className="ot-btn ot-btn-sm" type="button" aria-label={t("stepUp", { step: i + 1 })} disabled={i === 0} onClick={() => move(r, i, i - 1)}>↑</button>
+            <button className="ot-btn ot-btn-sm" type="button" aria-label={t("stepDown", { step: i + 1 })} disabled={i === route.steps.length - 1} onClick={() => move(r, i, i + 1)}>↓</button>
+            <button className="ot-btn ot-btn-sm" type="button" aria-label={t("stepRemove", { step: i + 1 })} onClick={() => update(r, route.steps.filter((_, j) => j !== i))}>×</button>
           </li>
         ))}
       </ol>
@@ -220,9 +218,9 @@ function Learning({ l, busy, undo, onCorrected }: { l: LearningItem; busy: boole
         </form>
       ) : (
         <div className="hero-actions">
-          {l.sagaId != null && <Link className="ot-btn" href={`/saga/?id=${l.sagaId}`}>{t("openSaga")}</Link>}
-          {!l.undone && <button className="ot-btn" type="button" disabled={busy} onClick={() => undo(Number(l.id))}>{t("undo")}</button>}
-          <button className="ot-btn" type="button" onClick={() => setNote("")}>{t("correct")}</button>
+          {l.sagaId != null && <Link className="ot-btn ot-btn-sm" href={`/saga/?id=${l.sagaId}`}>{t("openSaga")}</Link>}
+          {!l.undone && <button className="ot-btn ot-btn-sm" type="button" disabled={busy} onClick={() => undo(Number(l.id))}>{t("undo")}</button>}
+          <button className="ot-btn ot-btn-sm" type="button" onClick={() => setNote("")}>{t("correct")}</button>
         </div>
       )}
     </div>

@@ -1,5 +1,8 @@
 {
   "languageName": "English",
+  "tabs": {
+    "more": "More"
+  },
   "app": {
     "unreachable": "Could not talk to the app: {detail}. Close it and open it again."
   },
@@ -622,6 +625,7 @@
     "openSettings": "Open Settings"
   },
   "review": {
+    "tabs": "Review sections",
     "tab": {
       "pending": "To approve ({count})",
       "learnings": "Learnings ({count})"

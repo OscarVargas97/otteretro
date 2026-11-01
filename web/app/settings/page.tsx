@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Suspense } from "react";
@@ -10,6 +9,7 @@ import { CredentialsSettings } from "@/components/Credentials";
 import { DataFolderSettings } from "@/components/DataFolder";
 import { LanguagePicker } from "@/components/LanguagePicker";
 import { useAppState } from "@/components/Shell";
+import { Tabs } from "@/components/Tabs";
 import { VersionAndUpdate } from "@/components/Update";
 
 /** Las pestañas de Ajustes, en orden (#97). La que viene en `?s=` se abre; sin ella, la primera. */
@@ -26,30 +26,13 @@ function SettingsTabs() {
   const asked = useSearchParams().get("s");
   const current: Section = SECTIONS.find((s) => s === asked) ?? SECTIONS[0];
   const title = (s: Section) => t(s === "consoles" ? "consoles.title" : s === "claude" ? "claude.title" : s);
-  const href = (s: Section) => `/settings/?s=${s}`;
-
-  // Flechas, Inicio y Fin mueven entre pestañas, como pide el patrón de pestañas accesible.
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    const at = SECTIONS.indexOf(current);
-    const to = { ArrowRight: at + 1, ArrowLeft: at - 1, Home: 0, End: SECTIONS.length - 1 }[e.key];
-    if (to === undefined) return;
-    e.preventDefault();
-    const next = SECTIONS[(to + SECTIONS.length) % SECTIONS.length];
-    router.push(href(next));
-    document.getElementById(`tab-${next}`)?.focus();
-  };
 
   return (
     <div className="content">
-      <nav className="tabs tabs-scroll" role="tablist" aria-label={t("sections")} onKeyDown={onKeyDown}>
-        {SECTIONS.map((s) => (
-          <Link key={s} id={`tab-${s}`} href={href(s)} className="tab" role="tab" aria-selected={s === current} aria-controls="settings-panel" tabIndex={s === current ? 0 : -1}>
-            {title(s)}
-          </Link>
-        ))}
-      </nav>
-      <section className="sec" id="settings-panel" role="tabpanel">
-        <div className="sec-h"><h2>{title(current)}</h2></div>
+      <Tabs tabs={SECTIONS.map((s) => ({ id: s, label: title(s) }))} current={current} label={t("sections")} panel="settings-panel"
+        onSelect={(s) => router.push(`/settings/?s=${s}`)} />
+      {/* Sin segundo título (#108): la pestaña ya lo dice. */}
+      <section className="sec" id="settings-panel" role="tabpanel" aria-labelledby={`tab-${current}`}>
         <Panel section={current} />
       </section>
     </div>

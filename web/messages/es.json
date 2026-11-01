@@ -1,5 +1,8 @@
 {
   "languageName": "Español",
+  "tabs": {
+    "more": "Más"
+  },
   "app": {
     "unreachable": "No se pudo hablar con la app: {detail}. Ciérrala y vuelve a abrirla."
   },
@@ -622,6 +625,7 @@
     "openSettings": "Abrir Ajustes"
   },
   "review": {
+    "tabs": "Secciones de Revisar",
     "tab": {
       "pending": "Por aprobar ({count})",
       "learnings": "Aprendizajes ({count})"

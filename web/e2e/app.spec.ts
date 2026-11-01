@@ -75,7 +75,7 @@ test("sin carpeta de datos, abre el asistente en español", async () => {
 });
 
 test("cambiar a inglés en el asistente cambia la interfaz al momento", async () => {
-  await page.getByLabel(es.settings.language).selectOption("en");
+  await page.getByRole("combobox", { name: es.settings.language }).selectOption("en");
   await expect(page.getByRole("button", { name: en.welcome.start })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expectNoRawKeys();
@@ -195,7 +195,7 @@ test("mover la carpeta de datos muestra el progreso y el resultado traducidos", 
 
 test("volver a español en Ajustes cambia todo y se mantiene al recargar", async () => {
   await page.getByRole("tab", { name: en.settings.language }).click();
-  await page.getByLabel(en.settings.language).selectOption("es");
+  await page.getByRole("combobox", { name: en.settings.language }).selectOption("es");
   await expect(page.getByRole("heading", { level: 1, name: es.nav.settings })).toBeVisible();
   await page.reload();
   await expect(page.getByRole("heading", { level: 1, name: es.nav.settings })).toBeVisible();
@@ -532,12 +532,37 @@ test("los cambios se ven al tocar y, si el guardado falla, vuelven y avisan", as
   await page.unroute("**/api/sagas/1");
 });
 
+test("las pestañas nunca tienen barra: a 700 px lo que no cabe va a «Más ▾»", async () => {
+  // #108: a ningún ancho hay barra ni segunda línea; la elegida siempre se ve.
+  const noScroll = async () => {
+    const row = page.locator('.content [role="tablist"]');
+    const { scroll, client, height } = await row.evaluate((e) => ({ scroll: e.scrollWidth, client: e.clientWidth, height: e.getBoundingClientRect().height }));
+    expect(scroll).toBeLessThanOrEqual(client);
+    expect(height).toBeLessThan(50); // una sola línea
+  };
+  await page.setViewportSize({ width: 700, height: 900 });
+  await page.goto(`${base()}/settings/?s=claude`);
+  const more = page.getByRole("button", { name: new RegExp(es.tabs.more) });
+  await expect(more).toBeVisible();
+  await expect(page.locator("#tab-claude")).toHaveAttribute("aria-selected", "true");
+  await noScroll();
+  await more.click();
+  await page.getByRole("menuitem").last().click();
+  await expect(page.locator('#settings-panel')).toBeVisible();
+  await noScroll();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`${base()}/settings/`);
+  await expect(more).toHaveCount(0);
+  await expect(page.getByRole("tab")).toHaveCount(6);
+  await noScroll();
+});
+
 test("Ajustes: consolas habilitadas, al día y reevaluar icónicas", async () => {
   await page.goto(`${base()}/settings/?s=consoles`);
-  await expect(page.getByRole("heading", { level: 2, name: es.settings.consoles.title })).toBeVisible();
+  await expect(page.getByRole("tabpanel", { name: es.settings.consoles.title })).toBeVisible();
   const vb = page.getByRole("checkbox", { name: /Virtual Boy/ });
   await expect(vb).toBeChecked();
-  await vb.click(); // cambia cuando responde la API
+  await vb.click(); // cambia al tocar (#107)
   await expect(vb).not.toBeChecked();
   await vb.click();
   await expect(vb).toBeChecked();
