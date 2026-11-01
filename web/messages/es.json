@@ -87,12 +87,15 @@
     "preparing": "Preparando…",
     "use": "Usar {path}",
     "nextSteps": "Respaldo, Steam y el resto de los pasos se activan con su fase.",
-    "librariesTitle": "Tus ubicaciones de juegos",
-    "librariesText": "Una ubicación de juegos es una carpeta con juegos, en cualquier disco o en la red. Si ya tienes una con la estructura antigua, adóptala y se ordena sola.",
+    "librariesTitle": "Tus discos",
+    "librariesText": "Elige en qué discos guardar juegos y herramientas: en cada uno se crea la carpeta Otteretro con todo ordenado. Si ya tienes una carpeta con la estructura antigua, adóptala y pasa sola al estándar.",
     "librariesFound": "Encontramos carpetas con la estructura antigua:",
     "adoptThis": "Adoptar {path}",
-    "createNew": "Crear una nueva",
-    "skip": "Saltar"
+    "skip": "Saltar",
+    "disksText": "Discos:",
+    "useDisk": "Usar {path}",
+    "diskAdded": "{path} ✓",
+    "done": "Listo"
   },
   "settings": {
     "dataFolder": "Carpeta de datos",
@@ -451,11 +454,15 @@
       "log": {
         "moved": "Movida {from} a {to}; {paths} rutas de emuladores al día.",
         "tool": "{name} quedó en {path}.",
-        "notEmpty": "{path} no quedó vacía y no se borró: revisa qué tiene."
+        "notEmpty": "{path} no quedó vacía y no se borró: revisa qué tiene.",
+        "skipped": "{name} está desconectada: no se pasó al estándar."
       },
       "badType": "Ese tipo de ubicación no existe.",
       "notGames": "Elige una ubicación de juegos.",
-      "otherType": "Esa ubicación es de otro tipo."
+      "otherType": "Esa ubicación es de otro tipo.",
+      "notDisk": "Eso no es un disco.",
+      "toDisk": "Pasando {name} a su disco",
+      "toolsToDisk": "Llevando Herramientas al disco predeterminado"
     }
   },
   "credentials": {
@@ -534,6 +541,9 @@
       "library": {
         "move": "Mover una ubicación o una carpeta",
         "adopt": "Migrar una ubicación a la estructura nueva"
+      },
+      "disk": {
+        "migrate": "Pasar al estándar de discos"
       }
     },
     "status": {
@@ -832,65 +842,56 @@
     "progress": "{done} de {total} jugados"
   },
   "libraries": {
-    "emptyTitle": "Aún no hay ubicaciones de juegos",
-    "emptyText": "Adopta la carpeta donde ya tienes tus juegos o crea una nueva en cualquier disco.",
-    "adopt": "Adoptar una carpeta",
-    "create": "Crear una ubicación",
-    "adoptHelp": "Registra una carpeta que ya tiene juegos. Si trae la estructura antigua (Consola\\Juegos) con emuladores o ports mezclados, se ordena sola: los juegos quedan en Consola\\Juego y los emuladores y ports se llevan a Herramientas.",
-    "createHelp": "Elige una carpeta vacía o nueva, en cualquier disco o en la red (\\\\nas\\roms). Las carpetas de cada consola se crean cuando hacen falta.",
-    "path": "Carpeta",
-    "pathPlaceholder": "Por ejemplo E:\\Consolas",
-    "name": "Nombre (opcional)",
-    "namePlaceholder": "Por ejemplo Disco de juegos",
     "cancel": "Cancelar",
     "free": "{free} libres de {total}",
     "network": "En red",
     "connected": "Conectada",
     "disconnected": "Desconectada",
-    "legacy": "Estructura antigua",
-    "legacyHelp": "Esta ubicación todavía tiene la estructura antigua. Migrarla deja los juegos en Consola\\Juego y lleva emuladores, ports y sus complementos a Herramientas, con sus rutas al día.",
-    "migrate": "Migrar a la estructura nueva",
     "migrationStarted": "La migración quedó en el panel de tareas. Puedes seguir usando la app mientras tanto.",
     "queued": "Quedó en el panel de tareas.",
     "reconnect": "Reconectar",
-    "reconnectHelp": "Se busca sola en los discos. Si está en otro lugar, escribe la ruta donde está ahora.",
-    "rename": "Renombrar",
-    "renameHelp": "El nombre nuevo se guarda también en su marcador.",
     "move": "Mover",
-    "moveHelp": "Elige una carpeta vacía o nueva. Se copia, se verifica cada archivo, se ponen al día las rutas de los emuladores y recién entonces se borra el origen. Si se corta, sigue donde quedó.",
     "remove": "Quitar",
-    "removeHelp": "Se quita «{name}» de Otteretro. No se borra ningún archivo: puedes volver a adoptarla cuando quieras.",
+    "removeHelp": "Se quita «{name}» de Otteretro. No se borra ningún archivo: puedes volver a agregarlo cuando quieras.",
     "removeConfirm": "Quitar sin borrar",
-    "adoptOtherHelp": "Registra una carpeta que ya tiene contenido de este tipo, ordenado como en Herramientas: Consola\\Nombre\\versión.",
-    "consoles": "Consolas: {list}",
-    "dataFolder": "Herramientas, en la carpeta de datos",
-    "dataFolderHelp": "La primera ubicación de este tipo. No se quita; puedes sumar otras en cualquier disco.",
     "type": {
       "game": {
-        "title": "Juegos",
-        "help": "Donde viven tus juegos, una carpeta por consola. Puedes tener varias, en cualquier disco o en la red.",
-        "empty": "Aún no hay ubicaciones de juegos: adopta la carpeta donde ya los tienes o crea una nueva."
+        "title": "Juegos"
       },
       "emulator": {
-        "title": "Emuladores",
-        "help": "Cada emulador con sus versiones lado a lado, en Consola\\Emulador\\versión.",
-        "empty": ""
+        "title": "Emuladores"
       },
       "port": {
-        "title": "Ports",
-        "help": "Los ports nativos de cada juego, en Consola\\Port\\versión.",
-        "empty": ""
+        "title": "Ports"
       },
       "complement": {
-        "title": "Complementos",
-        "help": "Texturas, mods y packs, aparte de su emulador o port y enlazados donde los busca.",
-        "empty": ""
+        "title": "Complementos"
       },
       "system": {
-        "title": "Sistema",
-        "help": "BIOS, keys y firmware, una carpeta por consola.",
-        "empty": "Aún no hay ubicaciones de sistema."
+        "title": "Sistema"
       }
+    },
+    "disks": "Discos",
+    "addDisk": "+ Agregar disco",
+    "addDiskHelp": "Elige un disco: Otteretro crea en él la carpeta Otteretro con Juegos, Emuladores, Ports, Complementos y Sistema. Una por disco.",
+    "noDisks": "Aún no hay discos. Agrega uno para guardar juegos y herramientas.",
+    "noDrives": "Todos los discos ya están agregados.",
+    "add": "Agregar",
+    "default": "Predeterminado",
+    "defaultHelp": "El predeterminado ★: ahí va lo nuevo y lo de Herramientas.",
+    "makeDefault": "Hacer predeterminado ★",
+    "usage": "Uso del disco por tipo",
+    "otherUse": "Otros archivos",
+    "freeSpace": "Libre",
+    "diskEmpty": "Este disco todavía no tiene nada.",
+    "noOtherDisk": "Agrega otro disco para mover cosas entre ellos.",
+    "moveTo": "Mover {count, plural, =0 {lo marcado} one {1 cosa} other {# cosas}} a",
+    "migration": {
+      "title": "Pasar al estándar",
+      "help": "Estas carpetas tienen el formato anterior. Pasarlas deja cada cosa en la carpeta fija de su disco (en el mismo disco, se renombra) y lo de Herramientas en el disco predeterminado, con las rutas de los emuladores al día.",
+      "tools": "Herramientas, en la carpeta de datos",
+      "toDefault": "disco predeterminado ★",
+      "run": "Pasar al estándar"
     }
   },
   "tools": {

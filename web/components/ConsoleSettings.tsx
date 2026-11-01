@@ -196,7 +196,7 @@ function ConsoleDetailPanel({ id, status }: { id: string; status: React.ReactNod
   const cache = useQueryClient();
   const detail = useQuery({ queryKey: detailKey(id), queryFn: () => request<ConsoleDetail>(`/api/consoles/${id}/detail`) });
   const locations = useQuery(librariesQuery).data ?? [];
-  const games = locations.filter((l) => l.type === "game" && l.connected);
+  const games = locations.filter((l) => (l.type === "disk" || l.type === "game") && l.connected);
   const destination = useMutation({
     mutationFn: (locationId: string | null) => request<ConsoleDetail>(`/api/consoles/${id}/destination`, { method: "PUT", body: JSON.stringify({ locationId }) }),
     onSuccess: (data) => cache.setQueryData(detailKey(id), data),

@@ -75,14 +75,14 @@ function ToolList({ kind }: { kind: Exclude<Kind, "system"> }) {
   );
 }
 
-/** El detalle de lo instalado: consola, juego que cubre, dónde está, y moverlo a otra ubicación de su tipo (#198). */
+/** El detalle de lo instalado: consola, juego que cubre, en qué disco está, y moverlo a otro (#198, #205). */
 function ToolDetail({ tool }: { tool: ToolInfo }) {
   const t = useTranslations("tools");
   const describe = useDescribeError();
   const cache = useQueryClient();
-  const locations = (useQuery(librariesQuery).data ?? []).filter((l) => l.type === tool.kind && l.connected);
+  const locations = (useQuery(librariesQuery).data ?? []).filter((l) => (l.type === "disk" || l.type === tool.kind) && l.connected);
   const where = locations.find((l) => l.id === tool.locationId)?.name;
-  const targets = [{ id: "", name: t("dataFolder") }, ...locations].filter((l) => (l.id || null) !== (tool.locationId ?? null));
+  const targets = locations.filter((l) => l.type === "disk" && l.id !== tool.locationId);
   const [moving, setMoving] = useState(false);
   const [to, setTo] = useState("");
   const move = useMutation({

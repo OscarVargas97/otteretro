@@ -87,12 +87,15 @@
     "preparing": "Preparing…",
     "use": "Use {path}",
     "nextSteps": "Backup, Steam and the remaining steps turn on with their phase.",
-    "librariesTitle": "Your game locations",
-    "librariesText": "A game location is a folder with games, on any drive or on the network. If you already have one with the old layout, adopt it and it sorts itself.",
+    "librariesTitle": "Your drives",
+    "librariesText": "Choose which drives keep games and tools: each gets an Otteretro folder with everything in order. If you already have a folder with the old layout, adopt it and it moves to the standard on its own.",
     "librariesFound": "We found folders with the old layout:",
     "adoptThis": "Adopt {path}",
-    "createNew": "Create a new one",
-    "skip": "Skip"
+    "skip": "Skip",
+    "disksText": "Drives:",
+    "useDisk": "Use {path}",
+    "diskAdded": "{path} ✓",
+    "done": "Done"
   },
   "settings": {
     "dataFolder": "Data folder",
@@ -451,11 +454,15 @@
       "log": {
         "moved": "Moved {from} to {to}; {paths} emulator paths updated.",
         "tool": "{name} is now in {path}.",
-        "notEmpty": "{path} was not empty and was not deleted: check what is in it."
+        "notEmpty": "{path} was not empty and was not deleted: check what is in it.",
+        "skipped": "{name} is disconnected: it was not moved to the standard layout."
       },
       "badType": "That location type does not exist.",
       "notGames": "Pick a game location.",
-      "otherType": "That location is of another type."
+      "otherType": "That location is of another type.",
+      "notDisk": "That is not a drive.",
+      "toDisk": "Moving {name} to its drive",
+      "toolsToDisk": "Moving Herramientas to the default drive"
     }
   },
   "credentials": {
@@ -534,6 +541,9 @@
       "library": {
         "move": "Move a location or a folder",
         "adopt": "Migrate a location to the new layout"
+      },
+      "disk": {
+        "migrate": "Move to the standard drive layout"
       }
     },
     "status": {
@@ -832,65 +842,56 @@
     "progress": "{done} of {total} played"
   },
   "libraries": {
-    "emptyTitle": "No game locations yet",
-    "emptyText": "Adopt the folder where your games already are, or create a new one on any drive.",
-    "adopt": "Adopt a folder",
-    "create": "Create a location",
-    "adoptHelp": "Registers a folder that already has games. If it has the old layout (Console\\Juegos) with emulators or ports mixed in, it sorts itself: games end up in Console\\Game and emulators and ports move to Herramientas.",
-    "createHelp": "Pick an empty or new folder, on any drive or on the network (\\\\nas\\roms). Each console folder is created when needed.",
-    "path": "Folder",
-    "pathPlaceholder": "For example E:\\Consoles",
-    "name": "Name (optional)",
-    "namePlaceholder": "For example Games drive",
     "cancel": "Cancel",
     "free": "{free} free of {total}",
     "network": "Network",
     "connected": "Connected",
     "disconnected": "Disconnected",
-    "legacy": "Old layout",
-    "legacyHelp": "This location still has the old layout. Migrating it leaves games in Console\\Game and moves emulators, ports and their add-ons to Herramientas, with their paths updated.",
-    "migrate": "Migrate to the new layout",
     "migrationStarted": "The migration is in the tasks panel. You can keep using the app meanwhile.",
     "queued": "It is in the tasks panel.",
     "reconnect": "Reconnect",
-    "reconnectHelp": "It is searched for on your drives. If it is somewhere else, type where it is now.",
-    "rename": "Rename",
-    "renameHelp": "The new name is also saved in its marker.",
     "move": "Move",
-    "moveHelp": "Choose an empty or new folder. It is copied, every file is verified, emulator paths are updated and only then is the source deleted. If interrupted, it resumes where it left off.",
     "remove": "Remove",
-    "removeHelp": "“{name}” is removed from Otteretro. No file is deleted: you can adopt it again any time.",
+    "removeHelp": "«{name}» is removed from Otteretro. No file is deleted: you can add it back whenever you want.",
     "removeConfirm": "Remove without deleting",
-    "adoptOtherHelp": "Registers a folder that already has content of this type, laid out as in Herramientas: Console\\Name\\version.",
-    "consoles": "Consoles: {list}",
-    "dataFolder": "Herramientas, in the data folder",
-    "dataFolderHelp": "The first location of this type. It cannot be removed; you can add others on any drive.",
     "type": {
       "game": {
-        "title": "Games",
-        "help": "Where your games live, one folder per console. You can have several, on any drive or on the network.",
-        "empty": "No game locations yet: adopt the folder where you already have them or create a new one."
+        "title": "Games"
       },
       "emulator": {
-        "title": "Emulators",
-        "help": "Each emulator with its versions side by side, in Console\\Emulator\\version.",
-        "empty": ""
+        "title": "Emulators"
       },
       "port": {
-        "title": "Ports",
-        "help": "Native ports of each game, in Console\\Port\\version.",
-        "empty": ""
+        "title": "Ports"
       },
       "complement": {
-        "title": "Add-ons",
-        "help": "Textures, mods and packs, apart from their emulator or port and linked where it looks for them.",
-        "empty": ""
+        "title": "Add-ons"
       },
       "system": {
-        "title": "System",
-        "help": "BIOS, keys and firmware, one folder per console.",
-        "empty": "No system locations yet."
+        "title": "System"
       }
+    },
+    "disks": "Drives",
+    "addDisk": "+ Add drive",
+    "addDiskHelp": "Pick a drive: Otteretro creates an Otteretro folder on it with Juegos, Emuladores, Ports, Complementos and Sistema. One per drive.",
+    "noDisks": "No drives yet. Add one to keep games and tools.",
+    "noDrives": "Every drive is already added.",
+    "add": "Add",
+    "default": "Default",
+    "defaultHelp": "The default ★: new things and Herramientas go here.",
+    "makeDefault": "Make default ★",
+    "usage": "Drive usage by type",
+    "otherUse": "Other files",
+    "freeSpace": "Free",
+    "diskEmpty": "This drive has nothing yet.",
+    "noOtherDisk": "Add another drive to move things between them.",
+    "moveTo": "Move {count, plural, =0 {the selection} one {1 item} other {# items}} to",
+    "migration": {
+      "title": "Move to the standard layout",
+      "help": "These folders use the old layout. Moving them puts each thing in its drive's fixed folder (on the same drive it's a rename) and Herramientas on the default drive, with emulator paths updated.",
+      "tools": "Herramientas, in the data folder",
+      "toDefault": "default drive ★",
+      "run": "Move to the standard layout"
     }
   },
   "tools": {

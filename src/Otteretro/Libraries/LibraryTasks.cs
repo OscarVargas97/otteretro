@@ -14,6 +14,7 @@ public static class LibraryTasks
 {
     public const string Move = "library.move";
     public const string Adopt = "library.adopt";
+    public const string Migrate = "disk.migrate";
 
     /// <param name="From">Carpeta de origen (absoluta).</param>
     /// <param name="To">Carpeta de destino (absoluta, vacía o inexistente).</param>
@@ -29,7 +30,7 @@ public static class LibraryTasks
     /// <summary>Valida y encola una mudanza. Devuelve el id de la tarea o el error.</summary>
     public static (long? Task, ApiError? Error) EnqueueMove(Database db, MoveJob job)
     {
-        if (!Directory.Exists(job.From)) return (null, ApiError.Of("path.notFound"));
+        if (!Path.Exists(job.From)) return (null, ApiError.Of("path.notFound"));
         if (FolderMove.Validate(job.From, job.To) is { } error) return (null, error);
         return (TaskQueue.Enqueue(db, Move, JsonSerializer.Serialize(job with { From = Library.Normalize(job.From), To = Library.Normalize(job.To) }, Json)), null);
     }
@@ -37,8 +38,96 @@ public static class LibraryTasks
     public static long EnqueueAdopt(Database db, string libraryId) =>
         TaskQueue.Enqueue(db, Adopt, JsonSerializer.Serialize(new AdoptJob(libraryId), Json));
 
+    public static long EnqueueMigrate(Database db) => TaskQueue.Enqueue(db, Migrate);
+
     /// <summary>`Herramientas` de la carpeta de datos de esta base.</summary>
     public static string ToolsOf(Database db) => Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(db.FilePath)!)!, "Herramientas");
+
+    /// <summary>Dónde se instala lo nuevo (#204): el disco predeterminado; sin discos todavía, `Herramientas`.</summary>
+    public static string ToolsHome(Database db) => Library.DefaultDisk(db) is { Connected: true } d ? d.Path : ToolsOf(db);
+
+    /// <param name="Locations">Las ubicaciones de un solo tipo de antes (#198), que pasan a la carpeta fija de su disco.</param>
+    /// <param name="Tools">Hay cosas en `Herramientas` de la carpeta de datos que pasan al disco predeterminado.</param>
+    public record MigrationPlan(List<LibraryInfo> Locations, bool Tools);
+
+    public static MigrationPlan Pending(Database db) =>
+        new(Library.List(db).Where(l => l.Type != "disk").ToList(), Recipes.Installed(ToolsOf(db)).Count > 0);
+
+    /// <summary>
+    /// Pasa todo al estándar (#159, #202, #204). Cada ubicación de un solo tipo va a la carpeta fija del disco donde está (en el
+    /// mismo disco: se renombra), con su registro, sus archivos y las rutas de los emuladores; lo de `Herramientas` va al disco
+    /// predeterminado. Se puede repetir: salta lo que ya hizo.
+    /// </summary>
+    public static Task RunMigrate(TaskRun run, CancellationToken ct)
+    {
+        var locations = Library.List(run.Db).Where(l => l.Type != "disk").ToList();
+        for (var i = 0; i < locations.Count; i++)
+        {
+            var location = locations[i];
+            if (!location.Connected)
+            {
+                run.Log(ApiError.Of("library.log.skipped", ("name", location.Name)), "warn");
+                continue;
+            }
+            run.Report(i * 70 / locations.Count, ApiError.Of("library.toDisk", ("name", location.Name)));
+            var disk = DiskOf(run.Db, location.Path);
+            if (location.Legacy) AdoptLegacy(run, location, ct);
+            var target = Library.FolderOf(disk, location.Type)!;
+            var entries = Directory.EnumerateFileSystemEntries(location.Path)
+                .Where(e => Path.GetFileName(e) is not (Library.MarkerFile or Library.OldMarkerFile)).ToList();
+            foreach (var entry in entries)
+            {
+                var to = Path.Combine(target, Path.GetFileName(entry));
+                if (Path.Exists(to)) throw new TaskException(ApiError.Of("library.conflict", ("path", to)));
+                MoveFolder(entry, to, (_, _) => { }, ct);
+            }
+            using (var c = run.Db.Open())
+            {
+                var prefix = Library.DiskFolders[location.Type] + Path.DirectorySeparatorChar;
+                c.Execute("UPDATE source SET library_id = @disk, relative_path = @prefix || relative_path WHERE kind = 'file' AND library_id = @old",
+                    new { disk = disk.Id, prefix, old = location.Id });
+                c.Execute("UPDATE console_destination SET library_id = @disk WHERE library_id = @old", new { disk = disk.Id, old = location.Id });
+                c.Execute("DELETE FROM library WHERE id = @old", new { old = location.Id });
+            }
+            var installed = Recipes.Installed(Library.ToolRoots(run.Db));
+            var changed = RewriteAll(installed, location.Path, target);
+            Relink(installed, location.Path, target);
+            // La carpeta de antes, solo con su marcador, se borra (nunca con archivos).
+            foreach (var marker in new[] { Library.MarkerFile, Library.OldMarkerFile }) File.Delete(Path.Combine(location.Path, marker));
+            if (!Directory.EnumerateFileSystemEntries(location.Path).Any()) Directory.Delete(location.Path);
+            run.Log(ApiError.Of("library.log.moved", ("from", location.Path), ("to", target), ("paths", changed.ToString())));
+        }
+
+        run.Report(75, ApiError.Of("library.toolsToDisk"));
+        if (Library.DefaultDisk(run.Db) is { Connected: true } home)
+            foreach (var tool in Recipes.Installed(ToolsOf(run.Db)))
+            {
+                var to = Path.Combine(home.Path, Path.GetRelativePath(ToolsOf(run.Db), tool.Path));
+                if (Path.Exists(to))
+                {
+                    run.Log(ApiError.Of("library.log.notEmpty", ("path", to)), "warn");
+                    continue;
+                }
+                MoveFolder(tool.Path, to, (_, _) => { }, ct);
+                Relink(Recipes.Installed(Library.ToolRoots(run.Db)), tool.Path, to);
+                run.Log(ApiError.Of("library.log.tool", ("name", tool.Name), ("path", to)));
+            }
+        return Task.CompletedTask;
+    }
+
+    /// <summary>El disco de la unidad donde está <paramref name="path"/>; si no hay, se agrega en su raíz (#202).</summary>
+    static LibraryInfo DiskOf(Database db, string path)
+    {
+        var network = Library.IsNetwork(path);
+        var drive = network ? Path.GetPathRoot(path)! : Mounts.Of(path);
+        if (Library.List(db).FirstOrDefault(l => l.Type == "disk" && l.Connected
+                && (network ? Library.Same(Path.GetPathRoot(l.Path)!, drive) : Mounts.Same(l.Path, path))) is { } disk) return disk;
+        var root = Path.Combine(drive, "Otteretro");
+        Directory.CreateDirectory(root);
+        var (id, _, error) = Library.Adopt(db, root, Path.TrimEndingDirectorySeparator(drive), "disk");
+        if (error is not null) throw new TaskException(error);
+        return Library.Get(db, id!)!;
+    }
 
     public static Task RunMove(TaskRun run, CancellationToken ct)
     {
@@ -66,7 +155,13 @@ public static class LibraryTasks
     {
         var job = JsonSerializer.Deserialize<AdoptJob>(run.Data!, Json)!;
         if (Library.Get(run.Db, job.LibraryId) is not { Connected: true } library) throw new TaskException(ApiError.Of("library.notConnected"));
-        var tools = ToolsOf(run.Db);
+        AdoptLegacy(run, library, ct);
+        return Task.CompletedTask;
+    }
+
+    static void AdoptLegacy(TaskRun run, LibraryInfo library, CancellationToken ct)
+    {
+        var tools = ToolsHome(run.Db);
         var consoles = Directory.EnumerateDirectories(library.Path).Where(c => !Path.GetFileName(c).StartsWith('_')).ToList();
 
         // 1. Emuladores y ports a Herramientas.
@@ -125,7 +220,6 @@ public static class LibraryTasks
         foreach (var old in consoles.SelectMany(c => Library.LegacyFolders.Select(l => Path.Combine(c, l))).Where(Directory.Exists))
             if (!Directory.EnumerateFileSystemEntries(old).Any()) Directory.Delete(old);
             else run.Log(ApiError.Of("library.log.notEmpty", ("path", old)), "warn");
-        return Task.CompletedTask;
     }
 
     /// <summary>Reescribe las rutas a juegos de todo lo instalado con receta. Devuelve cuántas cambió.</summary>
@@ -172,6 +266,11 @@ public static class LibraryTasks
     /// </summary>
     public static void MoveFolder(string from, string to, Action<long, long> report, CancellationToken ct, bool forceCopy = false)
     {
+        if (File.Exists(from))
+        {
+            MoveFile(from, to);
+            return;
+        }
         if (!Directory.Exists(from))
         {
             if (Directory.Exists(to)) return; // ya se movió en una corrida anterior
@@ -216,6 +315,53 @@ public static class LibraryTasks
             report(done += size, total);
         }
         Links.DeleteTree(from);
+    }
+
+    /// <summary>Un archivo suelto (una ROM, #160): igual que una carpeta, copiar, verificar y recién entonces borrar.</summary>
+    static void MoveFile(string from, string to)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(to)!);
+        if (Mounts.Same(from, to) && !File.Exists(to))
+        {
+            File.Move(from, to);
+            return;
+        }
+        File.Copy(from, to, overwrite: true);
+        FolderMove.FlushToDisk(to);
+        if (!FolderMove.SameContent(from, to))
+        {
+            File.Delete(to);
+            throw new TaskException(ApiError.Of("move.copyMismatch", ("path", from), ("detail", Path.GetFileName(from))));
+        }
+        File.Delete(from);
+    }
+
+    /// <summary>
+    /// Mover lo marcado de un disco a otro (#160, #205): cada cosa a la misma ruta dentro del otro, en su propia tarea. Se valida
+    /// todo antes de encolar nada.
+    /// </summary>
+    public static (List<long>? Tasks, ApiError? Error) EnqueueMoveItems(Database db, LibraryInfo from, LibraryInfo to, IEnumerable<string> items)
+    {
+        var jobs = new List<MoveJob>();
+        foreach (var item in items)
+        {
+            var relative = item.Trim('\\', '/');
+            var source = Path.GetFullPath(Path.Combine(from.Path, relative));
+            var target = Path.GetFullPath(Path.Combine(to.Path, relative));
+            if (relative.Length == 0 || !Library.Inside(source, from.Path) || !Library.Inside(target, to.Path))
+                return (null, ApiError.Of("library.outside"));
+            if (!Path.Exists(source)) return (null, ApiError.Of("path.notFound"));
+            if (Path.Exists(target)) return (null, ApiError.Of("library.conflict", ("path", target)));
+            jobs.Add(new(source, target, FromLibrary: from.Id, FromRelative: relative, ToLibrary: to.Id, ToRelative: relative));
+        }
+        var tasks = new List<long>();
+        foreach (var job in jobs)
+        {
+            var (task, error) = EnqueueMove(db, job);
+            if (error is not null) return (tasks, error);
+            tasks.Add(task!.Value);
+        }
+        return (tasks, null);
     }
 
     static int Percent(long done, long total, int from, int to) => total == 0 ? to : from + (int)((to - from) * done / total);

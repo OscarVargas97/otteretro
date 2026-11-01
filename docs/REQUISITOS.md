@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-11-01, con la #200 (Ajustes y Herramientas con pestañas arriba y una sola columna centrada; reemplaza la #196 y la #197), la #192 a la #199 (encuesta 16: la consola como centro, Almacenamiento por tipo con ubicaciones, Herramientas como inventario y Ajustes con lista y detalle), la #186 a la #189 (plan reorganizado desde la F3, adoptar migra a §5.1, Dusklight con su enlace y avisos de versiones nuevas), la #184 y la #185 (Ajustes en dos columnas y menú lateral retraíble), la #183 (`0.FASE.extra`: F2.5 es 0.2.1 y el plan completo, 1.0.0), la #179 a la #182 (versión por fase, canales de actualización, `main` por defecto y la primera release 0.2.0), la #178 (la imagen de cada saga), la #169 a la #177 (revisión de UI de toda la app y fluidez primero, encuesta 15), la #165 a la #168 (exclusivas, más reconocidas, catálogo separado de tus datos), la #162, la #163 y la #164 (consolas que habilitas tú, catálogo al día cada semana y reevaluar icónicas), la #161 (corregir lo que cambió Claude), la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
+> **Última actualización:** 2026-11-01, con la #201 a la #205 (discos como Steam: una raíz `X:\Otteretro` por disco con cinco carpetas fijas, `E:\Consolas` y Herramientas pasan al estándar, disco predeterminado ★ y mover lo marcado), la #200 (Ajustes y Herramientas con pestañas arriba y una sola columna centrada; reemplaza la #196 y la #197), la #192 a la #199 (encuesta 16: la consola como centro, Almacenamiento por tipo con ubicaciones, Herramientas como inventario y Ajustes con lista y detalle), la #186 a la #189 (plan reorganizado desde la F3, adoptar migra a §5.1, Dusklight con su enlace y avisos de versiones nuevas), la #184 y la #185 (Ajustes en dos columnas y menú lateral retraíble), la #183 (`0.FASE.extra`: F2.5 es 0.2.1 y el plan completo, 1.0.0), la #179 a la #182 (versión por fase, canales de actualización, `main` por defecto y la primera release 0.2.0), la #178 (la imagen de cada saga), la #169 a la #177 (revisión de UI de toda la app y fluidez primero, encuesta 15), la #165 a la #168 (exclusivas, más reconocidas, catálogo separado de tus datos), la #162, la #163 y la #164 (consolas que habilitas tú, catálogo al día cada semana y reevaluar icónicas), la #161 (corregir lo que cambió Claude), la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
 
 ## Cómo se mantiene
 
@@ -80,6 +80,17 @@ Otteretro es una app **personal** para:
 
 ## 5. Almacenamiento y ubicaciones
 
+> **Discos como Steam (#201 a #205), reemplaza lo de abajo:** se eligen **discos**. Cada uno tiene una raíz `X:\Otteretro\` (en Linux, `~/Otteretro`) con su marcador y cinco carpetas fijas que crea la app; el primero es el **predeterminado ★**, donde va lo nuevo y Herramientas. Las ubicaciones de un solo tipo y `Herramientas\` de la carpeta de datos pasan al estándar con una tarea (adoptar una carpeta de antes la lanza sola). En Almacenamiento se ve el uso de cada disco por tipo y se marca lo que se mueve a otro.
+>
+> ```
+> X:\Otteretro\                    ← un disco (otteretro-ubicacion.json, «contenido»: disk)
+> ├── Juegos\<Consola>\<Juego>\…
+> ├── Emuladores\<Consola>\<Instalación>\<versión>\
+> ├── Ports\<Consola>\<Port>\<versión>\
+> ├── Complementos\<Emulador o port>\<Complemento>\<versión>\
+> └── Sistema\<Consola>\…
+> ```
+>
 > **Encuesta 16 (#192 a #199):** cada tipo de cosa (juegos, emuladores, ports, complementos y sistema) tiene **una o varias ubicaciones**, en cualquier disco o en la red, y se configuran en **Ajustes › Almacenamiento**, un apartado por tipo. Lo que este capítulo llama «biblioteca» es una **ubicación de juegos**; las de los demás tipos funcionan igual (marcador, espacio libre, reconexión, mover). La consola muestra dónde quedó cada cosa y en qué ubicación caen sus juegos nuevos (#195). Hasta que se implemente, vale el diagrama de abajo con una sola `Herramientas\` en la carpeta de datos.
 
 ### 5.1 Tipos ✅
