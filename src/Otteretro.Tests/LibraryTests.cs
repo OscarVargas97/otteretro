@@ -482,6 +482,19 @@ public class LibraryTests
         var (from, to) = (Library.Get(f.Db, a!)!, Library.Get(f.Db, b!)!);
         Assert.Equal("library.conflict", LibraryTasks.EnqueueMoveItems(f.Db, from, to, [@"Juegos\GBA\metroid.gba"]).Error?.Code);
         Assert.Equal("library.outside", LibraryTasks.EnqueueMoveItems(f.Db, from, to, [@"..\x"]).Error?.Code);
+
+        // #171: toda una consola en una sola tarea, junto a lo que el otro disco ya tiene de ella; si algo choca, nada.
+        Assert.Equal(f.Tmp[@"f\Otteretro\Juegos\GBA\metroid.gba"], LibraryTasks.EnqueueMoveItems(f.Db, from, to, [@"Juegos\GBA"]).Error?.Params?["path"]);
+        File.Delete(f.Tmp[@"e\Otteretro\Juegos\GBA\metroid.gba"]);
+        Write(f.Tmp[@"e\Otteretro\Juegos\GBA\zelda.gba"]);
+        Write(f.Tmp[@"e\Otteretro\Juegos\GBA\Pokemon\pokemon.gba"]);
+        (tasks, error) = LibraryTasks.EnqueueMoveItems(f.Db, from, to, [@"Juegos\GBA"]);
+        Assert.Null(error);
+        await Done(f, Assert.Single(tasks!));
+        Assert.True(File.Exists(f.Tmp[@"f\Otteretro\Juegos\GBA\metroid.gba"]));
+        Assert.True(File.Exists(f.Tmp[@"f\Otteretro\Juegos\GBA\zelda.gba"]));
+        Assert.True(File.Exists(f.Tmp[@"f\Otteretro\Juegos\GBA\Pokemon\pokemon.gba"]));
+        Assert.False(Directory.Exists(f.Tmp[@"e\Otteretro\Juegos\GBA"]));
     }
 
     /// <summary>#208: la carpeta de datos se registra sola como disco y es siempre el ★.</summary>

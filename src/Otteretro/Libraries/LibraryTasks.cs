@@ -351,7 +351,8 @@ public static class LibraryTasks
             if (relative.Length == 0 || !Library.Inside(source, from.Path) || !Library.Inside(target, to.Path))
                 return (null, ApiError.Of("library.outside"));
             if (!Path.Exists(source)) return (null, ApiError.Of("path.notFound"));
-            if (Path.Exists(target)) return (null, ApiError.Of("library.conflict", ("path", target)));
+            // Una carpeta (toda una consola, #171) se junta con la que ya tiene el otro disco si nada de adentro choca.
+            if (Path.Exists(target) && Clash(source, target) is { } clash) return (null, ApiError.Of("library.conflict", ("path", clash)));
             jobs.Add(new(source, target, FromLibrary: from.Id, FromRelative: relative, ToLibrary: to.Id, ToRelative: relative));
         }
         var tasks = new List<long>();
@@ -363,6 +364,11 @@ public static class LibraryTasks
         }
         return (tasks, null);
     }
+
+    /// <summary>Lo primero de <paramref name="source"/> que ya existe en <paramref name="target"/>; null si se pueden juntar.</summary>
+    static string? Clash(string source, string target) =>
+        !Directory.Exists(source) || !Directory.Exists(target) ? target
+            : Directory.EnumerateFileSystemEntries(source).Select(e => Path.Combine(target, Path.GetFileName(e))).FirstOrDefault(Path.Exists);
 
     static int Percent(long done, long total, int from, int to) => total == 0 ? to : from + (int)((to - from) * done / total);
 }
