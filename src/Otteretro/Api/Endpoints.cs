@@ -7,6 +7,9 @@ namespace Otteretro.Api;
 public record AppState(string Version, string? DataFolder, bool Configured, string Language, bool Fullscreen);
 public record FolderRequest(string Path);
 public record LanguageRequest(string Language);
+/// <param name="Channel">stable, testing o custom (#180).</param>
+/// <param name="Origin">Con custom: carpeta, URL o repo de GitHub.</param>
+public record UpdateChannelInfo(string Channel, string? Origin);
 public record CredentialRequest(string Value);
 
 /// <summary>
@@ -87,6 +90,20 @@ public static class Endpoints
         {
             await u.Check();
             return u.State;
+        });
+
+        // Ajustes › General › Actualizaciones (#180): el canal y, con «custom», el origen. Al cambiarlo se busca de inmediato.
+        api.MapGet("/update/channel", (AppSession s) => new UpdateChannelInfo(s.Config.EffectiveUpdateChannel, s.Config.UpdateSource));
+        api.MapPut("/update/channel", async Task<Results<Ok<UpdateChannelInfo>, BadRequest<ApiError>>> (UpdateChannelInfo request, AppSession s, Updater u) =>
+        {
+            if (!AppConfig.UpdateChannels.Contains(request.Channel)) return TypedResults.BadRequest(ApiError.Of("update.channel"));
+            if (request.Channel == "custom" && string.IsNullOrWhiteSpace(request.Origin)) return TypedResults.BadRequest(ApiError.Of("update.noOrigin"));
+            s.Config.UpdateChannel = request.Channel;
+            if (request.Channel == "custom") s.Config.UpdateSource = request.Origin!.Trim();
+            s.Config.Save(s.ConfigPath);
+            u.Forget();
+            _ = u.Check();
+            return TypedResults.Ok(new UpdateChannelInfo(s.Config.EffectiveUpdateChannel, s.Config.UpdateSource));
         });
 
         api.MapPost("/update/restart", Results<Ok, Conflict<ApiError>> (Updater u) =>

@@ -2,9 +2,9 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
-## Claude ordena el catálogo · en revisión
+## 0.2.0 · Claude ordena el catálogo
 
-`fase/f2-claude`
+`fase/f2-claude` · primera release publicada en GitHub
 
 ### Nuevo
 - **Claude revisa las sagas dudosas y las ordena solo**: une fichas repetidas del mismo juego, pone en su saga los juegos sueltos que son de ella, separa sub-sagas (como Tingle) y corrige nombres. Primero tus sagas. Se lanza con `otteretro catalogo depurar`; con `--contar` dice cuántos casos hay y cuánto gastaría, sin llamar a Claude. Cada cambio se puede deshacer con `otteretro catalogo deshacer <n>`.
@@ -31,6 +31,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **No paga dos veces**: lo que Claude ya revisó no se vuelve a pedir mientras sus datos no cambien.
 
 ### Cambios
+- **Las actualizaciones llegan de GitHub**: Ajustes › General › Actualizaciones elige de dónde: **Estable** (las versiones publicadas, por defecto), **Pruebas** (lo último en desarrollo) u **Otro origen** (una carpeta o el repo de quien arma su propia versión). Al cambiar, busca de inmediato. Las versiones ahora dicen qué traen: 0.2.0 es la fase 2.
 - **La saga y el juego con su imagen**: la cabecera de una saga muestra el arte de su juego icónico más reciente (o del más reciente, si no hay icónicos), y la del juego, el suyo; el color de la pantalla sale de esa imagen. Aprobar las icónicas ahora guarda también qué juegos son icónicos (los ya aprobados se recuperan solos al actualizar).
 - **Ajustes en 5 pestañas**: Carpeta de datos, Cuentas y claves, Consolas, Claude y General. **Cuentas y claves** es una lista: una fila por servicio con para qué sirve, su estado («Guardada» en verde, «Falta» en naranja) y «Configurar»; lo de fases posteriores queda en una línea gris al final. **Carpeta de datos** tiene «Abrir carpeta», «Mover…» como botón principal y «Usar otra carpeta» como enlace con una línea que explica la diferencia; el aviso de la mudanza se cierra. **General** junta el idioma (dos botones, Español | English, también en el asistente) con la versión y «Buscar actualización»; las direcciones de antes (`?s=language`, `?s=about`) llevan a ella.
 - **Ajustes › Claude en tres bloques**: Horario («Corre de 00:00 a 08:00» y, con el interruptor, «De día, parar al 50 % de cada ventana de 5 h», todo se guarda solo, sin botón), Ahora (qué está haciendo, «Ejecutar ahora» y reevaluar icónicas) y Uso. El registro es más compacto: cuándo («hace 2 horas»), tarea, modelo, duración, tokens de entrada y salida y el costo de cada llamada; «ok» ya no se muestra y un error va en rojo con su motivo.

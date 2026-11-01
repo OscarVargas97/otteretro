@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-31, con la #178 (la imagen de cada saga), la #169 a la #177 (revisión de UI de toda la app y fluidez primero, encuesta 15), la #165 a la #168 (exclusivas, más reconocidas, catálogo separado de tus datos), la #162, la #163 y la #164 (consolas que habilitas tú, catálogo al día cada semana y reevaluar icónicas), la #161 (corregir lo que cambió Claude), la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
+> **Última actualización:** 2026-11-01, con la #179 a la #182 (versión por fase, canales de actualización, `main` por defecto y la primera release 0.2.0), la #178 (la imagen de cada saga), la #169 a la #177 (revisión de UI de toda la app y fluidez primero, encuesta 15), la #165 a la #168 (exclusivas, más reconocidas, catálogo separado de tus datos), la #162, la #163 y la #164 (consolas que habilitas tú, catálogo al día cada semana y reevaluar icónicas), la #161 (corregir lo que cambió Claude), la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
 
 ## Cómo se mantiene
 
@@ -52,7 +52,8 @@ Otteretro es una app **personal** para:
 - **Idioma y uso:** interfaz en **español e inglés** (#140 a #142), con los textos en un catálogo por idioma para que sumar otro sea agregar un archivo; se elige en Ajustes y por defecto sigue al sistema. Pensada para escritorio con ratón y teclado. Para la tele se usa Steam Big Picture.
 - **Idioma del código** (#125, #139): identificadores, tablas y columnas en **inglés**; documentación, comentarios, commits, PRs e issues en español.
 - **Repositorio:** en **GitHub, público** (#145). Ramas: **`dev`**, donde se trabaja, y **`main`**, que es lo publicado.
-- **Releases:** al fusionar `dev` en `main`, GitHub Actions compila y publica una release.
+- **Releases:** se desarrolla en `dev` y una release es un PR de `dev` a `main` (#181); al fusionarlo, GitHub Actions publica la versión de `VERSION`, `0.FASE.arreglo` (#179). Cada push a `dev` publica una prerelease `X-dev.N`.
+- **Canales** (#180): en Ajustes › General, Estable (releases de `main`, por defecto), Pruebas (prereleases de `dev`) u Otro origen (carpeta, URL o repo de GitHub de quien arma su propia versión).
 - **Instalación y actualización:** con **Velopack**, desde las releases de GitHub. En Windows se instala en `%LocalAppData%\Otteretro`. *En Linux, reemplazado por la #114:* paquete y módulo de Nix, que se actualiza con el sistema. Se actualiza sola y nunca toca la carpeta de datos.
 
 ## 4. Consolas ✅
@@ -134,7 +135,7 @@ E:\Consolas\  ·  D:\Juegos\…    ← bibliotecas de JUEGOS (las que quieras, e
 
 ### 5.6 Credenciales ✅
 - Las claves de Steam Web API, IGDB, MyJDownloader, ScreenScraper, SteamGridDB, RetroAchievements y las tiendas se guardan en `data\`, **cifradas con el almacén seguro del sistema operativo**: DPAPI en Windows, libsecret en Linux (con gnome-keyring, #147). Las claves son de cada equipo: lo que cifra un PC no lo abre otro.
-- **Un solo token de GitHub** sirve para descargar las actualizaciones (releases del repositorio privado) y para escribir en `otteretro-datos` (#68).
+- **Un solo token de GitHub** sirve para escribir en `otteretro-datos` (#68). Las actualizaciones no lo necesitan: el repo es público (#180).
 - **Bitwarden** es tu **respaldo manual**: la app no lo lee. En un PC nuevo, las claves se vuelven a escribir desde ahí.
 
 ## 6. Catálogo

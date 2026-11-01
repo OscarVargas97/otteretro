@@ -1,4 +1,5 @@
 using Otteretro.App;
+using Velopack.Sources;
 
 namespace Otteretro.Tests;
 
@@ -16,4 +17,24 @@ public class UpdaterTests
         else
             Assert.Equal((UpdatePhase.Unavailable, "withSystem"), (updater.State.Phase, updater.State.Message));
     }
+
+    /// <summary>#180: cada canal busca en su origen; un config.json de antes con carpeta sigue con ella.</summary>
+    [Fact]
+    public void EachChannelUsesItsSource()
+    {
+        Assert.Equal(("win", typeof(GithubSource)), Kind(Updater.SourceFor("stable", Folder)));
+        Assert.Equal(("dev", typeof(GithubSource)), Kind(Updater.SourceFor("testing", null)));
+        Assert.Equal(("win", typeof(SimpleFileSource)), Kind(Updater.SourceFor("custom", Folder)));
+        Assert.Equal(("win", typeof(SimpleWebSource)), Kind(Updater.SourceFor("custom", "https://example.org/otteretro")));
+        Assert.Equal(("win", typeof(GithubSource)), Kind(Updater.SourceFor("custom", "https://github.com/alguien/otteretro")));
+        Assert.Null(Updater.SourceFor("custom", " "));
+
+        Assert.Equal("stable", new AppConfig().EffectiveUpdateChannel);
+        Assert.Equal("custom", new AppConfig { UpdateSource = Folder }.EffectiveUpdateChannel);
+        Assert.Equal("stable", new AppConfig { UpdateSource = Folder, UpdateChannel = "stable" }.EffectiveUpdateChannel);
+    }
+
+    static readonly string Folder = Path.GetTempPath();
+
+    static (string, Type)? Kind((IUpdateSource Source, string Channel)? found) => found is { } f ? (f.Channel, f.Source.GetType()) : null;
 }

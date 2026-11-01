@@ -60,7 +60,8 @@ otteretro/
 ├── recetas/                       ← JSON de emuladores, ports, complementos y tiendas (§5)
 ├── prompts/                       ← prompts de `claude -p`, uno por tarea
 ├── docs/
-└── .github/workflows/release.yml  ← compila y publica la release con Velopack al fusionar en main (A6)
+├── VERSION                        ← la versión que se está preparando, 0.FASE.arreglo (#179)
+└── .github/workflows/             ← release.yml publica la release estable al fusionar en main; prerelease.yml, X-dev.N en cada push a dev (#181)
 ```
 
 Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
@@ -169,7 +170,7 @@ Claude escribe la primera receta de algo nuevo; desde ahí la usa el script.
 | Tema | Decisión |
 |---|---|
 | Registro de errores | Archivo en `<carpeta de datos>\logs\`, uno por día, se guardan **30 días**. (A5) |
-| Releases y versiones | **Cada fusión en `main` publica una release** y la versión se calcula sola (0.1.0, 0.2.0…). (A6) |
+| Releases y versiones | **Cada fusión en `main` publica una release** con la versión de `VERSION` (`0.FASE.arreglo`, #179); `dev` publica prereleases `X-dev.N` en el canal `dev` de Velopack. La app elige el canal en Ajustes › General: Estable, Pruebas u Otro origen (`Updater.SourceFor`, #180) |
 | Pruebas | **Lo delicado** (mover, verificar hashes, respaldar, reescribir rutas internas, la regla de cómo jugar) **más una prueba de cada flujo clave** de §6. (A4) |
 | Front: datos | Las pantallas piden datos a la API con TanStack Query (caché y refresco). (propia) |
 | Front: estilo | El CSS del sistema de diseño (`bundle.css` y tokens) se copia a `web/` tal cual; los componentes del prototipo pasan a componentes React con las mismas clases `ot-`. (propia) |
@@ -187,7 +188,7 @@ Claude escribe la primera receta de algo nuevo; desde ahí la usa el script.
 | Contrato | OpenAPI de ASP.NET Core → tipos TS con `openapi-typescript` (A3) |
 | Front | Next.js con `output: "export"`, React, TanStack Query; CSS del sistema de diseño |
 | Logs | Archivo diario en `<carpeta de datos>\logs\`, 30 días (A5) |
-| Instalación | Velopack (`vpk`), paquetes locales mientras no haya `main` (#101) |
+| Instalación | Velopack (`vpk`) desde GitHub Releases (#181); `empaquetar.ps1` sin versión arma `X-local.N` para probar con «Otro origen» |
 | Pruebas | xUnit |
 
 ## Linux y Nix (P0)

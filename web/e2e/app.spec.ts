@@ -196,9 +196,23 @@ test("Ajustes en inglés: carpeta, idioma y actualización", async () => {
   await expect(check).toHaveAttribute("aria-busy", "true");
   await expect(page.getByRole("status").getByText(en.update.checkingDetail)).toBeVisible();
   expect((await check.boundingBox())!.width).toBe(idle);
-  // Sin origen de actualizaciones: el motivo llega como código y se traduce.
-  await expect(page.getByText(en.update.reason.noSource)).toBeVisible();
+  // Canal Estable por defecto (#180); fuera de la app instalada el motivo llega como código y se traduce.
+  await expect(page.getByText(en.update.reason.notInstalled)).toBeVisible();
   expect((await check.boundingBox())!.width).toBe(idle);
+  // #180: Estable, Pruebas u Otro origen; «Otro origen» pide una carpeta o un repo y se guarda al usarlo.
+  const channels = page.getByRole("group", { name: en.update.channel.title });
+  await expect(channels.getByRole("button", { name: en.update.channel.stable })).toHaveAttribute("aria-pressed", "true");
+  await channels.getByRole("button", { name: en.update.channel.testing }).click();
+  await expect(channels.getByRole("button", { name: en.update.channel.testing })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText(en.update.channel.testingHint)).toBeVisible();
+  await channels.getByRole("button", { name: en.update.channel.custom }).click();
+  await page.getByLabel(en.update.channel.origin).fill(dataDir("paquetes"));
+  await page.getByRole("button", { name: en.update.channel.use, exact: true }).click();
+  await page.reload();
+  await expect(page.getByRole("group", { name: en.update.channel.title }).getByRole("button", { name: en.update.channel.custom })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel(en.update.channel.origin)).toHaveValue(dataDir("paquetes"));
+  await page.getByRole("group", { name: en.update.channel.title }).getByRole("button", { name: en.update.channel.stable }).click();
+  await expect(page.getByRole("group", { name: en.update.channel.title }).getByRole("button", { name: en.update.channel.stable })).toHaveAttribute("aria-pressed", "true");
   await expectNoRawKeys();
   await expectTextFits();
   await page.screenshot({ path: "e2e-results/4-settings-en.png", fullPage: true });

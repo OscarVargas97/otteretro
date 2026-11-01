@@ -15,7 +15,7 @@ public record UpdateState(UpdatePhase Phase, string? Version, int Progress, stri
 /// <summary>
 /// Busca una versión nueva, la descarga y avisa a la interfaz en cada paso (panel de tareas y aviso de "lista").
 /// Se instala al cerrar la app o al pulsar "Reiniciar ahora".
-/// Mientras no haya releases en GitHub (#101) el origen es una carpeta local (config.json → origenActualizaciones).
+/// El origen sale del canal (#180): las releases de GitHub (estables o de prueba) u otro origen que elige la persona.
 /// Velopack solo actualiza en Windows: en Linux, Otteretro se actualiza con el sistema (Nix, #114).
 /// </summary>
 public sealed class Updater(AppSession session, Events events)
@@ -40,14 +40,15 @@ public sealed class Updater(AppSession session, Events events)
         var downloading = false;
         try
         {
-            var source = session.Config.UpdateSource;
-            if (string.IsNullOrEmpty(source))
+            if (SourceFor(session.Config.EffectiveUpdateChannel, session.Config.UpdateSource) is not { } found)
             {
                 Set(UpdatePhase.Unavailable, null, 0, "noSource");
                 return;
             }
-            manager = new UpdateManager(new SimpleFileSource(new DirectoryInfo(source)));
-            if (!manager.IsInstalled)
+            // Sin VelopackApp (las pruebas, `servidor` desde el código) no hay instalación que actualizar.
+            try { manager = new UpdateManager(found.Source, new UpdateOptions { ExplicitChannel = found.Channel }); }
+            catch (InvalidOperationException) { manager = null; }
+            if (manager is not { IsInstalled: true })
             {
                 Set(UpdatePhase.Unavailable, null, 0, "notInstalled");
                 return;
@@ -95,6 +96,31 @@ public sealed class Updater(AppSession session, Events events)
         {
             Volatile.Write(ref busy, 0);
         }
+    }
+
+    public const string Repo = "https://github.com/OscarVargas97/otteretro";
+
+    /// <summary>
+    /// El origen de cada canal (#180) y el canal de Velopack que busca: «win» las releases de main, «dev» las prereleases
+    /// de dev. Otro origen: el repo de GitHub, una URL o una carpeta de quien tiene su propia versión. Null si no hay.
+    /// </summary>
+    public static (IUpdateSource Source, string Channel)? SourceFor(string channel, string? origin) => channel switch
+    {
+        "stable" => (new GithubSource(Repo, null, false), "win"),
+        "testing" => (new GithubSource(Repo, null, true), "dev"),
+        _ when string.IsNullOrWhiteSpace(origin) => null,
+        _ when origin.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase) => (new GithubSource(origin, null, false), "win"),
+        _ when Uri.TryCreate(origin, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https" => (new SimpleWebSource(uri), "win"),
+        _ => (new SimpleFileSource(new DirectoryInfo(origin)), "win"),
+    };
+
+    /// <summary>Cambia de canal: lo de antes ya no vale (una versión descargada de otro canal tampoco).</summary>
+    public void Forget()
+    {
+        if (State.Phase is UpdatePhase.Checking or UpdatePhase.Downloading) return;
+        manager = null;
+        ready = null;
+        Set(OperatingSystem.IsWindows() ? UpdatePhase.None : UpdatePhase.Unavailable, null, 0, OperatingSystem.IsWindows() ? null : "withSystem");
     }
 
     void Fail(Exception e)

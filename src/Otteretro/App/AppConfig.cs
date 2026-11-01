@@ -14,8 +14,21 @@ public sealed class AppConfig
     [JsonPropertyName("carpetaDatos")]
     public string? DataFolder { get; set; }
 
+    /// <summary>Con el canal «custom»: una carpeta, una URL o el repo de GitHub de quien tiene su propia versión (#180).</summary>
     [JsonPropertyName("origenActualizaciones")]
     public string? UpdateSource { get; set; }
+
+    /// <summary>
+    /// De dónde se actualiza (#180): «stable» (releases de main), «testing» (prereleases de dev) o «custom» (UpdateSource).
+    /// Sin canal, un config.json de antes con origen sigue con él; si no, Estable.
+    /// </summary>
+    [JsonPropertyName("canalActualizaciones")]
+    public string? UpdateChannel { get; set; }
+
+    public static readonly string[] UpdateChannels = ["stable", "testing", "custom"];
+
+    [JsonIgnore]
+    public string EffectiveUpdateChannel => UpdateChannel is { } c && UpdateChannels.Contains(c) ? c : string.IsNullOrEmpty(UpdateSource) ? "stable" : "custom";
 
     [JsonPropertyName("equipoId")]
     public string MachineId { get; set; } = Guid.NewGuid().ToString();
