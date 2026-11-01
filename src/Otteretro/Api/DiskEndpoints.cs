@@ -195,6 +195,8 @@ public static class DiskEndpoints
         {
             if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
             // Un firmware puede pasar del límite normal de un pedido; el servidor solo escucha en este equipo.
+            // El disco ★ se registra solo: puede que todavía no se haya abierto Almacenamiento (#208).
+            if (Disk.EnsureDataDisk(db, s.Config.DataFolder!) is { } diskError) return TypedResults.BadRequest(diskError);
             if (request.HttpContext.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limit) limit.MaxRequestBodySize = null;
             return await SystemFiles.Save(db, console, name, request.Body, ct) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok();
         });

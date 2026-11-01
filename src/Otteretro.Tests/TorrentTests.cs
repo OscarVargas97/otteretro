@@ -49,12 +49,31 @@ public class TorrentTests
 
         // El que baja: Otteretro, que se conecta directo a ese cliente.
         TorrentSite.Configure = s => Local(s, port + 1);
-        TorrentSite.OnStarted = m => m.AddPeerAsync(new PeerInfo(new Uri($"ipv4://127.0.0.1:{port}")));
+        // Se le insiste al otro cliente hasta que conecte: el primer intento puede llegar antes de que esté listo.
+        TorrentSite.OnStarted = m =>
+        {
+            _ = Task.Run(async () =>
+            {
+                while (!m.Complete && m.State != TorrentState.Stopped)
+                {
+                    await m.AddPeerAsync(new PeerInfo(new Uri($"ipv4://127.0.0.1:{port}")));
+                    await Task.Delay(500);
+                }
+            });
+            return Task.CompletedTask;
+        };
         try
         {
             var magnet = $"magnet:?xt=urn:btih:{torrent.InfoHashes.V1!.ToHex()}&dn=juego.gba";
-            var done = await f.Run(Downloads.Enqueue(f.Db, "Torrent", disk, [magnet]).Task!.Value);
-            Assert.True(done.Status == "done", System.Text.Json.JsonSerializer.Serialize(done.Detail));
+            var id = Downloads.Enqueue(f.Db, "Torrent", disk, [magnet]).Task!.Value;
+            await f.Queue.StartAsync(default);
+            string? status = null;
+            for (var i = 0; i < 600 && status is not ("done" or "error"); i++)
+            {
+                await Task.Delay(100);
+                status = f.Queue.List().FirstOrDefault(t => t.Id == id)?.Status;
+            }
+            Assert.Equal("done", status);
         }
         finally
         {

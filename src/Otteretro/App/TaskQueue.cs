@@ -65,7 +65,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
     /// Lo que pasa solo con la app abierta (#219, #223): al abrirla, pasar lo de antes al estándar o escanear, y vigilar `Juegos\`
     /// de cada disco. Las pruebas lo apagan, como <see cref="AutoClaude"/>, y lo prueban por separado.
     /// </summary>
-    public static bool OnOpen { get; set; } = true;
+    public static bool OnOpen { get; set; } = Environment.GetEnvironmentVariable("OTTERETRO_E2E") is null;
 
     readonly Libraries.GamesWatcher games = new();
 
@@ -196,6 +196,8 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
                     {
                         using (var c = db.Open()) c.Execute("UPDATE task SET status = 'queued' WHERE status = 'running'");
                         recovered = db.FilePath;
+                        // El disco ★ se registra solo al abrir (#208): importar, descargar y escanear lo necesitan.
+                        if (OnOpen && session.Config.DataFolder is { } dataFolder) Libraries.Disk.EnsureDataDisk(db, dataFolder);
                         // Al abrir la app, lo de antes pasa solo al estándar (#219), que al terminar escanea; si no, se escanea ya (#223).
                         if (OnOpen && Libraries.DiskTasks.EnqueueMigrateIfPending(db) is null) Libraries.Scan.Enqueue(db);
                     }

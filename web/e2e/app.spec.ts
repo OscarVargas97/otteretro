@@ -117,6 +117,8 @@ test("elegir la carpeta de datos lleva al paso de bibliotecas y, al saltarlo, al
   await expect(page.getByRole("heading", { name: en.welcome.librariesTitle })).toBeVisible();
   await expectNoRawKeys();
   await page.getByRole("button", { name: en.welcome.skip }).click();
+  await expect(page.getByRole("heading", { name: en.welcome.accountsTitle })).toBeVisible();
+  await page.getByRole("button", { name: en.welcome.done }).click();
   await expect(page).toHaveURL(`${base()}/`);
   await expect(page.getByRole("heading", { level: 1, name: en.nav.home })).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: en.home.next })).toBeVisible();
@@ -140,11 +142,11 @@ test("todas las pantallas se ven en inglés", async () => {
     ["saga", en.catalog.saga.noneTitle],
     ["review", en.review.pendingEmptyTitle],
     ["tools", en.tools.emptyTitle],
-    ...(["discover", "downloads", "steam"] as const).map((s) => [s, en.comingSoon[s].title] as const),
+    ...(["discover", "steam"] as const).map((s) => [s, en.comingSoon[s].title] as const),
   ] as const;
   // #169: las de fases futuras se ven atenuadas con su fase y no se abren desde el menú.
   await page.goto(`${base()}/`);
-  for (const s of ["discover", "downloads", "steam"] as const) {
+  for (const s of ["discover", "steam"] as const) {
     await expect(page.locator(".sidebar").getByRole("link", { name: en.nav[s] })).toHaveCount(0);
     await expect(page.locator(".sidebar .is-future", { hasText: en.nav[s] })).toHaveAttribute("aria-disabled", "true");
   }
@@ -266,13 +268,16 @@ test("Ajustes › Consolas: el detalle de una consola, su destino y mover sus ju
   await expect.poll(() => existsSync(join(a, "Juegos", "Switch")), { timeout: 15_000 }).toBe(false);
   // Se limpian la tarea y los discos para no dejar estado a las demás pruebas (quitar no borra archivos).
   await page.getByRole("button", { name: en.topBar.tasks }).click();
-  await page.getByRole("dialog", { name: en.topBar.tasksPanel }).getByRole("button", { name: en.tasks.clear }).click();
-  await expect(page.getByText(en.topBar.noTasksTitle)).toBeVisible();
+  // Al terminar una mudanza se escanea solo (#212): se limpia cuando también terminó eso.
+  await expect(async () => {
+    await page.getByRole("dialog", { name: en.topBar.tasksPanel }).getByRole("button", { name: en.tasks.clear }).click({ timeout: 1000 });
+    await expect(page.getByText(en.topBar.noTasksTitle)).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 15_000 });
   await page.keyboard.press("Escape");
   await removeDisks();
 });
 
-test("Herramientas: pestañas por tipo y Sistema lleva a Almacenamiento (#154)", async () => {
+test("Herramientas: pestañas por tipo y subir un archivo de sistema con versiones (#154, #199)", async () => {
   await page.goto(`${base()}/tools/`);
   for (const k of ["emulator", "port", "complement", "system"] as const) await expect(page.getByRole("tab", { name: en.tools.kind[k] })).toBeVisible();
   await expect(page.getByRole("tab", { name: en.tools.kind.emulator })).toHaveAttribute("aria-selected", "true");
@@ -281,8 +286,10 @@ test("Herramientas: pestañas por tipo y Sistema lleva a Almacenamiento (#154)",
   await expect(page.getByText(en.tools.systemHelp)).toBeVisible();
   await expectNoRawKeys();
   await expectTextFits();
-  await page.getByRole("link", { name: en.tools.openStorage }).click();
-  await expect(page.getByRole("tab", { name: en.settings.storage })).toHaveAttribute("aria-selected", "true");
+  await page.getByLabel(en.tools.systemConsole).selectOption("switch");
+  await page.getByLabel(en.tools.systemUpload).setInputFiles({ name: "prueba.bin", mimeType: "application/octet-stream", buffer: Buffer.from("archivo de prueba") });
+  await expect(page.getByText(/prueba\.bin/)).toBeVisible();
+  await expectNoRawKeys();
 });
 
 test("el panel de tareas y la búsqueda están traducidos", async () => {
@@ -764,6 +771,7 @@ test("panel de tareas: terminadas por hora de término, registro al hacer clic y
   const now = new Date();
   const at = (minutes: number) => new Date(now.getTime() - minutes * 60_000).toISOString();
   db.exec(`
+    DELETE FROM task WHERE status NOT IN ('queued', 'running'); -- las de las pruebas anteriores (agregar un disco escanea, #212)
     INSERT INTO task (id, kind, status, progress, created_at, finished_at) VALUES
       (900, 'demo', 'done', 100, '${at(30)}', '${at(20)}'), (901, 'demo', 'error', 40, '${at(25)}', '${at(5)}');
     INSERT INTO task_log (task_id, at, level, message) VALUES

@@ -27,6 +27,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **Mega** (#205): archivos y carpetas compartidas, con la cuota gratis o con tu cuenta si la cargas. Si la descarga se corta, ese archivo vuelve a empezar.
 - **MediaFire y sitios sin premium** (#206): MediaFire baja sus enlaces públicos sin cuenta. Lo que pide un captcha, una espera que no se puede cumplir aquí o no tiene conector no se salta: Otteretro te ofrece abrirlo en el navegador para que lo resuelvas tú, y lo que bajes lo dejas en `Entrada`.
 - **Torrents y magnets** (#207): se pegan como cualquier enlace y van a la misma cola. Mientras bajan también comparten desde tu IP, que es como funciona BitTorrent; al terminar dejan de compartir.
+- **Asistente** (#191): un paso nuevo para tus cuentas de descarga, después de los discos. Se puede saltar y hacer luego en Ajustes.
 - La ficha de un juego muestra **dónde tienes sus archivos**, con BASE, UPD y DLC, tamaño y si están verificados.
 
 ### Cambios

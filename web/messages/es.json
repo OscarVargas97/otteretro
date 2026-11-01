@@ -70,10 +70,11 @@
       "welcome": "Bienvenida",
       "dataFolder": "Carpeta de datos",
       "backup": "Respaldo",
-      "libraries": "Ubicaciones de juegos",
+      "libraries": "Discos",
       "steam": "Steam",
       "keys": "Claves",
-      "initialLoad": "Carga inicial"
+      "initialLoad": "Carga inicial",
+      "accounts": "Cuentas de descarga"
     },
     "phase": "Fase {phase}",
     "stepOf": "Paso {step} de {total}",
@@ -95,7 +96,10 @@
     "disksText": "Discos:",
     "useDisk": "Usar {path}",
     "diskAdded": "{path} ✓",
-    "done": "Listo"
+    "done": "Listo",
+    "accountsTitle": "Tus cuentas de descarga",
+    "accountsText": "Si pagas 1fichier o Mega, deja aquí tu clave para bajar con tu cuenta. Es opcional: lo puedes hacer después en Ajustes › Cuentas y claves.",
+    "next": "Siguiente"
   },
   "settings": {
     "dataFolder": "Carpeta de datos",
@@ -1106,7 +1110,6 @@
     "confirm": "Mover",
     "queued": "Quedó en el panel de tareas.",
     "systemHelp": "Tus BIOS, keys y firmware, con versiones, en Sistema del disco ★. Los subes tú: Otteretro no los descarga ni los comparte. Otra versión nunca reemplaza la anterior.",
-    "openStorage": "Abrir Almacenamiento",
     "dataFolder": "Herramientas (carpeta de datos)",
     "systemConsole": "Elige la consola",
     "systemUpload": "Subir un archivo",

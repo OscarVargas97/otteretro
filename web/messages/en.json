@@ -70,10 +70,11 @@
       "welcome": "Welcome",
       "dataFolder": "Data folder",
       "backup": "Backup",
-      "libraries": "Game locations",
+      "libraries": "Disks",
       "steam": "Steam",
       "keys": "Keys",
-      "initialLoad": "Initial load"
+      "initialLoad": "Initial load",
+      "accounts": "Download accounts"
     },
     "phase": "Phase {phase}",
     "stepOf": "Step {step} of {total}",
@@ -95,7 +96,10 @@
     "disksText": "Drives:",
     "useDisk": "Use {path}",
     "diskAdded": "{path} ✓",
-    "done": "Done"
+    "done": "Done",
+    "accountsTitle": "Your download accounts",
+    "accountsText": "If you pay for 1fichier or Mega, leave your key here to download with your account. It is optional: you can do it later in Settings › Accounts and keys.",
+    "next": "Next"
   },
   "settings": {
     "dataFolder": "Data folder",
@@ -1106,7 +1110,6 @@
     "confirm": "Move",
     "queued": "Added to the tasks panel.",
     "systemHelp": "Your BIOS, keys and firmware, with versions, in Sistema on the ★ disk. You upload them: Otteretro neither downloads nor shares them. A new version never replaces the previous one.",
-    "openStorage": "Open Storage",
     "dataFolder": "Herramientas (data folder)",
     "systemConsole": "Choose the console",
     "systemUpload": "Upload a file",

@@ -141,7 +141,7 @@ function ServiceLine({ service, fields, onOpen, phase }: { service: string; fiel
 }
 
 /** Ajustes › Cuentas y claves (§5.6, #57, #111): una fila por servicio; lo de fases posteriores, en una línea gris al final. */
-export function CredentialsSettings() {
+export function CredentialsSettings({ only }: { only?: string[] }) {
   const t = useTranslations("credentials");
   const dt = useDynamicT();
   const describe = useDescribeError();
@@ -151,7 +151,7 @@ export function CredentialsSettings() {
   if (list.isError) return <div className="panel"><p className="error small" style={{ margin: 0 }}>{describe(list.error)}</p></div>;
   if (list.isPending) return <div className="panel" aria-busy="true"><Panels count={3} /></div>;
   const all = list.data ?? [];
-  const services = [...new Set(all.map((c) => c.service))];
+  const services = [...new Set(all.map((c) => c.service))].filter((s) => !only || only.includes(s));
   const fieldsOf = (s: string) => all.filter((c) => c.service === s);
   const phaseOf = (s: string) => Number(fieldsOf(s)[0].phase);
   const now = services.filter((s) => phaseOf(s) <= CURRENT_PHASE);
