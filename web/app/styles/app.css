@@ -269,17 +269,29 @@ a.ot-btn, a.chip { text-decoration: none; }
 .welcome-otter { image-rendering: pixelated; }
 .wizard-steps li { display: flex; justify-content: space-between; align-items: center; }
 
-/* Almacenamiento como Steam (#161, #205): los discos arriba, el uso por tipo y lo que tiene cada uno. */
-.disk-select { display: flex; gap: var(--space-2); align-items: stretch; }
-.disk-select select { flex: 1; min-width: 0; font-weight: 600; }
+/* Almacenamiento con la distribución de Steam (#169): disco con «+» y «⋯», barra de uso gruesa, tabla y «Mover» al pie. */
+.disk-select { display: flex; gap: var(--space-2); align-items: stretch; margin-top: var(--space-2); }
+.disk-select select { flex: 1; min-width: 0; height: 44px; padding: 0 12px; font-weight: 600; font-size: 16px; color-scheme: dark; }
+.disk-select > .ot-btn, .ot-menu > summary { width: 44px; height: 44px; padding: 0; box-sizing: border-box; justify-content: center; font-size: 18px; }
+.ot-menu { position: relative; }
+.ot-menu > summary { list-style: none; }
+.ot-menu > summary::-webkit-details-marker { display: none; }
+.ot-menu-list { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 220px; display: flex; flex-direction: column; padding: 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-raised); box-shadow: 0 8px 24px rgb(0 0 0 / .4); }
+.ot-menu-list button { text-align: left; padding: 8px 12px; border: 0; border-radius: 6px; background: none; color: var(--ink); font: inherit; cursor: pointer; }
+.ot-menu-list button:hover:not(:disabled), .ot-menu-list button:focus-visible { background: var(--surface); }
+.ot-menu-list button:disabled { color: var(--ink-muted); cursor: default; }
 .ot-dialog { width: min(560px, calc(100vw - 32px)); padding: var(--space-4); border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); }
 .ot-dialog::backdrop { background: rgb(0 0 0 / .55); }
-.app-data { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border-radius: 8px; background: var(--surface-raised); }
-.app-data .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.disk-panel { gap: var(--space-3); }
 .usage-data { background: var(--accent-soft); outline: 1px solid var(--accent); outline-offset: -1px; }
-.usage-bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--surface-raised); border: 1px solid var(--line); }
-.usage-legend { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); margin: 0; padding: 0; list-style: none; }
+.usage-bar { display: flex; height: 28px; border-radius: 4px; overflow: hidden; background: var(--surface-raised); border: 1px solid var(--line); }
+.usage-legend { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); margin: 0; padding: 0; list-style: none; }
 .usage-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.usage-legend b { margin-left: 4px; }
+.disk-table tbody tr { cursor: pointer; }
+.disk-table tbody tr:hover, .disk-table tbody tr.is-marked { background: var(--surface-raised); }
+.disk-table td:first-child, .disk-table th:first-child { width: 32px; }
+.disk-actions { display: flex; justify-content: flex-end; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
 .usage-game { background: var(--accent); }
 .usage-emulator { background: var(--info); }
 .usage-port { background: var(--have); }
@@ -287,7 +299,3 @@ a.ot-btn, a.chip { text-decoration: none; }
 .usage-system { background: var(--danger); }
 .usage-other { background: var(--ink-muted); }
 .usage-free { background: var(--surface-raised); border: 1px solid var(--line); }
-.disk-items { border: 0; border-top: 1px solid var(--line); margin: 0; padding: var(--space-2) 0 0; display: flex; flex-direction: column; }
-.disk-items legend { font-weight: 600; padding: 0 var(--space-1) 0 0; }
-.disk-item { display: flex; align-items: center; gap: var(--space-2); padding: 2px 0; cursor: pointer; }
-.disk-item .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

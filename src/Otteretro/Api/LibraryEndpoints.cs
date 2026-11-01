@@ -138,6 +138,15 @@ public static class LibraryEndpoints
         });
 
         // Reconectar: en la ruta que indicas (su marcador tiene que ser el de esta biblioteca) o buscando en los discos.
+        // «⋯ › Abrir carpeta» de un disco (#169): su raíz en el explorador del sistema.
+        api.MapPost("/locations/{id}/open", Results<Ok, NotFound, Conflict<ApiError>> (string id, AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            if (Library.Get(db, id) is not { } l) return TypedResults.NotFound();
+            if (!Directory.Exists(l.Path)) return TypedResults.Conflict(ApiError.Of("library.notConnected"));
+            return Endpoints.Open(l.Path) ? TypedResults.Ok() : TypedResults.Conflict(ApiError.Of("link.openFailed"));
+        });
+
         api.MapPost("/locations/{id}/reconnect", Results<Ok<List<LibraryInfo>>, BadRequest<ApiError>, NotFound, Conflict<ApiError>> (string id, ReconnectRequest request, AppSession s) =>
         {
             if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();

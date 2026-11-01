@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { useRef, useState } from "react";
-import { DataFolderSettings } from "@/components/DataFolder";
+import { DataMoveStatus, UseOtherFolder, useMove, useMoveData } from "@/components/DataFolder";
 import { request } from "@/lib/client";
 import { gb, size } from "@/lib/format";
 import { useDescribeError } from "@/lib/i18n";
@@ -19,18 +19,21 @@ export type LocationType = (typeof TYPES)[number];
 
 const post = (body: unknown) => ({ method: "POST", body: JSON.stringify(body) });
 
+/** La fila de los datos de la app en la tabla del disco ★ (#169): se marca y se mueve como lo demás. */
+const DATA = ":data"; // «:» no va en una ruta de Windows: no choca con nada del disco
+
 /**
- * Ajustes › Almacenamiento (#201 a #205), como el de Steam: los discos arriba, el uso del elegido por tipo y lo que tiene, para
- * marcar y mover a otro disco. Solo se eligen discos; las carpetas las arma la app.
+ * Ajustes › Almacenamiento, con la distribución de Steam (#169): arriba el disco elegido con «+» y «⋯», al medio su uso por
+ * tipo y abajo lo que tiene, para marcar y mover a otro disco. Solo se eligen discos; las carpetas las arma la app.
  */
 export function StorageSettings() {
   const t = useTranslations("libraries");
   const describe = useDescribeError();
+  const locale = useLocale();
   const locations = useQuery({ ...librariesQuery, refetchInterval: (q) => (q.state.data?.some((l) => !l.connected) ? 10_000 : false) });
   const disks = (locations.data ?? []).filter((l) => l.type === "disk");
   const [picked, setPicked] = useState<string | null>(null);
-  const dialog = useRef<HTMLDialogElement>(null);
-  const locale = useLocale();
+  const addDialog = useRef<HTMLDialogElement>(null);
   const current = disks.find((d) => d.id === picked) ?? disks.find((d) => d.default) ?? disks[0];
   const label = (d: LibraryInfo) => `${d.name}${d.default ? " ★" : ""} — ${!d.connected ? t("disconnected")
     : d.free != null && d.total != null ? t("free", { free: gb(d.free, locale), total: gb(d.total, locale) }) : d.path}`;
@@ -39,19 +42,73 @@ export function StorageSettings() {
     <div className="settings-blocks">
       {locations.isError && <p className="error small" role="alert">{describe(locations.error)}</p>}
       <Migration />
-      {/* Como Steam (#209): el disco elegido arriba y «+» para sumar otro. */}
       <div className="disk-select">
         <label className="sr-only" htmlFor="disk">{t("disk")}</label>
         <select id="disk" value={current?.id ?? ""} onChange={(e) => setPicked(e.target.value)} disabled={disks.length === 0}>
           {disks.map((d) => <option key={d.id} value={d.id}>{label(d)}</option>)}
         </select>
-        <button className="ot-btn" type="button" aria-label={t("addDisk")} title={t("addDisk")} onClick={() => dialog.current?.showModal()}>+</button>
+        <button className="ot-btn" type="button" aria-label={t("addDisk")} title={t("addDisk")} onClick={() => addDialog.current?.showModal()}>+</button>
+        {current && <DiskMenu key={current.id} disk={current} onRemoved={() => setPicked(null)} />}
       </div>
-      <dialog ref={dialog} className="ot-dialog" aria-labelledby="add-disk">
-        <AddDisk disks={disks} onDone={(id) => { setPicked(id); dialog.current?.close(); }} onCancel={() => dialog.current?.close()} />
+      <dialog ref={addDialog} className="ot-dialog" aria-labelledby="add-disk">
+        <AddDisk disks={disks} onDone={(id) => { setPicked(id); addDialog.current?.close(); }} onCancel={() => addDialog.current?.close()} />
       </dialog>
+      <DataMoveStatus />
       {current && <DiskPanel key={current.id} disk={current} others={disks.filter((d) => d.id !== current.id && d.connected)} />}
     </div>
+  );
+}
+
+/** «⋯» del disco elegido (#169), como en Steam: abrir su carpeta, reconectar, usar otra carpeta de datos (★) o quitarlo. */
+function DiskMenu({ disk, onRemoved }: { disk: LibraryInfo; onRemoved: () => void }) {
+  const t = useTranslations("libraries");
+  const describe = useDescribeError();
+  const cache = useQueryClient();
+  const menu = useRef<HTMLDetailsElement>(null);
+  const removeDialog = useRef<HTMLDialogElement>(null);
+  const useDialog = useRef<HTMLDialogElement>(null);
+  const action = useMutation({
+    mutationFn: async (kind: "open" | "reconnect" | "remove") => {
+      switch (kind) {
+        case "open": await request(`/api/locations/${disk.id}/open`, { method: "POST" }); return null;
+        case "reconnect": return request<LibraryInfo[]>(`/api/locations/${disk.id}/reconnect`, post({ path: null }));
+        case "remove": return request<LibraryInfo[]>(`/api/locations/${disk.id}`, { method: "DELETE" });
+      }
+    },
+    onSuccess: (list, kind) => {
+      if (list) cache.setQueryData(["libraries"], list);
+      if (kind === "remove") { removeDialog.current?.close(); onRemoved(); }
+    },
+  });
+  const run = (f: () => void) => () => { if (menu.current) menu.current.open = false; f(); };
+  return (
+    <>
+      <details ref={menu} className="ot-menu">
+        <summary className="ot-btn" aria-label={t("moreActions")} title={t("moreActions")}>⋯</summary>
+        <div className="ot-menu-list" role="menu">
+          <button type="button" role="menuitem" disabled={!disk.connected} onClick={run(() => action.mutate("open"))}>{t("openFolder")}</button>
+          {!disk.connected && <button type="button" role="menuitem" onClick={run(() => action.mutate("reconnect"))}>{t("reconnect")}</button>}
+          {disk.default && <button type="button" role="menuitem" onClick={run(() => useDialog.current?.showModal())}>{t("useOtherData")}</button>}
+          {!disk.default && <button type="button" role="menuitem" onClick={run(() => removeDialog.current?.showModal())}>{t("removeDisk")}</button>}
+        </div>
+      </details>
+      {action.isError && action.variables !== "remove" && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(action.error)}</p>}
+      <dialog ref={removeDialog} className="ot-dialog" aria-label={t("removeDisk")}>
+        <section className="settings-blocks">
+          <p className="small" style={{ margin: 0 }}>{t("removeHelp", { name: disk.name })}</p>
+          {action.isError && action.variables === "remove" && <p className="error small" style={{ margin: 0 }}>{describe(action.error)}</p>}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="ot-btn" type="button" onClick={() => removeDialog.current?.close()}>{t("cancel")}</button>
+            <button className="ot-btn ot-btn-primary" type="button" disabled={action.isPending} onClick={() => action.mutate("remove")}>{t("removeConfirm")}</button>
+          </div>
+        </section>
+      </dialog>
+      {disk.default && (
+        <dialog ref={useDialog} className="ot-dialog" aria-labelledby="use-folder">
+          <UseOtherFolder onDone={() => useDialog.current?.close()} />
+        </dialog>
+      )}
+    </>
   );
 }
 
@@ -122,117 +179,114 @@ function AddDisk({ disks, onDone, onCancel }: { disks: LibraryInfo[]; onDone: (i
   );
 }
 
-/** Un disco: su uso por tipo, lo que tiene (para marcar y mover a otro) y hacerlo predeterminado, reconectarlo o quitarlo. */
+/**
+ * El disco elegido, como en Steam (#169): su espacio libre, la barra de uso por tipo y una tabla con lo que tiene. Se marca y
+ * se mueve a otro disco; en el ★, la primera fila son los datos de la app, que se mueven solos (con su progreso y el ★).
+ */
 function DiskPanel({ disk, others }: { disk: LibraryInfo; others: LibraryInfo[] }) {
   const t = useTranslations("libraries");
   const locale = useLocale();
   const describe = useDescribeError();
   const cache = useQueryClient();
   const items = useQuery({ queryKey: ["libraries", "contents", disk.id], queryFn: () => request<DiskItem[]>(`/api/disks/${disk.id}/contents`), enabled: disk.connected });
+  const dataUse = Number(useQuery({ queryKey: ["folder"], queryFn: () => request<FolderInfo>("/api/data-folder"), enabled: disk.default }).data?.used ?? 0);
+  const moving = useMove()?.running ?? false;
   const [marked, setMarked] = useState<string[]>([]);
   const [to, setTo] = useState("");
-  const [removing, setRemoving] = useState(false);
-  const target = to || others[0]?.id;
-  const done = () => {
-    cache.invalidateQueries({ queryKey: ["tasks"] });
-    cache.invalidateQueries({ queryKey: ["tools"] });
-  };
-  const action = useMutation({
-    mutationFn: async (kind: "reconnect" | "remove" | "move") => {
-      switch (kind) {
-        case "reconnect": return request<LibraryInfo[]>(`/api/locations/${disk.id}/reconnect`, post({ path: null }));
-        case "remove": return request<LibraryInfo[]>(`/api/locations/${disk.id}`, { method: "DELETE" });
-        case "move": await request<number[]>(`/api/disks/${disk.id}/move`, post({ items: marked, toLocation: target })); setMarked([]); return null;
-      }
+  const target = others.find((d) => d.id === to) ?? others[0];
+  const moveData = useMoveData();
+  const move = useMutation({
+    mutationFn: () => request<number[]>(`/api/disks/${disk.id}/move`, post({ items: marked, toLocation: target?.id })),
+    onSuccess: () => {
+      setMarked([]);
+      cache.invalidateQueries({ queryKey: ["tasks"] });
+      cache.invalidateQueries({ queryKey: ["tools"] });
     },
-    onSuccess: (list) => { if (list) cache.setQueryData(["libraries"], list); setRemoving(false); done(); },
   });
+  const submit = () => {
+    if (marked.includes(DATA)) moveData.mutate({ path: target!.path }, { onSuccess: () => setMarked([]) });
+    else move.mutate();
+  };
+  const error = move.error ?? moveData.error;
 
-  // En el disco ★ están los datos de la app (#208): su peso es un segmento más de la barra.
-  const data = Number(useQuery({ queryKey: ["folder"], queryFn: () => request<FolderInfo>("/api/data-folder"), enabled: disk.default }).data?.used ?? 0);
-  const dataUse = disk.default ? data : 0;
   const all = items.data ?? [];
   const used = (type: string) => all.filter((i) => i.type === type).reduce((s, i) => s + Number(i.size), 0);
   const total = Number(disk.total ?? 0);
-  const ours = TYPES.reduce((s, type) => s + used(type), 0);
-  const other = Math.max(0, total - Number(disk.free ?? 0) - ours - dataUse);
+  const free = Number(disk.free ?? 0);
+  const ours = TYPES.reduce((s, type) => s + used(type), 0) + (disk.default ? dataUse : 0);
+  const other = Math.max(0, total - free - ours);
   const share = (n: number) => (total > 0 ? `${(n * 100) / total}%` : "0");
-  const toggle = (relative: string) => setMarked((m) => (m.includes(relative) ? m.filter((x) => x !== relative) : [...m, relative]));
+  // Los datos se mueven solos: marcarlos desmarca lo demás, y al revés.
+  const toggle = (id: string) => setMarked((m) => m.includes(id) ? m.filter((x) => x !== id) : id === DATA ? [DATA] : [...m.filter((x) => x !== DATA), id]);
+  const segments = [
+    ...TYPES.map((type) => ({ key: type, label: t(`type.${type}.title`), value: used(type) })),
+    ...(disk.default ? [{ key: "data", label: t("dataUse"), value: dataUse }] : []),
+  ].filter((s) => s.value > 0);
+  const rows = [
+    ...(disk.default ? [{ id: DATA, name: t("appData"), type: t("appType"), size: dataUse }] : []),
+    ...all.map((i) => ({ id: i.relative, name: `${i.group} · ${i.name}`, type: t(`type.${i.type as LocationType}.title`), size: Number(i.size) })),
+  ];
 
   return (
-    <section className="panel" aria-labelledby="disk-title">
+    <section className="panel disk-panel" aria-labelledby="disk-title">
       <div className="version-row">
-        <div className="grow">
-          <h2 id="disk-title" style={{ margin: 0 }}>{disk.name}{disk.default && " ★"}</h2>
-          <span className="folder-path">{disk.path}</span>
-        </div>
-        <span style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {disk.kind === "network" && <span className="ot-badge">{t("network")}</span>}
-          <span className={`ot-badge ${disk.connected ? "ot-badge-have" : "ot-badge-danger"}`}>{disk.connected ? t("connected") : t("disconnected")}</span>
-        </span>
+        <h2 id="disk-title" className="grow" style={{ margin: 0 }}>{disk.name}{disk.default && " ★"}</h2>
+        {disk.kind === "network" && <span className="ot-badge">{t("network")}</span>}
+        {!disk.connected && <span className="ot-badge ot-badge-danger">{t("disconnected")}</span>}
+        {disk.connected && total > 0 && <span className="small muted">{t("free", { free: gb(free, locale), total: gb(total, locale) })}</span>}
       </div>
-      <div className="sentence">
-        {!disk.connected && <button className="ot-btn ot-btn-sm ot-btn-primary" type="button" disabled={action.isPending} onClick={() => action.mutate("reconnect")}>{t("reconnect")}</button>}
-        {!disk.default && <button className="ot-btn ot-btn-sm ot-btn-ghost" type="button" onClick={() => setRemoving(true)}>{t("remove")}</button>}
-      </div>
-      {disk.default && <p className="small muted" style={{ margin: 0 }}>{t("defaultHelp")}</p>}
-      {disk.default && <DataFolderSettings disks={others} />}
-      {removing && (
-        <div className="form-block" role="alertdialog" aria-label={t("remove")}>
-          <p className="small" style={{ margin: 0 }}>{t("removeHelp", { name: disk.name })}</p>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="ot-btn" type="button" onClick={() => setRemoving(false)}>{t("cancel")}</button>
-            <button className="ot-btn ot-btn-primary" type="button" disabled={action.isPending} onClick={() => action.mutate("remove")}>{t("removeConfirm")}</button>
-          </div>
-        </div>
-      )}
 
       {disk.connected && total > 0 && (
         <>
           <div className="usage-bar" role="img" aria-label={t("usage")}>
-            {TYPES.map((type) => <span key={type} className={`usage-${type}`} style={{ width: share(used(type)) }} />)}
-            {disk.default && <span className="usage-data" style={{ width: share(dataUse) }} />}
+            {segments.map((s) => <span key={s.key} className={`usage-${s.key}`} style={{ width: share(s.value) }} />)}
             <span className="usage-other" style={{ width: share(other) }} />
           </div>
           <ul className="usage-legend small">
-            {TYPES.map((type) => <li key={type}><i className={`usage-${type}`} />{t(`type.${type}.title`)}: {size(used(type), locale)}</li>)}
-            {disk.default && <li><i className="usage-data" />{t("dataUse")}: {size(dataUse, locale)}</li>}
-            <li><i className="usage-other" />{t("otherUse")}: {gb(other, locale)}</li>
-            <li><i className="usage-free" />{t("freeSpace")}: {gb(disk.free ?? 0, locale)}</li>
+            {segments.map((s) => <li key={s.key}><i className={`usage-${s.key}`} />{s.label} <b>{size(s.value, locale)}</b></li>)}
+            <li><i className="usage-other" />{t("otherUse")} <b>{gb(other, locale)}</b></li>
+            <li><i className="usage-free" />{t("freeSpace")} <b>{gb(free, locale)}</b></li>
           </ul>
         </>
       )}
 
       {items.isError && <p className="error small" style={{ margin: 0 }}>{describe(items.error)}</p>}
-      {items.data && all.length === 0 && <p className="missing small">{t("diskEmpty")}</p>}
-      {TYPES.filter((type) => all.some((i) => i.type === type)).map((type) => (
-        <fieldset key={type} className="disk-items">
-          <legend>{t(`type.${type}.title`)}</legend>
-          {all.filter((i) => i.type === type).map((i) => (
-            <label key={i.relative} className="disk-item small">
-              <input type="checkbox" checked={marked.includes(i.relative)} onChange={() => toggle(i.relative)} />
-              <span className="grow">{i.name} <span className="muted">· {i.group}</span></span>
-              <span className="muted">{size(i.size, locale)}</span>
-            </label>
-          ))}
-        </fieldset>
-      ))}
+      {disk.connected && (
+        <div className="table-wrap">
+          <table className="t disk-table">
+            <thead>
+              <tr><th aria-hidden="true" /><th>{t("colName")}</th><th>{t("colType")}</th><th className="num">{t("colSize")}</th></tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id} className={marked.includes(r.id) ? "is-marked" : undefined} onClick={() => toggle(r.id)}>
+                  <td><input type="checkbox" aria-label={r.name} checked={marked.includes(r.id)} onChange={() => toggle(r.id)} onClick={(e) => e.stopPropagation()} /></td>
+                  <td>{r.name}</td>
+                  <td className="muted">{r.type}</td>
+                  <td className="num">{size(r.size, locale)}</td>
+                </tr>
+              ))}
+              {items.data && rows.length === 0 && <tr><td colSpan={4} className="missing small">{t("diskEmpty")}</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-      {all.length > 0 && (
-        <div className="sentence">
+      {rows.length > 0 && (
+        <div className="disk-actions">
           {others.length === 0 ? <span className="small muted">{t("noOtherDisk")}</span> : (
             <>
               <label className="small muted" htmlFor={`to-${disk.id}`}>{t("moveTo", { count: marked.length })}</label>
-              <select id={`to-${disk.id}`} value={target} onChange={(e) => setTo(e.target.value)}>
+              <select id={`to-${disk.id}`} value={target?.id} onChange={(e) => setTo(e.target.value)}>
                 {others.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
-              <button className="ot-btn ot-btn-sm ot-btn-primary" type="button" disabled={marked.length === 0 || action.isPending} onClick={() => action.mutate("move")}>{t("move")}</button>
+              <button className="ot-btn ot-btn-primary" type="button" disabled={marked.length === 0 || move.isPending || moveData.isPending || moving} onClick={submit}>{t("move")}</button>
             </>
           )}
         </div>
       )}
-      {action.isSuccess && action.variables === "move" && <p className="small muted" role="status" style={{ margin: 0 }}>{t("queued")}</p>}
-      {action.isError && <p className="error small" style={{ margin: 0 }}>{describe(action.error)}</p>}
+      {move.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("queued")}</p>}
+      {error && <p className="error small" style={{ margin: 0 }}>{describe(error)}</p>}
     </section>
   );
 }

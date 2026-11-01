@@ -187,7 +187,8 @@ test("Ajustes › Almacenamiento como Steam: discos, uso por tipo, mover lo marc
   // #208: el disco ★ es el de la carpeta de datos, se registró solo y se abre primero con sus datos.
   const picker = page.getByLabel(en.libraries.disk, { exact: true });
   await expect(picker.locator("option:checked")).toContainText("★");
-  await expect(page.getByText(en.dataFolder.title, { exact: true })).toBeVisible();
+  // #169: como Steam, los datos de la app son una fila más de la tabla.
+  await expect(page.getByRole("checkbox", { name: en.libraries.appData })).toBeVisible();
   await expect(page.locator(".usage-legend").getByText(en.libraries.dataUse, { exact: false })).toBeVisible();
   await expectNoRawKeys();
   await expectTextFits();
@@ -204,9 +205,12 @@ test("Ajustes › Almacenamiento como Steam: discos, uso por tipo, mover lo marc
   await expect.poll(() => existsSync(join(b, "Juegos", "Switch", "Zelda", "juego.nsp")), { timeout: 15_000 }).toBe(true);
   // Quitar avisa que no borra nada; el marcador sigue en la carpeta.
   await pick("Disco B");
-  await page.getByRole("button", { name: en.libraries.remove, exact: true }).click();
-  await expect(page.getByText(en.libraries.removeHelp.replace("{name}", "Disco B"))).toBeVisible();
-  await page.getByRole("button", { name: en.libraries.removeConfirm }).click();
+  await page.locator(".ot-menu summary").click();
+  await page.screenshot({ path: "e2e-results/7c-disk-menu-en.png" });
+  await page.getByRole("menuitem", { name: en.libraries.removeDisk }).click();
+  const remove = page.getByRole("dialog", { name: en.libraries.removeDisk });
+  await expect(remove.getByText(en.libraries.removeHelp.replace("{name}", "Disco B"))).toBeVisible();
+  await remove.getByRole("button", { name: en.libraries.removeConfirm }).click();
   await expect(picker.locator("option", { hasText: "Disco B" })).toHaveCount(0);
   expect(existsSync(join(b, "otteretro-ubicacion.json"))).toBe(true);
   // «+» abre la ventanita con las unidades (sin tocarlas).
@@ -299,14 +303,14 @@ test("Ajustes en inglés: carpeta, idioma y actualización", async () => {
   await expect(page.getByRole("heading", { level: 1, name: en.nav.settings })).toBeVisible();
   // #97: pestañas, una sección a la vez; sin ?s= abre la primera.
   await expect(page.getByRole("tab", { name: en.settings.storage })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByText(dataDir("data"))).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: en.libraries.appData })).toBeVisible();
   await expect(page.getByRole("button", { name: en.update.check })).toHaveCount(0);
   await page.getByRole("tab", { name: en.settings.storage }).focus();
   await page.keyboard.press("End");
   await expect(page).toHaveURL(/\?s=general$/);
   await expect(page.getByRole("tab", { name: en.settings.general })).toHaveAttribute("aria-selected", "true");
   await page.goBack();
-  await expect(page.getByText(dataDir("data"))).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: en.libraries.appData })).toBeVisible();
   // #98: cambiar a una pestaña corta no cambia el ancho (la barra de scroll tiene su lugar reservado).
   const tabsWidth = async () => (await page.getByRole("tablist").boundingBox())!.width;
   const wide = await tabsWidth();
@@ -368,16 +372,19 @@ test("llevar los datos a otro disco muestra el progreso y el resultado traducido
   mkdirSync(join(dataDir("moved"), "Juegos", "GBA"), { recursive: true });
   writeFileSync(join(dataDir("moved"), "Juegos", "GBA", "metroid.gba"), "juego");
   await page.getByRole("tab", { name: en.settings.storage }).click();
-  // #111: «Abrir carpeta» a la vista (no se toca: abriría el explorador) y «Usar otra carpeta» como enlace.
-  await expect(page.getByRole("button", { name: en.dataFolder.open })).toBeVisible();
-  await expect(page.getByRole("button", { name: en.dataFolder.useButton })).toBeVisible();
-  await page.getByRole("button", { name: en.dataFolder.moveButton }).click();
-  await page.getByLabel(en.dataFolder.toDisk, { exact: true }).selectOption({ label: "Moved" });
-  await page.getByRole("button", { name: en.dataFolder.move, exact: true }).click();
-  await expect(page.getByText(en.dataFolder.moved, { exact: true })).toBeVisible({ timeout: 15_000 });
+  // «⋯» del disco ★: abrir carpeta (no se toca: abriría el explorador) y usar otra carpeta de datos.
+  await page.locator(".ot-menu summary").click();
+  await expect(page.getByRole("menuitem", { name: en.libraries.openFolder })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: en.libraries.useOtherData })).toBeVisible();
+  await page.locator(".ot-menu summary").click();
+  // #169: se marca la fila de los datos y se mueve como lo demás.
+  await page.getByRole("checkbox", { name: en.libraries.appData }).check();
+  await page.getByLabel(en.libraries.moveTo.replace(/\{count.*\}\}/, "1 item"), { exact: true }).selectOption({ label: "Moved" });
+  await page.locator(".panel").getByRole("button", { name: en.libraries.move, exact: true }).click();
+  await expect(page.locator(".result").getByText(en.dataFolder.moved, { exact: true })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(dataDir("moved")).first()).toBeVisible();
   await page.getByRole("button", { name: en.dataFolder.dismiss }).click();
-  await expect(page.getByText(en.dataFolder.moved, { exact: true })).toHaveCount(0);
+  await expect(page.locator(".result").getByText(en.dataFolder.moved, { exact: true })).toHaveCount(0);
   // Ahora el ★ es ese disco, y el juego que ya tenía sigue ahí.
   await expect(page.getByLabel(en.libraries.disk, { exact: true }).locator("option:checked")).toContainText("Moved ★");
   const { existsSync } = await import("node:fs");

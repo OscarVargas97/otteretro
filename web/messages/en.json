@@ -219,19 +219,12 @@
     "storage": "Storage"
   },
   "dataFolder": {
-    "open": "Open folder",
     "dismiss": "Dismiss",
-    "usage": "Uses {used}",
-    "usageMeasuring": "Measuring its size",
-    "moveButton": "Take to another drive…",
     "useButton": "Use another folder",
-    "contents": "database, catalog with its images and log",
-    "moveHelp": "Only the app data (database, catalog and log) is copied to that drive's Otteretro folder, every file is checked, and only then is it deleted here. Your games and tools stay where they are. That drive becomes the ★ one.",
     "useHelp": "The app will start using that folder (for example, one you bring from another PC). The current one is not moved or deleted. If the chosen folder is empty, you will start from scratch.",
     "folderLabel": "Folder",
     "placeholder": "For example E:\\Otteretro",
     "cancel": "Cancel",
-    "move": "Move",
     "useThis": "Use this folder",
     "progress": "{step} to {destination}",
     "dontClose": "Do not close the app until it finishes.",
@@ -240,9 +233,7 @@
     "error": "Error",
     "taskTitle": "Move the data folder",
     "taskDone": "Done",
-    "taskNowIn": "Now in {destination}",
-    "title": "App data",
-    "toDisk": "Destination drive"
+    "taskNowIn": "Now in {destination}"
   },
   "move": {
     "step": {
@@ -849,7 +840,6 @@
     "cancel": "Cancel",
     "free": "{free} free of {total}",
     "network": "Network",
-    "connected": "Connected",
     "disconnected": "Disconnected",
     "migrationStarted": "The migration is in the tasks panel. You can keep using the app meanwhile.",
     "queued": "It is in the tasks panel.",
@@ -877,10 +867,8 @@
     },
     "addDisk": "+ Add drive",
     "addDiskHelp": "Pick a drive: Otteretro creates an Otteretro folder on it with Juegos, Emuladores, Ports, Complementos and Sistema. One per drive.",
-    "noDisks": "No drives yet. Add one to keep games and tools.",
     "noDrives": "Every drive is already added.",
     "add": "Add",
-    "defaultHelp": "The ★ drive holds the app data: new things and Herramientas go here. It changes if you take the data to another drive.",
     "usage": "Drive usage by type",
     "otherUse": "Other files",
     "freeSpace": "Free",
@@ -895,7 +883,16 @@
       "run": "Move to the standard layout"
     },
     "disk": "Drive",
-    "dataUse": "App data"
+    "dataUse": "App data",
+    "moreActions": "More drive options",
+    "openFolder": "Open folder",
+    "useOtherData": "Use another data folder…",
+    "removeDisk": "Remove drive…",
+    "colName": "Name",
+    "colType": "Type",
+    "colSize": "Size",
+    "appData": "Otteretro data",
+    "appType": "App"
   },
   "tools": {
     "emptyTitle": "No emulators or ports yet",
