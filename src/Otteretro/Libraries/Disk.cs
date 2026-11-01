@@ -312,6 +312,34 @@ public static class Disk
         return marker.Id;
     }
 
+    /// <summary>
+    /// Quitar un juego del disco (#224, §5.3): manda a la papelera los archivos (o la carpeta, en un juego de PC suelto) de esas
+    /// filas de <c>source</c> y las borra, así deja de contar como «lo tengo». Las carpetas que quedan vacías se quitan. Qué se
+    /// quita lo elige quien llama: sus UPD y DLC solo si se marcaron (P7). Se detiene en el primer error.
+    /// </summary>
+    public static ApiError? TrashSources(Database db, IReadOnlyCollection<long> ids)
+    {
+        if (ids.Count == 0) return ApiError.Of("source.nothingMarked");
+        using var c = db.Open();
+        var rows = c.Query<(long Id, string LibraryId, string Relative)>(
+            "SELECT id, library_id, relative_path FROM source WHERE kind = 'file' AND id IN @ids", new { ids }).ToList();
+        if (rows.Count != ids.Count) return ApiError.Of("source.notFound");
+        foreach (var (id, libraryId, relative) in rows)
+        {
+            if (Get(db, libraryId) is not { Connected: true } disk) return ApiError.Of("library.notConnected");
+            var full = Path.Combine(disk.Path, relative);
+            if (Path.Exists(full) && App.Trash.Send(full) is { } error) return error;
+            c.Execute("DELETE FROM source WHERE id = @id", new { id });
+            // Las carpetas del juego que quedaron vacías, hasta la de la consola (Juegos\<Consola>), que se queda.
+            var games = FolderOf(disk, "game") ?? disk.Path;
+            for (var dir = Path.GetDirectoryName(full); dir is not null && Inside(dir, games) && Path.GetDirectoryName(dir) is { } parent && !Same(parent, games);
+                 dir = parent)
+                if (Directory.Exists(dir) && !Directory.EnumerateFileSystemEntries(dir).Any()) Directory.Delete(dir);
+                else break;
+        }
+        return null;
+    }
+
     public static string Normalize(string path) => Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
 
     static readonly StringComparison PathCase = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;

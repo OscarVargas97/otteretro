@@ -484,7 +484,14 @@
       "noVersion": "That game has no version on the file's console."
     },
     "source": {
-      "badExecutable": "That executable is not in the game's folder."
+      "badExecutable": "That executable is not in the game's folder.",
+      "nothingMarked": "You did not mark anything to remove.",
+      "notFound": "One of the files is no longer registered: open the game again."
+    },
+    "trash": {
+      "unsupported": "Sending to the recycle bin is not available on this system yet.",
+      "unavailable": "{path} is on a drive without a recycle bin (network or removable): remove it by hand if you want to delete it.",
+      "failed": "Could not send {path} to the recycle bin."
     }
   },
   "credentials": {
@@ -783,7 +790,11 @@
       "notVerified": "Not verified",
       "verify": "Verify",
       "verifyQueued": "Verifying: follow it in the tasks panel.",
-      "executable": "Executable"
+      "executable": "Executable",
+      "remove": "Remove from disk",
+      "removeHint": "What you mark goes to the recycle bin and stops counting as owned. Updates and DLC only go if you mark them.",
+      "removeConfirm": "Send to recycle bin ({count})",
+      "removeCancel": "Cancel"
     },
     "search": {
       "sagas": "Series",

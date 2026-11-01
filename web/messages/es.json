@@ -484,7 +484,14 @@
       "noVersion": "Ese juego no tiene versión en la consola del archivo."
     },
     "source": {
-      "badExecutable": "Ese ejecutable no está en la carpeta del juego."
+      "badExecutable": "Ese ejecutable no está en la carpeta del juego.",
+      "nothingMarked": "No marcaste nada para quitar.",
+      "notFound": "Uno de los archivos ya no está registrado: vuelve a abrir la ficha."
+    },
+    "trash": {
+      "unsupported": "En este sistema todavía no se puede mandar a la papelera.",
+      "unavailable": "{path} está en un disco sin papelera (de red o extraíble): quítalo a mano si quieres borrarlo.",
+      "failed": "No se pudo mandar {path} a la papelera."
     }
   },
   "credentials": {
@@ -783,7 +790,11 @@
       "notVerified": "Sin verificar",
       "verify": "Verificar",
       "verifyQueued": "Verificando: míralo en el panel de tareas.",
-      "executable": "Ejecutable"
+      "executable": "Ejecutable",
+      "remove": "Quitar del disco",
+      "removeHint": "Lo marcado va a la papelera y deja de contar como «lo tengo». Las actualizaciones y DLC solo se van si los marcas.",
+      "removeConfirm": "Mandar a la papelera ({count})",
+      "removeCancel": "Cancelar"
     },
     "search": {
       "sagas": "Sagas",

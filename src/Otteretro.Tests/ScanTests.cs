@@ -145,6 +145,41 @@ public class ScanTests
         Assert.Equal(18, c2.ExecuteScalar<long>("SELECT version_id FROM source"));
     }
 
+    /// <summary>#224: quitar un juego manda a la papelera solo lo marcado (el UPD se queda si no se marca) y deja de contar como «lo tengo».</summary>
+    [Fact]
+    public async Task RemovingAGameSendsOnlyWhatIsMarkedToTheTrash()
+    {
+        await using var f = new Fixture();
+        Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
+        var zelda = f.Tmp[@"e\Otteretro\Juegos\Switch\Zelda"];
+        Directory.CreateDirectory(zelda);
+        File.WriteAllText(Path.Combine(zelda, "Zelda [01006BB00C6F0000][v0].nsp"), "base");
+        File.WriteAllText(Path.Combine(zelda, "Zelda [01006BB00C6F0800][v196608].nsp"), "upd");
+        Assert.Equal("done", (await f.Run(Scan.Enqueue(f.Db))).Status);
+        List<(long Id, string Path, string Component)> rows;
+        using (var c = f.Db.Open())
+            rows = c.Query<(long, string, string)>("SELECT id, relative_path, component FROM source ORDER BY component").ToList();
+        var trashed = new List<string>();
+        App.Trash.Fake = path => { trashed.Add(path); File.Delete(path); return true; };
+        try
+        {
+            Assert.Equal("source.nothingMarked", Disk.TrashSources(f.Db, [])?.Code);
+            Assert.Equal("source.notFound", Disk.TrashSources(f.Db, [999])?.Code);
+
+            Assert.Null(Disk.TrashSources(f.Db, [rows.Single(r => r.Component == "BASE").Id]));
+            Assert.Equal(["Zelda [01006BB00C6F0000][v0].nsp"], trashed.Select(Path.GetFileName));
+            Assert.True(File.Exists(Path.Combine(zelda, "Zelda [01006BB00C6F0800][v196608].nsp"))); // el UPD no se marcó (P7)
+            using (var c = f.Db.Open()) Assert.Equal(["UPD"], c.Query<string>("SELECT component FROM source"));
+
+            // Con el UPD se va también la carpeta del juego, que quedó vacía; la de la consola se queda.
+            Assert.Null(Disk.TrashSources(f.Db, [rows.Single(r => r.Component == "UPD").Id]));
+            Assert.False(Directory.Exists(zelda));
+            Assert.True(Directory.Exists(f.Tmp[@"e\Otteretro\Juegos\Switch"]));
+            using (var c = f.Db.Open()) Assert.Equal(0, c.ExecuteScalar<long>("SELECT count(*) FROM source"));
+        }
+        finally { App.Trash.Fake = null; }
+    }
+
     /// <summary>#182: cada carpeta de `Juegos\PC` con un .exe es un juego de PC, con su ejecutable principal, que se puede cambiar.</summary>
     [Fact]
     public async Task LoosePcGamesCountAsOwned()

@@ -15,6 +15,8 @@ public record VerifyRequest(string? Console, long? GameId);
 
 /// <summary>El ejecutable de un juego de PC suelto, relativo a su carpeta (#182).</summary>
 public record ExecutableRequest(string Path);
+/// <param name="Ids">Las filas de <c>source</c> que se quitan del disco (#224).</param>
+public record TrashRequest(List<long> Ids);
 
 /// <summary>Pantallas del catálogo (F1.9): sagas, colección, ficha, seguimiento, búsqueda y avisos de Inicio.</summary>
 public static class CatalogEndpoints
@@ -96,6 +98,13 @@ public static class CatalogEndpoints
             : TypedResults.Ok(Libraries.Dats.EnqueueVerify(db, request.Console, request.GameId)));
 
         // Cambiar el ejecutable de un juego de PC suelto (#182): uno de los .exe de su carpeta.
+        // Quitar un juego del disco (#224): lo marcado va a la papelera y deja de contar como «lo tengo».
+        api.MapPost("/sources/trash", Results<Ok, BadRequest<ApiError>, Conflict<ApiError>> (TrashRequest request, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            return Libraries.Disk.TrashSources(db, request.Ids.Distinct().ToList()) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok();
+        });
+
         api.MapPut("/sources/{id:long}/executable", Results<Ok, BadRequest<ApiError>, NotFound, Conflict<ApiError>> (long id, ExecutableRequest request, AppSession s) =>
         {
             if (Db(s) is not { } db) return NoData();

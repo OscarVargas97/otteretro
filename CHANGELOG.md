@@ -13,6 +13,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **Revisar › Dudosas y Sin identificar** (#181): cada archivo con lo que propuso Claude. Confirmas o cambias el juego, o lo eliges con el buscador si nadie lo reconoció; tu elección queda como alias y el próximo escaneo ya lo reconoce. En Switch, lo que decides para el juego vale para sus actualizaciones y DLC. Los alias aparecen en Aprendizajes y se pueden deshacer.
 - **Juegos de PC sueltos** (#182): cada carpeta de `Juegos\PC` con un ejecutable cuenta como «lo tengo» de la versión de PC. Otteretro elige solo el ejecutable principal (el más grande, sin instaladores ni redistribuibles; si todos lo parecen, el más grande igual) y en la ficha puedes elegir otro.
 - **Colección se entera sola** (#189): al abrir la app se escanea, y mientras está abierta, si copias o borras un juego a mano en `Juegos\` de un disco, a los pocos segundos ya aparece (o desaparece) sin pulsar «Escanear».
+- **Quitar un juego del disco** (#190): en la ficha, «Quitar del disco» marca sus archivos (las actualizaciones y DLC vienen sin marcar) y los manda a la papelera, así puedes recuperarlos; deja de contar como «lo tengo». En un disco de red o una memoria extraíble, que no tienen papelera, no lo hace y te avisa.
 - La ficha de un juego muestra **dónde tienes sus archivos**, con BASE, UPD y DLC, tamaño y si están verificados.
 
 ### Cambios

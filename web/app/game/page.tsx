@@ -350,21 +350,54 @@ function Files({ gameId, files }: { gameId: number; files: (GameDetail["versions
     mutationFn: () => request<number>("/api/collection/verify", { method: "POST", body: JSON.stringify({ gameId }) }),
     onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
   });
+  // Quitar del disco (#224): lo marcado va a la papelera. UPD y DLC vienen sin marcar: solo se van si los marcas (P7).
+  const [marked, setMarked] = useState<Set<string> | null>(null);
+  const trash = useMutation({
+    mutationFn: (ids: string[]) => request<void>("/api/sources/trash", { method: "POST", body: JSON.stringify({ ids: ids.map(Number) }) }),
+    onSuccess: () => {
+      setMarked(null);
+      cache.invalidateQueries({ queryKey: ["game", String(gameId)] });
+      cache.invalidateQueries({ queryKey: ["collection"] });
+      cache.invalidateQueries({ queryKey: ["consoles"] });
+    },
+  });
+  const startRemoving = () => setMarked(new Set(files.filter((f) => f.component !== "UPD" && f.component !== "DLC").map((f) => String(f.id))));
+  const toggle = (id: string) => setMarked((m) => {
+    const next = new Set(m);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
   return (
     <section className="sec column">
       <div className="sec-h">
         <h2>{t("game.where")}</h2>
-        {verifiable && <button className="ot-btn ot-btn-sm" type="button" disabled={verify.isPending || verify.isSuccess} onClick={() => verify.mutate()}>{t("game.verify")}</button>}
+        <div className="hero-actions">
+          {verifiable && <button className="ot-btn ot-btn-sm" type="button" disabled={verify.isPending || verify.isSuccess} onClick={() => verify.mutate()}>{t("game.verify")}</button>}
+          {!marked && <button className="ot-btn ot-btn-sm" type="button" onClick={startRemoving}>{t("game.remove")}</button>}
+        </div>
       </div>
+      {marked && (
+        <div className="panel" role="group" aria-label={t("game.remove")} style={{ display: "grid", gap: 8 }}>
+          <p className="small" style={{ margin: 0 }}>{t("game.removeHint")}</p>
+          <div className="hero-actions">
+            <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" disabled={marked.size === 0 || trash.isPending} onClick={() => trash.mutate([...marked])}>
+              {t("game.removeConfirm", { count: marked.size })}
+            </button>
+            <button className="ot-btn ot-btn-sm" type="button" disabled={trash.isPending} onClick={() => setMarked(null)}>{t("game.removeCancel")}</button>
+          </div>
+        </div>
+      )}
+      {trash.isError && <p className="error small" role="alert">{describe(trash.error)}</p>}
       {verify.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("game.verifyQueued")}</p>}
       {verify.isError && <p className="error small" role="alert">{describe(verify.error)}</p>}
       {executable.isError && <p className="error small" role="alert">{describe(executable.error)}</p>}
       <div className="panel table-wrap" style={{ padding: 0 }}>
         <table className="t">
-          <thead><tr><th>{t("game.file")}</th><th>{t("game.version")}</th><th>{t("game.size")}</th><th>{t("game.verified")}</th></tr></thead>
+          <thead><tr>{marked && <th><span className="sr-only">{t("game.remove")}</span></th>}<th>{t("game.file")}</th><th>{t("game.version")}</th><th>{t("game.size")}</th><th>{t("game.verified")}</th></tr></thead>
           <tbody>
             {files.map((f) => (
               <tr key={f.id}>
+                {marked && <td><input type="checkbox" aria-label={f.path} checked={marked.has(String(f.id))} onChange={() => toggle(String(f.id))} /></td>}
                 <td>
                   <span className="folder-path">{f.path}</span>{f.component && <span className="ot-badge" style={{ marginLeft: 6 }}>{f.component}</span>}
                   {f.executable && (f.executables && f.executables.length > 1
