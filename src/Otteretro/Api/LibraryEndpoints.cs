@@ -130,6 +130,10 @@ public static class LibraryEndpoints
             return TypedResults.Ok(found);
         });
 
+        // Ajustes › Consolas (#190): en qué biblioteca están los juegos de cada consola.
+        api.MapGet("/libraries/consoles", Results<Ok<List<ConsoleFolder>>, Conflict<ApiError>> (AppSession s) =>
+            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Library.ConsoleFolders(db)) : CatalogEndpoints.NoData());
+
         api.MapGet("/tools", Results<Ok<List<ToolInfo>>, Conflict<ApiError>> (AppSession s) =>
             CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Recipes.Installed(LibraryTasks.ToolsOf(db))) : CatalogEndpoints.NoData());
     }

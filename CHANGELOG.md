@@ -4,12 +4,12 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.3.0 · Carpetas y herramientas · en desarrollo
 
-`fase/f3-carpetas` · F3 (#141): tus juegos y herramientas en la estructura definitiva antes de construir lo demás encima.
+`fase/f3-carpetas` · F3 (#141): tus juegos y herramientas en la estructura definitiva antes de construir lo demás encima · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
 
 ### Nuevo
-- **Bibliotecas**, en Ajustes › Bibliotecas: adopta la carpeta donde ya tienes tus juegos o crea una nueva en cualquier disco o en la red. Cada una muestra su espacio libre y si está conectada; se puede renombrar, mover y quitar (quitar nunca borra archivos). Si un disco cambia de letra o vuelve a conectarse, la biblioteca se encuentra sola.
+- **Bibliotecas de juegos**, en Ajustes › Bibliotecas de juegos: adopta la carpeta donde ya tienes tus juegos o crea una nueva en cualquier disco o en la red. Cada una muestra su espacio libre y si está conectada; se puede renombrar, mover y quitar (quitar nunca borra archivos). Si un disco cambia de letra o vuelve a conectarse, la biblioteca se encuentra sola.
 - **Adoptar `E:\Consolas` la ordena sola**: los juegos quedan en `Consola\Juego`, Dolphin, Ryujinx SS4K y Dusklight pasan a Herramientas con su versión, y las texturas y packs, a Complementos. Sus rutas internas se ponen al día, así que siguen encontrando tus juegos y partidas.
-- **Mover una biblioteca, una consola o un juego** a otro disco: se copia, se verifica cada archivo y recién entonces se borra el origen. Si se corta, sigue donde quedó. Las rutas de los emuladores se actualizan solas.
+- **Mover una biblioteca o una consola** a otro disco (la consola, desde Ajustes › Consolas, que dice en qué biblioteca están sus juegos): se copia, se verifica cada archivo y recién entonces se borra el origen. Si se corta, sigue donde quedó. Las rutas de los emuladores se actualizan solas.
 - **Herramientas** ya se abre: muestra cada emulador, port y complemento instalado con su versión.
 - **Paso 4 de la bienvenida**: encuentra la carpeta con la estructura antigua y ofrece adoptarla.
 

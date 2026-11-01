@@ -48,3 +48,4 @@ export type PlatformInfo = Schemas["PlatformInfo"];
 export type LibraryInfo = Schemas["LibraryInfo"];
 export type ToolInfo = Schemas["ToolInfo"];
 export type AdoptResult = Schemas["AdoptResult"];
+export type ConsoleFolder = Schemas["ConsoleFolder"];

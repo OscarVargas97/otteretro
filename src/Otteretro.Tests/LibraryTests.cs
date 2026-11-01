@@ -31,6 +31,22 @@ public class LibraryTests
     }
 
     [Fact]
+    public async Task FindsEachConsoleFolderByNameOrId()
+    {
+        await using var f = new Fixture();
+        var (a, _) = Library.Create(f.Db, f.Tmp["a"], null);
+        var (b, _) = Library.Create(f.Db, f.Tmp["b"], null);
+        Directory.CreateDirectory(f.Tmp[@"a\Switch"]);
+        Directory.CreateDirectory(f.Tmp[@"a\GC"]);
+        Directory.CreateDirectory(f.Tmp[@"a\_Entrada"]);
+        Directory.CreateDirectory(f.Tmp[@"b\switch"]);
+
+        var found = Library.ConsoleFolders(f.Db).Select(x => (x.Console, x.LibraryId, x.Relative)).OrderBy(x => x.Relative, StringComparer.Ordinal).ToList();
+
+        Assert.Equal([("gc", a!, "GC"), ("switch", a!, "Switch"), ("switch", b!, "switch")], found);
+    }
+
+    [Fact]
     public async Task RejectsOverlappingLibraries()
     {
         await using var f = new Fixture();

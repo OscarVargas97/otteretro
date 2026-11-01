@@ -70,7 +70,7 @@
       "welcome": "Welcome",
       "dataFolder": "Data folder",
       "backup": "Backup",
-      "libraries": "Libraries",
+      "libraries": "Game libraries",
       "steam": "Steam",
       "keys": "Keys",
       "initialLoad": "Initial load"
@@ -185,9 +185,17 @@
         "download": "Download covers",
         "running": "In progress",
         "noKey": "SteamGridDB key missing"
+      },
+      "location": {
+        "in": "Its games: {library}",
+        "move": "Move to another library",
+        "to": "To",
+        "cancel": "Cancel",
+        "confirm": "Move",
+        "queued": "it is in the tasks panel"
       }
     },
-    "libraries": "Libraries"
+    "libraries": "Game libraries"
   },
   "dataFolder": {
     "open": "Open folder",
@@ -793,11 +801,11 @@
     "progress": "{done} of {total} played"
   },
   "libraries": {
-    "emptyTitle": "No libraries yet",
+    "emptyTitle": "No game libraries yet",
     "emptyText": "Adopt the folder where your games already are, or create a new one on any drive.",
     "adopt": "Adopt a folder",
     "create": "Create a library",
-    "adoptHelp": "Registers a folder that already has games. If it has the old layout (Console\\Juegos, Emuladores, Ports), it is migrated to the new one: games end up in Console\\Game and emulators and ports move to Herramientas.",
+    "adoptHelp": "Registers a folder that already has games. If it has the old layout (Console\\Juegos) with emulators or ports mixed in, it sorts itself: games end up in Console\\Game and emulators and ports move to Herramientas, which is not a library.",
     "createHelp": "Choose an empty or new folder, on any drive or on the network (\\\\nas\\roms). Each console's folder is created when needed.",
     "path": "Folder",
     "pathPlaceholder": "For example E:\\Consoles",
@@ -821,13 +829,7 @@
     "moveHelp": "Choose an empty or new folder. It is copied, every file is verified, emulator paths are updated and only then is the source deleted. If interrupted, it resumes where it left off.",
     "remove": "Remove",
     "removeHelp": "“{name}” is removed from Otteretro. No file is deleted: you can adopt it again any time.",
-    "removeConfirm": "Remove without deleting",
-    "moveFolder": "Move a folder",
-    "moveFolderHelp": "A console or a game (for example Switch, or Switch\\Zelda) moves to another library or to another path in this one. It is copied, verified and only then is the source deleted; emulator paths are updated.",
-    "folder": "Folder inside the library",
-    "folderPlaceholder": "For example Switch",
-    "toLibrary": "Destination library",
-    "toRelative": "Path at the destination (optional: the same if left empty)"
+    "removeConfirm": "Remove without deleting"
   },
   "tools": {
     "emptyTitle": "No emulators or ports yet",

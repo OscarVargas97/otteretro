@@ -178,7 +178,7 @@ test("Ajustes › Bibliotecas: crear, ver y quitar sin borrar", async () => {
   expect(existsSync(join(folder, "otteretro-biblioteca.json"))).toBe(true);
 });
 
-test("Ajustes › Bibliotecas: mover una consola a otra biblioteca", async () => {
+test("Ajustes › Consolas: mover los juegos de una consola a otra biblioteca", async () => {
   const [a, b] = [dataDir("disco-a"), dataDir("disco-b")];
   mkdirSync(join(a, "Switch", "Zelda"), { recursive: true });
   writeFileSync(join(a, "Switch", "Zelda", "juego.nsp"), "contenido");
@@ -191,13 +191,14 @@ test("Ajustes › Bibliotecas: mover una consola a otra biblioteca", async () =>
     await page.locator(".form-block").getByRole("button", { name: en.libraries.create }).click();
     await expect(page.getByText(folder, { exact: true })).toBeVisible();
   }
-  const row = page.locator("section.panel", { hasText: "Disco A" });
-  await row.getByRole("button", { name: en.libraries.moveFolder }).click();
-  await row.getByLabel(en.libraries.folder).fill("Switch");
-  await row.getByLabel(en.libraries.toLibrary).selectOption({ label: "Disco B" });
+  // #190: se mueve desde Ajustes › Consolas, donde cada consola dice en qué biblioteca están sus juegos.
+  await page.goto(`${base()}/settings/?s=consoles`);
+  const loc = page.locator(".console-location", { hasText: en.settings.consoles.location.in.replace("{library}", "Disco A") });
+  await loc.getByRole("button", { name: en.settings.consoles.location.move }).click();
+  await loc.getByLabel(en.settings.consoles.location.to, { exact: true }).selectOption({ label: "Disco B" });
   await expectNoRawKeys();
-  await row.locator(".form-block").getByRole("button", { name: en.libraries.moveFolder }).click();
-  await expect(row.getByText(en.libraries.queued)).toBeVisible();
+  await loc.getByRole("button", { name: en.settings.consoles.location.confirm, exact: true }).click();
+  await expect(loc.getByText(en.settings.consoles.location.queued)).toBeVisible();
   const { existsSync } = await import("node:fs");
   await expect.poll(() => existsSync(join(b, "Switch", "Zelda", "juego.nsp")), { timeout: 15_000 }).toBe(true);
   await expect.poll(() => existsSync(join(a, "Switch")), { timeout: 15_000 }).toBe(false);
@@ -206,6 +207,7 @@ test("Ajustes › Bibliotecas: mover una consola a otra biblioteca", async () =>
   await page.getByRole("dialog", { name: en.topBar.tasksPanel }).getByRole("button", { name: en.tasks.clear }).click();
   await expect(page.getByText(en.topBar.noTasksTitle)).toBeVisible();
   await page.keyboard.press("Escape");
+  await page.goto(`${base()}/settings/?s=libraries`);
   for (const name of ["Disco A", "Disco B"]) {
     const r = page.locator("section.panel", { hasText: name });
     await r.getByRole("button", { name: en.libraries.remove, exact: true }).click();
