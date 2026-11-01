@@ -557,7 +557,9 @@
       "why": "Why this order",
       "sources": "Sources",
       "recommends": "Version: {platform}",
-      "progress": "{done} of {total}"
+      "progress": "{done} of {total}",
+      "moreActions": "More actions",
+      "progressLabel": "{done} of {total} played"
     },
     "collection": {
       "consoles": "Consoles",

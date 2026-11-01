@@ -494,10 +494,19 @@ test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha
   await page.goto(`${base()}/saga/?id=1`);
   await expect(page.getByText(es.catalog.saga.why)).toBeVisible();
   await expect(page.getByText("El de 3DS se ve mejor")).toBeVisible();
-  await page.getByRole("button", { name: es.catalog.route.community }).click(); // elegirla es seguirla
-  await expect(page.getByRole("button", { name: es.catalog.route.community })).toHaveAttribute("aria-pressed", "true");
-  // Editada: Breath of the Wild quedó primero.
+  // #170: la ruta se elige con pestañas junto al título; elegirla es seguirla.
+  await page.getByRole("tab", { name: es.catalog.route.community }).click();
+  await expect(page.getByRole("tab", { name: es.catalog.route.community })).toHaveAttribute("aria-selected", "true");
+  // Editada: Breath of the Wild quedó primero. Los pasos llevan su número y lo jugado (Ocarina) va a color.
   await expect(page.locator(".timeline").first()).toContainText(/Breath of the Wild[\s\S]*Ocarina of Time/);
+  await expect(page.locator(".timeline li.is-played")).toContainText("Ocarina of Time");
+  await expect(page.locator(".timeline .step-num").first()).toHaveText("1");
+  // «Pedir a Claude que la recalcule» está en el menú «⋯» del encabezado (no se pulsa: encolaría una llamada real).
+  await page.getByRole("button", { name: es.catalog.saga.moreActions }).click();
+  await expect(page.getByRole("menuitem", { name: es.catalog.saga.recalculate })).toBeVisible();
+  await page.keyboard.press("Escape");
+  // Las consolas de la tabla, abreviadas: Ocarina está en N64 y 3DS.
+  await expect(page.getByRole("row", { name: /Ocarina of Time/ }).locator(".ot-console")).toHaveText(["N64", "3DS"]);
   await expectNoRawKeys();
   await expectTextFits();
   await page.screenshot({ path: "e2e-results/12-saga-ruta-es.png", fullPage: true });

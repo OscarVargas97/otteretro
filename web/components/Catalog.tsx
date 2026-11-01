@@ -44,6 +44,21 @@ export function Cover({ gameId, name, hasCover, platform, style }: { gameId: num
   return <div className="ot-cover" style={{ ...tint, ...style }}>{name}</div>;
 }
 
+// Nombre corto de cada consola para las tablas (#170); el nombre completo va en el título.
+const SHORT: Record<string, string> = { switch: "Switch", switch2: "Switch 2", wii: "Wii", wiiu: "Wii U", vita: "Vita", xbox: "Xbox", x360: "X360", xone: "XOne", xseries: "XSX", pcvr: "PC VR" };
+
+/** Consolas abreviadas, hasta `max` y «+N» con las demás en el título (#170). */
+export function ShortPlatforms({ ids, max = 4 }: { ids: string[]; max?: number }) {
+  const name = useConsoleName();
+  const rest = ids.slice(max);
+  return (
+    <>
+      {ids.slice(0, max).map((p) => <span key={p} className="ot-console" title={name(p)}>{SHORT[p] ?? p.toUpperCase()}</span>)}
+      {rest.length > 0 && <span className="ot-console" title={rest.map(name).join(", ")}>+{rest.length}</span>}
+    </>
+  );
+}
+
 export function Platforms({ ids }: { ids: string[] }) {
   const name = useConsoleName();
   return <>{ids.map((p) => <span key={p} className="ot-console">{name(p)}</span>)}</>;

@@ -174,3 +174,24 @@ a.ot-btn, a.chip { text-decoration: none; }
 .next-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .next-body .ot-game-name { font-size: 16px; line-height: 24px; }
 .next-body .progress-line { max-width: 320px; }
+
+/* Ruta de la saga (#170): pestañas junto al título con el avance al lado; los pasos unidos por una línea, con su número
+   sobre la portada y lo jugado a color. */
+.route-head { align-items: center; flex-wrap: wrap; justify-content: flex-start; }
+.route-tabs { flex: 1 1 240px; min-width: 0; }
+.route-tabs .tabs { border-bottom: 0; }
+.route-progress { flex: 0 1 220px; }
+.timeline { display: flex; gap: var(--space-6); overflow-x: auto; list-style: none; padding: 0 0 var(--space-2); margin: 0; }
+.timeline li { position: relative; flex: none; width: 140px; }
+.timeline li:not(:last-child)::after { content: ""; position: absolute; top: 105px; left: 100%; width: var(--space-6); height: 2px; background: var(--line); }
+.timeline li.is-played:not(:last-child)::after { background: var(--accent); }
+.timeline li:not(.is-played) .ot-cover { filter: grayscale(.85) brightness(.7); }
+.step-link { color: var(--ink); text-decoration: none; }
+.step-cover { position: relative; display: block; }
+.step-num { position: absolute; top: var(--space-2); left: var(--space-2); min-width: 24px; height: 24px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: var(--bg); color: var(--ink); font-size: 12px; line-height: 24px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
+.is-played .step-num { background: var(--accent); color: var(--on-accent); }
+.ot-btn-icon { min-width: 36px; padding: 0 var(--space-2); font-size: 20px; }
+.hero-actions .tabs-more { display: flex; align-items: center; gap: var(--space-2); }
+.hero-actions .tabs-more-menu { left: 0; right: auto; }
+.tabs-more-item[disabled] { opacity: .45; cursor: not-allowed; }
+.hero-actions .tabs-more-menu { top: auto; bottom: calc(100% + 4px); }

@@ -15,6 +15,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - Los botones que son enlaces ya no van subrayados.
 - **Inicio**: «Siguiente en tus rutas» es una tarjeta por ruta con la saga, la ruta, cuánto llevas y «Ver ficha»; el bloque Revisar aparece solo si hay algo por aprobar.
 - **Sagas**: los filtros quedan fijos al bajar y dicen cuántas sagas hay; cada tarjeta muestra si es favorita, icónica o exclusiva de una empresa, y una barra con cuántos juegos tienes («3 de 14»).
+- **Saga**: la ruta se elige con pestañas junto al título, con el avance al lado; los pasos van unidos por una línea, con su número sobre la portada y lo jugado a color. En la tabla, las consolas van abreviadas (hasta 4 y «+N»), y «Pedir a Claude que la recalcule» pasó al menú «⋯» del encabezado.
 
 ## 0.2.0 · Claude ordena el catálogo
 
