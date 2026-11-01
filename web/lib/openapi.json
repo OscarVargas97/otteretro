@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:63199/"
+      "url": "http://127.0.0.1:52016/"
     }
   ],
   "paths": {
@@ -5977,6 +5977,12 @@
             "type": "string"
           },
           "origin": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "local": {
             "type": [
               "null",
               "string"

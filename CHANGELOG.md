@@ -4,9 +4,10 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.3.0 · Carpetas y herramientas · en desarrollo
 
-`fase/f3-carpetas`, `feat/146-pausar-cancelar-tareas`, `feat/148-almacenamiento-por-tipo`, `fix/151-pestanas-centradas` y `feat/157-discos-como-steam` · F3 (#141): tus juegos y herramientas en la estructura definitiva antes de construir lo demás encima · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+`fase/f3-carpetas`, `feat/146-pausar-cancelar-tareas`, `feat/148-almacenamiento-por-tipo`, `fix/151-pestanas-centradas`, `feat/157-discos-como-steam` y `feat/163-canal-local` · F3 (#141): tus juegos y herramientas en la estructura definitiva antes de construir lo demás encima · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
 
 ### Nuevo
+- **Canal Local** en Ajustes › General › Actualizaciones (#163): además de Estable y Pruebas, los paquetes que armas en este equipo. Su carpeta se recuerda aparte de Otro origen, así vuelves a ella de un clic.
 - **Discos, como en Steam** (#157): en Ajustes › Almacenamiento eliges discos y Otteretro arma solo en cada uno `X:\Otteretro` con Juegos, Emuladores, Ports, Complementos y Sistema. Ves cuánto ocupa cada tipo en una barra, marcas juegos, emuladores o la carpeta de sistema de una consola y los mueves a otro disco. El primero es el **predeterminado ★**: ahí va lo nuevo y lo de Herramientas.
 - **Pasar al estándar** (#157): `E:\Consolas` pasa a `E:\Otteretro\Juegos` (en el mismo disco, sin copiar nada) y Herramientas, al disco predeterminado, con las rutas de los emuladores y los enlaces al día. Adoptar una carpeta de antes lo hace solo.
 - **Almacenamiento por tipo**, en Ajustes › Almacenamiento (#148): juegos, emuladores, ports, complementos y sistema (BIOS, keys) tienen cada uno sus **ubicaciones**, en cualquier disco o en la red. Adopta la carpeta donde ya tienes tus juegos o crea una nueva. Cada ubicación muestra su espacio libre y si está conectada; se puede renombrar, mover y quitar (quitar nunca borra archivos). Si un disco cambia de letra o vuelve a conectarse, la ubicación se encuentra sola.

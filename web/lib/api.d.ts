@@ -4634,6 +4634,7 @@ export interface components {
         UpdateChannelInfo: {
             channel: string;
             origin: null | string;
+            local?: null | string;
         };
         /** @enum {unknown} */
         UpdatePhase: "None" | "Unavailable" | "Checking" | "UpToDate" | "Downloading" | "Ready" | "Error";
