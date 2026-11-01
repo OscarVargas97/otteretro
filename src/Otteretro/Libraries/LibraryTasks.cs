@@ -112,6 +112,7 @@ public static class LibraryTasks
                 Relink(Recipes.Installed(Library.ToolRoots(run.Db)), tool.Path, to);
                 run.Log(ApiError.Of("library.log.tool", ("name", tool.Name), ("path", to)));
             }
+        Scan.Enqueue(run.Db); // los juegos cambiaron de lugar (#212)
         return Task.CompletedTask;
     }
 
@@ -144,6 +145,7 @@ public static class LibraryTasks
         var changed = RewriteAll(installed, job.From, job.To);
         Relink(installed, job.From, job.To);
         run.Log(ApiError.Of("library.log.moved", ("from", job.From), ("to", job.To), ("paths", changed.ToString())));
+        Scan.Enqueue(run.Db); // al terminar una mudanza (#212)
         return Task.CompletedTask;
     }
 

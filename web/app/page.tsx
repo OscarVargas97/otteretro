@@ -20,6 +20,8 @@ export default function Home() {
   const next = useQuery(nextQuery);
   const review = useQuery(reviewQuery);
   const pending = review.data?.pending.length ?? 0;
+  const missing = notices.data?.filter((n) => n.code === "notices.missingKey") ?? [];
+  const unidentified = notices.data?.find((n) => n.code === "notices.unidentified");
   // Todo junto (#105): los avisos van arriba y, si llegaran después, empujarían el resto.
   if (notices.isPending || next.isPending || review.isPending)
     return <div className="content" aria-busy="true"><section className="sec"><div className="sec-h"><h2>{t("next")}</h2></div><NextCards count={2} /></section></div>;
@@ -27,10 +29,17 @@ export default function Home() {
   return (
     <>
       {/* Un solo aviso con todos los servicios que no tienen clave (#169). */}
-      {!!notices.data?.length && (
+      {missing.length > 0 && (
         <div className="notice" role="note" aria-label={tn("title")}>
-          <span>{tn("missingKeys", { services: format.list(notices.data.map((n) => dt(`credentials.service.${n.params?.service}`))) })}</span>
+          <span>{tn("missingKeys", { services: format.list(missing.map((n) => dt(`credentials.service.${n.params?.service}`))) })}</span>
           <Link className="ot-btn" href="/settings/?s=credentials">{tn("openCredentials")}</Link>
+        </div>
+      )}
+      {/* Lo que ni el escaneo ni Claude reconocieron (#180). */}
+      {unidentified && (
+        <div className="notice" role="note" aria-label={tn("title")}>
+          <span>{tn("unidentified", { count: Number(unidentified.params?.count) })}</span>
+          <Link className="ot-btn" href="/review/?tab=unidentified">{tn("openReview")}</Link>
         </div>
       )}
       <div className="content">

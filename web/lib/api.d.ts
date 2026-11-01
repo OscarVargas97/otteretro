@@ -1402,6 +1402,171 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/collection/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": number | string;
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/collection/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["VerifyRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": number | string;
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sources/{id}/executable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ExecutableRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/games/{id}": {
         parameters: {
             query?: never;
@@ -2034,6 +2199,65 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["AutomationSuggestion"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/review/{id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ResolveFileRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReviewPage"];
                     };
                 };
                 /** @description Bad Request */
@@ -4212,6 +4436,7 @@ export interface components {
             owned: number | string;
             /** Format: int32 */
             withPc: number | string;
+            hasDat: boolean;
         };
         ConsoleDetail: {
             id: string;
@@ -4305,6 +4530,9 @@ export interface components {
             /** Format: int64 */
             igdbId: number | string;
         };
+        ExecutableRequest: {
+            path: string;
+        };
         FieldRequest: {
             value: null | string;
         };
@@ -4314,6 +4542,33 @@ export interface components {
             source: string;
             manual: boolean;
             winner: boolean;
+        };
+        FileEntry: {
+            /** Format: int64 */
+            id: number | string;
+            path: string;
+            component: null | string;
+            /** Format: int64 */
+            size: null | number | string;
+            verified: boolean;
+            executable?: null | string;
+            executables?: null | string[];
+        };
+        FileReview: {
+            /** Format: int64 */
+            id: number | string;
+            kind: string;
+            /** Format: int64 */
+            sourceId: number | string;
+            path: string;
+            console: string;
+            component: null | string;
+            titleId: null | string;
+            proposed: null | string;
+            reason: null | string;
+            /** Format: int64 */
+            gameId: null | number | string;
+            gameName: null | string;
         };
         FolderInfo: {
             path: null | string;
@@ -4486,6 +4741,10 @@ export interface components {
         RenameRequest: {
             name: string;
         };
+        ResolveFileRequest: {
+            /** Format: int64 */
+            gameId: null | number | string;
+        };
         ReviewItem: {
             /** Format: int64 */
             id: number | string;
@@ -4501,6 +4760,7 @@ export interface components {
             pending: components["schemas"]["ReviewItem"][];
             /** Format: int32 */
             activeLearnings: number | string;
+            files: components["schemas"]["FileReview"][];
         };
         Route: {
             kind: string;
@@ -4664,6 +4924,11 @@ export interface components {
             costUsd: number | string;
             createdAt: string;
         };
+        VerifyRequest: {
+            console: null | string;
+            /** Format: int64 */
+            gameId: null | number | string;
+        };
         VersionCompare: {
             /** Format: int64 */
             versionId: number | string;
@@ -4682,6 +4947,7 @@ export interface components {
             /** Format: int32 */
             year: null | number | string;
             stores: components["schemas"]["StoreEntry"][];
+            files: components["schemas"]["FileEntry"][];
         };
     };
     responses: never;

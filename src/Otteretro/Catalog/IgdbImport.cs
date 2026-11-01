@@ -146,6 +146,7 @@ public static class IgdbImport
                 ("done", (total - job.Consoles.Count).ToString()), ("total", total.ToString())), job);
         }
         using (var c = run.Db.Open()) Claude.ClaudeBudget.Set(c, LastRefresh, job.Started);
+        Libraries.Dats.EnqueueUpdate(run.Db); // los DAT se ponen al día con el catálogo (#179)
         QueueFollowUps(run.Db);
     }
 

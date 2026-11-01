@@ -10,6 +10,12 @@ namespace Otteretro.Api;
 public record SagaFlagsRequest(bool? Favorite, bool? Following);
 public record FieldRequest(string? Value);
 
+/// <summary>Una consola o un juego (#179).</summary>
+public record VerifyRequest(string? Console, long? GameId);
+
+/// <summary>El ejecutable de un juego de PC suelto, relativo a su carpeta (#182).</summary>
+public record ExecutableRequest(string Path);
+
 /// <summary>Pantallas del catálogo (F1.9): sagas, colección, ficha, seguimiento, búsqueda y avisos de Inicio.</summary>
 public static class CatalogEndpoints
 {
@@ -79,6 +85,29 @@ public static class CatalogEndpoints
             return TypedResults.Ok(CatalogQueries.Collection(db, platform, filter, sort, Math.Max(0, offset), Math.Clamp(limit, 1, 500)));
         });
 
+        // «Escanear» en Colección (#178): la tarea que reconoce los archivos de cada disco.
+        api.MapPost("/collection/scan", Results<Ok<long>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(Libraries.Scan.Enqueue(db)) : NoData());
+
+        // «Verificar» (#179): el SHA-1 contra No-Intro o Redump, de una consola o de un juego.
+        api.MapPost("/collection/verify", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (VerifyRequest request, AppSession s) =>
+            Db(s) is not { } db ? NoData()
+            : request.Console is null == request.GameId is null ? TypedResults.BadRequest(ApiError.Of("dat.verifyWhat"))
+            : TypedResults.Ok(Libraries.Dats.EnqueueVerify(db, request.Console, request.GameId)));
+
+        // Cambiar el ejecutable de un juego de PC suelto (#182): uno de los .exe de su carpeta.
+        api.MapPut("/sources/{id:long}/executable", Results<Ok, BadRequest<ApiError>, NotFound, Conflict<ApiError>> (long id, ExecutableRequest request, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            using var c = db.Open();
+            var folder = c.QuerySingleOrDefault<(string Root, string Relative)>(
+                "SELECT l.path, o.relative_path FROM source o JOIN library l ON l.id = o.library_id WHERE o.id = @id AND o.executable IS NOT NULL", new { id });
+            if (folder.Root is null) return TypedResults.NotFound();
+            if (!Libraries.Scan.Executables(Path.Combine(folder.Root, folder.Relative)).Contains(request.Path)) return TypedResults.BadRequest(ApiError.Of("source.badExecutable"));
+            c.Execute("UPDATE source SET executable = @Path WHERE id = @id", new { id, request.Path });
+            return TypedResults.Ok();
+        });
+
         api.MapGet("/games/{id:long}", Results<Ok<GameDetail>, NotFound, Conflict<ApiError>> (long id, AppSession s) =>
             Db(s) is not { } db ? NoData() : CatalogQueries.Game(db, id) is { } game ? TypedResults.Ok(game) : TypedResults.NotFound());
 
@@ -126,8 +155,12 @@ public static class CatalogEndpoints
         {
             if (Db(s) is not { } db) return NoData();
             var saved = new Credentials(db, s.Config.MachineId, box).List().Where(c => c.Saved).Select(c => c.Id).ToHashSet();
-            return TypedResults.Ok(NeededKeys.Where(k => !k.Ids.All(saved.Contains))
-                .Select(k => ApiError.Of("notices.missingKey", ("service", k.Service))).ToList());
+            var notices = NeededKeys.Where(k => !k.Ids.All(saved.Contains)).Select(k => ApiError.Of("notices.missingKey", ("service", k.Service))).ToList();
+            // Archivos que ni el escaneo ni Claude reconocieron (#180): se eligen en Revisar › Sin identificar.
+            using (var c = db.Open())
+                if (c.ExecuteScalar<long>("SELECT count(*) FROM review_item WHERE kind = 'unidentified' AND status = 'open'") is > 0 and var n)
+                    notices.Add(ApiError.Of("notices.unidentified", ("count", n.ToString())));
+            return TypedResults.Ok(notices);
         });
     }
 

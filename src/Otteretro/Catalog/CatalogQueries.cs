@@ -19,7 +19,8 @@ public record GameCard(long Id, string Name, int? Year, string[] Platforms, bool
 /// <param name="HeroGameId">De qué juego sale la imagen de la cabecera (#178): el icónico más reciente con héroe; si no hay, el más reciente con héroe.</param>
 public record SagaDetail(SagaCard Saga, List<GameCard> Games, long? HeroGameId);
 /// <param name="WithPc">Juegos de la consola que también tienen versión de PC (el filtro «Versión PC» de Colección).</param>
-public record ConsoleCount(string Id, string Name, string? Company, int Games, int Owned, int WithPc);
+/// <param name="HasDat">Tiene DAT de No-Intro o Redump: se puede verificar por hash (#179).</param>
+public record ConsoleCount(string Id, string Name, string? Company, int Games, int Owned, int WithPc, bool HasDat);
 
 /// <param name="Unlinked">Lo que tienes en una tienda y todavía no está en el catálogo (solo en PC): aparece igual.</param>
 /// <param name="Total">Cuántos juegos hay con ese filtro; <paramref name="Games"/> trae solo el tramo pedido (#177).</param>
@@ -31,7 +32,12 @@ public record SagaPage(List<SagaCard> Items, int Total);
 /// <summary>Un tramo de los juegos de una saga (#177).</summary>
 public record GamePage(List<GameCard> Items, int Total);
 public record StoreEntry(string Store, string? Name, long? Playtime, string? LastPlayed);
-public record VersionRow(long Id, string Platform, string Kind, int? Year, List<StoreEntry> Stores);
+/// <param name="Path">Ruta completa (en su última ubicación conocida).</param>
+/// <param name="Component">BASE, UPD o DLC (Switch); null en lo demás.</param>
+/// <param name="Verified">Su SHA-1 coincide con el DAT (#179).</param>
+/// <param name="Executable">PC (#182): el ejecutable principal, relativo a la carpeta; <paramref name="Executables"/>, los que hay para elegir.</param>
+public record FileEntry(long Id, string Path, string? Component, long? Size, bool Verified, string? Executable = null, List<string>? Executables = null);
+public record VersionRow(long Id, string Platform, string Kind, int? Year, List<StoreEntry> Stores, List<FileEntry> Files);
 
 /// <param name="Winner">Es el valor que se muestra (lo manual siempre gana).</param>
 public record FieldRow(string Field, string? Value, string Source, bool Manual, bool Winner);
@@ -288,7 +294,7 @@ public static class CatalogQueries
                    count(DISTINCT CASE WHEN EXISTS (SELECT 1 FROM version p WHERE p.game_id = v.game_id AND p.platform = 'pc') THEN v.game_id END)
             FROM console c LEFT JOIN version v ON v.platform = c.id LEFT JOIN source o ON o.version_id = v.id
             GROUP BY c.id ORDER BY c.rowid
-            """).Select(r => new ConsoleCount(r.Id, r.Name, r.Company, (int)r.Games, (int)r.Owned, (int)r.WithPc)).ToList();
+            """).Select(r => new ConsoleCount(r.Id, r.Name, r.Company, (int)r.Games, (int)r.Owned, (int)r.WithPc, Libraries.Dats.Files.ContainsKey(r.Id))).ToList();
     }
 
     /// <param name="filter">owned, missing o pc (tiene versión de PC).</param>
@@ -332,11 +338,18 @@ public static class CatalogQueries
             SELECT o.version_id, o.store, o.name, o.playtime, o.last_played FROM source o JOIN version v ON v.id = o.version_id
             WHERE v.game_id = @id AND o.kind = 'store'
             """, new { id }).ToList();
+        var files = c.Query<(long Id, long VersionId, string Root, string Relative, string? Component, long? Size, bool Verified, string? Executable)>("""
+            SELECT o.id, o.version_id, l.path, o.relative_path, o.component, o.size, o.verified, o.executable FROM source o
+            JOIN version v ON v.id = o.version_id JOIN library l ON l.id = o.library_id
+            WHERE v.game_id = @id AND o.kind = 'file' ORDER BY o.relative_path
+            """, new { id }).ToList();
         var order = c.Query<string>("SELECT id FROM console ORDER BY rowid").ToList();
         var versions = c.Query<(long Id, string Platform, string Kind, long? Year)>("SELECT id, platform, kind, year FROM version WHERE game_id = @id", new { id })
             .OrderBy(v => order.IndexOf(v.Platform)).ThenBy(v => v.Year)
             .Select(v => new VersionRow(v.Id, v.Platform, v.Kind, (int?)v.Year,
-                stores.Where(s => s.VersionId == v.Id).Select(s => new StoreEntry(s.Store, s.Name, s.Playtime, s.LastPlayed)).ToList()))
+                stores.Where(s => s.VersionId == v.Id).Select(s => new StoreEntry(s.Store, s.Name, s.Playtime, s.LastPlayed)).ToList(),
+                files.Where(f => f.VersionId == v.Id).Select(f => new FileEntry(f.Id, Path.Combine(f.Root, f.Relative), f.Component, f.Size, f.Verified,
+                    f.Executable, f.Executable is null ? null : Libraries.Scan.Executables(Path.Combine(f.Root, f.Relative)))).ToList()))
             .ToList();
 
         var fields = c.Query<(string Field, string? Value, string Source, bool Manual)>(

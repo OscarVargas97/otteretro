@@ -39,9 +39,13 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         [Claude.CatalogCleanup.Kind] = Claude.CatalogCleanup.Run,
         [Claude.SagaAnalysis.Kind] = Claude.SagaAnalysis.Run,
         [Claude.InitialLoad.Kind] = Claude.InitialLoad.Run,
+        [Claude.Identify.Kind] = Claude.Identify.Run,
         [Libraries.LibraryTasks.Move] = Libraries.LibraryTasks.RunMove,
         [Libraries.LibraryTasks.Adopt] = Libraries.LibraryTasks.RunAdopt,
         [Libraries.LibraryTasks.Migrate] = Libraries.LibraryTasks.RunMigrate,
+        [Libraries.Scan.Kind] = Libraries.Scan.Run,
+        [Libraries.Dats.UpdateKind] = Libraries.Dats.Update,
+        [Libraries.Dats.VerifyKind] = Libraries.Dats.Verify,
     };
 
     /// <summary>Tipos que no corren a la vez aunque sean distintos: mover y adoptar tocan las mismas carpetas (§5.3).</summary>

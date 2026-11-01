@@ -19,7 +19,17 @@ public record LearningItem(long Id, string Change, string? Reason, string Detail
 public record CorrectRequest(string Note);
 
 /// <param name="ActiveLearnings">Cuántos cambios de Claude siguen vigentes (sin deshacer), para la pestaña Aprendizajes.</param>
-public record ReviewPage(List<ReviewItem> Pending, int ActiveLearnings);
+/// <param name="Files">Archivos en Dudosas y Sin identificar (#181).</param>
+public record ReviewPage(List<ReviewItem> Pending, int ActiveLearnings, List<FileReview> Files);
+
+/// <param name="Kind">doubtful (Claude lo asignó) o unidentified.</param>
+/// <param name="Proposed">El nombre que dio Claude, si dio uno.</param>
+/// <param name="GameId">El juego que tiene ahora (en Dudosas).</param>
+public record FileReview(long Id, string Kind, long SourceId, string Path, string Console, string? Component, string? TitleId, string? Proposed,
+    string? Reason, long? GameId, string? GameName);
+
+/// <param name="GameId">null confirma lo que propuso Claude; un juego lo cambia (o lo elige, en Sin identificar).</param>
+public record ResolveFileRequest(long? GameId);
 public record LearningPage(List<LearningItem> Items, int Total);
 
 public record SourceRef(string Title, string Url);
@@ -60,7 +70,19 @@ public static class ClaudeReview
             return new ReviewItem(r.Id, doc.RootElement.GetProperty("prompt").GetString()!, r.Entity, r.EntityId, r.Title ?? "?",
                 doc.RootElement.GetProperty("result").GetRawText(), r.CreatedAt);
         }).Where(r => r.Title != "?").ToList(); // lo que ya no existe (una saga unida) no se muestra
-        return new ReviewPage(pending, c.ExecuteScalar<int>("SELECT count(*) FROM learning WHERE undone = 0"));
+        var files = c.Query<(long Id, string Kind, long SourceId, string Root, string Relative, string Console, string? Component, string? TitleId, string Data, long? GameId, string? GameName)>("""
+            SELECT r.id, r.kind, o.id, coalesce(l.path, ''), o.relative_path, o.console, o.component, o.title_id, r.data, g.id, g.name_es
+            FROM review_item r JOIN source o ON o.id = r.entity_id LEFT JOIN library l ON l.id = o.library_id
+            LEFT JOIN version v ON v.id = o.version_id LEFT JOIN game g ON g.id = v.game_id
+            WHERE r.entity = 'source' AND r.kind IN ('doubtful', 'unidentified') AND r.status = 'open' ORDER BY o.console, o.relative_path
+            """).Select(r =>
+        {
+            using var doc = JsonDocument.Parse(r.Data);
+            string? Text(string name) => doc.RootElement.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+            return new FileReview(r.Id, r.Kind, r.SourceId, Path.Combine(r.Root, r.Relative), r.Console, r.Component, r.TitleId, Text("name"), Text("reason"),
+                r.GameId, r.GameName);
+        }).ToList();
+        return new ReviewPage(pending, c.ExecuteScalar<int>("SELECT count(*) FROM learning WHERE undone = 0"), files);
     }
 
     /// <summary>
@@ -104,6 +126,8 @@ public static class ClaudeReview
             var item = new LearningItem(l.Id, change.TryGetProperty("kind", out var k) ? k.GetString() ?? "?" : "?",
                 change.TryGetProperty("reason", out var why) ? why.GetString() : null, change.GetRawText(), l.CreatedAt, l.Undone, l.TaskId,
                 null, null, [], [], null, null, null, null, null, rules.GetValueOrDefault(l.Id) ?? []);
+            if (item.Change == "alias")
+                return item with { NameBefore = change.GetProperty("text").GetString(), NameAfter = GameName(change.GetProperty("gameId").GetInt64()) };
             if (!doc.RootElement.TryGetProperty("before", out var before)) return item;
             string Saga(long? id) => id is { } x ? SagaName(x) ?? $"#{x}" : "";
             string Game(long id) => GameName(id) ?? $"#{id}";
@@ -215,7 +239,8 @@ public static class ClaudeReview
     public static int PendingCount(Database db)
     {
         using var c = db.Open();
-        return c.ExecuteScalar<int>("SELECT count(*) FROM review_item WHERE kind = 'pending_approval' AND status = 'open'");
+        // Lo de Claude por aprobar y los archivos en Dudosas y Sin identificar (#181).
+        return c.ExecuteScalar<int>("SELECT count(*) FROM review_item WHERE status = 'open' AND (kind = 'pending_approval' OR entity = 'source')");
     }
 
     public static bool Reject(Database db, long id)

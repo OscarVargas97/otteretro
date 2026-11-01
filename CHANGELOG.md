@@ -4,7 +4,15 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.4.0 · Colección · en desarrollo
 
-`fase/f4-coleccion` · F4 (#176): tus archivos de juegos reconocidos, verificados y marcados como «lo tengo» · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+`fase/f4-coleccion` · F4 (#176, tareas #178 a #182): tus archivos de juegos reconocidos, verificados y marcados como «lo tengo» · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+
+### Nuevo
+- **Escanear** en Colección (#178): busca tus juegos en `Juegos\<Consola>` de cada disco y marca como «lo tengo» los que reconoce por su nombre. En Switch separa BASE, actualizaciones y DLC por su TitleID (del nombre del archivo o, si no lo trae y tienes tus `prod.keys` en Sistema, de adentro del archivo), y cada actualización y DLC va con su juego. En GameCube y Wii guarda el serial del disco. Se lanza solo al agregar un disco y al terminar una mudanza. Nunca mueve ni borra archivos; lo que no reconoce queda para identificarlo después.
+- **Verificar por hash** (#179): en Colección (una consola) o en la ficha de un juego. Calcula el SHA-1 de tus archivos sin conexión y lo compara con los DAT de No-Intro (cartuchos) y Redump (discos) que publica libretro; lo que coincide queda verificado. Si un archivo ya no está (se borró o se movió desde el último escaneo), lo avisa y sigue con el resto. Los DAT se bajan solos y se ponen al día con el catálogo. El escaneo también usa el hash ya calculado y el serial del disco para reconocer lo que no dice su nombre.
+- **Claude identifica lo que el escaneo no reconoce** (#180): al terminar un escaneo, lo que no salió por nombre, TitleID, hash ni alias va a Claude por lotes (respetando su horario y tus límites). Lo que nombra queda asignado y en Revisar como dudoso, y su nombre se aprende como alias para el próximo escaneo; si tampoco sabe, queda en Sin identificar e Inicio te avisa. Lo que ya preguntó no se vuelve a preguntar.
+- **Revisar › Dudosas y Sin identificar** (#181): cada archivo con lo que propuso Claude. Confirmas o cambias el juego, o lo eliges con el buscador si nadie lo reconoció; tu elección queda como alias y el próximo escaneo ya lo reconoce. En Switch, lo que decides para el juego vale para sus actualizaciones y DLC. Los alias aparecen en Aprendizajes y se pueden deshacer.
+- **Juegos de PC sueltos** (#182): cada carpeta de `Juegos\PC` con un ejecutable cuenta como «lo tengo» de la versión de PC. Otteretro elige solo el ejecutable principal (el más grande, sin instaladores ni redistribuibles; si todos lo parecen, el más grande igual) y en la ficha puedes elegir otro.
+- La ficha de un juego muestra **dónde tienes sus archivos**, con BASE, UPD y DLC, tamaño y si están verificados.
 
 ### Cambios
 - La versión pasa a 0.4: empieza la fase Colección.

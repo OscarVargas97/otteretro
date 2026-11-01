@@ -381,7 +381,8 @@
         "invalidOutput": "Claude answered twice with something that doesn’t have the expected shape.",
         "limit": "You reached your Claude subscription limit: it resumes on its own on {at}.",
         "schedule": "Waiting for Claude’s schedule: it starts on {at}.",
-        "windowCap": "It used {share}% of this Claude window: it resumes on its own on {at}."
+        "windowCap": "It used {share}% of this Claude window: it resumes on its own on {at}.",
+        "identify": "{done} of {total} files identified"
       },
       "log": {
         "started": "Started.",
@@ -405,7 +406,8 @@
         "refresh": "{platform}: {count} new or changed games.",
         "paused": "Paused: it continues from here when resumed.",
         "resumed": "Resumed.",
-        "canceled": "Canceled."
+        "canceled": "Canceled.",
+        "identify": "Left {doubtful} in Doubtful and {unidentified} in Unidentified."
       }
     },
     "progress": {
@@ -458,6 +460,31 @@
       "notDisk": "That is not a drive.",
       "toDisk": "Moving {name} to its drive",
       "toolsToDisk": "Moving Herramientas to the default drive"
+    },
+    "scan": {
+      "folder": "Scanning {path}",
+      "log": {
+        "summary": "{files} files: {matched} recognized and {pending} to identify."
+      }
+    },
+    "dat": {
+      "downloading": "Downloading the DATs for {console}",
+      "hashing": "Hashing {path}",
+      "verifyWhat": "Pick a console or a game.",
+      "log": {
+        "verified": "{path}: verified ({name}).",
+        "notInDat": "{path}: its hash is not in the DAT.",
+        "summary": "{verified} verified and {missing} with no match.",
+        "missingFile": "{path} is missing: it was deleted or moved since the last scan."
+      }
+    },
+    "review": {
+      "notFound": "That file is no longer in Review.",
+      "pickGame": "Pick the game.",
+      "noVersion": "That game has no version on the file's console."
+    },
+    "source": {
+      "badExecutable": "That executable is not in the game's folder."
     }
   },
   "credentials": {
@@ -528,17 +555,23 @@
       "claude": {
         "cleanup": "Clean up the catalog with Claude",
         "sagas": "Routes, iconic and best version with Claude",
-        "load": "Initial load with Claude, by parts"
+        "load": "Initial load with Claude, by parts",
+        "identify": "Identify files with Claude"
       },
       "catalog": {
         "extra": "Complete with Wikidata and RAWG"
       },
       "library": {
         "move": "Move a location or a folder",
-        "adopt": "Migrate a location to the new layout"
+        "adopt": "Migrate a location to the new layout",
+        "scan": "Scan your drives",
+        "verify": "Verify files by hash"
       },
       "disk": {
         "migrate": "Move to the standard drive layout"
+      },
+      "dat": {
+        "update": "Download the No-Intro and Redump DATs"
       }
     },
     "status": {
@@ -680,7 +713,13 @@
       "store": "Store",
       "hours": "Hours",
       "lastPlayed": "Last played",
-      "otherCompany": "Others"
+      "otherCompany": "Others",
+      "scan": "Scan",
+      "scanHelp": "Looks for your games in Juegos on each drive and marks what you own.",
+      "scanQueued": "Scanning: follow it in the tasks panel.",
+      "verify": "Verify",
+      "verifyHelp": "Hashes your files for this console and checks them against No-Intro or Redump, offline.",
+      "verifyQueued": "Verifying: follow it in the tasks panel."
     },
     "game": {
       "noneTitle": "Pick a game",
@@ -737,7 +776,14 @@
       },
       "cheerGame": "You finished {name}!",
       "cheerRoute": "You completed the {saga} route!",
-      "cheerClose": "Close"
+      "cheerClose": "Close",
+      "file": "File",
+      "size": "Size",
+      "verified": "Verified",
+      "notVerified": "Not verified",
+      "verify": "Verify",
+      "verifyQueued": "Verifying: follow it in the tasks panel.",
+      "executable": "Executable"
     },
     "search": {
       "sagas": "Series",
@@ -762,12 +808,16 @@
     "missingKey": "The {service} key is missing: its data can't be loaded without it.",
     "openSettings": "Open Settings",
     "missingKeys": "Keys are missing for {services}: their data can't be loaded without them.",
-    "openCredentials": "Accounts and keys"
+    "openCredentials": "Accounts and keys",
+    "unidentified": "{count, plural, one {1 unidentified file} other {# unidentified files}}: pick its game in Review.",
+    "openReview": "Open Review"
   },
   "review": {
     "tabs": "Review sections",
     "tab": {
       "pending": "To approve ({count})",
+      "doubtful": "Doubtful ({count})",
+      "unidentified": "Unidentified ({count})",
       "learnings": "Learnings ({count})"
     },
     "pendingEmptyTitle": "Nothing to approve",
@@ -779,7 +829,8 @@
       "iconico": "Iconic",
       "mejor-version": "Best version",
       "clasificar-version": "Version type",
-      "traducir-descripcion": "Spanish description"
+      "traducir-descripcion": "Spanish description",
+      "identificar-juego": "Identify file"
     },
     "approve": "Approve",
     "reject": "Reject",
@@ -791,7 +842,8 @@
     "learning": {
       "move": "Move games",
       "merge": "Merge duplicate entries",
-      "rename": "Rename saga"
+      "rename": "Rename saga",
+      "alias": "File alias"
     },
     "sources": "Sources",
     "iconicYes": "Iconic saga",
@@ -801,7 +853,8 @@
     "kindFilter": {
       "move": "Moved",
       "merge": "Merged",
-      "rename": "Renamed"
+      "rename": "Renamed",
+      "alias": "Aliases"
     },
     "search": "Search saga or game",
     "task": "Task #{id}",
@@ -824,7 +877,22 @@
     "stepUp": "Move step {step} up",
     "stepDown": "Move step {step} down",
     "stepRemove": "Remove step {step}",
-    "openClaude": "Open Settings › Claude"
+    "openClaude": "Open Settings › Claude",
+    "aliased": "“{text}” is {game}",
+    "files": {
+      "doubtfulEmptyTitle": "Nothing doubtful",
+      "doubtfulEmptyText": "When Claude assigns a file the scan did not recognize, it shows up here for you to confirm.",
+      "unidentifiedEmptyTitle": "Everything identified",
+      "unidentifiedEmptyText": "Files that neither the scan nor Claude recognize show up here for you to pick their game.",
+      "openCollection": "Open Collection",
+      "proposed": "Claude says: {name}",
+      "noProposal": "Claude did not know: {reason}",
+      "assigned": "Assigned to",
+      "confirm": "Confirm",
+      "change": "Change game",
+      "search": "Search for the game",
+      "noResults": "No {console} game with that name."
+    }
   },
   "home": {
     "next": "Next in your routes",

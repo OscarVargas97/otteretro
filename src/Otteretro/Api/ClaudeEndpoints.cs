@@ -42,6 +42,10 @@ public static class ClaudeEndpoints
             return await Automation.CreateIssue(db, key, ct) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(Automation.Suggestions(db));
         });
 
+        // Dudosas y Sin identificar (#181): confirmar lo de Claude o elegir el juego, que queda como alias.
+        api.MapPost("/review/{id:long}/file", Results<Ok<ReviewPage>, BadRequest<ApiError>, Conflict<ApiError>> (long id, ResolveFileRequest request, AppSession s) =>
+            Db(s) is not { } db ? NoData() : Identify.Resolve(db, id, request.GameId) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(ClaudeReview.Page(db)));
+
         api.MapPost("/review/{id:long}/reject", Results<Ok<ReviewPage>, NotFound, Conflict<ApiError>> (long id, AppSession s) =>
             Db(s) is not { } db ? NoData() : ClaudeReview.Reject(db, id) ? TypedResults.Ok(ClaudeReview.Page(db)) : TypedResults.NotFound());
 

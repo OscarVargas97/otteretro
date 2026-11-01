@@ -3,7 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { Empty } from "@/components/Shell";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
@@ -11,10 +12,11 @@ import { Panels } from "@/components/Skeleton";
 import { Tabs } from "@/components/Tabs";
 import { usePaged } from "@/lib/paged";
 import { reviewQuery, sagaQuery } from "@/lib/queries";
-import { Cover } from "@/components/Catalog";
-import type { LearningItem, LearningPage, ReviewItem, ReviewPage } from "@/lib/types";
+import { Cover, useConsoleName } from "@/components/Catalog";
+import type { FileReview, LearningItem, LearningPage, ReviewItem, ReviewPage, SearchResults } from "@/lib/types";
 
-type Tab = "pending" | "learnings";
+const TABS = ["pending", "doubtful", "unidentified", "learnings"] as const;
+type Tab = (typeof TABS)[number];
 
 // Lo que trae cada resultado de Claude (F2.5): la forma depende del prompt.
 type Source = { title: string; url: string };
@@ -25,12 +27,18 @@ type Best = { bestVersionId: number; reason: string; versions: { versionId: numb
 type Kind = { kind: string; reason: string; before: string };
 type Text = { text: string };
 
-/** Revisar (§2.1, D3): los resultados de Claude por aprobar y los aprendizajes, que se pueden deshacer. */
-export default function Review() {
+// La pestaña puede venir en la URL (/review/?tab=unidentified, desde el aviso de Inicio).
+export default function ReviewScreen() {
+  return <Suspense><Review /></Suspense>;
+}
+
+/** Revisar (§2.1, D3): lo de Claude por aprobar, los archivos dudosos o sin identificar (#181) y los aprendizajes. */
+function Review() {
   const t = useTranslations("review");
   const describe = useDescribeError();
   const cache = useQueryClient();
-  const [tab, setTab] = useState<Tab>("pending");
+  const asked = useSearchParams().get("tab");
+  const [tab, setTab] = useState<Tab>(TABS.includes(asked as Tab) ? (asked as Tab) : "pending");
   const page = useQuery(reviewQuery);
   const act = useMutation({
     mutationFn: ({ path, body }: { path: string; body?: unknown }) =>
@@ -41,16 +49,21 @@ export default function Review() {
       cache.invalidateQueries({ queryKey: ["review", "count"] });
       cache.invalidateQueries({ queryKey: ["saga"] });
       cache.invalidateQueries({ queryKey: ["home"] });
+      cache.invalidateQueries({ queryKey: ["notices"] });
+      cache.invalidateQueries({ queryKey: ["collection"] });
+      cache.invalidateQueries({ queryKey: ["consoles"] });
+      cache.invalidateQueries({ queryKey: ["game"] });
     },
   });
 
   if (page.isError) return <div className="content"><p className="error" role="alert">{describe(page.error)}</p></div>;
   if (!page.data) return <div className="content" aria-busy="true"><Panels count={3} /></div>;
-  const { pending, activeLearnings } = page.data;
+  const { pending, activeLearnings, files } = page.data;
+  const count = (k: Tab) => k === "pending" ? pending.length : k === "learnings" ? Number(activeLearnings) : files.filter((f) => f.kind === k).length;
 
   return (
     <div className="content">
-      <Tabs tabs={(["pending", "learnings"] as const).map((k) => ({ id: k, label: t(`tab.${k}`, { count: k === "pending" ? pending.length : Number(activeLearnings) }) }))}
+      <Tabs tabs={TABS.map((k) => ({ id: k, label: t(`tab.${k}`, { count: count(k) }) }))}
         current={tab} onSelect={(k) => setTab(k as Tab)} label={t("tabs")} panel="review-panel" />
       {act.error && <p className="error small" role="alert">{describe(act.error)}</p>}
       <div id="review-panel" role="tabpanel" aria-labelledby={`tab-${tab}`} style={{ display: "contents" }}>
@@ -61,6 +74,12 @@ export default function Review() {
           <Pending key={item.id} item={item} busy={act.isPending}
             approve={(routes) => act.mutate(routes ? { path: `/api/review/${item.id}/approve-edited`, body: { routes } } : { path: `/api/review/${item.id}/approve` })}
             reject={() => act.mutate({ path: `/api/review/${item.id}/reject` })} />
+        )))}
+
+      {(tab === "doubtful" || tab === "unidentified") && (count(tab) === 0
+        ? <Empty title={t(`files.${tab}EmptyTitle`)} text={t(`files.${tab}EmptyText`)}><Link className="ot-btn" href="/collection/">{t("files.openCollection")}</Link></Empty>
+        : files.filter((f) => f.kind === tab).map((f) => (
+          <FileItem key={f.id} file={f} busy={act.isPending} resolve={(gameId) => act.mutate({ path: `/api/review/${f.id}/file`, body: { gameId } })} />
         )))}
 
       {tab === "learnings" && <Learnings busy={act.isPending} undo={(id) => act.mutate({ path: `/api/learnings/${id}/undo` })}
@@ -192,7 +211,7 @@ function Learnings({ busy, undo, onCorrected }: { busy: boolean; undo: (id: numb
   return (
     <>
       <div className="chips" style={{ alignItems: "center" }}>
-        {([null, "move", "merge", "rename"] as const).map((k) => (
+        {([null, "move", "merge", "rename", "alias"] as const).map((k) => (
           <button key={k ?? "all"} className="chip" type="button" aria-pressed={kind === k} onClick={() => setKind(k)}>
             {k ? t(`kindFilter.${k}`) : t("filterAll")}
           </button>
@@ -220,7 +239,8 @@ function Learning({ l, busy, undo, onCorrected }: { l: LearningItem; busy: boole
     onSuccess: (data) => { setNote(null); onCorrected(data); },
   });
   const list = (names: string[]) => names.map((n) => n || t("loose")).join(", ");
-  const what = l.change === "move"
+  const what = l.change === "alias" ? t("aliased", { text: l.nameBefore ?? "", game: l.nameAfter ?? "?" })
+    : l.change === "move"
     ? t("moved", { games: list(l.games), from: list(l.from), to: l.toKind === "new" ? t("toNew", { name: l.to ?? "" }) : l.toKind === "none" ? t("toNone") : l.to ?? "" })
     : l.change === "merge" ? t("merged", { games: list(l.games), kept: l.kept ?? "" })
       : l.change === "rename" ? t("renamed", { before: l.nameBefore ?? "?", after: l.nameAfter ?? "" })
@@ -243,7 +263,48 @@ function Learning({ l, busy, undo, onCorrected }: { l: LearningItem; busy: boole
         <div className="hero-actions">
           {l.sagaId != null && <Link className="ot-btn ot-btn-sm" href={`/saga/?id=${l.sagaId}`}>{t("openSaga")}</Link>}
           {!l.undone && <button className="ot-btn ot-btn-sm" type="button" disabled={busy} onClick={() => undo(Number(l.id))}>{t("undo")}</button>}
-          <button className="ot-btn ot-btn-sm" type="button" onClick={() => setNote("")}>{t("correct")}</button>
+          {l.change !== "alias" && <button className="ot-btn ot-btn-sm" type="button" onClick={() => setNote("")}>{t("correct")}</button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Un archivo en Dudosas o Sin identificar (#181): qué es, qué propuso Claude, confirmar o elegir el juego con el buscador. */
+function FileItem({ file, busy, resolve }: { file: FileReview; busy: boolean; resolve: (gameId: number | null) => void }) {
+  const t = useTranslations("review");
+  const consoleName = useConsoleName();
+  const [picking, setPicking] = useState(file.kind === "unidentified");
+  const [query, setQuery] = useState("");
+  const text = query.trim();
+  const search = useQuery({
+    queryKey: ["search", text],
+    queryFn: () => request<SearchResults>(`/api/search?${new URLSearchParams({ q: text })}`),
+    enabled: picking && text.length >= 2,
+  });
+  // Solo los juegos que salen en la consola del archivo.
+  const games = (search.data?.games ?? []).filter((g) => g.platforms.includes(file.console)).slice(0, 8);
+  return (
+    <div className="panel" style={{ display: "grid", gap: 6 }}>
+      <div><span className="folder-path">{file.path}</span>{file.component && <span className="ot-badge" style={{ marginLeft: 6 }}>{file.component}</span>}</div>
+      <span className="small muted">{consoleName(file.console)}{file.titleId ? ` · ${file.titleId}` : ""}</span>
+      {file.proposed
+        ? <span className="small">{t("files.proposed", { name: file.proposed })}{file.reason && <span className="muted"> · {file.reason}</span>}</span>
+        : file.reason && <span className="small muted">{t("files.noProposal", { reason: file.reason })}</span>}
+      {file.gameId != null && <span className="small">{t("files.assigned")} <Link href={`/game/?id=${file.gameId}`}>{file.gameName}</Link></span>}
+      <div className="hero-actions">
+        {file.kind === "doubtful" && <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" disabled={busy} onClick={() => resolve(null)}>{t("files.confirm")}</button>}
+        {!picking && <button className="ot-btn ot-btn-sm" type="button" onClick={() => setPicking(true)}>{t("files.change")}</button>}
+      </div>
+      {picking && (
+        <div style={{ display: "grid", gap: 6 }}>
+          <input type="search" aria-label={t("files.search")} placeholder={t("files.search")} value={query} onChange={(e) => setQuery(e.target.value)} />
+          {games.map((g) => (
+            <button key={g.id} className="ot-btn ot-btn-sm" type="button" style={{ justifySelf: "start" }} disabled={busy} onClick={() => resolve(Number(g.id))}>
+              {g.name}{g.year ? ` (${g.year})` : ""}
+            </button>
+          ))}
+          {search.data && games.length === 0 && <span className="small muted">{t("files.noResults", { console: consoleName(file.console) })}</span>}
         </div>
       )}
     </div>
