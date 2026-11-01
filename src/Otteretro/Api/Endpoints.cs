@@ -199,7 +199,7 @@ public static class Endpoints
     }
 
     /// <summary>Abre un enlace con el programa del sistema; false si no hay quién lo abra.</summary>
-    static bool Open(string url)
+    internal static bool Open(string url)
     {
         try
         {

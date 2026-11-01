@@ -219,19 +219,12 @@
     "storage": "Almacenamiento"
   },
   "dataFolder": {
-    "open": "Abrir carpeta",
     "dismiss": "Cerrar aviso",
-    "usage": "Ocupan {used}",
-    "usageMeasuring": "Midiendo lo que ocupan",
-    "moveButton": "Llevar a otro disco…",
     "useButton": "Usar otra carpeta",
-    "contents": "base de datos, catálogo con sus imágenes y registro",
-    "moveHelp": "Se copian solo los datos de la app (base, catálogo y registro) a la carpeta Otteretro de ese disco, se comprueba cada archivo y recién entonces se borran de acá. Tus juegos y herramientas se quedan donde están. Ese disco pasa a ser el ★.",
     "useHelp": "La app empezará a usar esa carpeta (por ejemplo, una que traes de otro PC). La actual no se mueve ni se borra. Si la carpeta elegida está vacía, empezarás de cero.",
     "folderLabel": "Carpeta",
     "placeholder": "Por ejemplo E:\\Otteretro",
     "cancel": "Cancelar",
-    "move": "Mover",
     "useThis": "Usar esta carpeta",
     "progress": "{step} hacia {destination}",
     "dontClose": "No cierres la app hasta que termine.",
@@ -240,9 +233,7 @@
     "error": "Error",
     "taskTitle": "Mover la carpeta de datos",
     "taskDone": "Listo",
-    "taskNowIn": "Ahora está en {destination}",
-    "title": "Datos de la app",
-    "toDisk": "Disco de destino"
+    "taskNowIn": "Ahora está en {destination}"
   },
   "move": {
     "step": {
@@ -849,7 +840,6 @@
     "cancel": "Cancelar",
     "free": "{free} libres de {total}",
     "network": "En red",
-    "connected": "Conectada",
     "disconnected": "Desconectada",
     "migrationStarted": "La migración quedó en el panel de tareas. Puedes seguir usando la app mientras tanto.",
     "queued": "Quedó en el panel de tareas.",
@@ -877,10 +867,8 @@
     },
     "addDisk": "+ Agregar disco",
     "addDiskHelp": "Elige un disco: Otteretro crea en él la carpeta Otteretro con Juegos, Emuladores, Ports, Complementos y Sistema. Una por disco.",
-    "noDisks": "Aún no hay discos. Agrega uno para guardar juegos y herramientas.",
     "noDrives": "Todos los discos ya están agregados.",
     "add": "Agregar",
-    "defaultHelp": "El disco ★ es donde están los datos de la app: ahí va lo nuevo y lo de Herramientas. Cambia si llevas los datos a otro disco.",
     "usage": "Uso del disco por tipo",
     "otherUse": "Otros archivos",
     "freeSpace": "Libre",
@@ -895,7 +883,16 @@
       "run": "Pasar al estándar"
     },
     "disk": "Disco",
-    "dataUse": "Datos de la app"
+    "dataUse": "Datos de la app",
+    "moreActions": "Más opciones del disco",
+    "openFolder": "Abrir carpeta",
+    "useOtherData": "Usar otra carpeta de datos…",
+    "removeDisk": "Quitar disco…",
+    "colName": "Nombre",
+    "colType": "Tipo",
+    "colSize": "Tamaño",
+    "appData": "Datos de Otteretro",
+    "appType": "App"
   },
   "tools": {
     "emptyTitle": "Aún no hay emuladores ni ports",
