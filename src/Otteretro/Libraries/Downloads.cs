@@ -24,6 +24,16 @@ public interface IDownloadSite
     Task<ResolvedLink> Resolve(Uri url, Credentials credentials, CancellationToken ct);
 }
 
+/// <summary>Un sitio que transfiere por su cuenta, sin un enlace directo: Mega descifra, y un torrent habla con otros equipos.</summary>
+public interface IOwnTransfer
+{
+    /// <summary>Nombre y tamaño, si se saben sin bajar nada.</summary>
+    Task<(string? Name, long? Size)> Describe(Uri url, Credentials credentials, CancellationToken ct);
+
+    /// <param name="progress">Porcentaje de este enlace y archivo en curso.</param>
+    Task Transfer(Uri url, string folder, Credentials credentials, Action<double, string> progress, CancellationToken ct);
+}
+
 /// <summary>Un enlace directo: el archivo está en esa misma dirección.</summary>
 public sealed class DirectSite : IDownloadSite
 {
@@ -57,7 +67,7 @@ public static partial class Downloads
     const string Partial = ".descargando";
 
     /// <summary>Los conectores, del más específico al más general.</summary>
-    public static List<IDownloadSite> Sites { get; } = [new OneFichierSite(), new DirectSite()];
+    public static List<IDownloadSite> Sites { get; } = [new OneFichierSite(), new MegaSite(), new DirectSite()];
 
     /// <summary>Conexiones por archivo (#226): pocas por defecto, para no arriesgar una cuenta.</summary>
     public const int DefaultConnections = 2;
@@ -103,6 +113,15 @@ public static partial class Downloads
             ct.ThrowIfCancellationRequested();
             var url = new Uri(job.Links[i]);
             var site = SiteOf(url) ?? throw new TaskException(ApiError.Of("download.badLink"));
+            if (site is IOwnTransfer own)
+            {
+                var (index, count) = (i, job.Links.Count);
+                await own.Transfer(url, folder, run.Credentials, (percent, file) =>
+                    run.Report((int)((index + percent / 100) * 100 / count), ApiError.Of("download.running", ("file", file))), ct);
+                job = job with { Done = i + 1 };
+                run.Report((i + 1) * 100 / job.Links.Count, null, JsonSerializer.Serialize(job, JsonSerializerOptions.Web));
+                continue;
+            }
             var link = await site.Resolve(url, run.Credentials, ct);
             if (link.Wait is { } wait)
             {
@@ -217,6 +236,11 @@ public static partial class Downloads
         if (SiteOf(url) is not { } site) return new(text, fallback, null, null, "noConnector");
         try
         {
+            if (site is IOwnTransfer own)
+            {
+                var (ownName, ownSize) = await own.Describe(url, credentials, ct);
+                return new(text, ownName ?? fallback, ownSize, site.Id, "ok");
+            }
             var link = await site.Resolve(url, credentials, ct);
             if (link.Probe is false) return new(text, link.FileName ?? fallback, link.Size, site.Id, link.Blocked is null ? "ok" : "blocked");
             if (link.Blocked is not null) return new(text, link.FileName ?? fallback, link.Size, site.Id, "blocked");
@@ -226,6 +250,8 @@ public static partial class Downloads
         }
         // Sin respuesta no se sabe: se deja intentar, y la cola reintenta si es un corte.
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException) { return new(text, fallback, null, site.Id, "unknown"); }
+        catch (CG.Web.MegaApiClient.ApiException e) when (e.ApiResultCode == CG.Web.MegaApiClient.ApiResultCode.ResourceNotExists) { return new(text, fallback, null, site.Id, "unavailable"); }
+        catch (CG.Web.MegaApiClient.ApiException) { return new(text, fallback, null, site.Id, "unknown"); }
     }
 
     static string FileNameOf(Uri url)

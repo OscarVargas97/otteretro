@@ -549,7 +549,8 @@
       "needsAccount": "{site} needs your account: add it in Settings › Accounts and keys.",
       "badAccount": "{site} rejected your account: check it in Settings › Accounts and keys.",
       "siteSaid": "{site} answered: {message}",
-      "badConnections": "Connections go from 1 to 8."
+      "badConnections": "Connections go from 1 to 8.",
+      "running": "Downloading {file}"
     }
   },
   "credentials": {

@@ -549,7 +549,8 @@
       "needsAccount": "{site} necesita tu cuenta: agrégala en Ajustes › Cuentas y claves.",
       "badAccount": "{site} rechazó tu cuenta: revísala en Ajustes › Cuentas y claves.",
       "siteSaid": "{site} respondió: {message}",
-      "badConnections": "Las conexiones van de 1 a 8."
+      "badConnections": "Las conexiones van de 1 a 8.",
+      "running": "Bajando {file}"
     }
   },
   "credentials": {

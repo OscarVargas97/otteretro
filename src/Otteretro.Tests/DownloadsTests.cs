@@ -191,6 +191,39 @@ public class DownloadsTests : IAsyncDisposable
         Assert.False(Directory.Exists(f.Tmp[@"Otteretro\Entrada\paquete raro"]));
     }
 
+    sealed class OwnSite : IDownloadSite, IOwnTransfer
+    {
+        public string Id => "propio";
+        public bool Handles(Uri url) => url.Host == "propio.test";
+        public Task<ResolvedLink> Resolve(Uri url, App.Credentials c, CancellationToken ct) => throw new InvalidOperationException();
+        public Task<(string? Name, long? Size)> Describe(Uri url, App.Credentials c, CancellationToken ct) => Task.FromResult<(string?, long?)>(("juego.gba", 3));
+        public Task Transfer(Uri url, string folder, App.Credentials c, Action<double, string> progress, CancellationToken ct)
+        {
+            progress(50, "juego.gba");
+            File.WriteAllText(Path.Combine(folder, "juego.gba"), "rom");
+            return Task.CompletedTask;
+        }
+    }
+
+    /// <summary>#205, #207: los sitios que transfieren por su cuenta pasan por la misma cola y terminan igual en `Entrada\\`.</summary>
+    [Fact]
+    public async Task ASiteWithItsOwnTransferEndsTheSameWay()
+    {
+        await using var f = new Fixture();
+        var (disk, _) = Disk.Create(f.Db, f.Tmp["Otteretro"], "E:");
+        var site = new OwnSite();
+        Downloads.Sites.Insert(0, site);
+        try
+        {
+            var preview = Assert.Single(await Downloads.Preview("https://propio.test/x", f.Credentials, default));
+            Assert.Equal(("juego", 3L), (preview.Name, preview.Size));
+            var done = await f.Run(Downloads.Enqueue(f.Db, "P", disk, ["https://propio.test/x"]).Task!.Value);
+            Assert.Equal("done", done.Status);
+        }
+        finally { Downloads.Sites.Remove(site); }
+        Assert.Equal("rom", File.ReadAllText(f.Tmp[@"Otteretro\Entrada\P\juego.gba"]));
+    }
+
     sealed class NoNetwork : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) => throw new HttpRequestException("sin red");

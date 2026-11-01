@@ -39,6 +39,7 @@ public class OneFichierTests
         // El conector gana sobre el de enlaces directos.
         Assert.Equal("1fichier", Downloads.SiteOf(Link)!.Id);
         Assert.Equal("direct", Downloads.SiteOf(new Uri("https://otro.com/a.zip"))!.Id);
+        Assert.Equal("mega", Downloads.SiteOf(new Uri("https://mega.nz/file/abc#clave"))!.Id);
     }
 
     [Fact]
