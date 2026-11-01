@@ -40,7 +40,7 @@ public sealed class Updater(AppSession session, Events events)
         var downloading = false;
         try
         {
-            if (SourceFor(session.Config.EffectiveUpdateChannel, session.Config.UpdateSource) is not { } found)
+            if (SourceFor(session.Config.EffectiveUpdateChannel, session.Config.EffectiveUpdateOrigin) is not { } found)
             {
                 Set(UpdatePhase.Unavailable, null, 0, "noSource");
                 return;
@@ -109,6 +109,7 @@ public sealed class Updater(AppSession session, Events events)
         "stable" => (new GithubSource(Repo, null, false), "win"),
         "testing" => (new GithubSource(Repo, null, true), "dev"),
         _ when string.IsNullOrWhiteSpace(origin) => null,
+        "local" => (new SimpleFileSource(new DirectoryInfo(origin)), "win"),
         _ when origin.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase) => (new GithubSource(origin, null, false), "win"),
         _ when Uri.TryCreate(origin, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https" => (new SimpleWebSource(uri), "win"),
         _ => (new SimpleFileSource(new DirectoryInfo(origin)), "win"),

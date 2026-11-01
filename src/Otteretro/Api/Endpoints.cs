@@ -10,7 +10,9 @@ public record LanguageRequest(string Language);
 public record MenuRequest(bool Collapsed);
 /// <param name="Channel">stable, testing o custom (#180).</param>
 /// <param name="Origin">Con custom: carpeta, URL o repo de GitHub.</param>
-public record UpdateChannelInfo(string Channel, string? Origin);
+/// <param name="Origin">Con «custom», el otro origen; con «local», la carpeta de los paquetes de este equipo (#163).</param>
+/// <param name="Local">La carpeta local guardada, para volver a ella de un clic.</param>
+public record UpdateChannelInfo(string Channel, string? Origin, string? Local = null);
 public record CredentialRequest(string Value);
 
 /// <summary>
@@ -102,17 +104,23 @@ public static class Endpoints
         });
 
         // Ajustes › General › Actualizaciones (#180): el canal y, con «custom», el origen. Al cambiarlo se busca de inmediato.
-        api.MapGet("/update/channel", (AppSession s) => new UpdateChannelInfo(s.Config.EffectiveUpdateChannel, s.Config.UpdateSource));
+        static UpdateChannelInfo ChannelOf(AppConfig c) => new(c.EffectiveUpdateChannel, c.UpdateSource, c.LocalUpdateFolder);
+        api.MapGet("/update/channel", (AppSession s) => ChannelOf(s.Config));
         api.MapPut("/update/channel", async Task<Results<Ok<UpdateChannelInfo>, BadRequest<ApiError>>> (UpdateChannelInfo request, AppSession s, Updater u) =>
         {
             if (!AppConfig.UpdateChannels.Contains(request.Channel)) return TypedResults.BadRequest(ApiError.Of("update.channel"));
             if (request.Channel == "custom" && string.IsNullOrWhiteSpace(request.Origin)) return TypedResults.BadRequest(ApiError.Of("update.noOrigin"));
+            // Local: la carpeta que llega o la que ya estaba guardada.
+            var local = string.IsNullOrWhiteSpace(request.Origin) ? s.Config.LocalUpdateFolder : request.Origin.Trim();
+            if (request.Channel == "local" && (string.IsNullOrWhiteSpace(local) || !Path.IsPathFullyQualified(local)))
+                return TypedResults.BadRequest(ApiError.Of("update.noOrigin"));
             s.Config.UpdateChannel = request.Channel;
             if (request.Channel == "custom") s.Config.UpdateSource = request.Origin!.Trim();
+            if (request.Channel == "local") s.Config.LocalUpdateFolder = local;
             s.Config.Save(s.ConfigPath);
             u.Forget();
             _ = u.Check();
-            return TypedResults.Ok(new UpdateChannelInfo(s.Config.EffectiveUpdateChannel, s.Config.UpdateSource));
+            return TypedResults.Ok(ChannelOf(s.Config));
         });
 
         api.MapPost("/update/restart", Results<Ok, Conflict<ApiError>> (Updater u) =>

@@ -335,6 +335,19 @@ test("Ajustes en inglés: carpeta, idioma y actualización", async () => {
   await page.reload();
   await expect(page.getByRole("group", { name: en.update.channel.title }).getByRole("button", { name: en.update.channel.custom })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByLabel(en.update.channel.origin)).toHaveValue(dataDir("paquetes"));
+  // #163: Local pide su carpeta la primera vez y la recuerda aparte de Otro origen: después, un clic.
+  const group = page.getByRole("group", { name: en.update.channel.title });
+  await group.getByRole("button", { name: en.update.channel.local, exact: true }).click();
+  await page.getByLabel(en.update.channel.localFolder).fill(dataDir("locales"));
+  await page.getByRole("button", { name: en.update.channel.use, exact: true }).click();
+  await expect(group.getByRole("button", { name: en.update.channel.local, exact: true })).toHaveAttribute("aria-pressed", "true");
+  await group.getByRole("button", { name: en.update.channel.stable }).click();
+  await expect(group.getByRole("button", { name: en.update.channel.stable })).toHaveAttribute("aria-pressed", "true");
+  await group.getByRole("button", { name: en.update.channel.local, exact: true }).click();
+  await expect(group.getByRole("button", { name: en.update.channel.local, exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel(en.update.channel.localFolder)).toHaveValue(dataDir("locales"));
+  await group.getByRole("button", { name: en.update.channel.custom }).click();
+  await expect(page.getByLabel(en.update.channel.origin)).toHaveValue(dataDir("paquetes"));
   await page.getByRole("group", { name: en.update.channel.title }).getByRole("button", { name: en.update.channel.stable }).click();
   await expect(page.getByRole("group", { name: en.update.channel.title }).getByRole("button", { name: en.update.channel.stable })).toHaveAttribute("aria-pressed", "true");
   await expectNoRawKeys();
