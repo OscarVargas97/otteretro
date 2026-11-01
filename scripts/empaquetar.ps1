@@ -1,15 +1,16 @@
-# Empaqueta Otteretro con Velopack en artefactos\paquetes (paquetes locales mientras no haya releases, #101).
-# Uso: .\scripts\empaquetar.ps1 -Version 0.0.1 [-OutputDir <carpeta>]
-# Cada versión empaquetada en la misma carpeta forma el origen de actualizaciones local
-# (config.json → "origenActualizaciones": "<OutputDir>\\paquetes"). Desde un espacio de ia-workspace,
-# OutputDir es la carpeta artefactos del espacio, para que todas las versiones queden juntas.
+# Empaqueta Otteretro con Velopack en <OutputDir>\paquetes. Lo usan las releases de GitHub Actions y las pruebas locales.
+# Uso: .\scripts\empaquetar.ps1 [-Version 0.2.0] [-Channel win|dev] [-OutputDir <carpeta>]
+# Sin -Version arma VERSION-local.N (#179): una versión propia que no se confunde con las publicadas. Para instalarla,
+# en Ajustes › General › Actualizaciones se elige «Otro origen» con la carpeta <OutputDir>\paquetes (#180).
 param(
-    [Parameter(Mandatory)][string]$Version,
+    [string]$Version,
+    [string]$Channel = 'win',
     [string]$OutputDir = (Join-Path (Split-Path $PSScriptRoot -Parent) 'artefactos')
 )
 $ErrorActionPreference = 'Stop'
 
 $raiz = Split-Path $PSScriptRoot -Parent
+if (-not $Version) { $Version = "$((Get-Content (Join-Path $raiz 'VERSION')).Trim())-local.$(git -C $raiz rev-list --count HEAD)" }
 $publicado = Join-Path $OutputDir 'publicado'
 $paquetes = Join-Path $OutputDir 'paquetes'
 
@@ -18,7 +19,7 @@ dotnet publish (Join-Path $raiz 'src\Otteretro') -c Release -r win-x64 --self-co
 if ($LASTEXITCODE) { throw 'dotnet publish falló' }
 
 vpk pack --packId Otteretro --packVersion $Version --packTitle Otteretro --packDir $publicado `
-    --mainExe Otteretro.exe --icon (Join-Path $raiz 'src\Otteretro\nutria.ico') --outputDir $paquetes
+    --channel $Channel --mainExe Otteretro.exe --icon (Join-Path $raiz 'src\Otteretro\nutria.ico') --outputDir $paquetes
 if ($LASTEXITCODE) { throw 'vpk pack falló' }
 
 Write-Host "Listo: $paquetes (instalador: Otteretro-win-Setup.exe)"

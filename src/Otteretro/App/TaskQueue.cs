@@ -46,8 +46,8 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
 
     public TimeSpan Poll { get; init; } = TimeSpan.FromSeconds(2);
 
-    /// <summary>Lanza la carga de Claude al empezar su horario (F2.9). Las pruebas lo apagan para no depender de la hora.</summary>
-    public static bool AutoClaude { get; set; } = true;
+    /// <summary>Lanza la carga de Claude al empezar su horario (F2.9). Las pruebas (y el servidor de los e2e, con OTTERETRO_E2E) lo apagan para no depender de la hora.</summary>
+    public static bool AutoClaude { get; set; } = Environment.GetEnvironmentVariable("OTTERETRO_E2E") is null;
 
     /// <summary>
     /// Espera antes de cada reintento de un error pasajero (#59): se corta la red, vence el tiempo, o la fuente responde 429 o 5xx.

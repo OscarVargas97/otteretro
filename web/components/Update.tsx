@@ -2,9 +2,10 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFormatter, useTranslations } from "next-intl";
+import { useState } from "react";
 import { request } from "@/lib/client";
-import { useDynamicT } from "@/lib/i18n";
-import type { UpdateState } from "@/lib/types";
+import { useDescribeError, useDynamicT } from "@/lib/i18n";
+import type { UpdateChannelInfo, UpdateState } from "@/lib/types";
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -116,6 +117,51 @@ export function VersionAndUpdate({ version }: { version?: string }) {
         <div className="ot-progress"><span style={{ width: `${Number(u.progress)}%` }} /></div>
       )}
     </div>
+  );
+}
+
+const CHANNELS = ["stable", "testing", "custom"] as const;
+
+/**
+ * Ajustes › General › Actualizaciones (#180): Estable (releases de main), Pruebas (prereleases de dev) u Otro origen
+ * (carpeta, URL o repo de GitHub de quien tiene su propia versión). Al cambiar, la app busca de inmediato.
+ */
+export function UpdateChannel() {
+  const t = useTranslations("update.channel");
+  const describe = useDescribeError();
+  const cache = useQueryClient();
+  const u = useUpdate();
+  const info = useQuery({ queryKey: ["update", "channel"], queryFn: () => request<UpdateChannelInfo>("/api/update/channel") });
+  const [origin, setOrigin] = useState<string | null>(null);
+  const [custom, setCustom] = useState(false);
+  const save = useMutation({
+    mutationFn: (body: UpdateChannelInfo) => request<UpdateChannelInfo>("/api/update/channel", { method: "PUT", body: JSON.stringify(body) }),
+    onSuccess: (data) => { cache.setQueryData(["update", "channel"], data); setOrigin(null); setCustom(false); },
+  });
+  if (u?.message === "withSystem" || !info.data) return null;
+  const current = (custom ? "custom" : info.data.channel) as (typeof CHANNELS)[number];
+  const text = origin ?? info.data.origin ?? "";
+  const commit = () => { if (text.trim() && (text.trim() !== info.data.origin || info.data.channel !== "custom")) save.mutate({ channel: "custom", origin: text.trim() }); };
+  return (
+    <section className="panel">
+      <h2>{t("title")}</h2>
+      <div className="chips" role="group" aria-label={t("title")}>
+        {CHANNELS.map((c) => (
+          <button key={c} type="button" className="chip chip-lg" aria-pressed={c === current} disabled={save.isPending}
+            onClick={() => (c === "custom" ? setCustom(true) : c !== info.data.channel || custom ? (setCustom(false), save.mutate({ channel: c, origin: null })) : null)}>
+            {t(c)}
+          </button>
+        ))}
+      </div>
+      <p className="small muted" style={{ margin: 0 }}>{t(`${current}Hint` as "stableHint")}</p>
+      {current === "custom" && (
+        <form className="sentence" onSubmit={(e) => { e.preventDefault(); commit(); }}>
+          <input style={{ flex: 1 }} aria-label={t("origin")} placeholder={t("originPlaceholder")} value={text} onChange={(e) => setOrigin(e.target.value)} />
+          <button className="ot-btn" type="submit" disabled={save.isPending || !text.trim()}>{t("use")}</button>
+        </form>
+      )}
+      {save.error && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(save.error)}</p>}
+    </section>
   );
 }
 

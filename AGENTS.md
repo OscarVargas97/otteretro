@@ -20,7 +20,7 @@ Desde un **espacio** de [ia-workspace](https://github.com/OscarVargas97/ia-works
   2. Una entrada por decisión en `docs/historial/decisiones.md`. **Solo crece**: si algo cambia, se agrega una entrada que reemplaza a la anterior.
   3. `docs/REQUISITOS.md` actualizado, con su fecha de "Última actualización".
 - **Tareas**: en GitHub. Solicitud = issue con etiqueta `solicitud`; tareas = sus sub-issues; estado en el [Project otteretro](https://github.com/users/OscarVargas97/projects/2); un milestone por fase. **El plan también vive en GitHub** (#143): cada fase es un milestone (qué trae, qué pedir y «Listo cuando»), lo que viene son borradores del Project con el campo `Fase` (vista «Plan») y la fase en curso tiene su issue «Fase N». `docs/plan.md` solo dice el orden de las fases y por qué.
-- **Ramas**: cada fase en `fase/N-nombre` desde `dev`; lo demás en `feat|fix|refactor|chore|docs/<nombre>`. Todo entra a `dev` por PR. **Por ahora nada se fusiona en `main`** (#101): cuando se decida publicar, al fusionar en `main` GitHub Actions publica una release y la app se autoactualiza.
+- **Ramas**: `main` es la rama por defecto y la de las releases; se desarrolla en `dev` (#181). Cada fase en `fase/N-nombre` desde `dev`; lo demás en `feat|fix|refactor|chore|docs/<nombre>`. Todo entra a `dev` por PR. **Una release es un PR de `dev` a `main`**: al fusionarlo, GitHub Actions publica la versión de `VERSION` (`0.FASE.arreglo`, #179) y la app se actualiza sola desde el canal Estable (#180). Cada push a `dev` publica una prerelease `X-dev.N` (canal Pruebas). Como `dev` no es la rama por defecto, los «Closes #n» de los PRs a `dev` no cierran issues: se cierran a mano al fusionar.
 - **Commits** pequeños, en Conventional Commits y en español (`feat(catalog): …`), con `Refs #n` de la tarea.
 - **Tareas fuera del plan**: sin issue no hay trabajo. Lo que aparece pasa por `otter:requerimientos` y queda como issue (o como criterio o sub-issue de la tarea en curso). El registro anterior está en `docs/historial/tareas-no-planificadas.md`.
 - **Revisión**: `docs/review-checklist.md` tiene los errores propios de este stack.
@@ -48,7 +48,7 @@ Desde un **espacio** de [ia-workspace](https://github.com/OscarVargas97/ia-works
 | Regenerar los tipos del front tras cambiar la API | `cd web && npm run tipos` |
 | Ver la interfaz en un navegador sin ventana ni tocar la config real | `OTTERETRO_CONFIG=<ruta>/config.json Otteretro.exe servidor` → abre la URL que imprime |
 | Front en caliente | `cd web && npm run dev` (puerto 3000) y la app con `OTTERETRO_DEV_WEB=http://localhost:3000` |
-| Instalador local | `./scripts/empaquetar.ps1 -Version 0.0.N` → `artefactos/paquetes` (también es el origen de actualizaciones local) |
+| Instalador local | `./scripts/empaquetar.ps1` → `artefactos/paquetes` con la versión `VERSION-local.N`; para probarla, Ajustes › General › Actualizaciones › «Otro origen» con esa carpeta |
 | Paquete de Nix (en Linux con Nix) | `nix build` (compila el front y el back y corre `dotnet test`); `nix flake check` |
 | Probar en Linux | `nix build` y `OTTERETRO_CONFIG=/tmp/x/config.json ./result/bin/Otteretro servidor` (API) o `./result/bin/Otteretro` (ventana, con `DISPLAY`); `--fullscreen` simula la sesión Play |
 

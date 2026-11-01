@@ -10,7 +10,7 @@ import { DataFolderSettings } from "@/components/DataFolder";
 import { LanguagePicker } from "@/components/LanguagePicker";
 import { useAppState } from "@/components/Shell";
 import { Tabs } from "@/components/Tabs";
-import { VersionAndUpdate } from "@/components/Update";
+import { UpdateChannel, VersionAndUpdate } from "@/components/Update";
 
 /** Las pestañas de Ajustes, en orden (#97, #111). La que viene en `?s=` se abre; sin ella, la primera. */
 const SECTIONS = ["dataFolder", "credentials", "consoles", "claude", "general"] as const;
@@ -53,6 +53,7 @@ function Panel({ section }: { section: Section }) {
       <div className="settings-blocks">
         <section className="panel"><h2>{t("language")}</h2><LanguagePicker /></section>
         <VersionAndUpdate version={data?.version} />
+        <UpdateChannel />
         <p className="small muted" style={{ margin: 0 }}>{t("later")}</p>
       </div>
     );

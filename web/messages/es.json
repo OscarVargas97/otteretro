@@ -208,6 +208,18 @@
     }
   },
   "update": {
+    "channel": {
+      "title": "Actualizaciones",
+      "stable": "Estable",
+      "testing": "Pruebas",
+      "custom": "Otro origen",
+      "stableHint": "Las versiones publicadas en GitHub: probadas y con su lista de novedades.",
+      "testingHint": "Lo último en desarrollo, antes de publicarse. Puede traer errores.",
+      "customHint": "Una carpeta, una dirección web o el repo de GitHub de quien arma su propia versión de Otteretro.",
+      "origin": "Origen de las actualizaciones",
+      "originPlaceholder": "D:\\paquetes o https://github.com/usuario/otteretro",
+      "use": "Usar"
+    },
     "taskTitle": "Actualización de Otteretro",
     "checking": "Buscando…",
     "ready": "Lista",
@@ -260,6 +272,8 @@
       "tasksRunning": "Espera a que terminen las tareas en curso antes de mover la carpeta de datos."
     },
     "update": {
+      "channel": "Ese canal no existe.",
+      "noOrigin": "Escribe una carpeta, una dirección o un repo de GitHub.",
       "nothingDownloaded": "No hay ninguna actualización descargada."
     },
     "language": {
