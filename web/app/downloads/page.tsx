@@ -2,18 +2,23 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFormatter, useTranslations } from "next-intl";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { librariesQuery, useLibraryHint } from "@/components/Downloads";
 import { Empty } from "@/components/Shell";
 import { useTasks } from "@/components/Tasks";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
-import type { DownloadInfo } from "@/lib/types";
+import type { DownloadInfo, PackagePreview } from "@/lib/types";
 
 const post = (body: unknown) => ({ method: "POST", body: JSON.stringify(body) });
 
 /** Descargas (§9.2, #202): la cola con progreso, velocidad y pausa, y agregar enlaces eligiendo el disco. */
-export default function Downloads() {
+export default function DownloadsScreen() {
+  return <Suspense><Downloads /></Suspense>;
+}
+
+function Downloads() {
   const t = useTranslations("downloads");
   const format = useFormatter();
   const describe = useDescribeError();
@@ -22,16 +27,34 @@ export default function Downloads() {
   const live = useTasks();
   const disks = useQuery(librariesQuery).data?.filter((d) => d.type === "disk" && d.connected) ?? [];
   const hint = useLibraryHint();
-  const [name, setName] = useState("");
-  const [links, setLinks] = useState("");
+  const params = useSearchParams();
+  const game = params.get("game");
+  const gameName = params.get("name");
+  const [text, setText] = useState("");
+  const [off, setOff] = useState<Set<string>>(new Set());
   const [disk, setDisk] = useState("");
   const refresh = () => {
     cache.invalidateQueries({ queryKey: ["downloads"] });
     cache.invalidateQueries({ queryKey: ["tasks"] });
   };
+  // El capturador (#203): solo lo que pegas o arrastras aquí; nunca lee el portapapeles.
+  const check = useMutation({
+    mutationFn: () => request<PackagePreview[]>("/api/downloads/preview", post({ text })),
+    onSuccess: (data) => setOff(new Set(data.filter((p) => p.links.some((l) => l.state === "unavailable" || l.state === "noConnector")).map((p) => p.name))),
+  });
+  const chosen = (check.data ?? []).filter((p) => !off.has(p.name));
   const add = useMutation({
-    mutationFn: () => request<number>("/api/downloads", post({ name, diskId: disk || null, links: links.split("\n").map((l) => l.trim()).filter(Boolean) })),
-    onSuccess: () => { setName(""); setLinks(""); refresh(); },
+    mutationFn: async () => {
+      for (const p of chosen)
+        await request<number>("/api/downloads", post({ name: p.name, diskId: disk || null, links: p.links.map((l) => l.url), gameId: game ? Number(game) : null }));
+    },
+    onSuccess: () => { setText(""); check.reset(); refresh(); },
+    onError: refresh,
+  });
+  const toggle = (name: string) => setOff((old) => {
+    const next = new Set(old);
+    if (next.has(name)) next.delete(name); else next.add(name);
+    return next;
   });
   const act = useMutation({
     mutationFn: ({ id, action }: { id: number; action: "pause" | "resume" | "cancel" }) => request<void>(`/api/tasks/${id}/${action}`, { method: "POST" }),
@@ -41,21 +64,33 @@ export default function Downloads() {
 
   return (
     <div className="content" style={{ display: "grid", gap: 12 }}>
-      <form className="panel" style={{ display: "grid", gap: 8 }} onSubmit={(e) => { e.preventDefault(); add.mutate(); }}>
-        <h2 style={{ margin: 0 }}>{t("add")}</h2>
-        <label className="small muted" htmlFor="download-name">{t("name")}</label>
-        <input id="download-name" value={name} onChange={(e) => setName(e.target.value)} />
+      <section className="panel" style={{ display: "grid", gap: 8 }}>
+        <h2 style={{ margin: 0 }}>{game ? t("addForGame", { name: gameName ?? "" }) : t("add")}</h2>
         <label className="small muted" htmlFor="download-links">{t("links")}</label>
-        <textarea id="download-links" rows={4} spellCheck={false} value={links} onChange={(e) => setLinks(e.target.value)} placeholder={t("linksHint")} />
+        <textarea id="download-links" rows={4} spellCheck={false} value={text} onChange={(e) => { setText(e.target.value); check.reset(); }} placeholder={t("linksHint")} />
         <div className="hero-actions">
+          <button className="ot-btn ot-btn-sm" type="button" disabled={!text.trim() || check.isPending} onClick={() => check.mutate()}>{check.isPending ? t("checking") : t("check")}</button>
           <select className="ot-btn ot-btn-sm" aria-label={t("disk")} value={disk} onChange={(e) => setDisk(e.target.value)}>
             <option value="">{t("defaultDisk")}</option>
             {disks.map((d) => <option key={d.id} value={d.id}>{hint(d)}</option>)}
           </select>
-          <button className="ot-btn ot-btn-primary ot-btn-sm" type="submit" disabled={!name.trim() || !links.trim() || add.isPending}>{t("start")}</button>
         </div>
+        {check.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(check.error)}</p>}
+        {check.data?.length === 0 && <p className="small muted" style={{ margin: 0 }}>{t("noLinks")}</p>}
+        {check.data?.map((p) => (
+          <label key={p.name} className="version-row small">
+            <span>
+              <input type="checkbox" checked={!off.has(p.name)} onChange={() => toggle(p.name)} /> {p.name}
+              <span className="muted"> · {t("files", { count: p.links.length })}{Number(p.size) > 0 && ` · ${size(String(p.size))} MB`}</span>
+            </span>
+            {p.links.filter((l) => l.state !== "ok").map((l) => <span key={l.url} className="ot-badge ot-badge-review" title={l.url}>{t(`state.${l.state as "unavailable"}`)}</span>)}
+          </label>
+        ))}
+        {check.data && check.data.length > 0 && (
+          <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" style={{ justifySelf: "start" }} disabled={add.isPending || chosen.length === 0} onClick={() => add.mutate()}>{t("startCount", { count: chosen.length })}</button>
+        )}
         {add.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(add.error)}</p>}
-      </form>
+      </section>
 
       {list.isError && <p className="error small" role="alert">{describe(list.error)}</p>}
       {act.isError && <p className="error small" role="alert">{describe(act.error)}</p>}

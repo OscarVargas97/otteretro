@@ -544,7 +544,8 @@
       "log": {
         "done": "{name}: finished and moved to {path}."
       },
-      "unavailable": "{file}: the site answered {status}; the link is not available."
+      "unavailable": "{file}: the site answered {status}; the link is not available.",
+      "notDirect": "{url} is a page, not a file: that site needs a connector."
     }
   },
   "credentials": {
@@ -895,7 +896,8 @@
       "remove": "Remove from disk",
       "removeHint": "What you mark goes to the recycle bin and stops counting as owned. Updates and DLC only go if you mark them.",
       "removeConfirm": "Send to recycle bin ({count})",
-      "removeCancel": "Cancel"
+      "removeCancel": "Cancel",
+      "download": "Download"
     },
     "search": {
       "sagas": "Series",
@@ -1111,12 +1113,10 @@
   },
   "downloads": {
     "add": "Add a download",
-    "name": "Package name",
-    "links": "Links, one per line",
+    "links": "Paste or drop your links, in any text",
     "linksHint": "https://…",
     "disk": "Destination disk",
     "defaultDisk": "★ disk",
-    "start": "Download",
     "emptyTitle": "No downloads",
     "emptyText": "Add links above: what comes down is sorted on your disk by itself.",
     "summary": "{disk} · {done} of {total} files",
@@ -1131,6 +1131,18 @@
       "done": "Finished",
       "error": "Failed",
       "canceled": "Canceled"
+    },
+    "addForGame": "Add links for {name}",
+    "check": "See packages",
+    "checking": "Checking…",
+    "noLinks": "No links found in that text.",
+    "files": "{count, plural, one {# file} other {# files}}",
+    "startCount": "Download ({count})",
+    "state": {
+      "unavailable": "Not available",
+      "blocked": "Needs an account or a captcha",
+      "noConnector": "Site without a connector",
+      "unknown": "No answer"
     }
   }
 }

@@ -18,7 +18,8 @@ public static partial class Import
 
     /// <param name="EntryDisk">Es la `Entrada\` de ese disco (#221): lo reconocido va a ese mismo disco, y solo si se identificó con seguridad (#222).</param>
     /// <param name="Skip">Lo que se desmarcó en la vista previa (#197), relativo a la carpeta.</param>
-    public record Job(string Path, string? EntryDisk = null, List<string>? Skip = null);
+    /// <param name="GameId">El juego del que se sabe que es (lo que se bajó desde su ficha, §9.6).</param>
+    public record Job(string Path, string? EntryDisk = null, List<string>? Skip = null, long? GameId = null);
 
     /// <summary>Las extensiones que dicen la consola. Las de disco (iso, chd, cue…) no: esas salen de su cabecera, su carpeta o su hash.</summary>
     static readonly Dictionary<string, string> ByExtension = new(StringComparer.OrdinalIgnoreCase)
@@ -74,9 +75,10 @@ public static partial class Import
     }
 
     /// <summary>Encola la importación de la `Entrada\` de un disco, salvo que ya haya una esperando.</summary>
-    public static long EnqueueEntry(Database db, DiskInfo disk)
+    /// <param name="folder">Solo esa carpeta de `Entrada\` (un paquete recién bajado); si no, toda.</param>
+    public static long EnqueueEntry(Database db, DiskInfo disk, string? folder = null, long? gameId = null)
     {
-        var data = JsonSerializer.Serialize(new Job(Disk.Normalize(Path.Combine(disk.Path, Disk.EntryFolder)), disk.Id), JsonSerializerOptions.Web);
+        var data = JsonSerializer.Serialize(new Job(Disk.Normalize(folder ?? Path.Combine(disk.Path, Disk.EntryFolder)), disk.Id, null, gameId), JsonSerializerOptions.Web);
         using (var c = db.Open())
             if (c.ExecuteScalar<long?>("SELECT id FROM task WHERE kind = @Kind AND status = 'queued' AND data = @data LIMIT 1", new { Kind, data }) is { } waiting)
                 return waiting;
@@ -132,6 +134,9 @@ public static partial class Import
         await Place(pass, files.Where(f => !Archives.IsArchive(f)).ToList(), job.Path, null, ct);
         foreach (var main in files.Where(Archives.IsMain).ToList()) await Unpack(pass, main, ct);
         run.Log(ApiError.Of("import.log.summary", ("moved", pass.Moved.ToString()), ("skipped", pass.Skipped.ToString())));
+        // El paquete bajado que ya se ordenó no deja su carpeta vacía en Entrada.
+        if (entryDisk is not null && !Disk.Same(job.Path, Path.Combine(entryDisk.Path, Disk.EntryFolder)) && !Directory.EnumerateFileSystemEntries(job.Path).Any())
+            Directory.Delete(job.Path);
         // Completa lo demás y manda a Claude lo que no se reconoció (#180). Sin nada nuevo no hay nada que escanear.
         if (pass.Moved + pass.Waiting > 0) Scan.Enqueue(db);
     }
@@ -255,7 +260,7 @@ public static partial class Import
             var baseId = item.Component is null ? null : Scan.BaseOf(item.TitleId!);
             (long? Version, string Folder)? ofBase = baseId is not null && p.Bases.TryGetValue(baseId, out var b) ? b : null;
             var version = Scan.Match(learned, name) ?? Scan.Match(versions, name) ?? (folder is null ? null : Scan.Match(learned, folder) ?? Scan.Match(versions, folder))
-                ?? (datName is null ? null : Scan.Match(versions, datName)) ?? ofBase?.Version ?? VersionOfBase(db, baseId);
+                ?? (datName is null ? null : Scan.Match(versions, datName)) ?? ofBase?.Version ?? VersionOfBase(db, baseId) ?? VersionOfGame(db, p.Job.GameId, console);
 
             // Lo que no coincide con nada se le pregunta a ScreenScraper, antes que a Claude (§9.6).
             if (version is null && item.Component is null)
@@ -415,6 +420,13 @@ public static partial class Import
             SELECT id, verified FROM source WHERE kind = 'file' AND version_id = @version AND component IS NULL AND substr(relative_path, 1, 8) <> 'Entrada\\'
             ORDER BY verified DESC LIMIT 1
             """, new { version });
+    }
+
+    static long? VersionOfGame(Database db, long? gameId, string console)
+    {
+        if (gameId is null) return null;
+        using var c = db.Open();
+        return c.QueryFirstOrDefault<long?>("SELECT id FROM version WHERE game_id = @gameId AND platform = @console", new { gameId, console });
     }
 
     static long? VersionOfBase(Database db, string? baseId)

@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:62825/"
+      "url": "http://127.0.0.1:55668/"
     }
   ],
   "paths": {
@@ -1464,6 +1464,48 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/downloads/preview": {
+      "post": {
+        "tags": [
+          "Otteretro"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DownloadPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PackagePreview"
+                  }
                 }
               }
             }
@@ -5038,6 +5080,17 @@
           }
         }
       },
+      "DownloadPreviewRequest": {
+        "required": [
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        }
+      },
       "DownloadRequest": {
         "required": [
           "name",
@@ -5060,6 +5113,15 @@
             "items": {
               "type": "string"
             }
+          },
+          "gameId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
           }
         }
       },
@@ -5754,6 +5816,42 @@
           }
         }
       },
+      "LinkCheck": {
+        "required": [
+          "url",
+          "name",
+          "size",
+          "site",
+          "state"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "site": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "state": {
+            "type": "string"
+          }
+        }
+      },
       "MegapackPreview": {
         "required": [
           "items",
@@ -5967,6 +6065,33 @@
           },
           "step": {
             "$ref": "#/components/schemas/RouteStepInfo"
+          }
+        }
+      },
+      "PackagePreview": {
+        "required": [
+          "name",
+          "links",
+          "size"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkCheck"
+            }
+          },
+          "size": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
           }
         }
       },

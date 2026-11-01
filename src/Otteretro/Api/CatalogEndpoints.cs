@@ -16,7 +16,8 @@ public record VerifyRequest(string? Console, long? GameId);
 /// <summary>El ejecutable de un juego de PC suelto, relativo a su carpeta (#182).</summary>
 public record ExecutableRequest(string Path);
 /// <param name="Skip">Lo que se desmarcó en la vista previa, relativo a la carpeta.</param>
-public record DownloadRequest(string Name, string? DiskId, List<string> Links);
+public record DownloadRequest(string Name, string? DiskId, List<string> Links, long? GameId = null);
+public record DownloadPreviewRequest(string Text);
 public record ImportRequest(string Path, List<string>? Skip = null);
 public record PreviewRequest(string Path);
 public record RegionsRequest(List<string> Order);
@@ -129,8 +130,15 @@ public static class CatalogEndpoints
         api.MapPost("/downloads", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (DownloadRequest request, AppSession s) =>
         {
             if (Db(s) is not { } db) return NoData();
-            var (task, error) = Libraries.Downloads.Enqueue(db, request.Name, request.DiskId, request.Links);
+            var (task, error) = Libraries.Downloads.Enqueue(db, request.Name, request.DiskId, request.Links, request.GameId);
             return error is null ? TypedResults.Ok(task!.Value) : TypedResults.BadRequest(error);
+        });
+
+        // Capturador (#203): los paquetes de un texto pegado, comprobando cada enlace. No baja nada.
+        api.MapPost("/downloads/preview", async Task<Results<Ok<List<Libraries.PackagePreview>>, Conflict<ApiError>>> (DownloadPreviewRequest request, AppSession s, SecretBox box, CancellationToken ct) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            return TypedResults.Ok(await Libraries.Downloads.Preview(request.Text, new Credentials(db, s.Config.MachineId, box), ct));
         });
 
         // «Convertir» (#233): lo que ya tienes de una consola al formato liviano.

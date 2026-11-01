@@ -544,7 +544,8 @@
       "log": {
         "done": "{name}: terminó y pasó a {path}."
       },
-      "unavailable": "{file}: el sitio respondió {status}; el enlace no está disponible."
+      "unavailable": "{file}: el sitio respondió {status}; el enlace no está disponible.",
+      "notDirect": "{url} es una página, no un archivo: ese sitio necesita un conector."
     }
   },
   "credentials": {
@@ -895,7 +896,8 @@
       "remove": "Quitar del disco",
       "removeHint": "Lo marcado va a la papelera y deja de contar como «lo tengo». Las actualizaciones y DLC solo se van si los marcas.",
       "removeConfirm": "Mandar a la papelera ({count})",
-      "removeCancel": "Cancelar"
+      "removeCancel": "Cancelar",
+      "download": "Descargar"
     },
     "search": {
       "sagas": "Sagas",
@@ -1111,12 +1113,10 @@
   },
   "downloads": {
     "add": "Agregar una descarga",
-    "name": "Nombre del paquete",
-    "links": "Enlaces, uno por línea",
+    "links": "Pega o arrastra tus enlaces, en cualquier texto",
     "linksHint": "https://…",
     "disk": "Disco de destino",
     "defaultDisk": "Disco ★",
-    "start": "Descargar",
     "emptyTitle": "Sin descargas",
     "emptyText": "Agrega enlaces arriba: lo que baja se ordena solo en tu disco.",
     "summary": "{disk} · {done} de {total} archivos",
@@ -1131,6 +1131,18 @@
       "done": "Terminada",
       "error": "Con error",
       "canceled": "Cancelada"
+    },
+    "addForGame": "Agregar enlaces de {name}",
+    "check": "Ver paquetes",
+    "checking": "Comprobando…",
+    "noLinks": "No encontré enlaces en ese texto.",
+    "files": "{count, plural, one {# archivo} other {# archivos}}",
+    "startCount": "Descargar ({count})",
+    "state": {
+      "unavailable": "No disponible",
+      "blocked": "Falta una cuenta o un captcha",
+      "noConnector": "Sitio sin conector",
+      "unknown": "No respondió"
     }
   }
 }

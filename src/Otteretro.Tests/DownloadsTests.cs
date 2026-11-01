@@ -38,6 +38,13 @@ public class DownloadsTests : IAsyncDisposable
         Interlocked.Increment(ref requests);
         try
         {
+            if (c.Request.Url!.AbsolutePath.Contains("pagina"))
+            {
+                c.Response.ContentType = "text/html";
+                await c.Response.OutputStream.WriteAsync("<html></html>"u8.ToArray());
+                c.Response.Close();
+                return;
+            }
             if (c.Request.Url!.AbsolutePath.Contains("no-existe"))
             {
                 c.Response.StatusCode = 404;
@@ -123,6 +130,70 @@ public class DownloadsTests : IAsyncDisposable
     {
         using var c = f.Db.Open();
         return c.ExecuteScalar<string>("SELECT status FROM task WHERE id = @id", new { id })!;
+    }
+
+    [Fact]
+    public void FindsLinksAndGroupsParts()
+    {
+        Assert.Equal(["https://a.com/x.part1.rar", "magnet:?xt=urn:btih:abc", "http://b.org/y.zip"],
+            Downloads.LinksIn("mira (https://a.com/x.part1.rar), magnet:?xt=urn:btih:abc\nhttps://a.com/x.part1.rar y http://b.org/y.zip."));
+        Assert.Equal("Juego", Downloads.PackageOf("Juego.part01.rar"));
+        Assert.Equal("Juego", Downloads.PackageOf("Juego.part02.rar"));
+        Assert.Equal("Juego", Downloads.PackageOf("Juego.r00"));
+        Assert.Equal("Juego", Downloads.PackageOf("Juego.7z.002"));
+        Assert.Equal("Otro (USA)", Downloads.PackageOf("Otro (USA).gba"));
+    }
+
+    /// <summary>#203: comprueba cada enlace sin bajar nada: en línea y tamaño, enlace muerto, y una página que no es un archivo.</summary>
+    [Fact]
+    public async Task PreviewChecksEachLink()
+    {
+        await using var f = new Fixture();
+        var text = $"{baseUrl}J.part1.rar {baseUrl}J.part2.rar {baseUrl}no-existe.bin {baseUrl}pagina";
+        var packages = await Downloads.Preview(text, f.Credentials, default);
+        var parts = packages.Single(p => p.Name == "J");
+        Assert.Equal(2, parts.Links.Count);
+        Assert.Equal(2L * content.Length, parts.Size);
+        Assert.All(parts.Links, l => Assert.Equal("ok", l.State));
+        Assert.Equal("unavailable", packages.Single(p => p.Name == "no-existe").Links[0].State);
+        Assert.Equal("noConnector", packages.Single(p => p.Name == "pagina").Links[0].State);
+        Assert.False(Directory.Exists(f.Tmp[@"Otteretro"]));
+    }
+
+    /// <summary>#226: si lo que llega es una página, no se guarda como si fuera el juego.</summary>
+    [Fact]
+    public async Task APageIsNotDownloadedAsAFile()
+    {
+        await using var f = new Fixture();
+        var (disk, _) = Disk.Create(f.Db, f.Tmp["Otteretro"], "E:");
+        var done = await f.Run(Downloads.Enqueue(f.Db, "x", disk, [baseUrl + "pagina"]).Task!.Value);
+        Assert.Equal(("error", "download.notDirect"), (done.Status, done.Detail?.Code));
+    }
+
+    /// <summary>§9.6: lo bajado desde la ficha de un juego se identifica por ese juego, aunque su nombre no lo diga.</summary>
+    [Fact]
+    public async Task WhatYouDownloadFromAGameIsThatGame()
+    {
+        await using var f = new Fixture();
+        var (disk, _) = Disk.Create(f.Db, f.Tmp["Otteretro"], "E:");
+        using (var c = f.Db.Open())
+            c.Execute("INSERT INTO game (id, name_es) VALUES (10, 'Metroid Fusion'); INSERT INTO version (id, game_id, platform) VALUES (20, 10, 'gba');");
+        Dats.Handler = new NoNetwork();
+        try
+        {
+            Assert.Equal("done", (await f.Run(Downloads.Enqueue(f.Db, "paquete raro", disk, [baseUrl + "cualquiera.gba"], 10).Task!.Value)).Status);
+            long import;
+            using (var c = f.Db.Open()) import = c.ExecuteScalar<long>("SELECT id FROM task WHERE kind = @Kind", new { Import.Kind });
+            Assert.Equal("done", (await f.Run(import)).Status);
+        }
+        finally { Dats.Handler = null; }
+        Assert.True(File.Exists(f.Tmp[@"Otteretro\Juegos\Game Boy Advance\Metroid Fusion\cualquiera.gba"]));
+        Assert.False(Directory.Exists(f.Tmp[@"Otteretro\Entrada\paquete raro"]));
+    }
+
+    sealed class NoNetwork : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) => throw new HttpRequestException("sin red");
     }
 
     [Fact]

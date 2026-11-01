@@ -1691,6 +1691,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/downloads/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DownloadPreviewRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PackagePreview"][];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/collection/convert": {
         parameters: {
             query?: never;
@@ -4911,10 +4959,15 @@ export interface components {
             detail: null | components["schemas"]["ApiError"];
             createdAt: string;
         };
+        DownloadPreviewRequest: {
+            text: string;
+        };
         DownloadRequest: {
             name: string;
             diskId: null | string;
             links: string[];
+            /** Format: int64 */
+            gameId?: null | number | string;
         };
         Drive: {
             name: string;
@@ -5060,6 +5113,14 @@ export interface components {
             /** @default game */
             type: string;
         };
+        LinkCheck: {
+            url: string;
+            name: string;
+            /** Format: int64 */
+            size: null | number | string;
+            site: null | string;
+            state: string;
+        };
         MegapackPreview: {
             items: components["schemas"]["PreviewItem"][];
             regions: string[];
@@ -5105,6 +5166,12 @@ export interface components {
             /** Format: int32 */
             total: number | string;
             step: components["schemas"]["RouteStepInfo"];
+        };
+        PackagePreview: {
+            name: string;
+            links: components["schemas"]["LinkCheck"][];
+            /** Format: int64 */
+            size: number | string;
         };
         PlatformInfo: {
             /** Format: int64 */

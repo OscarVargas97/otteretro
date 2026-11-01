@@ -127,6 +127,7 @@ function FavoriteButton({ game }: { game: GameDetail }) {
       <button className="ot-btn" type="button" aria-pressed={p.favorite} onClick={() => save.mutate({ ...p, favorite: !p.favorite })}>
         {t("game.favorite")}
       </button>
+      <Link className="ot-btn" href={`/downloads/?${new URLSearchParams({ game: String(game.id), name: game.nameEs })}`}>{t("game.download")}</Link>
     </div>
   );
 }
