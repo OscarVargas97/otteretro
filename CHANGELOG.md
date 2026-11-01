@@ -4,7 +4,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.3.0 · Carpetas y herramientas · en desarrollo
 
-`fase/f3-carpetas` · F3 (#141): tus juegos y herramientas en la estructura definitiva antes de construir lo demás encima.
+`fase/f3-carpetas` · F3 (#141): tus juegos y herramientas en la estructura definitiva antes de construir lo demás encima · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
 
 ### Nuevo
 - **Bibliotecas de juegos**, en Ajustes › Bibliotecas de juegos: adopta la carpeta donde ya tienes tus juegos o crea una nueva en cualquier disco o en la red. Cada una muestra su espacio libre y si está conectada; se puede renombrar, mover y quitar (quitar nunca borra archivos). Si un disco cambia de letra o vuelve a conectarse, la biblioteca se encuentra sola.
