@@ -54,7 +54,7 @@
     <Copy SourceFiles="@(WebFile)" DestinationFiles="@(WebFile->'$(PublishDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
   </Target>
 
-  <!-- DolphinTool y chdman (#232): los baja scripts/herramientas.ps1; no van en git. -->
+  <!-- DolphinTool y chdman, en el repo con su licencia (#232, #241). Se actualizan con scripts/herramientas.ps1. -->
   <ItemGroup>
     <Content Include="herramientas\**" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
