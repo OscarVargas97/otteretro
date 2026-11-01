@@ -60,8 +60,8 @@ otteretro/
 ├── recetas/                       ← JSON de emuladores, ports, complementos y tiendas (§5)
 ├── prompts/                       ← prompts de `claude -p`, uno por tarea
 ├── docs/
-├── VERSION                        ← la versión que se está preparando, 0.FASE.extra (#183)
-└── .github/workflows/             ← release.yml publica la release estable al fusionar en main; prerelease.yml, X-dev.N en cada push a dev (#181)
+├── VERSION                        ← la fase en curso (0.3); scripts/version.ps1 le suma N, los PRs fusionados en dev (#207)
+└── .github/workflows/             ← release.yml publica la release estable al fusionar en main; prerelease.yml, 0.FASE.N-dev en cada PR fusionado en dev (#181, #207)
 ```
 
 Las carpetas de módulo se crean **cuando la fase las necesita**, no antes.
@@ -170,7 +170,7 @@ Claude escribe la primera receta de algo nuevo; desde ahí la usa el script.
 | Tema | Decisión |
 |---|---|
 | Registro de errores | Archivo en `<carpeta de datos>\logs\`, uno por día, se guardan **30 días**. (A5) |
-| Releases y versiones | **Cada fusión en `main` publica una release** con la versión de `VERSION` (`0.FASE.extra`, #183); `dev` publica prereleases `X-dev.N` en el canal `dev` de Velopack. La app elige el canal en Ajustes › General: Estable, Pruebas u Otro origen (`Updater.SourceFor`, #180) |
+| Releases y versiones | **Cada fusión en `main` publica una release** `0.FASE.N` (#207: la fase de `VERSION` y N, los PRs fusionados en `dev` desde que se abrió, con `scripts/version.ps1`); cada PR fusionado en `dev` publica la prerelease `0.FASE.N-dev` en el canal `dev` de Velopack. La app elige el canal en Ajustes › General: Estable, Pruebas, Local u Otro origen (`Updater.SourceFor`, #180) |
 | Pruebas | **Lo delicado** (mover, verificar hashes, respaldar, reescribir rutas internas, la regla de cómo jugar) **más una prueba de cada flujo clave** de §6. (A4) |
 | Front: datos | Las pantallas piden datos a la API con TanStack Query (caché y refresco). (propia) |
 | Front: estilo | El CSS del sistema de diseño (`bundle.css` y tokens) se copia a `web/` tal cual; los componentes del prototipo pasan a componentes React con las mismas clases `ot-`. (propia) |
@@ -188,7 +188,7 @@ Claude escribe la primera receta de algo nuevo; desde ahí la usa el script.
 | Contrato | OpenAPI de ASP.NET Core → tipos TS con `openapi-typescript` (A3) |
 | Front | Next.js con `output: "export"`, React, TanStack Query; CSS del sistema de diseño |
 | Logs | Archivo diario en `<carpeta de datos>\logs\`, 30 días (A5) |
-| Instalación | Velopack (`vpk`) desde GitHub Releases (#181); `empaquetar.ps1` sin versión arma `X-local.N` para probar con «Otro origen» |
+| Instalación | Velopack (`vpk`) desde GitHub Releases (#181); `empaquetar.ps1` sin versión arma `0.FASE.N-local.M` para probar con el canal Local |
 | Pruebas | xUnit |
 
 ## Linux y Nix (P0)
