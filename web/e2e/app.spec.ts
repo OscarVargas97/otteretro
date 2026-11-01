@@ -386,6 +386,18 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   expect(await menuTop()).toBe(before);
   // #169: la barra superior también queda arriba.
   expect((await page.locator(".top").boundingBox())!.y).toBe(0);
+  // #128: con la lista en varios tramos, se abre una saga y, ya vieja (más de 10 s), pasar por «Sagas» del menú la pide de nuevo sin romper.
+  await tiles.filter({ hasText: "Saga de prueba 1090" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "Saga de prueba 1090" })).toBeVisible();
+  await page.waitForTimeout(10_500);
+  const sagasLink = page.locator(".sidebar").getByRole("link", { name: es.nav.sagas });
+  const asked: string[] = [];
+  page.on("request", (r) => { if (r.url().includes("/api/sagas?")) asked.push(new URL(r.url()).searchParams.get("offset")!); });
+  await sagasLink.hover();
+  await expect.poll(() => asked).toEqual(["0", "60"]); // los dos tramos, como la lista (antes, el segundo fallaba)
+  await sagasLink.click();
+  await expect(tiles).toHaveCount(102);
+  await expect(page.locator("p.error")).toHaveCount(0);
   many.exec("DELETE FROM saga WHERE id >= 1000");
   many.close();
 
@@ -412,6 +424,18 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   await expect(page.locator(".hero-art")).toHaveCount(0);
   await page.goBack();
 
+  // #128: con la saga desplazada hacia abajo, abrir un juego empieza arriba y «Atrás» vuelve a la misma altura.
+  await page.addStyleTag({ content: ".hero { margin-bottom: 3000px } .app-main { min-height: 6000px }" }); // páginas tan largas como las reales
+  await page.getByRole("link", { name: "Ocarina of Time" }).scrollIntoViewIfNeeded();
+  const deep = await page.evaluate(() => window.scrollY);
+  expect(deep).toBeGreaterThan(1000);
+  await page.route("**/api/games/10*", async (route) => { await new Promise((r) => setTimeout(r, 800)); await route.continue(); }); // con el catálogo real, la ficha tarda
+  await page.getByRole("link", { name: "Ocarina of Time" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "Ocarina of Time" })).toBeVisible();
+  await page.unroute("**/api/games/10*");
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await page.goBack();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(deep - 200);
   await page.getByRole("link", { name: "Ocarina of Time" }).click();
   await expect(page.getByRole("heading", { level: 2, name: "Ocarina of Time" })).toBeVisible();
   // #169: el camino en la barra, con un enlace por parte, y la portada sin bajar con el color de su consola.
