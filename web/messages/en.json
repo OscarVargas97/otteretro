@@ -172,7 +172,14 @@
       "enable": "Enable",
       "already": "Already added",
       "refreshNow": "Update now",
-      "queued": "Queued."
+      "queued": "Queued.",
+      "covers": {
+        "title": "Covers",
+        "count": "{have, number} of {total, number} games with a cover",
+        "download": "Download covers",
+        "running": "In progress",
+        "noKey": "SteamGridDB key missing"
+      }
     }
   },
   "dataFolder": {

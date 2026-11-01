@@ -65,6 +65,12 @@ public static class CatalogEndpoints
         api.MapPost("/catalog/refresh", Results<Ok<long>, Conflict<ApiError>> (AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(IgdbImport.EnqueueRefresh(db)) : NoData());
 
+        // Portadas a pedido (#132).
+        api.MapGet("/covers", Results<Ok<SteamGridDb.CoversInfo>, Conflict<ApiError>> (AppSession s, SecretBox box) =>
+            Db(s) is { } db ? TypedResults.Ok(SteamGridDb.Status(db, HasSgdbKey(db, s, box))) : NoData());
+        api.MapPost("/covers", Results<Ok<SteamGridDb.CoversInfo>, Conflict<ApiError>> (AppSession s, SecretBox box) =>
+            Db(s) is { } db ? TypedResults.Ok(SteamGridDb.Request(db, HasSgdbKey(db, s, box))) : NoData());
+
         api.MapGet("/collection/{platform}", Results<Ok<CollectionPage>, NotFound, Conflict<ApiError>> (string platform, AppSession s, string? filter, string? sort, int offset = 0, int limit = CatalogQueries.PageSize) =>
         {
             if (Db(s) is not { } db) return NoData();
@@ -127,6 +133,9 @@ public static class CatalogEndpoints
 
     static Igdb IgdbFor(Database db, AppSession s, SecretBox box) =>
         new(new ApiClient(db, IgdbImport.Handler), new Credentials(db, s.Config.MachineId, box), IgdbImport.Handler);
+
+    static bool HasSgdbKey(Database db, AppSession s, SecretBox box) =>
+        new Credentials(db, s.Config.MachineId, box).List().Any(c => c.Id == "steamgriddb.apiKey" && c.Saved);
 
     internal static Database? Db(AppSession s) =>
         DataFolder.IsReady(s.Config.DataFolder) ? DataFolder.Open(s.Config.DataFolder!) : null;

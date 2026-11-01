@@ -4,7 +4,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.2.1 · Pulido de UI · en desarrollo
 
-`fase/f2.5-pulido`, `fix/128-prueba-f25` y `feat/130-ajustes-menu` · F2.5 es un extra de F2, así que sale como 0.2.1 (antes se numeró 0.3.0) · lo que entra para la próxima release; sale como prerelease en el canal Pruebas.
+`fase/f2.5-pulido`, `fix/128-prueba-f25`, `feat/130-ajustes-menu` y `feat/132-bajar-portadas` · F2.5 es un extra de F2, así que sale como 0.2.1 (antes se numeró 0.3.0) · lo que entra para la próxima release; sale como prerelease en el canal Pruebas.
 
 ### Cambios
 - **La barra de arriba queda fija** al bajar, y en una saga o un juego muestra el camino («Sagas › saga › juego») para volver con un clic.
@@ -25,6 +25,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **Ajustes › Claude**: arriba del registro de uso, el total de la página (llamadas, tokens y costo).
 - **Ajustes usa el ancho de la pantalla**: con espacio, sus bloques van en dos columnas (`feat/130-ajustes-menu`).
 - **El menú lateral se retrae** a una franja de íconos con su botón de abajo o Ctrl+B, y la app lo recuerda (`feat/130-ajustes-menu`).
+- **Bajar portadas a pedido**: en Ajustes › Consolas, el bloque «Portadas» dice cuántos juegos tienen portada y con «Bajar portadas» la descarga vuelve a la cola si se cortó (`feat/132-bajar-portadas`).
 
 ### Arreglos
 - **Abrir una saga o un juego empieza arriba**: antes la ventana se quedaba a la altura de la pantalla anterior; «Atrás» sigue volviendo a donde estabas (`fix/128-prueba-f25`).

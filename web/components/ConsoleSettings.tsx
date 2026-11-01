@@ -2,11 +2,12 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFormatter, useTranslations } from "next-intl";
+import Link from "next/link";
 import { useState } from "react";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
 import { optimistic } from "@/lib/optimistic";
-import type { ConsoleInfo, ConsolesPage, PlatformInfo } from "@/lib/types";
+import type { ConsoleInfo, ConsolesPage, CoversInfo, PlatformInfo } from "@/lib/types";
 
 const GROUPS = ["nintendo", "playstation", "xbox", "pc", "other"] as const;
 const groupOf = (c: ConsoleInfo): (typeof GROUPS)[number] =>
@@ -53,6 +54,13 @@ export function ConsoleSettings() {
     onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
   });
 
+  // Portadas a pedido (#132): mientras hay una descarga, el total se refresca solo.
+  const covers = useQuery({ queryKey: ["covers"], queryFn: () => request<CoversInfo>("/api/covers"), refetchInterval: (q) => (q.state.data?.running ? 5_000 : false) });
+  const downloadCovers = useMutation({
+    mutationFn: () => request<CoversInfo>("/api/covers", { method: "POST" }),
+    onSuccess: (data) => { cache.setQueryData(["covers"], data); cache.invalidateQueries({ queryKey: ["tasks"] }); },
+  });
+
   if (!page.data) return page.isError ? <p className="error" role="alert">{describe(page.error)}</p> : null;
   const p = page.data;
   const date = (iso: string) => format.dateTime(new Date(iso), { day: "numeric", month: "short" });
@@ -91,6 +99,22 @@ export function ConsoleSettings() {
         </form>
         {refresh.isSuccess && <span className="small muted">{t("queued")}</span>}
       </section>
+
+      {covers.data && (
+        <section className="panel" aria-labelledby="covers-title">
+          <div className="version-row">
+            <div>
+              <h2 id="covers-title">{t("covers.title")}</h2>
+              <span className="small muted tabular">{t("covers.count", { have: Number(covers.data.have), total: Number(covers.data.total) })}</span>
+            </div>
+            {!covers.data.hasKey ? <Link className="ot-btn" href="/settings/?s=credentials">{t("covers.noKey")}</Link>
+              : <button className="ot-btn" type="button" disabled={covers.data.running || downloadCovers.isPending} onClick={() => downloadCovers.mutate()}>
+                  {covers.data.running ? t("covers.running") : t("covers.download")}
+                </button>}
+          </div>
+          {downloadCovers.error && <p className="error small" role="alert">{describe(downloadCovers.error)}</p>}
+        </section>
+      )}
 
       <section className="panel">
         <div className="version-row">

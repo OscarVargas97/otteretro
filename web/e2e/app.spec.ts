@@ -764,3 +764,24 @@ test("Ajustes en dos columnas con espacio, y el menú se retrae, se recuerda y s
   await page.reload();
   await expect(sidebar).not.toHaveClass(/is-collapsed/);
 });
+
+test("Ajustes › Consolas: portadas con su total, bajarlas a pedido y «En curso»", async () => {
+  // #132: sin clave de SteamGridDB, el bloque lleva a Cuentas y claves.
+  await page.goto(`${base()}/settings/?s=consoles`);
+  const block = page.getByRole("region", { name: es.settings.consoles.covers.title });
+  await expect(block).toContainText(/\d+ de \d+ juegos con portada/);
+  await expect(block.getByRole("link", { name: es.settings.consoles.covers.noKey })).toHaveAttribute("href", "/settings/?s=credentials");
+  // Con clave (la descarga real se prueba en xUnit, sin red): el botón encola y queda «En curso».
+  let queued = 0;
+  await page.route("**/api/covers", (route) => {
+    if (route.request().method() === "POST") queued++;
+    return route.fulfill({ json: { have: 31967, total: 40210, running: queued > 0, hasKey: true } });
+  });
+  await page.reload();
+  await expect(block).toContainText("31.967 de 40.210 juegos con portada");
+  await block.getByRole("button", { name: es.settings.consoles.covers.download }).click();
+  await expect(block.getByRole("button", { name: es.settings.consoles.covers.running })).toBeDisabled();
+  expect(queued).toBe(1);
+  await expectNoRawKeys();
+  await page.unroute("**/api/covers");
+});

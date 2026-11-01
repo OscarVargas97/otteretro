@@ -42,5 +42,6 @@ export type ClaudeStatus = Schemas["ClaudeStatus"];
 export type UsagePage = Schemas["UsagePage"];
 export type ClaudeSettingsRequest = Schemas["ClaudeSettingsRequest"];
 export type ConsolesPage = Schemas["ConsolesPage"];
+export type CoversInfo = Schemas["CoversInfo"];
 export type ConsoleInfo = Schemas["ConsoleInfo"];
 export type PlatformInfo = Schemas["PlatformInfo"];
