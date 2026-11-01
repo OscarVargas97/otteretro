@@ -533,6 +533,17 @@
     "system": {
       "badConsole": "Esa consola no existe.",
       "badName": "Ese nombre de archivo no sirve."
+    },
+    "download": {
+      "noLinks": "No hay enlaces.",
+      "badLink": "Uno de los enlaces no se puede descargar.",
+      "badName": "Ese nombre de paquete no sirve.",
+      "failed": "{file}: la descarga no se completó.",
+      "waiting": "El sitio pide esperar {seconds} s",
+      "progress": "Bajando {file}",
+      "log": {
+        "done": "{name}: terminó y pasó a {path}."
+      }
     }
   },
   "credentials": {
@@ -631,6 +642,9 @@
       },
       "dat": {
         "update": "Bajar los DAT de No-Intro y Redump"
+      },
+      "download": {
+        "package": "Descargar un paquete"
       }
     },
     "status": {
@@ -1093,5 +1107,29 @@
     "systemEmptyTitle": "Sin archivos de sistema",
     "systemEmptyText": "Elige una consola y sube tu BIOS, keys o firmware.",
     "systemMissing": "Falta {name}"
+  },
+  "downloads": {
+    "add": "Agregar una descarga",
+    "name": "Nombre del paquete",
+    "links": "Enlaces, uno por línea",
+    "linksHint": "https://…",
+    "disk": "Disco de destino",
+    "defaultDisk": "Disco ★",
+    "start": "Descargar",
+    "emptyTitle": "Sin descargas",
+    "emptyText": "Agrega enlaces arriba: lo que baja se ordena solo en tu disco.",
+    "summary": "{disk} · {done} de {total} archivos",
+    "speed": "{speed} MB/s",
+    "pause": "Pausar",
+    "resume": "Reanudar",
+    "cancel": "Cancelar",
+    "status": {
+      "queued": "En cola",
+      "running": "Descargando",
+      "paused": "En pausa",
+      "done": "Terminada",
+      "error": "Con error",
+      "canceled": "Cancelada"
+    }
   }
 }

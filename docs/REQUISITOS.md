@@ -299,7 +299,7 @@ Van en las carpetas `Emuladores\`, `Ports\` y `Complementos\` del disco ★ (§5
 
 ### 8.6 Contenido instalado dentro del emulador ✅
 - Actualizaciones y DLC de Switch, juegos de Wii U (Cemu), paquetes `.pkg` de PS3 y `.cia` de 3DS: **la app los instala sola** en el emulador, según la receta. Los archivos originales siguen en `Juegos\`.
-- **PS4:** shadPS4 ya no instala `.pkg`, así que la importación lo **extrae** con una herramienta externa (receta) y guarda el juego extraído (#71).
+- **PS4:** los `.pkg` no se extraen (#243); se decide con el emulador, en la F5.
 - Si no lo consigue, **avisa de qué hay que instalar a mano**.
 
 ### 8.7 Herramientas que gestiona la app ✅
@@ -373,7 +373,7 @@ Se prueba en este orden:
 - **Verificar lo convertido** (#231): se verifica el original contra Redump y se guarda su hash **antes** de convertir; un RVZ o CHD que llega ya convertido lo verifica DolphinTool o chdman.
 - **Cuándo** (#233): al importar, y con un botón por consola para lo que ya tienes.
 - **DolphinTool y chdman vienen en el repositorio** con su licencia (#232, #241); si faltan, se toma el del Dolphin instalado.
-- **PS4:** shadPS4 no instala `.pkg`, así que la importación lo **extrae** con una herramienta externa y guarda el juego extraído (#71).
+- **PS4:** los `.pkg` no se extraen (#243): normalmente implica descifrarlos. Se decide con el emulador, en la F5.
 
 ## 10. Steam ✅
 

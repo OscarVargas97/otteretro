@@ -533,6 +533,17 @@
     "system": {
       "badConsole": "That console does not exist.",
       "badName": "That file name is not valid."
+    },
+    "download": {
+      "noLinks": "There are no links.",
+      "badLink": "One of the links cannot be downloaded.",
+      "badName": "That package name is not valid.",
+      "failed": "{file}: the download did not complete.",
+      "waiting": "The site asks to wait {seconds} s",
+      "progress": "Downloading {file}",
+      "log": {
+        "done": "{name}: finished and moved to {path}."
+      }
     }
   },
   "credentials": {
@@ -631,6 +642,9 @@
       },
       "dat": {
         "update": "Download the No-Intro and Redump DATs"
+      },
+      "download": {
+        "package": "Download a package"
       }
     },
     "status": {
@@ -1093,5 +1107,29 @@
     "systemEmptyTitle": "No system files",
     "systemEmptyText": "Choose a console and upload your BIOS, keys or firmware.",
     "systemMissing": "{name} is missing"
+  },
+  "downloads": {
+    "add": "Add a download",
+    "name": "Package name",
+    "links": "Links, one per line",
+    "linksHint": "https://…",
+    "disk": "Destination disk",
+    "defaultDisk": "★ disk",
+    "start": "Download",
+    "emptyTitle": "No downloads",
+    "emptyText": "Add links above: what comes down is sorted on your disk by itself.",
+    "summary": "{disk} · {done} of {total} files",
+    "speed": "{speed} MB/s",
+    "pause": "Pause",
+    "resume": "Resume",
+    "cancel": "Cancel",
+    "status": {
+      "queued": "Queued",
+      "running": "Downloading",
+      "paused": "Paused",
+      "done": "Finished",
+      "error": "Failed",
+      "canceled": "Canceled"
+    }
   }
 }

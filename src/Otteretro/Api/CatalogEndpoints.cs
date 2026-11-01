@@ -16,6 +16,7 @@ public record VerifyRequest(string? Console, long? GameId);
 /// <summary>El ejecutable de un juego de PC suelto, relativo a su carpeta (#182).</summary>
 public record ExecutableRequest(string Path);
 /// <param name="Skip">Lo que se desmarcó en la vista previa, relativo a la carpeta.</param>
+public record DownloadRequest(string Name, string? DiskId, List<string> Links);
 public record ImportRequest(string Path, List<string>? Skip = null);
 public record PreviewRequest(string Path);
 public record RegionsRequest(List<string> Order);
@@ -119,6 +120,17 @@ public static class CatalogEndpoints
             s.Config.RegionOrder = request.Order;
             s.Config.Save(s.ConfigPath);
             return TypedResults.Ok();
+        });
+
+        // Descargas (#202): la cola y agregar un paquete. Pausar, reanudar y cancelar son los de cualquier tarea.
+        api.MapGet("/downloads", Results<Ok<List<Libraries.DownloadInfo>>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(Libraries.Downloads.List(db)) : NoData());
+
+        api.MapPost("/downloads", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (DownloadRequest request, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var (task, error) = Libraries.Downloads.Enqueue(db, request.Name, request.DiskId, request.Links);
+            return error is null ? TypedResults.Ok(task!.Value) : TypedResults.BadRequest(error);
         });
 
         // «Convertir» (#233): lo que ya tienes de una consola al formato liviano.

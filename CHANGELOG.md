@@ -21,6 +21,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **Megapacks con vista previa** (#197): antes de importar ves qué hay en la carpeta, con filtros por consola, saga y «está en el catálogo», y una versión por juego ya marcada (español primero, con tu orden de regiones). Hacks, betas y demos vienen sin marcar; las traducciones de fans sí cuentan. Si ya tienes el juego se salta, salvo que el nuevo esté verificado y el tuyo no: el tuyo va a la papelera.
 - **ScreenScraper** (#198): al importar y al verificar, lo que no coincide con los DAT se identifica también con ScreenScraper, si cargas tus cuentas en Ajustes › Cuentas y claves. Sin ellas, o si se acaba tu cuota, todo sigue funcionando sin él.
 - **Herramientas › Sistema** (#199): subes tus BIOS, keys y firmware por consola y quedan con versiones en el disco ★; otra versión nunca reemplaza la anterior. Avisa si le falta `prod.keys` a tus juegos de Switch. Otteretro no los descarga ni los comparte.
+- **Pantalla Descargas** (#202): agregas enlaces en un paquete y eliges el disco viendo sus GB libres. Ves el progreso y la velocidad, y puedes pausar, reanudar (sigue de donde iba, también si cerraste la app) y cancelar. Al terminar, el paquete pasa a `Entrada`, que lo descomprime y lo ordena. Por ahora baja enlaces directos; los sitios con cuenta vienen a continuación.
 - La ficha de un juego muestra **dónde tienes sus archivos**, con BASE, UPD y DLC, tamaño y si están verificados.
 
 ### Cambios
