@@ -20,8 +20,10 @@ public record LibraryMarker(
 
 /// <param name="Connected">Está en su última ruta y su marcador tiene el mismo id.</param>
 /// <param name="Legacy">Todavía tiene la estructura antigua (`<Consola>\Juegos|Emuladores|Ports`): adoptarla la migra.</param>
-/// <param name="Type">game, emulator, port, complement o system (#198).</param>
-public record LibraryInfo(string Id, string Name, string Kind, string Path, bool Connected, long? Free, long? Total, bool Legacy, string Type);
+/// <param name="Type">disk (#201), o game, emulator, port, complement o system: las de un solo tipo de antes (#198).</param>
+/// <param name="Default">El disco predeterminado ★ (#203).</param>
+public record LibraryInfo(string Id, string Name, string Kind, string Path, bool Connected, long? Free, long? Total, bool Legacy, string Type,
+    bool Default = false);
 
 /// <summary>La carpeta de una consola en una ubicación (#190).</summary>
 public record ConsoleFolder(string Console, string LibraryId, string Relative);
@@ -36,7 +38,19 @@ public static class Library
     public const string MarkerFile = "otteretro-ubicacion.json";
     /// <summary>El nombre de antes (#191): se sigue leyendo y se reemplaza al escribir.</summary>
     public const string OldMarkerFile = "otteretro-biblioteca.json";
-    public static readonly string[] Types = ["game", "emulator", "port", "complement", "system"];
+    public static readonly string[] Types = ["disk", "game", "emulator", "port", "complement", "system"];
+
+    /// <summary>Las cinco carpetas fijas de cada disco (#201), por tipo. Emuladores, Ports y Complementos son las de Herramientas.</summary>
+    public static readonly Dictionary<string, string> DiskFolders = new()
+    {
+        ["game"] = "Juegos", ["emulator"] = "Emuladores", ["port"] = "Ports", ["complement"] = "Complementos", ["system"] = "Sistema",
+    };
+
+    /// <summary>Dónde guarda una ubicación las cosas de <paramref name="type"/>: en un disco, su carpeta fija; en una de un solo tipo, ella misma.</summary>
+    public static string? FolderOf(LibraryInfo l, string type) =>
+        l.Type == "disk" ? Path.Combine(l.Path, DiskFolders[type]) : l.Type == type ? l.Path : null;
+
+    public static LibraryInfo? DefaultDisk(Database db) => List(db).FirstOrDefault(l => l.Default && l.Type == "disk");
     public const int MarkerFormat = 1;
 
     /// <summary>Carpetas de la estructura antigua dentro de cada consola (§5.5).</summary>
@@ -68,18 +82,18 @@ public static class Library
         Directory.Exists(folder) && Directory.EnumerateDirectories(folder).Any(c =>
             !Path.GetFileName(c).StartsWith('_') && LegacyFolders.Any(l => Directory.Exists(Path.Combine(c, l))));
 
-    record Row(string Id, string Name, string Kind, string Path, string Type);
+    record Row(string Id, string Name, string Kind, string Path, string Type, long IsDefault);
 
     public static List<LibraryInfo> List(Database db)
     {
         using var c = db.Open();
-        return c.Query<Row>("SELECT id, name, kind, path, type FROM library ORDER BY name").Select(Info).ToList();
+        return c.Query<Row>("SELECT id, name, kind, path, type, is_default AS IsDefault FROM library ORDER BY name").Select(Info).ToList();
     }
 
     public static LibraryInfo? Get(Database db, string id)
     {
         using var c = db.Open();
-        return c.QuerySingleOrDefault<Row>("SELECT id, name, kind, path, type FROM library WHERE id = @id", new { id }) is { } r ? Info(r) : null;
+        return c.QuerySingleOrDefault<Row>("SELECT id, name, kind, path, type, is_default AS IsDefault FROM library WHERE id = @id", new { id }) is { } r ? Info(r) : null;
     }
 
     static LibraryInfo Info(Row r)
@@ -93,7 +107,7 @@ public static class Library
                 (free, total) = (drive.AvailableFreeSpace, drive.TotalSize);
             }
             catch (Exception e) when (e is ArgumentException or IOException or UnauthorizedAccessException) { }
-        return new(r.Id, r.Name, r.Kind, r.Path, connected, free, total, connected && r.Type == "game" && IsLegacy(r.Path), r.Type);
+        return new(r.Id, r.Name, r.Kind, r.Path, connected, free, total, connected && r.Type == "game" && IsLegacy(r.Path), r.Type, r.IsDefault != 0);
     }
 
     /// <summary>Crea una ubicación nueva de <paramref name="type"/> en <paramref name="path"/> (la crea si no existe). Devuelve su id o el error.</summary>
@@ -105,7 +119,9 @@ public static class Library
         try
         {
             Directory.CreateDirectory(path);
-            return (Register(db, path, NewMarker(path, name, type)), null);
+            var id = Register(db, path, NewMarker(path, name, type));
+            if (type == "disk") Prepare(db, id, path);
+            return (id, null);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
@@ -132,11 +148,32 @@ public static class Library
         if (Check(db, path) is { } error) return (null, false, error);
         // Un marcador sin tipo (de antes de #198) toma el que se eligió al adoptar.
         marker = marker is null ? NewMarker(path, name, type) : marker with { Type = marker.Type ?? type };
-        try { return (Register(db, path, marker), marker.Type == "game" && IsLegacy(path), null); }
+        try
+        {
+            var id = Register(db, path, marker);
+            if (marker.Type == "disk") Prepare(db, id, path);
+            return (id, marker.Type == "game" && IsLegacy(path), null);
+        }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
             return (null, false, ApiError.Of("folder.createFailed", ("detail", e.Message)));
         }
+    }
+
+    /// <summary>Un disco nuevo (#201): sus cinco carpetas, y si es el primero, el predeterminado (#203).</summary>
+    static void Prepare(Database db, string id, string path)
+    {
+        foreach (var folder in DiskFolders.Values) Directory.CreateDirectory(Path.Combine(path, folder));
+        if (DefaultDisk(db) is null) SetDefault(db, id);
+    }
+
+    public static ApiError? SetDefault(Database db, string id)
+    {
+        if (Get(db, id) is not { } disk) return ApiError.Of("library.notFound");
+        if (disk.Type != "disk") return ApiError.Of("library.notDisk");
+        using var c = db.Open();
+        c.Execute("UPDATE library SET is_default = (id = @id)", new { id });
+        return null;
     }
 
     public static ApiError? Rename(Database db, string id, string name)
@@ -158,30 +195,35 @@ public static class Library
         using var c = db.Open();
         var consoles = c.Query<(string Id, string Name)>("SELECT id, name FROM console").ToList();
         var found = new List<ConsoleFolder>();
-        foreach (var library in List(db).Where(l => l.Connected && l.Type == type))
-            foreach (var folder in Directory.EnumerateDirectories(library.Path).Select(Path.GetFileName))
-                if (consoles.FirstOrDefault(k => string.Equals(k.Name, folder, StringComparison.OrdinalIgnoreCase)
-                        || string.Equals(k.Id, folder, StringComparison.OrdinalIgnoreCase)) is { Id: not null } console)
-                    found.Add(new ConsoleFolder(console.Id, library.Id, folder!));
+        foreach (var library in List(db).Where(l => l.Connected))
+            if (FolderOf(library, type) is { } root && Directory.Exists(root))
+                foreach (var folder in Directory.EnumerateDirectories(root).Select(Path.GetFileName))
+                    if (consoles.FirstOrDefault(k => string.Equals(k.Name, folder, StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(k.Id, folder, StringComparison.OrdinalIgnoreCase)) is { Id: not null } console)
+                        found.Add(new ConsoleFolder(console.Id, library.Id, Path.GetRelativePath(library.Path, Path.Combine(root, folder!))));
         return found;
     }
 
     /// <summary>
-    /// Dónde buscar lo instalado (#198): `Herramientas\Emuladores|Ports|Complementos` de la carpeta de datos, que es la
-    /// primera ubicación de cada tipo, y después cada ubicación conectada de emuladores, ports o complementos.
+    /// Dónde buscar lo instalado (#198, #201): las carpetas Emuladores, Ports y Complementos de cada disco conectado, las
+    /// ubicaciones de un solo tipo de antes y `Herramientas` de la carpeta de datos, hasta que pasa al disco predeterminado (#204).
     /// </summary>
     public static List<ToolRoot> ToolRoots(Database db)
     {
         var roots = Recipes.DefaultRoots(LibraryTasks.ToolsOf(db));
-        roots.AddRange(List(db).Where(l => l.Connected && l.Type is "emulator" or "port" or "complement").Select(l => new ToolRoot(l.Type, l.Path, l.Id)));
+        foreach (var l in List(db).Where(l => l.Connected))
+            foreach (var kind in new[] { "emulator", "port", "complement" })
+                if (FolderOf(l, kind) is { } folder) roots.Add(new ToolRoot(kind, folder, l.Id));
         return roots;
     }
 
     /// <summary>Saca la biblioteca del registro. Nunca borra archivos, ni el marcador.</summary>
     public static bool Remove(Database db, string id)
     {
-        using var c = db.Open();
-        return c.Execute("DELETE FROM library WHERE id = @id", new { id }) > 0;
+        using (var c = db.Open())
+            if (c.Execute("DELETE FROM library WHERE id = @id", new { id }) == 0) return false;
+        if (DefaultDisk(db) is null && List(db).FirstOrDefault(l => l.Type == "disk") is { } other) SetDefault(db, other.Id);
+        return true;
     }
 
     /// <summary>Busca las desconectadas en las raíces de los discos (2 niveles) y actualiza su ruta. Devuelve cuántas volvieron.</summary>

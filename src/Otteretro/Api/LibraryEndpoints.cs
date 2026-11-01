@@ -18,6 +18,14 @@ public record MoveFolderRequest(string Relative, string? ToLibrary = null, strin
 /// <param name="ToLocation">Ubicación de su tipo; sin ella, de vuelta a `Herramientas` de la carpeta de datos.</param>
 public record MoveToolRequest(string Path, string? ToLocation = null);
 public record DestinationRequest(string? LocationId);
+/// <param name="Path">La carpeta Otteretro del disco (la `folder` de /drives).</param>
+/// <param name="Name">Lo que ve la persona: la unidad (E:).</param>
+public record DiskRequest(string Path, string? Name = null);
+/// <param name="Items">Rutas dentro del disco, como las da /contents.</param>
+public record MoveItemsRequest(List<string> Items, string ToLocation);
+/// <summary>Una cosa de un disco (#160): un juego (carpeta o archivo), una instalación o la carpeta de sistema de una consola.</summary>
+/// <param name="Group">La consola, o el emulador o port de un complemento.</param>
+public record DiskItem(string Type, string Relative, string Name, string Group, long Size);
 /// <summary>Todo lo de una consola junto (#192): juegos, sistema, emuladores, ports con su juego y complementos.</summary>
 /// <param name="Destination">La ubicación de juegos de lo nuevo (#195).</param>
 public record ConsoleDetail(string Id, string Name, string? Destination, List<ConsoleFolder> Games, List<ConsoleFolder> System,
@@ -61,17 +69,64 @@ public static class LibraryEndpoints
             if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
             var (id, legacy, error) = Library.Adopt(db, request.Path, request.Name, request.Type);
             if (error is not null) return TypedResults.BadRequest(error);
-            long? task = legacy ? LibraryTasks.EnqueueAdopt(db, id!) : null;
+            // Una carpeta de antes (como E:\Consolas) pasa enseguida a la carpeta fija de su disco (#202).
+            long? task = request.Type != "disk" ? LibraryTasks.EnqueueMigrate(db) : null;
             return TypedResults.Ok(new AdoptResult(id!, task, Library.List(db)));
         });
 
-        // Las que quedaron con la estructura antigua (adoptadas antes, o la migración se cortó con un error) se migran desde acá.
+        // Agregar un disco (#158): su carpeta Otteretro con las cinco fijas. Si ya tenía marcador, vuelve con el mismo id.
+        api.MapPost("/disks", Results<Ok<List<LibraryInfo>>, BadRequest<ApiError>, Conflict<ApiError>> (DiskRequest request, AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            if (!Path.IsPathFullyQualified(request.Path)) return TypedResults.BadRequest(ApiError.Of("path.notAbsolute"));
+            try { Directory.CreateDirectory(request.Path); }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                return TypedResults.BadRequest(ApiError.Of("folder.createFailed", ("detail", e.Message)));
+            }
+            var (_, _, error) = Library.Adopt(db, request.Path, request.Name, "disk");
+            return error is null ? TypedResults.Ok(Library.List(db)) : TypedResults.BadRequest(error);
+        });
+
+        api.MapPut("/disks/{id}/default", Results<Ok<List<LibraryInfo>>, BadRequest<ApiError>, Conflict<ApiError>> (string id, AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            return Library.SetDefault(db, id) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(Library.List(db));
+        });
+
+        // Lo que falta pasar al estándar (#159) y la tarea que lo hace.
+        api.MapGet("/disks/migration", Results<Ok<LibraryTasks.MigrationPlan>, Conflict<ApiError>> (AppSession s) =>
+            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(LibraryTasks.Pending(db)) : CatalogEndpoints.NoData());
+
+        api.MapPost("/disks/migrate", Results<Ok<long>, Conflict<ApiError>> (AppSession s) =>
+            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(LibraryTasks.EnqueueMigrate(db)) : CatalogEndpoints.NoData());
+
+        // Lo que tiene un disco, con su tamaño (#160).
+        api.MapGet("/disks/{id}/contents", Results<Ok<List<DiskItem>>, NotFound, Conflict<ApiError>> (string id, AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            if (Library.Get(db, id) is not { Type: "disk" } disk) return TypedResults.NotFound();
+            if (!disk.Connected) return TypedResults.Conflict(ApiError.Of("library.notConnected"));
+            return TypedResults.Ok(Contents(db, disk));
+        });
+
+        // Mover lo marcado a otro disco (#160, #205): una tarea por cosa, a la misma ruta dentro del otro.
+        api.MapPost("/disks/{id}/move", Results<Ok<List<long>>, BadRequest<ApiError>, NotFound, Conflict<ApiError>> (string id, MoveItemsRequest request, AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            if (Library.Get(db, id) is not { Type: "disk" } from || Library.Get(db, request.ToLocation) is not { Type: "disk" } to) return TypedResults.NotFound();
+            if (!from.Connected || !to.Connected) return TypedResults.Conflict(ApiError.Of("library.notConnected"));
+            var (tasks, error) = LibraryTasks.EnqueueMoveItems(db, from, to, request.Items);
+            return error is null ? TypedResults.Ok(tasks!) : TypedResults.BadRequest(error);
+        });
+
+        // Las que quedaron con la estructura antigua (adoptadas antes, o la migración se cortó con un error) se pasan al estándar.
         api.MapPost("/locations/{id}/migrate", Results<Ok<long>, NotFound, Conflict<ApiError>> (string id, AppSession s) =>
         {
             if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
             if (Library.Get(db, id) is not { } library) return TypedResults.NotFound();
             if (!library.Connected) return TypedResults.Conflict(ApiError.Of("library.notConnected"));
-            return TypedResults.Ok(LibraryTasks.EnqueueAdopt(db, id));
+            return TypedResults.Ok(LibraryTasks.EnqueueMigrate(db));
         });
 
         api.MapPut("/locations/{id}", Results<Ok<List<LibraryInfo>>, BadRequest<ApiError>, Conflict<ApiError>> (string id, RenameRequest request, AppSession s) =>
@@ -151,7 +206,7 @@ public static class LibraryEndpoints
         api.MapPut("/consoles/{id}/destination", Results<Ok<ConsoleDetail>, BadRequest<ApiError>, NotFound, Conflict<ApiError>> (string id, DestinationRequest request, AppSession s) =>
         {
             if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
-            if (request.LocationId is { } l && Library.Get(db, l)?.Type != "game") return TypedResults.BadRequest(ApiError.Of("library.notGames"));
+            if (request.LocationId is { } l && Library.Get(db, l)?.Type is not ("game" or "disk")) return TypedResults.BadRequest(ApiError.Of("library.notGames"));
             if (Detail(db, id) is null) return TypedResults.NotFound();
             using (var c = db.Open())
                 c.Execute(request.LocationId is null ? "DELETE FROM console_destination WHERE console_id = @id"
@@ -172,14 +227,34 @@ public static class LibraryEndpoints
             if (request.ToLocation is { } to)
             {
                 if (Library.Get(db, to) is not { } location) return TypedResults.NotFound();
-                if (location.Type != tool.Kind) return TypedResults.BadRequest(ApiError.Of("library.otherType"));
+                if (Library.FolderOf(location, tool.Kind) is not { } folder) return TypedResults.BadRequest(ApiError.Of("library.otherType"));
                 if (!location.Connected) return TypedResults.Conflict(ApiError.Of("library.notConnected"));
-                root = location.Path;
+                root = folder;
             }
             else root = Recipes.DefaultRoots(LibraryTasks.ToolsOf(db)).First(r => r.Kind == tool.Kind).Path;
             var (task, error) = LibraryTasks.EnqueueMove(db, new(tool.Path, Path.Combine(root, tool.Folder, tool.Name, tool.Version)));
             return error is null ? TypedResults.Ok(task!.Value) : TypedResults.BadRequest(error);
         });
+    }
+
+    public static List<DiskItem> Contents(Database db, LibraryInfo disk)
+    {
+        var items = new List<DiskItem>();
+        // Sin seguir enlaces: un complemento enlazado dentro de un emulador no se cuenta dos veces.
+        static long Size(string path) => File.Exists(path) ? new FileInfo(path).Length
+            : Directory.EnumerateFiles(path, "*", new EnumerationOptions { RecurseSubdirectories = true, AttributesToSkip = FileAttributes.ReparsePoint }).Sum(f => new FileInfo(f).Length);
+        var games = Path.Combine(disk.Path, Library.DiskFolders["game"]);
+        if (Directory.Exists(games))
+            foreach (var console in Directory.EnumerateDirectories(games))
+                foreach (var entry in Directory.EnumerateFileSystemEntries(console))
+                    items.Add(new("game", Path.GetRelativePath(disk.Path, entry), Path.GetFileName(entry), Path.GetFileName(console), Size(entry)));
+        foreach (var tool in Recipes.Installed(Recipes.DefaultRoots(disk.Path).Select(r => r with { LocationId = disk.Id })))
+            items.Add(new(tool.Kind, Path.GetRelativePath(disk.Path, tool.Path), $"{tool.Name} {tool.Version}", tool.Folder, Size(tool.Path)));
+        var system = Path.Combine(disk.Path, Library.DiskFolders["system"]);
+        if (Directory.Exists(system))
+            foreach (var console in Directory.EnumerateDirectories(system))
+                items.Add(new("system", Path.GetRelativePath(disk.Path, console), Path.GetFileName(console), Path.GetFileName(console), Size(console)));
+        return items;
     }
 
     public static ConsoleDetail? Detail(Database db, string id)
