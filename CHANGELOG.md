@@ -2,6 +2,13 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
+## 0.4.0 · Colección · en desarrollo
+
+`fase/f4-coleccion` · F4 (#176): tus archivos de juegos reconocidos, verificados y marcados como «lo tengo» · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+
+### Cambios
+- La versión pasa a 0.4: empieza la fase Colección.
+
 ## 0.3.12 · Carpetas y herramientas
 
 `fase/f3-carpetas`, `feat/146-pausar-cancelar-tareas`, `feat/148-almacenamiento-por-tipo`, `fix/151-pestanas-centradas`, `feat/157-discos-como-steam`, `feat/163-canal-local`, `feat/165-version-por-pr`, `feat/167-datos-en-disco`, `feat/169-almacenamiento-steam`, `feat/171-mover-por-grupos` y `chore/173-release-f3` · F3 (#141): tus juegos y herramientas en la estructura definitiva antes de construir lo demás encima · release a `main` en el canal Estable; trae también lo de F2.5 (0.2.1), que no había salido como estable.
