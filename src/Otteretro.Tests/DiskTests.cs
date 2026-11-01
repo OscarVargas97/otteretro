@@ -5,96 +5,97 @@ using Otteretro.Libraries;
 
 namespace Otteretro.Tests;
 
-public class LibraryTests
+public class DiskTests
 {
     [Fact]
     public async Task CreatesAndReadsTheMarker()
     {
         await using var f = new Fixture();
-        var (id, error) = Library.Create(f.Db, f.Tmp["juegos"], "Mis juegos");
+        var (id, error) = Disk.Create(f.Db, f.Tmp["juegos"], "Mis juegos");
 
         Assert.Null(error);
-        var marker = Library.ReadMarker(f.Tmp["juegos"])!;
+        var marker = Disk.ReadMarker(f.Tmp["juegos"])!;
         Assert.Equal(id, marker.Id);
-        Assert.Equal(("Mis juegos", "local", Library.MarkerFormat), (marker.Name, marker.Kind, marker.Format));
-        Assert.Contains("\"nombre\"", File.ReadAllText(Path.Combine(f.Tmp["juegos"], Library.MarkerFile)));
-        var info = Assert.Single(Library.List(f.Db));
+        Assert.Equal(("Mis juegos", "local", Disk.MarkerFormat), (marker.Name, marker.Kind, marker.Format));
+        Assert.Contains("\"nombre\"", File.ReadAllText(Path.Combine(f.Tmp["juegos"], Disk.MarkerFile)));
+        var info = Assert.Single(Disk.List(f.Db));
         Assert.True(info.Connected);
-        Assert.False(info.Legacy);
+        Assert.Equal("disk", info.Type); // crear siempre arma un disco, con sus carpetas fijas (#219)
+        Assert.All(Disk.DiskFolders.Values, folder => Assert.True(Directory.Exists(Path.Combine(f.Tmp["juegos"], folder))));
     }
 
     [Fact]
     public void NetworkPathsAreNetworkLibraries()
     {
-        Assert.True(Library.IsNetwork(@"\\nas\roms"));
-        Assert.True(Library.IsNetwork("//nas/roms"));
-        Assert.False(Library.IsNetwork(@"E:\Consolas"));
+        Assert.True(Disk.IsNetwork(@"\\nas\roms"));
+        Assert.True(Disk.IsNetwork("//nas/roms"));
+        Assert.False(Disk.IsNetwork(@"E:\Consolas"));
     }
 
     [Fact]
     public async Task FindsEachConsoleFolderByNameOrId()
     {
         await using var f = new Fixture();
-        var (a, _) = Library.Create(f.Db, f.Tmp["a"], null);
-        var (b, _) = Library.Create(f.Db, f.Tmp["b"], null);
-        Directory.CreateDirectory(f.Tmp[@"a\Switch"]);
-        Directory.CreateDirectory(f.Tmp[@"a\GC"]);
-        Directory.CreateDirectory(f.Tmp[@"a\_Entrada"]);
-        Directory.CreateDirectory(f.Tmp[@"b\switch"]);
+        var (a, _) = Disk.Create(f.Db, f.Tmp["a"], null);
+        var (b, _) = Disk.Create(f.Db, f.Tmp["b"], null);
+        Directory.CreateDirectory(f.Tmp[@"a\Juegos\Switch"]);
+        Directory.CreateDirectory(f.Tmp[@"a\Juegos\GC"]);
+        Directory.CreateDirectory(f.Tmp[@"a\Juegos\_Entrada"]);
+        Directory.CreateDirectory(f.Tmp[@"b\Juegos\switch"]);
 
-        var found = Library.ConsoleFolders(f.Db).Select(x => (x.Console, x.LibraryId, x.Relative)).OrderBy(x => x.Relative, StringComparer.Ordinal).ToList();
+        var found = Disk.ConsoleFolders(f.Db).Select(x => (x.Console, x.LibraryId, x.Relative)).OrderBy(x => x.Relative, StringComparer.Ordinal).ToList();
 
-        Assert.Equal([("gc", a!, "GC"), ("switch", a!, "Switch"), ("switch", b!, "switch")], found);
+        Assert.Equal([("gc", a!, @"Juegos\GC"), ("switch", a!, @"Juegos\Switch"), ("switch", b!, @"Juegos\switch")], found);
     }
 
     [Fact]
     public async Task RejectsOverlappingLibraries()
     {
         await using var f = new Fixture();
-        Library.Create(f.Db, f.Tmp["juegos"], null);
+        Disk.Create(f.Db, f.Tmp["juegos"], null);
 
-        Assert.Equal("library.overlaps", Library.Create(f.Db, f.Tmp[@"juegos\Switch"], null).Error?.Code);
-        Assert.Equal("library.overlaps", Library.Create(f.Db, f.Tmp.Path, null).Error?.Code);
+        Assert.Equal("library.overlaps", Disk.Create(f.Db, f.Tmp[@"juegos\Switch"], null).Error?.Code);
+        Assert.Equal("library.overlaps", Disk.Create(f.Db, f.Tmp.Path, null).Error?.Code);
     }
 
     [Fact]
     public async Task RemovingNeverDeletesFiles()
     {
         await using var f = new Fixture();
-        var (id, _) = Library.Create(f.Db, f.Tmp["juegos"], null);
+        var (id, _) = Disk.Create(f.Db, f.Tmp["juegos"], null);
         File.WriteAllText(f.Tmp[@"juegos\juego.iso"], "x");
 
-        Assert.True(Library.Remove(f.Db, id!));
+        Assert.True(Disk.Remove(f.Db, id!));
 
-        Assert.Empty(Library.List(f.Db));
+        Assert.Empty(Disk.List(f.Db));
         Assert.True(File.Exists(f.Tmp[@"juegos\juego.iso"]));
-        Assert.NotNull(Library.ReadMarker(f.Tmp["juegos"]));
+        Assert.NotNull(Disk.ReadMarker(f.Tmp["juegos"]));
     }
 
     [Fact]
     public async Task RenameUpdatesTheMarker()
     {
         await using var f = new Fixture();
-        var (id, _) = Library.Create(f.Db, f.Tmp["juegos"], "A");
+        var (id, _) = Disk.Create(f.Db, f.Tmp["juegos"], "A");
 
-        Assert.Null(Library.Rename(f.Db, id!, " B "));
+        Assert.Null(Disk.Rename(f.Db, id!, " B "));
 
-        Assert.Equal("B", Library.ReadMarker(f.Tmp["juegos"])!.Name);
-        Assert.Equal("B", Library.List(f.Db).Single().Name);
+        Assert.Equal("B", Disk.ReadMarker(f.Tmp["juegos"])!.Name);
+        Assert.Equal("B", Disk.List(f.Db).Single().Name);
     }
 
     [Fact]
     public async Task ReconnectsALibraryThatChangedPlace()
     {
         await using var f = new Fixture();
-        var (id, _) = Library.Create(f.Db, f.Tmp["juegos"], null);
+        var (id, _) = Disk.Create(f.Db, f.Tmp["juegos"], null);
         Directory.CreateDirectory(f.Tmp["disco"]);
         Directory.Move(f.Tmp["juegos"], f.Tmp[@"disco\otra"]);
-        Assert.False(Library.List(f.Db).Single().Connected);
+        Assert.False(Disk.List(f.Db).Single().Connected);
 
-        Assert.Equal(1, Library.Reconnect(f.Db, [f.Tmp.Path]));
+        Assert.Equal(1, Disk.Reconnect(f.Db, [f.Tmp.Path]));
 
-        var info = Library.List(f.Db).Single();
+        var info = Disk.List(f.Db).Single();
         Assert.True(info.Connected);
         Assert.Equal(f.Tmp[@"disco\otra"], info.Path);
     }
@@ -103,15 +104,14 @@ public class LibraryTests
     public async Task AdoptingAKnownMarkerReconnects()
     {
         await using var f = new Fixture();
-        var (id, _) = Library.Create(f.Db, f.Tmp["juegos"], null);
+        var (id, _) = Disk.Create(f.Db, f.Tmp["juegos"], null);
         Directory.Move(f.Tmp["juegos"], f.Tmp["movida"]);
 
-        var (again, legacy, error) = Library.Adopt(f.Db, f.Tmp["movida"]);
+        var (again, error) = Disk.Adopt(f.Db, f.Tmp["movida"]);
 
         Assert.Null(error);
-        Assert.False(legacy);
         Assert.Equal(id, again);
-        Assert.True(Library.List(f.Db).Single().Connected);
+        Assert.True(Disk.List(f.Db).Single().Connected);
     }
 
     [Fact]
@@ -185,7 +185,7 @@ public class LibraryTests
         Write(tmp[@"origen\sub\b.bin"], 50_000);
         var bytes = File.ReadAllBytes(tmp[@"origen\sub\b.bin"]);
 
-        LibraryTasks.MoveFolder(tmp["origen"], tmp[@"destino\x"], (_, _) => { }, CancellationToken.None, forceCopy: true);
+        DiskTasks.MoveFolder(tmp["origen"], tmp[@"destino\x"], (_, _) => { }, CancellationToken.None, forceCopy: true);
 
         Assert.False(Directory.Exists(tmp["origen"]));
         Assert.Equal(bytes, File.ReadAllBytes(tmp[@"destino\x\sub\b.bin"]));
@@ -203,23 +203,23 @@ public class LibraryTests
         File.WriteAllBytes(tmp[@"destino\2.bin"], new byte[100]);
         using var cut = new CancellationTokenSource();
         var copied = 0;
-        Assert.ThrowsAny<OperationCanceledException>(() => LibraryTasks.MoveFolder(tmp["origen"], tmp["destino"], (_, _) => { if (++copied == 4) cut.Cancel(); }, cut.Token, forceCopy: true));
+        Assert.ThrowsAny<OperationCanceledException>(() => DiskTasks.MoveFolder(tmp["origen"], tmp["destino"], (_, _) => { if (++copied == 4) cut.Cancel(); }, cut.Token, forceCopy: true));
         Assert.True(Directory.Exists(tmp["origen"])); // el origen sigue entero
 
-        LibraryTasks.MoveFolder(tmp["origen"], tmp["destino"], (_, _) => { }, CancellationToken.None, forceCopy: true);
+        DiskTasks.MoveFolder(tmp["origen"], tmp["destino"], (_, _) => { }, CancellationToken.None, forceCopy: true);
 
         Assert.False(Directory.Exists(tmp["origen"]));
         for (var i = 0; i < 5; i++) Assert.Equal(10_000, new FileInfo(tmp[$@"destino\{i}.bin"]).Length);
         // Repetirla no falla: ya está movida.
-        LibraryTasks.MoveFolder(tmp["origen"], tmp["destino"], (_, _) => { }, CancellationToken.None, forceCopy: true);
+        DiskTasks.MoveFolder(tmp["origen"], tmp["destino"], (_, _) => { }, CancellationToken.None, forceCopy: true);
     }
 
     [Fact]
     public async Task MovingAConsoleUpdatesItsFilesAndTheEmulatorPaths()
     {
         await using var f = new Fixture();
-        var (a, _) = Library.Create(f.Db, f.Tmp["a"], "A");
-        var (b, _) = Library.Create(f.Db, f.Tmp["b"], "B");
+        var (a, _) = Disk.Create(f.Db, f.Tmp["a"], "A");
+        var (b, _) = Disk.Create(f.Db, f.Tmp["b"], "B");
         Write(f.Tmp[@"a\Switch\Zelda\zelda.nsp"]);
         using (var c = f.Db.Open())
             c.Execute("INSERT INTO source (kind, library_id, relative_path) VALUES ('file', @a, 'Switch\\Zelda\\zelda.nsp'), ('file', @a, 'Switch2\\otro.nsp')", new { a });
@@ -228,7 +228,7 @@ public class LibraryTests
         File.WriteAllText(Path.Combine(ryujinx, "Ryujinx.exe"), "");
         File.WriteAllText(Path.Combine(ryujinx, @"portable\Config.json"), $$"""{ "game_dirs": [{{System.Text.Json.JsonSerializer.Serialize(f.Tmp[@"a\Switch"])}}] }""");
 
-        var (task, error) = LibraryTasks.EnqueueMove(f.Db, new(f.Tmp[@"a\Switch"], f.Tmp[@"b\Switch"], FromLibrary: a, FromRelative: "Switch", ToLibrary: b, ToRelative: "Switch"));
+        var (task, error) = DiskTasks.EnqueueMove(f.Db, new(f.Tmp[@"a\Switch"], f.Tmp[@"b\Switch"], FromLibrary: a, FromRelative: "Switch", ToLibrary: b, ToRelative: "Switch"));
         Assert.Null(error);
         var result = await f.Run(task!.Value);
 
@@ -243,10 +243,13 @@ public class LibraryTests
         Assert.Contains(System.Text.Json.JsonSerializer.Serialize(f.Tmp[@"b\Switch"])[1..^1], File.ReadAllText(Path.Combine(ryujinx, @"portable\Config.json")));
     }
 
+    /// <summary>#202, #219: `E:\Consolas` con la estructura antigua pasa entero a `E:\Otteretro`: juegos a Juegos, herramientas a sus carpetas.</summary>
     [Fact]
     public async Task AdoptsTheOldStructure()
     {
         await using var f = new Fixture();
+        var (diskId, _) = Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp["Otteretro"]).FullName, "E:", "disk");
+        var disk = f.Tmp["Otteretro"];
         var lib = f.Tmp["Consolas"];
         var appData = f.Tmp["appdata"];
         Write(Path.Combine(lib, @"GameCube\Juegos\TP\tp.iso"));
@@ -269,49 +272,51 @@ public class LibraryTests
         Environment.SetEnvironmentVariable("APPDATA", appData);
         try
         {
-            var (id, legacy, error) = Library.Adopt(f.Db, lib);
+            var (id, error) = Disk.Adopt(f.Db, lib);
             Assert.Null(error);
-            Assert.True(legacy);
-            var result = await f.Run(LibraryTasks.EnqueueAdopt(f.Db, id!));
+            Assert.True(Disk.IsLegacy(lib));
+            var result = await f.Run(DiskTasks.EnqueueMigrateIfPending(f.Db)!.Value);
             Assert.True(result.Status == "done", System.Text.Json.JsonSerializer.Serialize(result.Detail));
         }
         finally { Environment.SetEnvironmentVariable("APPDATA", before); }
 
-        var tools = Path.Combine(f.Session.Config.DataFolder!, "Herramientas");
-        var installed = Recipes.Installed(tools);
+        var installed = Recipes.Installed(Disk.ToolRoots(f.Db));
         Assert.Equal(["dolphin", "dusklight", "dusklight-texturas", "ryujinx-ss4k", "ryujinx-ss4k-pack"], installed.Select(t => t.RecipeId).Order());
         var dolphin = installed.Single(t => t.RecipeId == "dolphin").Path;
         var dusklight = installed.Single(t => t.RecipeId == "dusklight").Path;
 
-        // Juegos en <Consola>\<Juego>, nada de la estructura antigua; lo que empieza con _ no se toca.
-        Assert.True(File.Exists(Path.Combine(lib, @"GameCube\TP\tp.iso")));
-        Assert.True(File.Exists(Path.Combine(lib, @"Switch\Zelda\zelda [BASE].nsp")));
-        Assert.All(new[] { "GameCube", "Switch" }, c => Assert.All(Library.LegacyFolders, l => Assert.False(Directory.Exists(Path.Combine(lib, c, l)))));
-        Assert.True(File.Exists(Path.Combine(lib, @"_Herramientas\Catalogo\x.js")));
-        Assert.False(Library.List(f.Db).Single().Legacy);
+        // Juegos en Juegos\<Consola>\<Juego> del disco, nada de la estructura antigua; lo que empieza con _ viaja sin tocarse.
+        var games = Path.Combine(disk, "Juegos");
+        Assert.True(File.Exists(Path.Combine(games, @"GameCube\TP\tp.iso")));
+        Assert.True(File.Exists(Path.Combine(games, @"Switch\Zelda\zelda [BASE].nsp")));
+        Assert.All(new[] { "GameCube", "Switch" }, c => Assert.All(Disk.LegacyFolders, l => Assert.False(Directory.Exists(Path.Combine(games, c, l)))));
+        Assert.True(File.Exists(Path.Combine(games, @"_Herramientas\Catalogo\x.js")));
+        Assert.False(Directory.Exists(lib));
+        Assert.Equal(diskId, Assert.Single(Disk.List(f.Db)).Id);
+        Assert.All(installed, t => Assert.StartsWith(disk, t.Path));
 
         // Rutas internas reescritas y portable.
         var ini = File.ReadAllText(Path.Combine(dolphin, @"User\Config\Dolphin.ini")).Replace("\r\n", "\n");
-        Assert.Contains($"ISOPath0 = {lib}\\GameCube\n", ini);
+        Assert.Contains($"ISOPath0 = {games}\\GameCube\n", ini);
         Assert.Contains("RecursiveISOPaths = True", ini);
-        Assert.Contains(System.Text.Json.JsonSerializer.Serialize(lib + @"\GameCube\TP\tp.iso")[1..^1], File.ReadAllText(Path.Combine(dusklight, @"Datos\config.json")));
+        Assert.Contains(System.Text.Json.JsonSerializer.Serialize(games + @"\GameCube\TP\tp.iso")[1..^1], File.ReadAllText(Path.Combine(dusklight, @"Datos\config.json")));
 
         // Complementos aparte y enlazados donde los busca su emulador o port.
         Assert.True(Links.IsLink(Path.Combine(dusklight, @"Datos\texture_replacements")));
         Assert.True(File.Exists(Path.Combine(dusklight, @"Datos\texture_replacements\link.png")));
-        Assert.True(File.Exists(Path.Combine(tools, @"Complementos\Dusklight\Texturas\original\link.png")));
-        Assert.True(File.Exists(Path.Combine(tools, @"Complementos\Ryujinx SS4K\Pack SS4K\original\contents\pack.bin")));
+        Assert.True(File.Exists(Path.Combine(disk, @"Complementos\Dusklight\Texturas\original\link.png")));
+        Assert.True(File.Exists(Path.Combine(disk, @"Complementos\Ryujinx SS4K\Pack SS4K\original\contents\pack.bin")));
 
         // El enlace de AppData apunta a la instalación nueva.
         Assert.True(File.Exists(Path.Combine(appData, @"TwilitRealm\Dusklight\config.json")));
-        Assert.True(Library.Same(new DirectoryInfo(Path.Combine(appData, @"TwilitRealm\Dusklight")).LinkTarget!.Replace(@"\??\", ""), Path.Combine(dusklight, "Datos")));
+        Assert.True(Disk.Same(new DirectoryInfo(Path.Combine(appData, @"TwilitRealm\Dusklight")).LinkTarget!.Replace(@"\??\", ""), Path.Combine(dusklight, "Datos")));
 
-        // Repetir la migración no rompe nada.
-        var again = await f.Run(LibraryTasks.EnqueueAdopt(f.Db, Library.List(f.Db).Single().Id));
-        Assert.True(again.Status == "done", System.Text.Json.JsonSerializer.Serialize(again.Detail));
+        // Ya no queda nada de antes: al abrir la app otra vez no se encola nada, y repetirla a mano no rompe nada.
+        Assert.Null(DiskTasks.EnqueueMigrateIfPending(f.Db));
+        await Done(f, DiskTasks.EnqueueMigrate(f.Db));
     }
 
-    /// <summary>#198: Dusklight y sus texturas se mudan a ubicaciones de su tipo en otro disco y vuelven, sin perder los enlaces.</summary>
+    /// <summary>#205: Dusklight y sus texturas se mudan a las carpetas de otro disco y vuelven, sin perder los enlaces.</summary>
     [Fact]
     public async Task ToolsMoveToALocationOfTheirTypeAndBack()
     {
@@ -325,31 +330,31 @@ public class LibraryTests
         Write(Path.Combine(textures, "link.png"));
         Links.Point(Path.Combine(install, @"Datos\texture_replacements"), textures);
         var appData = f.Tmp["appdata"];
-        var (ports, _) = Library.Create(f.Db, f.Tmp[@"otro\Ports"], null, "port");
-        var (complements, _) = Library.Create(f.Db, f.Tmp[@"otro\Complementos"], null, "complement");
-        Assert.Equal("library.badType", Library.Create(f.Db, f.Tmp["x"], null, "juegos").Error?.Code);
+        var (ports, _) = Disk.Create(f.Db, f.Tmp["otro"], null);
+        var complements = ports;
+        Assert.Equal("library.badType", Disk.Adopt(f.Db, f.Tmp.Path, null, "port").Error?.Code); // ya no hay ubicaciones de un solo tipo (#219)
 
         var before = Environment.GetEnvironmentVariable("APPDATA");
         Environment.SetEnvironmentVariable("APPDATA", appData);
         try
         {
             var moved = f.Tmp[@"otro\Ports\GameCube\Dusklight\1.0"];
-            await Done(f, LibraryTasks.EnqueueMove(f.Db, new(install, moved)).Task!.Value);
+            await Done(f, DiskTasks.EnqueueMove(f.Db, new(install, moved)).Task!.Value);
             var movedTextures = f.Tmp[@"otro\Complementos\Dusklight\Texturas\original"];
-            await Done(f, LibraryTasks.EnqueueMove(f.Db, new(textures, movedTextures)).Task!.Value);
+            await Done(f, DiskTasks.EnqueueMove(f.Db, new(textures, movedTextures)).Task!.Value);
 
-            var installed = Recipes.Installed(Library.ToolRoots(f.Db));
+            var installed = Recipes.Installed(Disk.ToolRoots(f.Db));
             Assert.Equal(ports, installed.Single(t => t.RecipeId == "dusklight").LocationId);
             Assert.Equal("The Legend of Zelda: Twilight Princess", installed.Single(t => t.RecipeId == "dusklight").Game);
             Assert.Equal(complements, installed.Single(t => t.RecipeId == "dusklight-texturas").LocationId);
             // Las texturas se ven desde el port movido, y AppData apunta a la instalación nueva.
             Assert.True(File.Exists(Path.Combine(moved, @"Datos\texture_replacements\link.png")));
-            Assert.True(Library.Same(new DirectoryInfo(Path.Combine(appData, @"TwilitRealm\Dusklight")).LinkTarget!.Replace(@"\??\", ""), Path.Combine(moved, "Datos")));
+            Assert.True(Disk.Same(new DirectoryInfo(Path.Combine(appData, @"TwilitRealm\Dusklight")).LinkTarget!.Replace(@"\??\", ""), Path.Combine(moved, "Datos")));
 
             // Y de vuelta a Herramientas.
-            await Done(f, LibraryTasks.EnqueueMove(f.Db, new(moved, install)).Task!.Value);
+            await Done(f, DiskTasks.EnqueueMove(f.Db, new(moved, install)).Task!.Value);
             Assert.True(File.Exists(Path.Combine(install, @"Datos\texture_replacements\link.png")));
-            Assert.Null(Recipes.Installed(Library.ToolRoots(f.Db)).Single(t => t.RecipeId == "dusklight").LocationId);
+            Assert.Null(Recipes.Installed(Disk.ToolRoots(f.Db)).Single(t => t.RecipeId == "dusklight").LocationId);
         }
         finally { Environment.SetEnvironmentVariable("APPDATA", before); }
     }
@@ -366,23 +371,22 @@ public class LibraryTests
     {
         await using var f = new Fixture();
         var tools = Path.Combine(f.Session.Config.DataFolder!, "Herramientas");
-        var (games, _) = Library.Create(f.Db, f.Tmp["juegos"], "Juegos");
-        Library.Create(f.Db, f.Tmp["sistema"], "Sistema", "system");
-        Write(f.Tmp[@"juegos\GameCube\TP\tp.iso"]);
-        Write(f.Tmp[@"sistema\GameCube\IPL.bin"]);
+        var (games, _) = Disk.Create(f.Db, f.Tmp["disco"], "Disco");
+        Write(f.Tmp[@"disco\Juegos\GameCube\TP\tp.iso"]);
+        Write(f.Tmp[@"disco\Sistema\GameCube\IPL.bin"]);
         Write(Path.Combine(tools, @"Emuladores\GameCube\Dolphin\2506\Dolphin.exe"));
         Write(Path.Combine(tools, @"Ports\GameCube\Dusklight\1.0\dusklight.exe"));
         Write(Path.Combine(tools, @"Complementos\Dusklight\Texturas\original\link.png"));
         Write(Path.Combine(tools, @"Emuladores\Switch\Ryujinx SS4K\1.0\Ryujinx.exe"));
 
-        var d = LibraryEndpoints.Detail(f.Db, "gc")!;
-        Assert.Equal([(games!, "GameCube")], d.Games.Select(x => (x.LibraryId, x.Relative)));
+        var d = DiskEndpoints.Detail(f.Db, "gc")!;
+        Assert.Equal([(games!, @"Juegos\GameCube")], d.Games.Select(x => (x.LibraryId, x.Relative)));
         Assert.Single(d.System);
         Assert.Equal(["Dolphin"], d.Emulators.Select(x => x.Name));
         Assert.Equal("The Legend of Zelda: Twilight Princess", Assert.Single(d.Ports).Game);
         Assert.Equal(["Texturas"], d.Complements.Select(x => x.Name));
         Assert.Null(d.Destination);
-        Assert.Empty(LibraryEndpoints.Detail(f.Db, "n64")!.Emulators);
+        Assert.Empty(DiskEndpoints.Detail(f.Db, "n64")!.Emulators);
     }
 
     /// <summary>#158: un disco trae sus cinco carpetas; el primero es el predeterminado y quitarlo pasa la ★ a otro.</summary>
@@ -390,24 +394,24 @@ public class LibraryTests
     public async Task DisksHaveTheirFoldersAndOneDefault()
     {
         await using var f = new Fixture();
-        var (a, _, error) = Library.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
+        var (a, error) = Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
         Assert.Null(error);
-        var (b, _, _) = Library.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"f\Otteretro"]).FullName, "F:", "disk");
-        var (games, _) = Library.Create(f.Db, f.Tmp["juegos"], null);
+        var (b, _) = Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"f\Otteretro"]).FullName, "F:", "disk");
+        var (games, _) = Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp["juegos"]).FullName); // una carpeta de antes
 
-        Assert.All(Library.DiskFolders.Values, folder => Assert.True(Directory.Exists(f.Tmp[$@"e\Otteretro\{folder}"])));
-        Assert.Equal(a, Library.DefaultDisk(f.Db)!.Id);
-        Assert.Null(Library.SetDefault(f.Db, b!));
-        Assert.Equal(b, Assert.Single(Library.List(f.Db), l => l.Default).Id);
-        Assert.Equal("library.notDisk", Library.SetDefault(f.Db, games!)?.Code);
-        Library.Remove(f.Db, b!);
-        Assert.Equal(a, Library.DefaultDisk(f.Db)!.Id);
+        Assert.All(Disk.DiskFolders.Values, folder => Assert.True(Directory.Exists(f.Tmp[$@"e\Otteretro\{folder}"])));
+        Assert.Equal(a, Disk.DefaultDisk(f.Db)!.Id);
+        Assert.Null(Disk.SetDefault(f.Db, b!));
+        Assert.Equal(b, Assert.Single(Disk.List(f.Db), l => l.Default).Id);
+        Assert.Equal("library.notDisk", Disk.SetDefault(f.Db, games!)?.Code);
+        Disk.Remove(f.Db, b!);
+        Assert.Equal(a, Disk.DefaultDisk(f.Db)!.Id);
 
         // Las cosas de cada tipo se buscan en su carpeta fija.
         Write(f.Tmp[@"e\Otteretro\Juegos\Switch\Zelda\z.nsp"]);
         Write(f.Tmp[@"e\Otteretro\Emuladores\Switch\Ryujinx SS4K\1.0\Ryujinx.exe"]);
-        Assert.Equal([(a!, @"Juegos\Switch")], Library.ConsoleFolders(f.Db).Where(x => x.LibraryId == a).Select(x => (x.LibraryId, x.Relative)));
-        Assert.Equal(a, Recipes.Installed(Library.ToolRoots(f.Db)).Single(t => t.RecipeId == "ryujinx-ss4k").LocationId);
+        Assert.Equal([(a!, @"Juegos\Switch")], Disk.ConsoleFolders(f.Db).Where(x => x.LibraryId == a).Select(x => (x.LibraryId, x.Relative)));
+        Assert.Equal(a, Recipes.Installed(Disk.ToolRoots(f.Db)).Single(t => t.RecipeId == "ryujinx-ss4k").LocationId);
     }
 
     /// <summary>#159, #202, #204: una carpeta de antes (como E:\Consolas) pasa a Juegos de su disco y Herramientas al predeterminado.</summary>
@@ -415,8 +419,8 @@ public class LibraryTests
     public async Task MigratesAnOldLocationAndHerramientasToTheDisk()
     {
         await using var f = new Fixture();
-        var (disk, _, _) = Library.Adopt(f.Db, Directory.CreateDirectory(f.Tmp["Otteretro"]).FullName, "E:", "disk");
-        var (old, _) = Library.Create(f.Db, f.Tmp["Consolas"], "Consolas");
+        var (disk, _) = Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp["Otteretro"]).FullName, "E:", "disk");
+        var (old, _) = Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp["Consolas"]).FullName, "Consolas");
         Write(f.Tmp[@"Consolas\Switch\Zelda\zelda.nsp"]);
         using (var c = f.Db.Open())
         {
@@ -428,13 +432,16 @@ public class LibraryTests
         Write(Path.Combine(ryujinx, "Ryujinx.exe"));
         Directory.CreateDirectory(Path.Combine(ryujinx, "portable"));
         File.WriteAllText(Path.Combine(ryujinx, @"portable\Config.json"), $$"""{ "game_dirs": [{{System.Text.Json.JsonSerializer.Serialize(f.Tmp[@"Consolas\Switch"])}}] }""");
-        Assert.Equal((1, true), (LibraryTasks.Pending(f.Db).Locations.Count, LibraryTasks.Pending(f.Db).Tools));
+        Assert.Equal((1, true), (DiskTasks.Pending(f.Db).Locations.Count, DiskTasks.Pending(f.Db).Tools));
 
-        await Done(f, LibraryTasks.EnqueueMigrate(f.Db));
+        // Al abrir la app se encola sola, una sola vez (#219).
+        var task = DiskTasks.EnqueueMigrateIfPending(f.Db)!.Value;
+        Assert.Equal(task, DiskTasks.EnqueueMigrateIfPending(f.Db));
+        await Done(f, task);
 
         Assert.True(File.Exists(f.Tmp[@"Otteretro\Juegos\Switch\Zelda\zelda.nsp"]));
         Assert.False(Directory.Exists(f.Tmp["Consolas"]));
-        Assert.Equal(disk, Assert.Single(Library.List(f.Db)).Id);
+        Assert.Equal(disk, Assert.Single(Disk.List(f.Db)).Id);
         using (var c = f.Db.Open())
         {
             Assert.Equal((disk, @"Juegos\Switch\Zelda\zelda.nsp"), c.QuerySingle<(string, string)>("SELECT library_id, relative_path FROM source"));
@@ -443,10 +450,11 @@ public class LibraryTests
         var moved = f.Tmp[@"Otteretro\Emuladores\Switch\Ryujinx SS4K\1.0"];
         Assert.False(Directory.Exists(ryujinx));
         Assert.Contains(System.Text.Json.JsonSerializer.Serialize(f.Tmp[@"Otteretro\Juegos\Switch"])[1..^1], File.ReadAllText(Path.Combine(moved, @"portable\Config.json")));
-        Assert.Equal((0, false), (LibraryTasks.Pending(f.Db).Locations.Count, LibraryTasks.Pending(f.Db).Tools));
+        Assert.Equal((0, false), (DiskTasks.Pending(f.Db).Locations.Count, DiskTasks.Pending(f.Db).Tools));
+        Assert.Null(DiskTasks.EnqueueMigrateIfPending(f.Db));
 
         // Repetirla no hace nada.
-        await Done(f, LibraryTasks.EnqueueMigrate(f.Db));
+        await Done(f, DiskTasks.EnqueueMigrate(f.Db));
     }
 
     /// <summary>#160: lo que tiene un disco, por tipo y con su tamaño, y mover lo marcado (carpetas y archivos sueltos) a otro.</summary>
@@ -454,8 +462,8 @@ public class LibraryTests
     public async Task MovesMarkedItemsToAnotherDisk()
     {
         await using var f = new Fixture();
-        var (a, _, _) = Library.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
-        var (b, _, _) = Library.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"f\Otteretro"]).FullName, "F:", "disk");
+        var (a, _) = Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
+        var (b, _) = Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"f\Otteretro"]).FullName, "F:", "disk");
         Write(f.Tmp[@"e\Otteretro\Juegos\Switch\Zelda\zelda.nsp"]);
         Write(f.Tmp[@"e\Otteretro\Juegos\GBA\metroid.gba"]);
         Write(f.Tmp[@"e\Otteretro\Emuladores\Switch\Ryujinx SS4K\1.0\Ryujinx.exe"]);
@@ -463,32 +471,32 @@ public class LibraryTests
         using (var c = f.Db.Open())
             c.Execute("INSERT INTO source (kind, library_id, relative_path) VALUES ('file', @a, 'Juegos\\GBA\\metroid.gba')", new { a });
 
-        var items = LibraryEndpoints.Contents(f.Db, Library.Get(f.Db, a!)!);
+        var items = DiskEndpoints.Contents(f.Db, Disk.Get(f.Db, a!)!);
         Assert.Equal(["emulator", "game", "game", "system"], items.Select(i => i.Type).Order());
         Assert.All(items, i => Assert.True(i.Size > 0));
 
-        var (tasks, error) = LibraryTasks.EnqueueMoveItems(f.Db, Library.Get(f.Db, a!)!, Library.Get(f.Db, b!)!,
+        var (tasks, error) = DiskTasks.EnqueueMoveItems(f.Db, Disk.Get(f.Db, a!)!, Disk.Get(f.Db, b!)!,
             [@"Juegos\GBA\metroid.gba", @"Juegos\Switch\Zelda", @"Emuladores\Switch\Ryujinx SS4K\1.0"]);
         Assert.Null(error);
         foreach (var task in tasks!) await Done(f, task);
 
         Assert.True(File.Exists(f.Tmp[@"f\Otteretro\Juegos\GBA\metroid.gba"]));
         Assert.True(File.Exists(f.Tmp[@"f\Otteretro\Juegos\Switch\Zelda\zelda.nsp"]));
-        Assert.Equal(b, Recipes.Installed(Library.ToolRoots(f.Db)).Single(t => t.RecipeId == "ryujinx-ss4k").LocationId);
+        Assert.Equal(b, Recipes.Installed(Disk.ToolRoots(f.Db)).Single(t => t.RecipeId == "ryujinx-ss4k").LocationId);
         using (var c = f.Db.Open())
             Assert.Equal(b, c.ExecuteScalar<string>("SELECT library_id FROM source"));
         // Lo que ya está en el otro disco no se pisa, y nada sale del disco.
         Write(f.Tmp[@"e\Otteretro\Juegos\GBA\metroid.gba"]);
-        var (from, to) = (Library.Get(f.Db, a!)!, Library.Get(f.Db, b!)!);
-        Assert.Equal("library.conflict", LibraryTasks.EnqueueMoveItems(f.Db, from, to, [@"Juegos\GBA\metroid.gba"]).Error?.Code);
-        Assert.Equal("library.outside", LibraryTasks.EnqueueMoveItems(f.Db, from, to, [@"..\x"]).Error?.Code);
+        var (from, to) = (Disk.Get(f.Db, a!)!, Disk.Get(f.Db, b!)!);
+        Assert.Equal("library.conflict", DiskTasks.EnqueueMoveItems(f.Db, from, to, [@"Juegos\GBA\metroid.gba"]).Error?.Code);
+        Assert.Equal("library.outside", DiskTasks.EnqueueMoveItems(f.Db, from, to, [@"..\x"]).Error?.Code);
 
         // #171: toda una consola en una sola tarea, junto a lo que el otro disco ya tiene de ella; si algo choca, nada.
-        Assert.Equal(f.Tmp[@"f\Otteretro\Juegos\GBA\metroid.gba"], LibraryTasks.EnqueueMoveItems(f.Db, from, to, [@"Juegos\GBA"]).Error?.Params?["path"]);
+        Assert.Equal(f.Tmp[@"f\Otteretro\Juegos\GBA\metroid.gba"], DiskTasks.EnqueueMoveItems(f.Db, from, to, [@"Juegos\GBA"]).Error?.Params?["path"]);
         File.Delete(f.Tmp[@"e\Otteretro\Juegos\GBA\metroid.gba"]);
         Write(f.Tmp[@"e\Otteretro\Juegos\GBA\zelda.gba"]);
         Write(f.Tmp[@"e\Otteretro\Juegos\GBA\Pokemon\pokemon.gba"]);
-        (tasks, error) = LibraryTasks.EnqueueMoveItems(f.Db, from, to, [@"Juegos\GBA"]);
+        (tasks, error) = DiskTasks.EnqueueMoveItems(f.Db, from, to, [@"Juegos\GBA"]);
         Assert.Null(error);
         await Done(f, Assert.Single(tasks!));
         Assert.True(File.Exists(f.Tmp[@"f\Otteretro\Juegos\GBA\metroid.gba"]));
@@ -503,15 +511,15 @@ public class LibraryTests
     {
         await using var f = new Fixture();
         var data = f.Session.Config.DataFolder!;
-        var (other, _, _) = Library.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"f\Otteretro"]).FullName, "F:", "disk");
-        Assert.Equal(other, Library.DefaultDisk(f.Db)!.Id);
+        var (other, _) = Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"f\Otteretro"]).FullName, "F:", "disk");
+        Assert.Equal(other, Disk.DefaultDisk(f.Db)!.Id);
 
-        Assert.Null(Library.EnsureDataDisk(f.Db, data));
-        Assert.Null(Library.EnsureDataDisk(f.Db, data)); // no la registra dos veces
+        Assert.Null(Disk.EnsureDataDisk(f.Db, data));
+        Assert.Null(Disk.EnsureDataDisk(f.Db, data)); // no la registra dos veces
 
-        var disk = Library.DefaultDisk(f.Db)!;
-        Assert.True(Library.Same(data, disk.Path));
-        Assert.Equal(2, Library.List(f.Db).Count);
+        var disk = Disk.DefaultDisk(f.Db)!;
+        Assert.True(Disk.Same(data, disk.Path));
+        Assert.Equal(2, Disk.List(f.Db).Count);
         Assert.True(Directory.Exists(Path.Combine(data, "Juegos")));
     }
 }

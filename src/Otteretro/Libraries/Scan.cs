@@ -40,8 +40,8 @@ public static partial class Scan
 
     public static Task Run(TaskRun run, CancellationToken ct)
     {
-        var folders = Library.ConsoleFolders(run.Db);
-        var libraries = Library.List(run.Db).ToDictionary(l => l.Id);
+        var folders = Disk.ConsoleFolders(run.Db);
+        var libraries = Disk.List(run.Db).ToDictionary(l => l.Id);
         byte[]? keys = null;
         var keysRead = false;
         var catalog = Catalog(run.Db);
@@ -62,7 +62,7 @@ public static partial class Scan
                     if (!GameExtensions.Contains(Path.GetExtension(file))) continue;
                     var name = Path.GetFileNameWithoutExtension(file);
                     var parent = Path.GetDirectoryName(file)!;
-                    var folder = Library.Same(parent, Path.Combine(root, relative)) ? null : Path.GetFileName(parent);
+                    var folder = Disk.Same(parent, Path.Combine(root, relative)) ? null : Path.GetFileName(parent);
                     string? titleId = null, component = null;
                     if (console == "switch")
                     {
@@ -277,9 +277,9 @@ public static partial class Scan
         head.AsSpan(0x1C, 4).SequenceEqual(new byte[] { 0xC2, 0x33, 0x9F, 0x3D }) || head.AsSpan(0x18, 4).SequenceEqual(new byte[] { 0x5D, 0x1C, 0x9E, 0xA3 });
 
     /// <summary>Dónde buscar `prod.keys`: Sistema de cada disco o ubicación de sistema conectada, y la de Herramientas de antes.</summary>
-    static IEnumerable<string> SystemFolders(Database db, IEnumerable<LibraryInfo> libraries) =>
-        libraries.Where(l => l.Connected).Select(l => Library.FolderOf(l, "system")).OfType<string>()
-            .Append(Path.Combine(LibraryTasks.ToolsOf(db), "Sistema"));
+    static IEnumerable<string> SystemFolders(Database db, IEnumerable<DiskInfo> libraries) =>
+        libraries.Where(l => l.Connected).Select(l => Disk.FolderOf(l, "system")).OfType<string>()
+            .Append(Path.Combine(DiskTasks.ToolsOf(db), "Sistema"));
 
     [GeneratedRegex(@"\[(0100[0-9A-Fa-f]{12})\]")]
     private static partial Regex TitleIdInName();

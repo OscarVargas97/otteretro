@@ -10,6 +10,7 @@ static class Setup
     internal static void Init()
     {
         TaskQueue.AutoClaude = false;
+        Otteretro.Libraries.DiskTasks.MigrateOnOpen = false; // cada prueba lanza la migración cuando la quiere
         Claude.Identify.AfterScan = false;
     }
 }

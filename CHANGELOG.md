@@ -16,6 +16,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ### Cambios
 - La versión pasa a 0.4: empieza la fase Colección.
+- **Un solo modelo de almacenamiento: discos** (#188): lo que quede de antes (una carpeta como `E:\Consolas` o `Herramientas\` en la carpeta de datos) pasa solo al estándar al abrir la app, con las rutas de los emuladores al día; ya no se crean ubicaciones de un solo tipo.
 - **El plan va por dominios** (encuesta 17, #185): la F4 pasa a ser «Archivos de juegos» y suma todo lo que le pasa a un archivo: tus discos al estándar, importar carpetas, una carpeta `Entrada` por disco que se ordena sola, descargas como un JDownloader dentro de Otteretro (sin programas aparte), descomprimir, convertir sin perder lo verificado y subir BIOS y keys. Después siguen Herramientas, Jugar con Steam, Respaldo, Tiendas y Descubrir.
 
 ## 0.3.12 · Carpetas y herramientas

@@ -8,7 +8,7 @@ import { LanguagePicker } from "@/components/LanguagePicker";
 import { request } from "@/lib/client";
 import { gb } from "@/lib/format";
 import { useDescribeError } from "@/lib/i18n";
-import type { AdoptResult, AppState, Drive, FolderRequest, LibraryInfo } from "@/lib/types";
+import type { AdoptResult, AppState, Drive, FolderRequest, DiskInfo } from "@/lib/types";
 
 // Clave en welcome.steps.* y fase en que se activa cada paso.
 const STEPS = [
@@ -140,7 +140,7 @@ function LibrariesStep() {
     onSuccess: finish,
   });
   const create = useMutation({
-    mutationFn: (d: Drive) => request<LibraryInfo[]>("/api/disks", { method: "POST", body: JSON.stringify({ path: d.folder, name: d.name.replace(/[\\/]+$/, "") || d.name }) }),
+    mutationFn: (d: Drive) => request<DiskInfo[]>("/api/disks", { method: "POST", body: JSON.stringify({ path: d.folder, name: d.name.replace(/[\\/]+$/, "") || d.name }) }),
     onSuccess: (_, d) => setAdded((a) => [...a, d.folder]),
   });
   const error = adopt.error ?? create.error;

@@ -40,9 +40,8 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         [Claude.SagaAnalysis.Kind] = Claude.SagaAnalysis.Run,
         [Claude.InitialLoad.Kind] = Claude.InitialLoad.Run,
         [Claude.Identify.Kind] = Claude.Identify.Run,
-        [Libraries.LibraryTasks.Move] = Libraries.LibraryTasks.RunMove,
-        [Libraries.LibraryTasks.Adopt] = Libraries.LibraryTasks.RunAdopt,
-        [Libraries.LibraryTasks.Migrate] = Libraries.LibraryTasks.RunMigrate,
+        [Libraries.DiskTasks.Move] = Libraries.DiskTasks.RunMove,
+        [Libraries.DiskTasks.Migrate] = Libraries.DiskTasks.RunMigrate,
         [Libraries.Scan.Kind] = Libraries.Scan.Run,
         [Libraries.Dats.UpdateKind] = Libraries.Dats.Update,
         [Libraries.Dats.VerifyKind] = Libraries.Dats.Verify,
@@ -186,6 +185,8 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
                     {
                         using (var c = db.Open()) c.Execute("UPDATE task SET status = 'queued' WHERE status = 'running'");
                         recovered = db.FilePath;
+                        // Al abrir la app, lo de antes pasa solo al estándar (#219).
+                        if (Libraries.DiskTasks.MigrateOnOpen) Libraries.DiskTasks.EnqueueMigrateIfPending(db);
                     }
                     if (AutoClaude) Claude.ClaudeBudget.AutoStart(db);
                     StartPending(db, ct);

@@ -136,7 +136,7 @@ public static partial class Dats
                   AND (@GameId IS NULL OR o.version_id IN (SELECT id FROM version WHERE game_id = @GameId))
                 ORDER BY o.id
                 """, job).ToList();
-        var libraries = Library.List(run.Db).Where(l => l.Connected).ToDictionary(l => l.Id, l => l.Path);
+        var libraries = Disk.List(run.Db).Where(l => l.Connected).ToDictionary(l => l.Id, l => l.Path);
         var total = Math.Max(1, files.Sum(f => f.Size));
         long done = 0;
         int verified = 0, missing = 0;

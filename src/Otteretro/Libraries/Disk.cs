@@ -7,10 +7,10 @@ using Otteretro.Data;
 namespace Otteretro.Libraries;
 
 /// <summary>
-/// El marcador `otteretro-ubicacion.json` de la raíz de cada ubicación (§5.2, #199). Sus claves las ve la persona: van en
-/// español. <c>contenido</c> es el tipo de cosa que guarda (#198); sin él, juegos.
+/// El marcador `otteretro-ubicacion.json` de la raíz de cada disco (§5.2). Sus claves las ve la persona: van en español.
+/// <c>contenido</c> es <c>disk</c>; un marcador de antes (#198) puede traer otro tipo, y esa carpeta pasa al estándar (#219).
 /// </summary>
-public record LibraryMarker(
+public record DiskMarker(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("nombre")] string Name,
     [property: JsonPropertyName("tipo")] string Kind,
@@ -19,38 +19,42 @@ public record LibraryMarker(
     [property: JsonPropertyName("contenido")] string? Type = null);
 
 /// <param name="Connected">Está en su última ruta y su marcador tiene el mismo id.</param>
-/// <param name="Legacy">Todavía tiene la estructura antigua (`<Consola>\Juegos|Emuladores|Ports`): adoptarla la migra.</param>
-/// <param name="Type">disk (#201), o game, emulator, port, complement o system: las de un solo tipo de antes (#198).</param>
+/// <param name="Type">disk; o, hasta que pasa al estándar sola al abrir la app (#219), el tipo de una carpeta de antes:
+/// game (como `E:\Consolas`), emulator, port, complement o system (#198).</param>
 /// <param name="Default">El disco predeterminado ★ (#203).</param>
-public record LibraryInfo(string Id, string Name, string Kind, string Path, bool Connected, long? Free, long? Total, bool Legacy, string Type,
+public record DiskInfo(string Id, string Name, string Kind, string Path, bool Connected, long? Free, long? Total, string Type,
     bool Default = false);
 
 /// <summary>La carpeta de una consola en una ubicación (#190).</summary>
 public record ConsoleFolder(string Console, string LibraryId, string Relative);
 
 /// <summary>
-/// Ubicaciones (§5, #198, #199): carpetas registradas con marcador para un tipo de cosa (juegos, emuladores, ports,
-/// complementos o sistema). Crear, adoptar, renombrar, quitar sin borrar y reconectar. En el código y la base siguen
-/// llamándose «library».
+/// Discos, como Steam (§5, #201, #219): cada uno con su raíz `X:\Otteretro\` y sus carpetas fijas. Agregar, adoptar,
+/// renombrar, quitar sin borrar y reconectar. Lo de antes (carpetas de un solo tipo) solo existe hasta que «Pasar al estándar»
+/// lo lleva a su disco (`DiskTasks.RunMigrate`), que corre solo al abrir la app. En la base, la tabla sigue siendo `library`.
 /// </summary>
-public static class Library
+public static class Disk
 {
     public const string MarkerFile = "otteretro-ubicacion.json";
     /// <summary>El nombre de antes (#191): se sigue leyendo y se reemplaza al escribir.</summary>
     public const string OldMarkerFile = "otteretro-biblioteca.json";
-    public static readonly string[] Types = ["disk", "game", "emulator", "port", "complement", "system"];
+    /// <summary>Lo que se puede adoptar: un disco, o una carpeta de juegos de antes (como `E:\Consolas`), que pasa al estándar.</summary>
+    public static readonly string[] AdoptTypes = ["disk", "game"];
 
     /// <summary>Las cinco carpetas fijas de cada disco (#201), por tipo. Emuladores, Ports y Complementos son las de Herramientas.</summary>
     public static readonly Dictionary<string, string> DiskFolders = new()
     {
-        ["game"] = "Juegos", ["emulator"] = "Emuladores", ["port"] = "Ports", ["complement"] = "Complementos", ["system"] = "Sistema",
+        ["game"] = "Juegos",
+        ["emulator"] = "Emuladores",
+        ["port"] = "Ports",
+        ["complement"] = "Complementos",
+        ["system"] = "Sistema",
     };
 
-    /// <summary>Dónde guarda una ubicación las cosas de <paramref name="type"/>: en un disco, su carpeta fija; en una de un solo tipo, ella misma.</summary>
-    public static string? FolderOf(LibraryInfo l, string type) =>
-        l.Type == "disk" ? Path.Combine(l.Path, DiskFolders[type]) : l.Type == type ? l.Path : null;
+    /// <summary>La carpeta fija de <paramref name="type"/> en un disco; null en una carpeta de antes, que todavía no pasó al estándar.</summary>
+    public static string? FolderOf(DiskInfo l, string type) => l.Type == "disk" ? Path.Combine(l.Path, DiskFolders[type]) : null;
 
-    public static LibraryInfo? DefaultDisk(Database db) => List(db).FirstOrDefault(l => l.Default && l.Type == "disk");
+    public static DiskInfo? DefaultDisk(Database db) => List(db).FirstOrDefault(l => l.Default && l.Type == "disk");
     public const int MarkerFormat = 1;
 
     /// <summary>Carpetas de la estructura antigua dentro de cada consola (§5.5).</summary>
@@ -58,16 +62,16 @@ public static class Library
 
     static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
 
-    public static LibraryMarker? ReadMarker(string folder)
+    public static DiskMarker? ReadMarker(string folder)
     {
         foreach (var file in new[] { MarkerFile, OldMarkerFile })
-            try { return JsonSerializer.Deserialize<LibraryMarker>(File.ReadAllText(Path.Combine(folder, file))); }
+            try { return JsonSerializer.Deserialize<DiskMarker>(File.ReadAllText(Path.Combine(folder, file))); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException) { }
         return null;
     }
 
     /// <summary>Escribe el marcador a un temporal y lo reemplaza: un corte no lo deja a medias.</summary>
-    public static void WriteMarker(string folder, LibraryMarker marker)
+    public static void WriteMarker(string folder, DiskMarker marker)
     {
         var path = Path.Combine(folder, MarkerFile);
         File.WriteAllText(path + ".tmp", JsonSerializer.Serialize(marker, Json));
@@ -84,19 +88,19 @@ public static class Library
 
     record Row(string Id, string Name, string Kind, string Path, string Type, long IsDefault);
 
-    public static List<LibraryInfo> List(Database db)
+    public static List<DiskInfo> List(Database db)
     {
         using var c = db.Open();
         return c.Query<Row>("SELECT id, name, kind, path, type, is_default AS IsDefault FROM library ORDER BY name").Select(Info).ToList();
     }
 
-    public static LibraryInfo? Get(Database db, string id)
+    public static DiskInfo? Get(Database db, string id)
     {
         using var c = db.Open();
         return c.QuerySingleOrDefault<Row>("SELECT id, name, kind, path, type, is_default AS IsDefault FROM library WHERE id = @id", new { id }) is { } r ? Info(r) : null;
     }
 
-    static LibraryInfo Info(Row r)
+    static DiskInfo Info(Row r)
     {
         var connected = ReadMarker(r.Path)?.Id == r.Id;
         long? free = null, total = null;
@@ -107,20 +111,19 @@ public static class Library
                 (free, total) = (drive.AvailableFreeSpace, drive.TotalSize);
             }
             catch (Exception e) when (e is ArgumentException or IOException or UnauthorizedAccessException) { }
-        return new(r.Id, r.Name, r.Kind, r.Path, connected, free, total, connected && r.Type == "game" && IsLegacy(r.Path), r.Type, r.IsDefault != 0);
+        return new(r.Id, r.Name, r.Kind, r.Path, connected, free, total, r.Type, r.IsDefault != 0);
     }
 
-    /// <summary>Crea una ubicación nueva de <paramref name="type"/> en <paramref name="path"/> (la crea si no existe). Devuelve su id o el error.</summary>
-    public static (string? Id, ApiError? Error) Create(Database db, string path, string? name, string type = "game")
+    /// <summary>Crea un disco nuevo en <paramref name="path"/> (la carpeta se crea si no existe), con sus carpetas fijas. Devuelve su id o el error.</summary>
+    public static (string? Id, ApiError? Error) Create(Database db, string path, string? name)
     {
-        if (!Types.Contains(type)) return (null, ApiError.Of("library.badType"));
         if (Check(db, path) is { } error) return (null, error);
         if (ReadMarker(path) is not null) return (null, ApiError.Of("library.hasMarker"));
         try
         {
             Directory.CreateDirectory(path);
-            var id = Register(db, path, NewMarker(path, name, type));
-            if (type == "disk") Prepare(db, id, path);
+            var id = Register(db, path, NewMarker(path, name, "disk"));
+            Prepare(db, id, path);
             return (id, null);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
@@ -130,33 +133,34 @@ public static class Library
     }
 
     /// <summary>
-    /// Adopta una carpeta que ya existe: si tiene marcador, se registra con ese id; si no, se le escribe uno. Con la estructura
-    /// antigua devuelve <c>Legacy = true</c> y quien llama encola la migración (§5.5).
+    /// Adopta una carpeta que ya existe: si tiene marcador, se registra con ese id; si no, se le escribe uno. Una carpeta de
+    /// juegos de antes (<paramref name="type"/> = game, como `E:\Consolas`) queda registrada hasta que «Pasar al estándar» la
+    /// lleva a su disco; quien llama encola esa tarea (§5.5).
     /// </summary>
-    public static (string? Id, bool Legacy, ApiError? Error) Adopt(Database db, string path, string? name = null, string type = "game")
+    public static (string? Id, ApiError? Error) Adopt(Database db, string path, string? name = null, string type = "game")
     {
-        if (!Types.Contains(type)) return (null, false, ApiError.Of("library.badType"));
-        if (!Directory.Exists(path)) return (null, false, ApiError.Of("path.notFound"));
+        if (!AdoptTypes.Contains(type)) return (null, ApiError.Of("library.badType"));
+        if (!Directory.Exists(path)) return (null, ApiError.Of("path.notFound"));
         var marker = ReadMarker(path);
         if (marker is not null && Get(db, marker.Id) is { } known)
         {
             // Ya registrada: es una reconexión a la ruta nueva.
             using var c = db.Open();
             c.Execute("UPDATE library SET path = @path WHERE id = @Id", new { path = Normalize(path), known.Id });
-            return (known.Id, known.Type == "game" && IsLegacy(path), null);
+            return (known.Id, null);
         }
-        if (Check(db, path) is { } error) return (null, false, error);
+        if (Check(db, path) is { } error) return (null, error);
         // Un marcador sin tipo (de antes de #198) toma el que se eligió al adoptar.
         marker = marker is null ? NewMarker(path, name, type) : marker with { Type = marker.Type ?? type };
         try
         {
             var id = Register(db, path, marker);
             if (marker.Type == "disk") Prepare(db, id, path);
-            return (id, marker.Type == "game" && IsLegacy(path), null);
+            return (id, null);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            return (null, false, ApiError.Of("folder.createFailed", ("detail", e.Message)));
+            return (null, ApiError.Of("folder.createFailed", ("detail", e.Message)));
         }
     }
 
@@ -178,7 +182,7 @@ public static class Library
         {
             var drive = IsNetwork(dataFolder) ? Path.GetPathRoot(dataFolder)! : App.Mounts.Of(dataFolder);
             var name = Path.TrimEndingDirectorySeparator(drive) is { Length: > 0 } n ? n : drive;
-            var (id, _, error) = Adopt(db, dataFolder, name, "disk");
+            var (id, error) = Adopt(db, dataFolder, name, "disk");
             if (error is not null) return error;
             disk = Get(db, id!)!;
         }
@@ -228,7 +232,7 @@ public static class Library
     /// </summary>
     public static List<ToolRoot> ToolRoots(Database db)
     {
-        var roots = Recipes.DefaultRoots(LibraryTasks.ToolsOf(db));
+        var roots = Recipes.DefaultRoots(DiskTasks.ToolsOf(db));
         foreach (var l in List(db).Where(l => l.Connected))
             foreach (var kind in new[] { "emulator", "port", "complement" })
                 if (FolderOf(l, kind) is { } folder) roots.Add(new ToolRoot(kind, folder, l.Id));
@@ -295,11 +299,11 @@ public static class Library
         return null;
     }
 
-    static LibraryMarker NewMarker(string path, string? name, string type) => new(Guid.NewGuid().ToString("N"),
+    static DiskMarker NewMarker(string path, string? name, string type) => new(Guid.NewGuid().ToString("N"),
         string.IsNullOrWhiteSpace(name) ? Path.GetFileName(Normalize(path)) is { Length: > 0 } n ? n : Normalize(path) : name.Trim(),
         IsNetwork(path) ? "network" : "local", DateTime.UtcNow.ToString("O"), MarkerFormat, type);
 
-    static string Register(Database db, string path, LibraryMarker marker)
+    static string Register(Database db, string path, DiskMarker marker)
     {
         WriteMarker(path, marker);
         using var c = db.Open();

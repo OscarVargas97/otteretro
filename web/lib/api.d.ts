@@ -2940,7 +2940,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["LibraryInfo"][];
+                        "application/json": components["schemas"]["DiskInfo"][];
                     };
                 };
                 /** @description Conflict */
@@ -2955,48 +2955,7 @@ export interface paths {
             };
         };
         put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["LibraryRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["LibraryInfo"][];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiError"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiError"];
-                    };
-                };
-            };
-        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3088,7 +3047,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["LibraryInfo"][];
+                        "application/json": components["schemas"]["DiskInfo"][];
                     };
                 };
                 /** @description Bad Request */
@@ -3324,59 +3283,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/locations/{id}/migrate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": number | string;
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiError"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/locations/{id}": {
         parameters: {
             query?: never;
@@ -3406,7 +3312,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["LibraryInfo"][];
+                        "application/json": components["schemas"]["DiskInfo"][];
                     };
                 };
                 /** @description Bad Request */
@@ -3447,7 +3353,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["LibraryInfo"][];
+                        "application/json": components["schemas"]["DiskInfo"][];
                     };
                 };
                 /** @description Not Found */
@@ -3554,7 +3460,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["LibraryInfo"][];
+                        "application/json": components["schemas"]["DiskInfo"][];
                     };
                 };
                 /** @description Bad Request */
@@ -4361,7 +4267,7 @@ export interface components {
             id: string;
             /** Format: int64 */
             task: null | number | string;
-            libraries: components["schemas"]["LibraryInfo"][];
+            libraries: components["schemas"]["DiskInfo"][];
         };
         ApiError: {
             code: string;
@@ -4504,6 +4410,20 @@ export interface components {
         };
         DestinationRequest: {
             locationId: null | string;
+        };
+        DiskInfo: {
+            id: string;
+            name: string;
+            kind: string;
+            path: string;
+            connected: boolean;
+            /** Format: int64 */
+            free: null | number | string;
+            /** Format: int64 */
+            total: null | number | string;
+            type: string;
+            /** @default false */
+            default: boolean;
         };
         DiskItem: {
             type: string;
@@ -4651,21 +4571,6 @@ export interface components {
             /** Format: int32 */
             total: number | string;
         };
-        LibraryInfo: {
-            id: string;
-            name: string;
-            kind: string;
-            path: string;
-            connected: boolean;
-            /** Format: int64 */
-            free: null | number | string;
-            /** Format: int64 */
-            total: null | number | string;
-            legacy: boolean;
-            type: string;
-            /** @default false */
-            default: boolean;
-        };
         LibraryRequest: {
             path: string;
             name?: null | string;
@@ -4676,7 +4581,7 @@ export interface components {
             collapsed: boolean;
         };
         MigrationPlan: {
-            locations: components["schemas"]["LibraryInfo"][];
+            locations: components["schemas"]["DiskInfo"][];
             tools: boolean;
         };
         MoveFolderRequest: {

@@ -9,7 +9,7 @@ import { librariesQuery } from "@/components/Libraries";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
 import { optimistic } from "@/lib/optimistic";
-import type { ConsoleDetail, ConsoleFolder, ConsoleInfo, ConsolesPage, CoversInfo, LibraryInfo, PlatformInfo } from "@/lib/types";
+import type { ConsoleDetail, ConsoleFolder, ConsoleInfo, ConsolesPage, CoversInfo, DiskInfo, PlatformInfo } from "@/lib/types";
 
 const GROUPS = ["nintendo", "playstation", "xbox", "pc", "other"] as const;
 const groupOf = (c: ConsoleInfo): (typeof GROUPS)[number] =>
@@ -261,7 +261,7 @@ function ConsoleDetailPanel({ id, status }: { id: string; status: React.ReactNod
 }
 
 /** La carpeta de la consola en una ubicación de juegos, y moverla a otra (#190). */
-function GameFolder({ folder, locations }: { folder: ConsoleFolder; locations: LibraryInfo[] }) {
+function GameFolder({ folder, locations }: { folder: ConsoleFolder; locations: DiskInfo[] }) {
   const t = useTranslations("settings.consoles.location");
   const describe = useDescribeError();
   const cache = useQueryClient();

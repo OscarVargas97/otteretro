@@ -52,7 +52,7 @@ public class IdentifyTests : IAsyncDisposable
     [Fact]
     public async Task ClaudeIdentifiesWhatTheScanCouldNot()
     {
-        Library.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
+        Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
         foreach (var file in new[] { @"GameCube\juego raro.iso", @"GameCube\basura.iso", @"Switch\x\Sin nombre [0100AAAA00000000][v0].nsp",
                      @"Switch\x\Sin nombre [0100AAAA00000800][v65536].nsp" })
             Write(f.Tmp[$@"e\Otteretro\Juegos\{file}"]);
@@ -88,7 +88,7 @@ public class IdentifyTests : IAsyncDisposable
     [Fact]
     public async Task ReviewConfirmsOrPicksTheGameAndLearnsAnAlias()
     {
-        Library.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
+        Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
         foreach (var file in new[] { @"GameCube\juego raro.iso", @"GameCube\basura.iso", @"Switch\x\Sin nombre [0100AAAA00000000][v0].nsp",
                      @"Switch\x\Sin nombre [0100AAAA00000800][v65536].nsp" })
             Write(f.Tmp[$@"e\Otteretro\Juegos\{file}"]);

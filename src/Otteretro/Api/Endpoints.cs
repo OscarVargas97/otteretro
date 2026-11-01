@@ -165,7 +165,7 @@ public static class Endpoints
 
         CatalogEndpoints.Map(api);
         ClaudeEndpoints.Map(api);
-        LibraryEndpoints.Map(api);
+        DiskEndpoints.Map(api);
 
         // Panel de tareas: lo pendiente y lo reciente; cada cambio llega después por el evento "task".
         api.MapGet("/tasks", (TaskQueue q) => q.List());

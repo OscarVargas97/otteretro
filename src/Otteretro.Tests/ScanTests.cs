@@ -42,7 +42,7 @@ public class ScanTests
     public async Task YourSwitchGamesComeOutWithBaseUpdAndDlc()
     {
         await using var f = new Fixture();
-        var (disk, _, _) = Library.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
+        var (disk, _) = Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
         var games = f.Tmp[@"e\Otteretro\Juegos"];
         using (var c = f.Db.Open())
             c.Execute("""
@@ -120,7 +120,7 @@ public class ScanTests
     public async Task LoosePcGamesCountAsOwned()
     {
         await using var f = new Fixture();
-        Library.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
+        Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
         using (var c = f.Db.Open())
             c.Execute("INSERT INTO game (id, name_es) VALUES (30, 'Hollow Knight'); INSERT INTO version (id, game_id, platform) VALUES (31, 30, 'pc');");
         var pc = f.Tmp[@"e\Otteretro\Juegos\PC"];
@@ -167,7 +167,7 @@ public class ScanTests
         File.WriteAllBytes(withTicket, Pfs0(("0100F2C0115B60000000000000000000.tik", new byte[0x2C0])));
         Assert.Equal("0100F2C0115B6000", SwitchTitle.Read(withTicket, null));
 
-        Library.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
+        Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
         Write(f.Tmp[@"e\Otteretro\Sistema\Switch\Keys\prod.keys"], Encoding.ASCII.GetBytes($"master_key_00 = {new string('0', 32)}\nheader_key = {Convert.ToHexString(key)}\n"));
         File.WriteAllBytes(Directory.CreateDirectory(f.Tmp[@"e\Otteretro\Juegos\Switch\Sin nombre"]).FullName + @"\juego.nsp",
             Pfs0(("datos.nca", new byte[0x500]), ("abcd.cnmt.nca", NcaHeader(key, 0x01007EF00011E800))));
