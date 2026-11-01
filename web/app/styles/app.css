@@ -211,3 +211,11 @@ a.ot-btn, a.chip { text-decoration: none; }
 .score-cell .small { display: block; }
 .field-line { display: inline-flex; align-items: center; flex-wrap: wrap; gap: var(--space-1); }
 .field-line .ot-btn-icon { height: 28px; min-width: 28px; font-size: 16px; }
+
+/* Colección (#171): consolas agrupadas por empresa; Cuadrícula/Lista con íconos. Revisar: la ruta con sus portadas. */
+.console-nav-group { display: flex; flex-direction: column; gap: 2px; }
+.console-nav-group + .console-nav-group { margin-top: var(--space-3); }
+.console-nav-company { padding: 0 var(--space-3); font-weight: 700; }
+.segmented button[aria-pressed="true"] { background: var(--accent-soft); color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }
+.segmented svg { display: block; }
+.timeline.is-plain li .ot-cover { filter: none; }

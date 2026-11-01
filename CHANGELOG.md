@@ -17,6 +17,8 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **Sagas**: los filtros quedan fijos al bajar y dicen cuántas sagas hay; cada tarjeta muestra si es favorita, icónica o exclusiva de una empresa, y una barra con cuántos juegos tienes («3 de 14»).
 - **Saga**: la ruta se elige con pestañas junto al título, con el avance al lado; los pasos van unidos por una línea, con su número sobre la portada y lo jugado a color. En la tabla, las consolas van abreviadas (hasta 4 y «+N»), y «Pedir a Claude que la recalcule» pasó al menú «⋯» del encabezado.
 - **Juego**: el seguimiento es más compacto (el estado en un control de una línea; fechas, nota y tiempo en una fila; las notas plegadas). Versiones y comparativa son una sola tabla, con cada puntaje como barra de 5 y el mejor de cada criterio resaltado. En «Datos y fuentes», un lápiz junto a cada valor para corregirlo.
+- **Colección**: la lista de consolas muestra solo las que tienen algo según el filtro, agrupadas por empresa, y Cuadrícula/Lista es un control con íconos.
+- **Revisar**: una ruta por aprobar se ve con las portadas de sus juegos numeradas y la razón de cada paso.
 
 ## 0.2.0 · Claude ordena el catálogo
 

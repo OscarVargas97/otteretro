@@ -45,15 +45,23 @@ function Collection() {
   const games = page.items;
   const unlinked = page.data?.pages[0].unlinked ?? [];
   const isPc = selected === "pc";
+  const shown = (consoles.data ?? []).filter((c) => countFor(c, filter) > 0 || c.id === selected);
+  const groups = [...Map.groupBy(shown, (c) => c.company ?? "")];
 
   return (
     <div className="collection">
+      {/* Solo las consolas con algo según el filtro (y la elegida), agrupadas por empresa (#171). */}
       <nav className="collection-consoles" aria-label={t("collection.consoles")}>
-        {consoles.data?.map((c) => (
-          <button key={c.id} type="button" className="ot-nav-item" aria-current={c.id === selected ? "page" : undefined} onClick={() => router.replace(`/collection/?console=${c.id}`)}>
-            <span>{c.name}</span>
-            <span className="small muted tabular">{countFor(c, filter)}</span>
-          </button>
+        {groups.map(([company, list]) => (
+          <div key={company} className="console-nav-group">
+            <span className="small muted console-nav-company">{company || t("collection.otherCompany")}</span>
+            {list.map((c) => (
+              <button key={c.id} type="button" className="ot-nav-item" aria-current={c.id === selected ? "page" : undefined} onClick={() => router.replace(`/collection/?console=${c.id}`)}>
+                <span>{c.name}</span>
+                <span className="small muted tabular">{countFor(c, filter)}</span>
+              </button>
+            ))}
+          </div>
         ))}
       </nav>
       <div className="content collection-main">
@@ -67,9 +75,14 @@ function Collection() {
             <select className="ot-btn" aria-label={t("collection.sortLabel")} value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
               {SORTS.map((s) => <option key={s} value={s}>{t(`collection.sort.${s}`)}</option>)}
             </select>
-            <div className="chips" role="group" aria-label={t("collection.view")}>
-              <button className="chip" type="button" aria-pressed={view === "grid"} onClick={() => setView("grid")}>{t("collection.grid")}</button>
-              <button className="chip" type="button" aria-pressed={view === "list"} onClick={() => setView("list")}>{t("collection.list")}</button>
+            {/* Cuadrícula/Lista como control con íconos (#171). */}
+            <div className="segmented" role="group" aria-label={t("collection.view")}>
+              <button type="button" aria-pressed={view === "grid"} aria-label={t("collection.grid")} title={t("collection.grid")} onClick={() => setView("grid")}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="1" y="1" width="6" height="6" rx="1" /><rect x="9" y="1" width="6" height="6" rx="1" /><rect x="1" y="9" width="6" height="6" rx="1" /><rect x="9" y="9" width="6" height="6" rx="1" /></svg>
+              </button>
+              <button type="button" aria-pressed={view === "list"} aria-label={t("collection.list")} title={t("collection.list")} onClick={() => setView("list")}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="1" y="2" width="14" height="2" rx="1" /><rect x="1" y="7" width="14" height="2" rx="1" /><rect x="1" y="12" width="14" height="2" rx="1" /></svg>
+              </button>
             </div>
           </div>
         </div>

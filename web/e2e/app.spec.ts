@@ -438,8 +438,13 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   await expect(page.getByRole("button", { name: es.catalog.collection.filter.owned })).toHaveAttribute("aria-pressed", "true");
   const n64 = page.getByRole("navigation", { name: es.catalog.collection.consoles }).getByRole("button", { name: /Nintendo 64/ });
   await expect(n64).toContainText("0");
+  // #171: con «Lo tengo», solo las consolas con algo (y la elegida), agrupadas por empresa.
+  const consoleNav = page.getByRole("navigation", { name: es.catalog.collection.consoles });
+  await expect(consoleNav.getByRole("button", { name: /Switch/ })).toHaveCount(0);
   await page.getByRole("button", { name: es.catalog.collection.filter.all }).click();
   await expect(n64).toContainText("1");
+  await expect(consoleNav.getByRole("button", { name: /Switch/ })).toBeVisible();
+  await expect(consoleNav.locator(".console-nav-company").first()).toHaveText("Nintendo");
 
   await page.goto(`${base()}/collection/?console=pc`);
   await expect(page.getByRole("link", { name: /Half-Life/ })).toBeVisible();
@@ -477,6 +482,10 @@ test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha
 
   await page.goto(`${base()}/review/`);
   await expect(page.getByText("Así se recomienda empezar.")).toBeVisible();
+  // #171: la ruta por aprobar con sus portadas numeradas y la razón de cada paso.
+  const preview = page.locator(".timeline.is-plain").first();
+  await expect(preview.locator(".step-num").first()).toHaveText("1");
+  await expect(preview).toContainText("Ocarina of Time");
   await expectNoRawKeys();
   await expectTextFits();
   await page.screenshot({ path: "e2e-results/11-revisar-es.png", fullPage: true });

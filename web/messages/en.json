@@ -589,7 +589,8 @@
       "year": "Year",
       "store": "Store",
       "hours": "Hours",
-      "lastPlayed": "Last played"
+      "lastPlayed": "Last played",
+      "otherCompany": "Others"
     },
     "game": {
       "noneTitle": "Pick a game",
