@@ -12,6 +12,6 @@ sealed class TempDir : IDisposable
     public void Dispose()
     {
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-        try { Directory.Delete(Path, true); } catch (IOException) { }
+        try { Otteretro.Libraries.Links.DeleteTree(Path); } catch (IOException) { }
     }
 }
