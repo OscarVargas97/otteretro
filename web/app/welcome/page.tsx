@@ -8,20 +8,20 @@ import { LanguagePicker } from "@/components/LanguagePicker";
 import { request } from "@/lib/client";
 import { gb } from "@/lib/format";
 import { useDescribeError } from "@/lib/i18n";
-import type { AppState, Drive, FolderRequest } from "@/lib/types";
+import type { AdoptResult, AppState, Drive, FolderRequest, LibraryInfo } from "@/lib/types";
 
 // Clave en welcome.steps.* y fase en que se activa cada paso.
 const STEPS = [
   { key: "welcome" },
   { key: "dataFolder" },
-  { key: "backup", phase: 5 },
-  { key: "libraries", phase: 3 },
-  { key: "steam", phase: 6 },
+  { key: "backup", phase: 7 },
+  { key: "libraries" },
+  { key: "steam", phase: 8 },
   { key: "keys", phase: 1 },
   { key: "initialLoad", phase: 2 },
 ] as const;
 
-/** Asistente de primer arranque (pantallas.md §1). En F0 funcionan los pasos 1 y 2. */
+/** Asistente de primer arranque (pantallas.md §1). Funcionan los pasos 1, 2 y 4 (bibliotecas, F3); el resto llega con su fase. */
 export default function Welcome() {
   const t = useTranslations("welcome");
   const [step, setStep] = useState(1);
@@ -46,7 +46,9 @@ export default function Welcome() {
       </aside>
       <main className="wizard-body">
         <span className="small muted">{t("stepOf", { step, total: STEPS.length })}</span>
-        {step === 1 ? <WelcomeStep onNext={() => setStep(2)} /> : <FolderStep onBack={() => setStep(1)} />}
+        {step === 1 ? <WelcomeStep onNext={() => setStep(2)} />
+          : step === 2 ? <FolderStep onBack={() => setStep(1)} onNext={() => setStep(4)} />
+          : <LibrariesStep />}
       </main>
     </div>
   );
@@ -68,12 +70,12 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
   );
 }
 
-function FolderStep({ onBack }: { onBack: () => void }) {
+function FolderStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
   const t = useTranslations("welcome");
   const locale = useLocale();
   const describe = useDescribeError();
-  const router = useRouter();
   const cache = useQueryClient();
+  const setChosen = (state: AppState) => cache.setQueryData(["welcome-state"], state);
   const drives = useQuery({ queryKey: ["drives"], queryFn: () => request<Drive[]>("/api/drives") });
   const [path, setPath] = useState("");
   // La sugerida la decide el servidor: ~/Otteretro en Linux, el disco con más espacio libre en Windows.
@@ -81,9 +83,10 @@ function FolderStep({ onBack }: { onBack: () => void }) {
 
   const save = useMutation({
     mutationFn: (body: FolderRequest) => request<AppState>("/api/data-folder", { method: "POST", body: JSON.stringify(body) }),
+    // La app queda configurada recién al terminar el asistente: el paso 4 usa la carpeta de datos ya elegida.
     onSuccess: (state) => {
-      cache.setQueryData(["state"], state);
-      router.replace("/");
+      setChosen(state);
+      onNext();
     },
   });
 
@@ -112,6 +115,53 @@ function FolderStep({ onBack }: { onBack: () => void }) {
         <button className="ot-btn ot-btn-primary" type="button" disabled={!chosen || save.isPending} onClick={() => save.mutate({ path: chosen })}>
           {save.isPending ? t("preparing") : t("use", { path: chosen })}
         </button>
+      </div>
+    </>
+  );
+}
+
+/** Paso 4 (§5.5): adoptar la carpeta con la estructura antigua que se encuentre, crear una nueva o saltar. */
+function LibrariesStep() {
+  const t = useTranslations("welcome");
+  const describe = useDescribeError();
+  const router = useRouter();
+  const cache = useQueryClient();
+  const found = useQuery({ queryKey: ["libraries", "detect"], queryFn: () => request<string[]>("/api/libraries/detect") });
+  const [path, setPath] = useState("");
+  const finish = () => {
+    const state = cache.getQueryData<AppState>(["welcome-state"]);
+    if (state) cache.setQueryData(["state"], state);
+    router.replace("/");
+  };
+  const adopt = useMutation({
+    mutationFn: (p: string) => request<AdoptResult>("/api/libraries/adopt", { method: "POST", body: JSON.stringify({ path: p }) }),
+    onSuccess: finish,
+  });
+  const create = useMutation({
+    mutationFn: (p: string) => request<LibraryInfo[]>("/api/libraries", { method: "POST", body: JSON.stringify({ path: p }) }),
+    onSuccess: finish,
+  });
+  const error = adopt.error ?? create.error;
+
+  return (
+    <>
+      <h1>{t("librariesTitle")}</h1>
+      <p className="muted">{t("librariesText")}</p>
+      {found.data && found.data.length > 0 && (
+        <div className="panel">
+          <span className="small">{t("librariesFound")}</span>
+          {found.data.map((p) => (
+            <button key={p} className="ot-btn ot-btn-primary" type="button" disabled={adopt.isPending} onClick={() => adopt.mutate(p)}>{t("adoptThis", { path: p })}</button>
+          ))}
+        </div>
+      )}
+      <label className="small muted" htmlFor="library">{t("otherPath")}</label>
+      <input id="library" value={path} onChange={(e) => setPath(e.target.value)} />
+      {error && <p className="error">{describe(error)}</p>}
+      <div style={{ display: "flex", gap: 8 }}>
+        <button className="ot-btn" type="button" onClick={finish}>{t("skip")}</button>
+        <button className="ot-btn" type="button" disabled={!path || create.isPending} onClick={() => create.mutate(path)}>{t("createNew")}</button>
+        <button className="ot-btn ot-btn-primary" type="button" disabled={!path || adopt.isPending} onClick={() => adopt.mutate(path)}>{t("adoptThis", { path })}</button>
       </div>
       <p className="small muted">{t("nextSteps")}</p>
     </>

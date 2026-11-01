@@ -3,5 +3,5 @@
 import { ComingSoon } from "@/components/Shell";
 
 export default function Downloads() {
-  return <ComingSoon screen="downloads" phase={8} />;
+  return <ComingSoon screen="downloads" phase={10} />;
 }

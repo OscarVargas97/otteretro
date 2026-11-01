@@ -18,6 +18,11 @@ const byPanelOrder = (a: TaskInfo, b: TaskInfo) =>
 /** Pone al día la lista con una tarea que llegó por el evento "task". */
 export function upsertTask(cache: QueryClient, task: TaskInfo) {
   cache.setQueryData<TaskInfo[]>(["tasks"], (list = []) => [task, ...list.filter((t) => t.id !== task.id)].sort(byPanelOrder));
+  // Mover o migrar una biblioteca cambia sus rutas, su estado y lo que hay en Herramientas.
+  if (task.kind.startsWith("library.") && task.status !== "running" && task.status !== "queued") {
+    cache.invalidateQueries({ queryKey: ["libraries"] });
+    cache.invalidateQueries({ queryKey: ["tools"] });
+  }
 }
 
 // Color de la insignia de cada estado (#172).

@@ -3,5 +3,5 @@
 import { ComingSoon } from "@/components/Shell";
 
 export default function Steam() {
-  return <ComingSoon screen="steam" phase={6} />;
+  return <ComingSoon screen="steam" phase={8} />;
 }

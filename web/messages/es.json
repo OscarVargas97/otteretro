@@ -86,14 +86,20 @@
     "back": "Atrás",
     "preparing": "Preparando…",
     "use": "Usar {path}",
-    "nextSteps": "Los pasos siguientes (respaldo, bibliotecas, Steam, claves y carga inicial) se activan con su fase."
+    "nextSteps": "Respaldo, Steam y el resto de los pasos se activan con su fase.",
+    "librariesTitle": "Tus bibliotecas de juegos",
+    "librariesText": "Una biblioteca es una carpeta con juegos, en cualquier disco o en la red. Si ya tienes una con la estructura antigua, adóptala y se ordena sola.",
+    "librariesFound": "Encontramos carpetas con la estructura antigua:",
+    "adoptThis": "Adoptar {path}",
+    "createNew": "Crear una nueva",
+    "skip": "Saltar"
   },
   "settings": {
     "dataFolder": "Carpeta de datos",
     "about": "Acerca de",
     "general": "General",
     "language": "Idioma",
-    "later": "Bibliotecas, respaldo y el resto de ajustes llegan con su fase.",
+    "later": "Respaldo y el resto de ajustes llegan con su fase.",
     "credentials": "Cuentas y claves",
     "sections": "Secciones de Ajustes",
     "claude": {
@@ -180,7 +186,8 @@
         "running": "En curso",
         "noKey": "Falta la clave de SteamGridDB"
       }
-    }
+    },
+    "libraries": "Bibliotecas"
   },
   "dataFolder": {
     "open": "Abrir carpeta",
@@ -263,7 +270,8 @@
     "unknown": "Algo salió mal ({code}).",
     "path": {
       "notAbsolute": "La ruta tiene que ser completa, por ejemplo E:\\Otteretro.",
-      "isFile": "Esa ruta es un archivo, no una carpeta."
+      "isFile": "Esa ruta es un archivo, no una carpeta.",
+      "notFound": "Esa carpeta no existe."
     },
     "folder": {
       "createFailed": "No se pudo crear la carpeta: {detail}"
@@ -396,6 +404,26 @@
       "notFound": "Esa sugerencia ya no está.",
       "ghMissing": "No se encontró gh (GitHub CLI). Instálalo e inicia sesión con «gh auth login».",
       "ghFailed": "gh no pudo crear el issue: {detail}"
+    },
+    "library": {
+      "hasMarker": "Esa carpeta ya es una biblioteca: adóptala en vez de crearla.",
+      "noName": "Escribe un nombre.",
+      "notFound": "Esa biblioteca ya no está registrada.",
+      "overlaps": "Se cruza con la biblioteca «{name}»: una no puede estar dentro de otra.",
+      "notConnected": "La biblioteca está desconectada. Reconéctala primero.",
+      "otherMarker": "En esa carpeta no está esta biblioteca (su marcador es de otra o no tiene).",
+      "notFoundOnDrives": "No apareció en los discos. Conecta el disco o escribe la ruta donde está.",
+      "outside": "La carpeta tiene que estar dentro de la biblioteca.",
+      "conflict": "Ya existe {path}: muévelo o renómbralo y vuelve a migrar.",
+      "copying": "Copiando a {path}",
+      "updating": "Poniendo al día la base y las rutas de los emuladores",
+      "portable": "Dejando portables los emuladores y ports",
+      "games": "Ordenando los juegos de {console}",
+      "log": {
+        "moved": "Movida {from} a {to}; {paths} rutas de emuladores al día.",
+        "tool": "{name} quedó en {path}.",
+        "notEmpty": "{path} no quedó vacía y no se borró: revisa qué tiene."
+      }
     }
   },
   "credentials": {
@@ -470,6 +498,10 @@
       },
       "catalog": {
         "extra": "Completar con Wikidata y RAWG"
+      },
+      "library": {
+        "move": "Mover una biblioteca o una carpeta",
+        "adopt": "Migrar una biblioteca a la estructura nueva"
       }
     },
     "status": {
@@ -759,5 +791,47 @@
     "viewGame": "Ver ficha",
     "routeOf": "{saga} · {route}",
     "progress": "{done} de {total} jugados"
+  },
+  "libraries": {
+    "emptyTitle": "Aún no hay bibliotecas",
+    "emptyText": "Adopta la carpeta donde ya tienes tus juegos o crea una nueva en cualquier disco.",
+    "adopt": "Adoptar una carpeta",
+    "create": "Crear una biblioteca",
+    "adoptHelp": "Registra una carpeta que ya tiene juegos. Si tiene la estructura antigua (Consola\\Juegos, Emuladores, Ports), se migra sola a la nueva: los juegos quedan en Consola\\Juego y los emuladores y ports pasan a Herramientas.",
+    "createHelp": "Elige una carpeta vacía o nueva, en cualquier disco o en la red (\\\\nas\\roms). Las carpetas de cada consola se crean cuando hacen falta.",
+    "path": "Carpeta",
+    "pathPlaceholder": "Por ejemplo E:\\Consolas",
+    "name": "Nombre (opcional)",
+    "namePlaceholder": "Por ejemplo Disco de juegos",
+    "cancel": "Cancelar",
+    "free": "{free} libres de {total}",
+    "network": "En red",
+    "connected": "Conectada",
+    "disconnected": "Desconectada",
+    "legacy": "Estructura antigua",
+    "legacyHelp": "Esta biblioteca todavía tiene la estructura antigua. Migrarla deja los juegos en Consola\\Juego y lleva emuladores, ports y sus complementos a Herramientas, con sus rutas al día.",
+    "migrate": "Migrar a la estructura nueva",
+    "migrationStarted": "La migración quedó en el panel de tareas. Puedes seguir usando la app mientras tanto.",
+    "queued": "Quedó en el panel de tareas.",
+    "reconnect": "Reconectar",
+    "reconnectHelp": "Se busca sola en los discos. Si está en otro lugar, escribe la ruta donde está ahora.",
+    "rename": "Renombrar",
+    "renameHelp": "El nombre nuevo se guarda también en su marcador.",
+    "move": "Mover",
+    "moveHelp": "Elige una carpeta vacía o nueva. Se copia, se verifica cada archivo, se ponen al día las rutas de los emuladores y recién entonces se borra el origen. Si se corta, sigue donde quedó.",
+    "remove": "Quitar",
+    "removeHelp": "Se quita «{name}» de Otteretro. No se borra ningún archivo: puedes volver a adoptarla cuando quieras.",
+    "removeConfirm": "Quitar sin borrar"
+  },
+  "tools": {
+    "emptyTitle": "Aún no hay emuladores ni ports",
+    "emptyText": "Al adoptar una biblioteca con la estructura antigua, sus emuladores y ports llegan aquí. Desde la F5 se instalan y actualizan desde esta pantalla.",
+    "kind": {
+      "emulator": "Emuladores",
+      "port": "Ports",
+      "complement": "Complementos"
+    },
+    "noRecipe": "Sin receta",
+    "noRecipeHelp": "Otteretro todavía no sabe cómo dejarlo portable ni reescribir sus rutas."
   }
 }
