@@ -195,3 +195,19 @@ a.ot-btn, a.chip { text-decoration: none; }
 .hero-actions .tabs-more-menu { left: 0; right: auto; }
 .tabs-more-item[disabled] { opacity: .45; cursor: not-allowed; }
 .hero-actions .tabs-more-menu { top: auto; bottom: calc(100% + 4px); }
+
+/* Juego (#171): estado en un control de una línea, puntajes como barras de 5 y un lápiz junto a cada valor. */
+.segmented { display: inline-flex; align-self: flex-start; max-width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius-md); }
+.segmented button { font: inherit; font-size: 14px; font-weight: 700; height: 34px; padding: 0 var(--space-3); border: 0; border-right: 1px solid var(--line); background: none; color: var(--ink-muted); cursor: pointer; white-space: nowrap; }
+.segmented button:last-child { border-right: 0; }
+.segmented button[aria-checked="true"] { background: var(--accent-soft); color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }
+.field-value { display: flex; align-items: center; height: 36px; color: var(--ink); }
+.fold-line textarea { width: 100%; box-sizing: border-box; }
+.score { display: inline-flex; gap: 2px; vertical-align: middle; }
+.score > span { width: 10px; height: 8px; border-radius: 2px; background: var(--line); }
+.score > span.on { background: var(--ink-muted); }
+.score.is-best > span.on { background: var(--accent); }
+.score-cell { min-width: 120px; }
+.score-cell .small { display: block; }
+.field-line { display: inline-flex; align-items: center; flex-wrap: wrap; gap: var(--space-1); }
+.field-line .ot-btn-icon { height: 28px; min-width: 28px; font-size: 16px; }

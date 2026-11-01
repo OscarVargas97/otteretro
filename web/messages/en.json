@@ -635,7 +635,6 @@
       "undoFix": "Back to the sources' value",
       "manualNote": "What you correct by hand wins and no load overwrites it.",
       "shown": "Shown",
-      "compare": "Version comparison",
       "best": "Recommended",
       "noCompare": "Claude hasn't compared this game's versions yet.",
       "description": "Description",

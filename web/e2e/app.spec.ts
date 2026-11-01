@@ -512,8 +512,12 @@ test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha
   await page.screenshot({ path: "e2e-results/12-saga-ruta-es.png", fullPage: true });
 
   await page.goto(`${base()}/game/?id=10`);
-  await expect(page.getByRole("heading", { level: 2, name: es.catalog.game.compare })).toBeVisible();
+  // #171: versiones y comparativa en una sola tabla, con barras de 5 y el mejor de cada columna resaltado.
+  await expect(page.getByRole("heading", { level: 2, name: es.catalog.game.versions })).toBeVisible();
   await expect(page.getByText("Pantalla táctil para el inventario")).toBeVisible();
+  const ds = page.getByRole("row", { name: /Nintendo 3DS/ });
+  await expect(ds.getByRole("img", { name: "5/5" })).toHaveClass(/is-best/);
+  await expect(page.getByRole("row", { name: /Nintendo 64/ }).getByRole("img", { name: "3/5" })).not.toHaveClass(/is-best/);
   await page.screenshot({ path: "e2e-results/13-comparativa-es.png", fullPage: true });
 
   // Ocarina ya está terminado (prueba anterior): lo siguiente es Breath of the Wild.

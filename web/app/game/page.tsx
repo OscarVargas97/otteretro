@@ -93,24 +93,7 @@ function Game() {
           </section>
         )}
 
-        <section className="sec">
-          <div className="sec-h"><h2>{t("game.versions")}</h2></div>
-          <div className="panel table-wrap" style={{ padding: 0 }}>
-            <table className="t">
-              <thead><tr><th>{t("game.version")}</th><th>{t("game.have")}</th></tr></thead>
-              <tbody>
-                {g.versions.map((v) => (
-                  <tr key={v.id}>
-                    <td><b>{consoleName(v.platform)}</b> · {t(`kind.${v.kind as "original"}`)}{v.year ? ` · ${v.year}` : ""}</td>
-                    <td>{v.stores.length ? <span className="ot-badge ot-badge-have">{v.stores.map((s) => t(`store.${s.store as "steam"}`)).join(" · ")}</span> : <span className="ot-badge">{t("missing")}</span>}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <Compare versions={compare.data ?? []} />
+        <Versions game={g} compare={compare.data ?? []} />
 
         <Sources game={g} />
       </div>
@@ -184,9 +167,10 @@ function Tracking({ game }: { game: GameDetail }) {
         <span className="small muted">{game.lastPlayed ? t("game.lastPlayed", { date: format.dateTime(new Date(game.lastPlayed), { dateStyle: "medium" }) }) : t("game.never")}</span>
       </div>
       <div className="panel" style={{ gap: 14 }}>
-        <div className="chips" role="radiogroup" aria-label={t("game.states")}>
+        {/* Estado en un control de una línea (#171). */}
+        <div className="segmented" role="radiogroup" aria-label={t("game.states")}>
           {STATUSES.map((s) => (
-            <button key={s} className="chip chip-lg" type="button" role="radio" aria-checked={p.status === s} aria-pressed={p.status === s}
+            <button key={s} type="button" role="radio" aria-checked={p.status === s} aria-pressed={p.status === s}
               onClick={() => setStatus(s)}>
               {t(`status.${s}`)}
             </button>
@@ -216,15 +200,16 @@ function Tracking({ game }: { game: GameDetail }) {
               {Array.from({ length: 10 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
             </select>
           </label>
+          {/* Fechas, nota y tiempo en una fila (#171). */}
+          <div className="small muted field">{t("game.playtime")}<span className="stat-value field-value">{hours(game.playtime)}</span></div>
         </div>
         {!withStart && <p className="small muted" style={{ margin: 0 }}>{t("game.pendingHint")}</p>}
-        <div className="stat">
-          <span className="small muted">{t("game.playtime")}:</span>
-          <span className="stat-value">{hours(game.playtime)}</span>
-        </div>
-        <label className="small muted" htmlFor="notes">{t("game.notes")}</label>
-        <textarea id="notes" value={notes} maxLength={10000} onChange={(e) => setNotes(e.target.value)}
-          onBlur={() => notes !== (p.notes ?? "") && change({ notes: notes || null })} />
+        {/* Notas plegadas (#171); abiertas si ya hay. */}
+        <details className="fold-line" open={!!p.notes}>
+          <summary className="small muted">{t("game.notes")}</summary>
+          <textarea id="notes" aria-label={t("game.notes")} value={notes} maxLength={10000} onChange={(e) => setNotes(e.target.value)}
+            onBlur={() => notes !== (p.notes ?? "") && change({ notes: notes || null })} />
+        </details>
         <p className="small muted" role="status" style={{ margin: 0, minHeight: 18 }}>
           {save.isPending ? t("game.saving") : save.isError ? <span className="error">{describe(save.error)}</span> : save.isSuccess ? t("game.saved") : ""}
         </p>
@@ -269,11 +254,8 @@ function FieldEditor({ game, field, rows }: { game: GameDetail; field: (typeof F
   return (
     <div className="field-editor">
       <div className="version-row">
-        <span><b>{label}</b>: {current ?? "—"}</span>
-        <span className="chips" style={{ gap: 6 }}>
-          {!editing && <button className="ot-btn ot-btn-ghost" type="button" aria-label={`${t("game.fix")}: ${label}`} onClick={() => { setValue(String(current ?? "")); setEditing(true); save.reset(); }}>{t("game.fix")}</button>}
-          {manual && !editing && <button className="ot-btn ot-btn-ghost" type="button" disabled={undo.isPending} onClick={() => undo.mutate()}>{t("game.undoFix")}</button>}
-        </span>
+        <span className="field-line"><b>{label}</b>: {current ?? "—"} {!editing && <button className="ot-btn ot-btn-ghost ot-btn-icon" type="button" aria-label={`${t("game.fix")}: ${label}`} title={t("game.fix")} onClick={() => { setValue(String(current ?? "")); setEditing(true); save.reset(); }}>✎</button>}</span>
+        {manual && !editing && <button className="ot-btn ot-btn-ghost" type="button" disabled={undo.isPending} onClick={() => undo.mutate()}>{t("game.undoFix")}</button>}
       </div>
       {rows.length > 0 && (
         <ul className="small muted source-list">
@@ -299,33 +281,49 @@ function FieldEditor({ game, field, rows }: { game: GameDetail; field: (typeof F
 
 const CRITERIA = ["content", "gameplay", "technical", "original"] as const;
 
-/** Comparativa de versiones con los 4 criterios por separado (§5.1, §6.4), la que aprobaste en Revisar. */
-function Compare({ versions }: { versions: VersionCompare[] }) {
+/** Puntaje de 1 a 5 como barra de 5 tramos (#171). */
+function Score({ value, best }: { value: number; best: boolean }) {
+  return (
+    <span className={`score${best ? " is-best" : ""}`} role="img" aria-label={`${value}/5`}>
+      {Array.from({ length: 5 }, (_, i) => <span key={i} className={i < value ? "on" : undefined} />)}
+    </span>
+  );
+}
+
+/** Versiones y comparativa en una sola tabla (§5.1, §6.4, #171): lo que tienes de cada una y los 4 criterios que aprobaste
+ *  en Revisar, con el mejor de cada columna resaltado. */
+function Versions({ game, compare }: { game: GameDetail; compare: VersionCompare[] }) {
   const t = useTranslations("catalog");
   const consoleName = useConsoleName();
-  if (versions.length < 2) return null; // con una versión no hay nada que comparar
-  const rated = versions.some((v) => v.criteria.some((c) => c.value));
+  const rated = compare.length > 1 && compare.some((v) => v.criteria.some((c) => c.value));
+  const scoreOf = (versionId: number | string, k: string) => Number(compare.find((v) => String(v.versionId) === String(versionId))?.criteria.find((x) => x.criterion === k)?.value ?? 0);
+  const top = Object.fromEntries(CRITERIA.map((k) => [k, Math.max(0, ...game.versions.map((v) => scoreOf(v.id, k)))]));
   return (
     <section className="sec">
-      <div className="sec-h"><h2>{t("game.compare")}</h2></div>
-      {!rated ? <p className="small muted">{t("game.noCompare")}</p> : (
-        <div className="panel table-wrap" style={{ padding: 0 }}>
-          <table className="t">
-            <thead><tr><th>{t("game.version")}</th>{CRITERIA.map((c) => <th key={c}>{t(`game.criterion.${c}`)}</th>)}</tr></thead>
-            <tbody>
-              {versions.map((v) => (
-                <tr key={v.versionId}>
-                  <td><b>{consoleName(v.platform)}</b> · {t(`kind.${v.kind as "original"}`)}{v.year ? ` · ${v.year}` : ""}{v.best && <span className="ot-badge ot-badge-have" style={{ marginLeft: 6 }}>{t("game.best")}</span>}</td>
-                  {CRITERIA.map((k) => {
-                    const c = v.criteria.find((x) => x.criterion === k);
-                    return <td key={k} title={c?.text ?? undefined}>{c?.value ? <><b>{"●".repeat(Number(c.value))}{"○".repeat(5 - Number(c.value))}</b><br /><span className="small muted">{c.text}</span></> : "—"}</td>;
+      <div className="sec-h"><h2>{t("game.versions")}</h2>{compare.length > 1 && !rated && <span className="small muted">{t("game.noCompare")}</span>}</div>
+      <div className="panel table-wrap" style={{ padding: 0 }}>
+        <table className="t">
+          <thead>
+            <tr><th>{t("game.version")}</th><th>{t("game.have")}</th>{rated && CRITERIA.map((c) => <th key={c}>{t(`game.criterion.${c}`)}</th>)}</tr>
+          </thead>
+          <tbody>
+            {game.versions.map((v) => {
+              const cmp = compare.find((x) => String(x.versionId) === String(v.id));
+              return (
+                <tr key={v.id}>
+                  <td><b>{consoleName(v.platform)}</b> · {t(`kind.${v.kind as "original"}`)}{v.year ? ` · ${v.year}` : ""}{cmp?.best && <span className="ot-badge ot-badge-have" style={{ marginLeft: 6 }}>{t("game.best")}</span>}</td>
+                  <td>{v.stores.length ? <span className="ot-badge ot-badge-have">{v.stores.map((s) => t(`store.${s.store as "steam"}`)).join(" · ")}</span> : <span className="ot-badge">{t("missing")}</span>}</td>
+                  {rated && CRITERIA.map((k) => {
+                    const c = cmp?.criteria.find((x) => x.criterion === k);
+                    const value = Number(c?.value ?? 0);
+                    return <td key={k} className="score-cell">{value ? <><Score value={value} best={value === top[k]} /><span className="small muted">{c?.text}</span></> : "—"}</td>;
                   })}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }
