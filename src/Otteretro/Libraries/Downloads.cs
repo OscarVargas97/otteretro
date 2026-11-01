@@ -18,6 +18,8 @@ public record ResolvedLink(string Url, string? FileName = null, long? Size = nul
 public interface IDownloadSite
 {
     string Id { get; }
+    /// <summary>El tope de conexiones por archivo de este sitio (#226), por encima de lo que elijas.</summary>
+    int MaxConnections => 8;
     bool Handles(Uri url);
     Task<ResolvedLink> Resolve(Uri url, Credentials credentials, CancellationToken ct);
 }
@@ -34,7 +36,8 @@ public sealed class DirectSite : IDownloadSite
 /// <param name="DiskId">El disco de destino.</param>
 /// <param name="Done">Punto de control: cuántos enlaces ya terminaron.</param>
 /// <param name="GameId">El juego desde cuya ficha se pegó: es lo primero que identifica lo que baja (§9.6).</param>
-public record DownloadJob(string Name, string DiskId, List<string> Links, int Done = 0, long? GameId = null);
+/// <param name="Connections">Las que elegiste; cada sitio tiene su tope.</param>
+public record DownloadJob(string Name, string DiskId, List<string> Links, int Done = 0, long? GameId = null, int Connections = Downloads.DefaultConnections);
 
 /// <param name="State">ok, unavailable, blocked (necesita una cuenta o un captcha), noConnector o unknown.</param>
 public record LinkCheck(string Url, string Name, long? Size, string? Site, string State);
@@ -54,21 +57,21 @@ public static partial class Downloads
     const string Partial = ".descargando";
 
     /// <summary>Los conectores, del más específico al más general.</summary>
-    public static List<IDownloadSite> Sites { get; } = [new DirectSite()];
+    public static List<IDownloadSite> Sites { get; } = [new OneFichierSite(), new DirectSite()];
 
     /// <summary>Conexiones por archivo (#226): pocas por defecto, para no arriesgar una cuenta.</summary>
-    public static int Connections { get; set; } = 2;
+    public const int DefaultConnections = 2;
 
     public static IDownloadSite? SiteOf(Uri url) => Sites.FirstOrDefault(s => s.Handles(url));
 
-    public static (long? Task, ApiError? Error) Enqueue(Database db, string name, string? diskId, List<string> links, long? gameId = null)
+    public static (long? Task, ApiError? Error) Enqueue(Database db, string name, string? diskId, List<string> links, long? gameId = null, int connections = DefaultConnections)
     {
         if (links.Count == 0) return (null, ApiError.Of("download.noLinks"));
         if (links.Any(l => !Uri.TryCreate(l, UriKind.Absolute, out var url) || SiteOf(url) is null)) return (null, ApiError.Of("download.badLink"));
         if (string.IsNullOrWhiteSpace(name) || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) return (null, ApiError.Of("download.badName"));
         var disk = diskId is null ? Disk.DefaultDisk(db) : Disk.Get(db, diskId);
         if (disk is not { Connected: true, Type: "disk" }) return (null, ApiError.Of("library.notConnected"));
-        return (TaskQueue.Enqueue(db, Kind, JsonSerializer.Serialize(new DownloadJob(name.Trim(), disk.Id, links, 0, gameId), JsonSerializerOptions.Web)), null);
+        return (TaskQueue.Enqueue(db, Kind, JsonSerializer.Serialize(new DownloadJob(name.Trim(), disk.Id, links, 0, gameId, connections), JsonSerializerOptions.Web)), null);
     }
 
     record Row(long Id, string? Data, string Status, long Progress, string? Detail, string CreatedAt);
@@ -108,7 +111,7 @@ public static partial class Downloads
                 link = await site.Resolve(url, run.Credentials, ct);
             }
             if (link.Blocked is { } blocked) throw new TaskException(blocked);
-            await Fetch(run, link, folder, i, job.Links.Count, ct);
+            await Fetch(run, link, folder, i, job.Links.Count, Math.Min(job.Connections, site.MaxConnections), ct);
             job = job with { Done = i + 1 };
             run.Report((i + 1) * 100 / job.Links.Count, null, JsonSerializer.Serialize(job, JsonSerializerOptions.Web));
         }
@@ -125,12 +128,12 @@ public static partial class Downloads
     }
 
     /// <summary>Baja un archivo por partes. Con la tarea pausada o cortada, su avance queda en el archivo `.download` y sigue de ahí.</summary>
-    static async Task Fetch(TaskRun run, ResolvedLink link, string folder, int index, int total, CancellationToken ct)
+    static async Task Fetch(TaskRun run, ResolvedLink link, string folder, int index, int total, int connections, CancellationToken ct)
     {
         var config = new DownloadConfiguration
         {
-            ChunkCount = Connections,
-            ParallelDownload = Connections > 1,
+            ChunkCount = connections,
+            ParallelDownload = connections > 1,
             MaxTryAgainOnFailure = 5,
             EnableAutoResumeDownload = true,
             FileExistPolicy = FileExistPolicy.Exception,

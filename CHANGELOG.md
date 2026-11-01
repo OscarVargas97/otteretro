@@ -23,6 +23,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **Herramientas › Sistema** (#199): subes tus BIOS, keys y firmware por consola y quedan con versiones en el disco ★; otra versión nunca reemplaza la anterior. Avisa si le falta `prod.keys` a tus juegos de Switch. Otteretro no los descarga ni los comparte.
 - **Pantalla Descargas** (#202): agregas enlaces en un paquete y eliges el disco viendo sus GB libres. Ves el progreso y la velocidad, y puedes pausar, reanudar (sigue de donde iba, también si cerraste la app) y cancelar. Al terminar, el paquete pasa a `Entrada`, que lo descomprime y lo ordena. Por ahora baja enlaces directos; los sitios con cuenta vienen a continuación.
 - **Capturador de enlaces** (#203): pegas o arrastras un texto con muchos enlaces en Descargas o desde la ficha de un juego. Otteretro los encuentra, junta las partes de un mismo archivo, comprueba que estén en línea y su tamaño, y te muestra la lista antes de empezar. Nunca lee el portapapeles. Lo que bajas desde una ficha ya queda como ese juego.
+- **1fichier con tu cuenta premium** (#204): pega tu clave de API en Ajustes › Cuentas y claves y sus enlaces bajan por la API oficial, a su ritmo, con una conexión y esperando si el sitio lo pide. Las conexiones de los demás se ajustan en Descargas, por debajo del tope de cada sitio.
 - La ficha de un juego muestra **dónde tienes sus archivos**, con BASE, UPD y DLC, tamaño y si están verificados.
 
 ### Cambios

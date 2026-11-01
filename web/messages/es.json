@@ -545,7 +545,11 @@
         "done": "{name}: terminó y pasó a {path}."
       },
       "unavailable": "{file}: el sitio respondió {status}; el enlace no está disponible.",
-      "notDirect": "{url} es una página, no un archivo: ese sitio necesita un conector."
+      "notDirect": "{url} es una página, no un archivo: ese sitio necesita un conector.",
+      "needsAccount": "{site} necesita tu cuenta: agrégala en Ajustes › Cuentas y claves.",
+      "badAccount": "{site} rechazó tu cuenta: revísala en Ajustes › Cuentas y claves.",
+      "siteSaid": "{site} respondió: {message}",
+      "badConnections": "Las conexiones van de 1 a 8."
     }
   },
   "credentials": {
@@ -1143,6 +1147,8 @@
       "blocked": "Falta una cuenta o un captcha",
       "noConnector": "Sitio sin conector",
       "unknown": "No respondió"
-    }
+    },
+    "connections": "Conexiones",
+    "connectionsHelp": "Por archivo. Cada sitio tiene su tope, para no arriesgar tu cuenta: 1fichier usa una."
   }
 }

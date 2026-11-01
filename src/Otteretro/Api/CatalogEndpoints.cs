@@ -18,6 +18,7 @@ public record ExecutableRequest(string Path);
 /// <param name="Skip">Lo que se desmarcó en la vista previa, relativo a la carpeta.</param>
 public record DownloadRequest(string Name, string? DiskId, List<string> Links, long? GameId = null);
 public record DownloadPreviewRequest(string Text);
+public record ConnectionsRequest(int Connections);
 public record ImportRequest(string Path, List<string>? Skip = null);
 public record PreviewRequest(string Path);
 public record RegionsRequest(List<string> Order);
@@ -130,8 +131,18 @@ public static class CatalogEndpoints
         api.MapPost("/downloads", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (DownloadRequest request, AppSession s) =>
         {
             if (Db(s) is not { } db) return NoData();
-            var (task, error) = Libraries.Downloads.Enqueue(db, request.Name, request.DiskId, request.Links, request.GameId);
+            var (task, error) = Libraries.Downloads.Enqueue(db, request.Name, request.DiskId, request.Links, request.GameId, s.Config.DownloadConnections ?? Libraries.Downloads.DefaultConnections);
             return error is null ? TypedResults.Ok(task!.Value) : TypedResults.BadRequest(error);
+        });
+
+        // Conexiones por archivo (#226): se ajustan, y cada sitio tiene su tope.
+        api.MapGet("/downloads/connections", (AppSession s) => s.Config.DownloadConnections ?? Libraries.Downloads.DefaultConnections);
+        api.MapPut("/downloads/connections", Results<Ok, BadRequest<ApiError>> (ConnectionsRequest request, AppSession s) =>
+        {
+            if (request.Connections is < 1 or > 8) return TypedResults.BadRequest(ApiError.Of("download.badConnections"));
+            s.Config.DownloadConnections = request.Connections;
+            s.Config.Save(s.ConfigPath);
+            return TypedResults.Ok();
         });
 
         // Capturador (#203): los paquetes de un texto pegado, comprobando cada enlace. No baja nada.

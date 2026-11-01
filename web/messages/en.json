@@ -545,7 +545,11 @@
         "done": "{name}: finished and moved to {path}."
       },
       "unavailable": "{file}: the site answered {status}; the link is not available.",
-      "notDirect": "{url} is a page, not a file: that site needs a connector."
+      "notDirect": "{url} is a page, not a file: that site needs a connector.",
+      "needsAccount": "{site} needs your account: add it in Settings › Accounts and keys.",
+      "badAccount": "{site} rejected your account: check it in Settings › Accounts and keys.",
+      "siteSaid": "{site} answered: {message}",
+      "badConnections": "Connections go from 1 to 8."
     }
   },
   "credentials": {
@@ -1143,6 +1147,8 @@
       "blocked": "Needs an account or a captcha",
       "noConnector": "Site without a connector",
       "unknown": "No answer"
-    }
+    },
+    "connections": "Connections",
+    "connectionsHelp": "Per file. Each site has its cap, so your account is not at risk: 1fichier uses one."
   }
 }

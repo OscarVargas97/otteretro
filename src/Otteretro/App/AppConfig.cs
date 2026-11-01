@@ -49,6 +49,10 @@ public sealed class AppConfig
     [JsonPropertyName("ordenRegiones")]
     public List<string>? RegionOrder { get; set; }
 
+    /// <summary>Conexiones por archivo al descargar (#226); cada sitio tiene su tope.</summary>
+    [JsonPropertyName("conexionesDescarga")]
+    public int? DownloadConnections { get; set; }
+
     /// <summary>El menú lateral retraído a una franja de íconos (#130). Va acá porque el puerto local cambia en cada arranque y el navegador no lo recordaría.</summary>
     [JsonPropertyName("menuRetraido")]
     public bool MenuCollapsed { get; set; }

@@ -60,6 +60,11 @@ function Downloads() {
     mutationFn: ({ id, action }: { id: number; action: "pause" | "resume" | "cancel" }) => request<void>(`/api/tasks/${id}/${action}`, { method: "POST" }),
     onSettled: refresh,
   });
+  const connections = useQuery({ queryKey: ["download-connections"], queryFn: () => request<number>("/api/downloads/connections") });
+  const setConnections = useMutation({
+    mutationFn: (value: number) => request<void>("/api/downloads/connections", { method: "PUT", body: JSON.stringify({ connections: value }) }),
+    onSettled: () => cache.invalidateQueries({ queryKey: ["download-connections"] }),
+  });
   const size = (bytes: string | undefined) => bytes ? format.number(Number(bytes) / 1048576, { maximumFractionDigits: 1 }) : "0";
 
   return (
@@ -74,6 +79,12 @@ function Downloads() {
             <option value="">{t("defaultDisk")}</option>
             {disks.map((d) => <option key={d.id} value={d.id}>{hint(d)}</option>)}
           </select>
+          <label className="small muted" title={t("connectionsHelp")}>
+            {t("connections")}{" "}
+            <select className="ot-btn ot-btn-sm" value={connections.data ?? 2} onChange={(e) => setConnections.mutate(Number(e.target.value))}>
+              {[1, 2, 4, 8].map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </label>
         </div>
         {check.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(check.error)}</p>}
         {check.data?.length === 0 && <p className="small muted" style={{ margin: 0 }}>{t("noLinks")}</p>}
