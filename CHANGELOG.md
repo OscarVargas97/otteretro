@@ -20,6 +20,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **Formatos livianos** (#196): al importar, y con «Convertir» por consola, GameCube y Wii pasan a RVZ y PS1 y PS2 a CHD. El original se borra solo después de comprobar la copia: un RVZ tiene que dar el mismo hash que su ISO, así sigue saliendo verificado por Redump. DolphinTool y chdman vienen con la app. Si la receta de un port no acepta el formato, el juego se queda como está, y lo que apuntaba al ISO (como Dusklight) pasa a apuntar al nuevo archivo.
 - **Megapacks con vista previa** (#197): antes de importar ves qué hay en la carpeta, con filtros por consola, saga y «está en el catálogo», y una versión por juego ya marcada (español primero, con tu orden de regiones). Hacks, betas y demos vienen sin marcar; las traducciones de fans sí cuentan. Si ya tienes el juego se salta, salvo que el nuevo esté verificado y el tuyo no: el tuyo va a la papelera.
 - **ScreenScraper** (#198): al importar y al verificar, lo que no coincide con los DAT se identifica también con ScreenScraper, si cargas tus cuentas en Ajustes › Cuentas y claves. Sin ellas, o si se acaba tu cuota, todo sigue funcionando sin él.
+- **Herramientas › Sistema** (#199): subes tus BIOS, keys y firmware por consola y quedan con versiones en el disco ★; otra versión nunca reemplaza la anterior. Avisa si le falta `prod.keys` a tus juegos de Switch. Otteretro no los descarga ni los comparte.
 - La ficha de un juego muestra **dónde tienes sus archivos**, con BASE, UPD y DLC, tamaño y si están verificados.
 
 ### Cambios

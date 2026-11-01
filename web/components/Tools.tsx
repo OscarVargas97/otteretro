@@ -3,14 +3,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
+import { useFormatter } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useConsoles } from "@/components/Catalog";
 import { librariesQuery, toolsQuery } from "@/components/Libraries";
 import { Empty } from "@/components/Shell";
 import { Tabs } from "@/components/Tabs";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
-import type { ToolInfo } from "@/lib/types";
+import type { SystemConsole, ToolInfo } from "@/lib/types";
 
 const KINDS = ["emulator", "port", "complement", "system"] as const;
 type Kind = (typeof KINDS)[number];
@@ -26,19 +28,60 @@ export function ToolsPage() {
       <Tabs tabs={KINDS.map((k) => ({ id: k, label: t(`kind.${k}`) }))} current={kind} label={t("sections")} panel="tools-panel"
         onSelect={(k) => router.push(`/tools/?k=${k}`)} />
       <section className="sec" id="tools-panel" role="tabpanel" aria-labelledby={`tab-${kind}`}>
-        {kind === "system" ? <SystemHelp /> : <ToolList kind={kind} />}
+        {kind === "system" ? <SystemPanel /> : <ToolList kind={kind} />}
       </section>
     </div>
   );
 }
 
-function SystemHelp() {
+/** BIOS, keys y firmware (§8.5, #199): lo que tienes por consola, con versiones, y subir otro. Otra versión nunca reemplaza la anterior. */
+function SystemPanel() {
   const t = useTranslations("tools");
+  const format = useFormatter();
+  const describe = useDescribeError();
+  const cache = useQueryClient();
+  const consoles = useConsoles().data ?? [];
+  const list = useQuery({ queryKey: ["system"], queryFn: () => request<SystemConsole[]>("/api/system") });
+  const [console_, setConsole] = useState("");
+  const input = useRef<HTMLInputElement>(null);
+  const upload = useMutation({
+    mutationFn: (file: File) => request<void>(`/api/system/${encodeURIComponent(console_)}?${new URLSearchParams({ name: file.name })}`,
+      { method: "POST", body: file, headers: { "Content-Type": "application/octet-stream" } }),
+    onSettled: () => {
+      if (input.current) input.current.value = "";
+      cache.invalidateQueries({ queryKey: ["system"] });
+    },
+  });
   return (
-    <section className="panel">
-      <p className="small" style={{ margin: 0 }}>{t("systemHelp")}</p>
-      <Link className="ot-btn" href="/settings/?s=storage">{t("openStorage")}</Link>
-    </section>
+    <div style={{ display: "grid", gap: 12 }}>
+      <section className="panel" style={{ display: "grid", gap: 8 }}>
+        <p className="small" style={{ margin: 0 }}>{t("systemHelp")}</p>
+        <div className="hero-actions">
+          <select className="ot-btn ot-btn-sm" aria-label={t("systemConsole")} value={console_} onChange={(e) => setConsole(e.target.value)}>
+            <option value="">{t("systemConsole")}</option>
+            {consoles.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <input ref={input} type="file" aria-label={t("systemUpload")} disabled={!console_ || upload.isPending}
+            onChange={(e) => { const file = e.target.files?.[0]; if (file) upload.mutate(file); }} />
+        </div>
+        {upload.isPending && <p className="small muted" role="status" style={{ margin: 0 }}>{t("systemUploading")}</p>}
+        {upload.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(upload.error)}</p>}
+      </section>
+      {list.isError && <p className="error small" role="alert">{describe(list.error)}</p>}
+      {list.data?.length === 0 && <Empty title={t("systemEmptyTitle")} text={t("systemEmptyText")} />}
+      {list.data?.map((c) => (
+        <section className="panel" key={c.id} style={{ display: "grid", gap: 6 }}>
+          <h3 style={{ margin: 0 }}>{c.name}</h3>
+          {c.missing.map((m) => <span key={m} className="ot-badge ot-badge-review" style={{ justifySelf: "start" }}>{t("systemMissing", { name: m })}</span>)}
+          {c.files.map((f) => (
+            <div key={f.path} className="version-row small">
+              <span className="folder-path">{f.name}{f.version && ` · ${f.version}`}</span>
+              <span className="muted">{f.disk} · {format.dateTime(new Date(f.modified), { dateStyle: "medium" })}</span>
+            </div>
+          ))}
+        </section>
+      ))}
+    </div>
   );
 }
 

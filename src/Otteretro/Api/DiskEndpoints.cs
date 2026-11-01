@@ -187,6 +187,18 @@ public static class DiskEndpoints
         });
 
         // Ajustes › Consolas (#192): todo lo de una consola junto.
+        // BIOS, keys y firmware (#199): lo que tienes de cada consola y subir otro. Cada archivo llega crudo en el cuerpo.
+        api.MapGet("/system", Results<Ok<List<SystemConsole>>, Conflict<ApiError>> (AppSession s) =>
+            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(SystemFiles.List(db)) : CatalogEndpoints.NoData());
+
+        api.MapPost("/system/{console}", async Task<Results<Ok, BadRequest<ApiError>, Conflict<ApiError>>> (string console, string name, HttpRequest request, AppSession s, CancellationToken ct) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            // Un firmware puede pasar del límite normal de un pedido; el servidor solo escucha en este equipo.
+            if (request.HttpContext.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limit) limit.MaxRequestBodySize = null;
+            return await SystemFiles.Save(db, console, name, request.Body, ct) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok();
+        });
+
         api.MapGet("/consoles/{id}/detail", Results<Ok<ConsoleDetail>, NotFound, Conflict<ApiError>> (string id, AppSession s) =>
         {
             if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();

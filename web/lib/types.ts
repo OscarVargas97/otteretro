@@ -47,6 +47,7 @@ export type CoversInfo = Schemas["CoversInfo"];
 export type ConsoleInfo = Schemas["ConsoleInfo"];
 export type PlatformInfo = Schemas["PlatformInfo"];
 export type DiskInfo = Schemas["DiskInfo"];
+export type SystemConsole = Schemas["SystemConsole"];
 export type MegapackPreview = Schemas["MegapackPreview"];
 export type PreviewItem = Schemas["PreviewItem"];
 export type ToolInfo = Schemas["ToolInfo"];

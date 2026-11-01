@@ -529,6 +529,10 @@
         "done": "{path}: convertido y comprobado.",
         "summary": "Convertidos: {converted}."
       }
+    },
+    "system": {
+      "badConsole": "Esa consola no existe.",
+      "badName": "Ese nombre de archivo no sirve."
     }
   },
   "credentials": {
@@ -1080,8 +1084,14 @@
     "cancel": "Cancelar",
     "confirm": "Mover",
     "queued": "Quedó en el panel de tareas.",
-    "systemHelp": "BIOS, keys y firmware viven en las ubicaciones de sistema de Ajustes › Almacenamiento. Cada consola muestra los suyos.",
+    "systemHelp": "Tus BIOS, keys y firmware, con versiones, en Sistema del disco ★. Los subes tú: Otteretro no los descarga ni los comparte. Otra versión nunca reemplaza la anterior.",
     "openStorage": "Abrir Almacenamiento",
-    "dataFolder": "Herramientas (carpeta de datos)"
+    "dataFolder": "Herramientas (carpeta de datos)",
+    "systemConsole": "Elige la consola",
+    "systemUpload": "Subir un archivo",
+    "systemUploading": "Subiendo…",
+    "systemEmptyTitle": "Sin archivos de sistema",
+    "systemEmptyText": "Elige una consola y sube tu BIOS, keys o firmware.",
+    "systemMissing": "Falta {name}"
   }
 }

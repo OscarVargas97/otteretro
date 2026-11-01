@@ -529,6 +529,10 @@
         "done": "{path}: converted and checked.",
         "summary": "Converted: {converted}."
       }
+    },
+    "system": {
+      "badConsole": "That console does not exist.",
+      "badName": "That file name is not valid."
     }
   },
   "credentials": {
@@ -1080,8 +1084,14 @@
     "cancel": "Cancel",
     "confirm": "Move",
     "queued": "Added to the tasks panel.",
-    "systemHelp": "BIOS, keys and firmware live in the system locations of Settings › Storage. Each console shows its own.",
+    "systemHelp": "Your BIOS, keys and firmware, with versions, in Sistema on the ★ disk. You upload them: Otteretro neither downloads nor shares them. A new version never replaces the previous one.",
     "openStorage": "Open Storage",
-    "dataFolder": "Herramientas (data folder)"
+    "dataFolder": "Herramientas (data folder)",
+    "systemConsole": "Choose the console",
+    "systemUpload": "Upload a file",
+    "systemUploading": "Uploading…",
+    "systemEmptyTitle": "No system files",
+    "systemEmptyText": "Choose a console and upload your BIOS, keys or firmware.",
+    "systemMissing": "{name} is missing"
   }
 }
