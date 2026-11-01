@@ -2,9 +2,9 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
-## 0.3.0 · Carpetas y herramientas · en desarrollo
+## 0.3.12 · Carpetas y herramientas
 
-`fase/f3-carpetas`, `feat/146-pausar-cancelar-tareas`, `feat/148-almacenamiento-por-tipo`, `fix/151-pestanas-centradas`, `feat/157-discos-como-steam`, `feat/163-canal-local`, `feat/165-version-por-pr`, `feat/167-datos-en-disco`, `feat/169-almacenamiento-steam` y `feat/171-mover-por-grupos` · F3 (#141): tus juegos y herramientas en la estructura definitiva antes de construir lo demás encima · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+`fase/f3-carpetas`, `feat/146-pausar-cancelar-tareas`, `feat/148-almacenamiento-por-tipo`, `fix/151-pestanas-centradas`, `feat/157-discos-como-steam`, `feat/163-canal-local`, `feat/165-version-por-pr`, `feat/167-datos-en-disco`, `feat/169-almacenamiento-steam`, `feat/171-mover-por-grupos` y `chore/173-release-f3` · F3 (#141): tus juegos y herramientas en la estructura definitiva antes de construir lo demás encima · release a `main` en el canal Estable; trae también lo de F2.5 (0.2.1), que no había salido como estable.
 
 ### Nuevo
 - **Canal Local** en Ajustes › General › Actualizaciones (#163): además de Estable y Pruebas, los paquetes que armas en este equipo. Su carpeta se recuerda aparte de Otro origen, así vuelves a ella de un clic.
@@ -29,7 +29,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 ### Arreglos
 - Ya no aparece «Failed to execute 'json' on 'Response'» al abrir una carpeta u otras acciones que no devuelven nada (#169).
 
-## 0.2.1 · Pulido de UI · en desarrollo
+## 0.2.1 · Pulido de UI · sale con la 0.3.12
 
 `fase/f2.5-pulido`, `fix/128-prueba-f25`, `feat/130-ajustes-menu` y `feat/132-bajar-portadas` · F2.5 es un extra de F2, así que sale como 0.2.1 (antes se numeró 0.3.0) · lo que entra para la próxima release; sale como prerelease en el canal Pruebas.
 
