@@ -74,7 +74,7 @@ public sealed partial class OneFichierSite : IDownloadSite
     }
 
     /// <summary>La API solo acepta `https://dominio/?id` y rechaza lo demás: los enlaces compartidos suelen traer `&amp;af=` de afiliado.</summary>
-    static string Canonical(Uri url) => LinkId().Match(url.Query) is { Success: true } m ? $"https://{url.Host}/?{m.Groups[1].Value}" : url.ToString();
+    internal static string Canonical(Uri url) => LinkId().Match(url.Query) is { Success: true } m ? $"https://{url.Host}/?{m.Groups[1].Value}" : url.ToString();
 
     [GeneratedRegex(@"^\?([a-z0-9]{5,20})(?:&|$)")]
     private static partial Regex LinkId();

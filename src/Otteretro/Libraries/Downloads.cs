@@ -144,7 +144,7 @@ public static partial class Downloads
         var parent = Path.Combine(disk.Path, Partial);
         if (!Directory.EnumerateFileSystemEntries(parent).Any()) Directory.Delete(parent);
         run.Log(ApiError.Of("download.log.done", ("name", job.Name), ("path", target)));
-        Import.EnqueueEntry(run.Db, disk, target, job.GameId);
+        Import.EnqueueEntry(run.Db, disk, target, job.GameId, run.Id);
     }
 
     /// <summary>Baja un archivo por partes. Con la tarea pausada o cortada, su avance queda en el archivo `.download` y sigue de ahí.</summary>
@@ -218,7 +218,6 @@ public static partial class Downloads
 
     /// <summary>
     /// Los paquetes de un texto (#203): reconoce el sitio de cada enlace y comprueba si está en línea y cuánto pesa. No baja nada.
-    /// El portapapeles nunca se lee: este texto lo pegaste o lo arrastraste tú.
     /// </summary>
     public static async Task<List<PackagePreview>> Preview(string text, Credentials credentials, CancellationToken ct)
     {
@@ -255,13 +254,16 @@ public static partial class Downloads
         catch (CG.Web.MegaApiClient.ApiException) { return new(text, fallback, null, site.Id, "unknown"); }
     }
 
-    static string FileNameOf(Uri url)
+    /// <summary>Un enlace del que no se saca ningún nombre.</summary>
+    internal const string NoName = "descarga";
+
+    internal static string FileNameOf(Uri url)
     {
         var name = Clean(WebUtility.UrlDecode(Path.GetFileName(url.LocalPath)));
         if (name.Length > 0) return name;
         // `https://sitio/?id`: sin esto, los enlaces distintos de un sitio se juntarían en un solo paquete.
         var id = Clean(url.Query.TrimStart('?').Split('&')[0]);
-        return id.Length > 0 && !id.Contains('=') ? id : "descarga";
+        return id.Length > 0 && !id.Contains('=') ? id : NoName;
     }
 
     /// <summary>Un nombre que llega de afuera no puede salirse de la carpeta.</summary>

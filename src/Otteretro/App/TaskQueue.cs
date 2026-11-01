@@ -68,6 +68,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
     public static bool OnOpen { get; set; } = Environment.GetEnvironmentVariable("OTTERETRO_E2E") is null;
 
     readonly Libraries.GamesWatcher games = new();
+    readonly ClipboardWatcher clipboard = new();
 
     /// <summary>
     /// Espera antes de cada reintento de un error pasajero (#59): se corta la red, vence el tiempo, o la fuente responde 429 o 5xx.
@@ -201,7 +202,11 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
                         // Al abrir la app, lo de antes pasa solo al estándar (#219), que al terminar escanea; si no, se escanea ya (#223).
                         if (OnOpen && Libraries.DiskTasks.EnqueueMigrateIfPending(db) is null) Libraries.Scan.Enqueue(db);
                     }
-                    if (OnOpen) games.Tick(db);
+                    if (OnOpen)
+                    {
+                        games.Tick(db);
+                        clipboard.Tick(db, session.Config.ClipboardCapture ?? true);
+                    }
                     if (AutoClaude) Claude.ClaudeBudget.AutoStart(db);
                     StartPending(db, ct);
                 }

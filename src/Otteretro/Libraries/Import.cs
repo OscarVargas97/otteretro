@@ -19,7 +19,8 @@ public static partial class Import
     /// <param name="EntryDisk">Es la `Entrada\` de ese disco (#221): lo reconocido va a ese mismo disco, y solo si se identificó con seguridad (#222).</param>
     /// <param name="Skip">Lo que se desmarcó en la vista previa (#197), relativo a la carpeta.</param>
     /// <param name="GameId">El juego del que se sabe que es (lo que se bajó desde su ficha, §9.6).</param>
-    public record Job(string Path, string? EntryDisk = null, List<string>? Skip = null, long? GameId = null);
+    /// <param name="DownloadTask">La descarga de la que salió: al identificarse el juego, sus enlaces quedan en la ficha (#210).</param>
+    public record Job(string Path, string? EntryDisk = null, List<string>? Skip = null, long? GameId = null, long? DownloadTask = null);
 
     /// <summary>Las extensiones que dicen la consola. Las de disco (iso, chd, cue…) no: esas salen de su cabecera, su carpeta o su hash.</summary>
     static readonly Dictionary<string, string> ByExtension = new(StringComparer.OrdinalIgnoreCase)
@@ -76,9 +77,9 @@ public static partial class Import
 
     /// <summary>Encola la importación de la `Entrada\` de un disco, salvo que ya haya una esperando.</summary>
     /// <param name="folder">Solo esa carpeta de `Entrada\` (un paquete recién bajado); si no, toda.</param>
-    public static long EnqueueEntry(Database db, DiskInfo disk, string? folder = null, long? gameId = null)
+    public static long EnqueueEntry(Database db, DiskInfo disk, string? folder = null, long? gameId = null, long? downloadTask = null)
     {
-        var data = JsonSerializer.Serialize(new Job(Disk.Normalize(folder ?? Path.Combine(disk.Path, Disk.EntryFolder)), disk.Id, null, gameId), JsonSerializerOptions.Web);
+        var data = JsonSerializer.Serialize(new Job(Disk.Normalize(folder ?? Path.Combine(disk.Path, Disk.EntryFolder)), disk.Id, null, gameId, downloadTask), JsonSerializerOptions.Web);
         using (var c = db.Open())
             if (c.ExecuteScalar<long?>("SELECT id FROM task WHERE kind = @Kind AND status = 'queued' AND data = @data LIMIT 1", new { Kind, data }) is { } waiting)
                 return waiting;
@@ -271,7 +272,10 @@ public static partial class Import
             if (p.EntryDisk is { } entry && version is null)
             {
                 var waits = archive?.Path ?? item.Path;
-                Register(db, entry.Id, Path.GetRelativePath(entry.Path, waits), console, item, null, archive is null ? sha1 : null, false, new FileInfo(waits).Length);
+                var waiting = Path.GetRelativePath(entry.Path, waits);
+                var from = p.Job.DownloadTask ?? DownloadTaskOf(db, entry.Id, waiting);
+                Register(db, entry.Id, waiting, console, item, null, archive is null ? sha1 : null, false, new FileInfo(waits).Length);
+                SetDownloadTask(db, entry.Id, waiting, from);
                 run.Log(ApiError.Of("import.log.waiting", ("path", waits)));
                 p.Skipped++;
                 p.Waiting++;
@@ -331,7 +335,10 @@ public static partial class Import
             foreach (var (from, to) in targets) MoveIn(from, to);
             var placed = Path.GetRelativePath(disk.Path, targets[0].To);
             var chdOk = Path.GetExtension(targets[0].To).Equals(".chd", StringComparison.OrdinalIgnoreCase) && await Converter.ChdIntact(db, targets[0].To, ct) == true;
+            // Lo que esperó en Entrada se acuerda de su descarga en su fila, si esta pasada no viene de ella.
+            var download = p.Job.DownloadTask ?? (p.EntryDisk is { } origin ? DownloadTaskOf(db, origin.Id, Path.GetRelativePath(origin.Path, archive?.Path ?? item.Path)) : null);
             Register(db, disk.Id, placed, console, item, version, sha1, datName is not null || chdOk, size);
+            SetDownloadTask(db, disk.Id, placed, download);
             if (p.EntryDisk is { } mine) RemoveRow(db, mine, item.Path);
             if (archive is null)
                 foreach (var (from, _) in targets) RemoveEmptyFolders(Path.GetDirectoryName(from)!, root);
@@ -342,6 +349,19 @@ public static partial class Import
                 id = c.ExecuteScalar<long>("SELECT id FROM source WHERE kind = 'file' AND library_id = @Id AND relative_path = @placed", new { disk.Id, placed });
             await Converter.Convert(run, id, ct); // el formato liviano, al importar (#233)
         }
+    }
+
+    static long? DownloadTaskOf(Database db, string disk, string relative)
+    {
+        using var c = db.Open();
+        return c.ExecuteScalar<long?>("SELECT download_task FROM source WHERE kind = 'file' AND library_id = @disk AND relative_path = @relative", new { disk, relative });
+    }
+
+    static void SetDownloadTask(Database db, string disk, string relative, long? task)
+    {
+        if (task is null) return;
+        using var c = db.Open();
+        c.Execute("UPDATE source SET download_task = @task WHERE kind = 'file' AND library_id = @disk AND relative_path = @relative", new { task, disk, relative });
     }
 
     /// <summary>Copiar, forzar a disco y verificar, y recién entonces borrar. Un corte deja el origen entero: la tarea se repite sin daño.</summary>

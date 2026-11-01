@@ -259,13 +259,13 @@
       "custom": "Otro origen",
       "stableHint": "Las versiones publicadas en GitHub: probadas y con su lista de novedades.",
       "testingHint": "Lo último en desarrollo, antes de publicarse. Puede traer errores.",
-      "localHint": "Los paquetes que armas en este equipo con scripts/empaquetar.ps1. Se guarda su carpeta, así vuelves a ella de un clic.",
+      "localHint": "Los paquetes que armas en este equipo con scripts/empaquetar.ps1. Se buscan solos en la carpeta Otteretro\\Paquetes de tus discos.",
       "customHint": "Una carpeta, una dirección web o el repo de GitHub de quien arma su propia versión de Otteretro.",
       "origin": "Origen de las actualizaciones",
       "originPlaceholder": "D:\\paquetes o https://github.com/usuario/otteretro",
-      "localFolder": "Carpeta de los paquetes locales",
-      "localPlaceholder": "Por ejemplo D:\\dev\\artefactos\\otteretro\\paquetes",
-      "use": "Usar"
+      "use": "Usar",
+      "localFound": "Paquetes en {path}",
+      "localNone": "Ningún disco tiene paquetes en Otteretro\\Paquetes."
     },
     "taskTitle": "Actualización de Otteretro",
     "checking": "Buscando…",
@@ -1119,13 +1119,13 @@
     "systemMissing": "Falta {name}"
   },
   "downloads": {
-    "add": "Agregar una descarga",
-    "links": "Pega o arrastra tus enlaces, en cualquier texto",
+    "add": "Capturar enlaces",
+    "links": "Pega o arrastra tus enlaces, en cualquier texto: quedan guardados al instante",
     "linksHint": "https://…",
     "disk": "Disco de destino",
     "defaultDisk": "Disco ★",
     "emptyTitle": "Sin descargas",
-    "emptyText": "Agrega enlaces arriba: lo que baja se ordena solo en tu disco.",
+    "emptyText": "Agrega enlaces en el capturador: lo que baja se ordena solo en tu disco.",
     "summary": "{disk} · {done} de {total} archivos",
     "speed": "{speed} MB/s",
     "pause": "Pausar",
@@ -1139,8 +1139,8 @@
       "error": "Con error",
       "canceled": "Cancelada"
     },
-    "addForGame": "Agregar enlaces de {name}",
-    "check": "Ver paquetes",
+    "addForGame": "Capturar enlaces de {name}",
+    "check": "Comprobar enlaces",
     "checking": "Comprobando…",
     "noLinks": "No encontré enlaces en ese texto.",
     "files": "{count, plural, one {# archivo} other {# archivos}}",
@@ -1149,10 +1149,24 @@
       "unavailable": "No disponible",
       "blocked": "Falta tu cuenta o resolver un captcha",
       "noConnector": "Sitio sin conector",
-      "unknown": "No respondió"
+      "unknown": "No respondió",
+      "unchecked": "Sin comprobar"
     },
     "connections": "Conexiones",
     "connectionsHelp": "Por archivo. Cada sitio tiene su tope, para no arriesgar tu cuenta: 1fichier usa una.",
-    "openBrowser": "Abrir en el navegador"
+    "openBrowser": "Abrir en el navegador",
+    "tabQueue": "Descargas",
+    "tabLinks": "Capturador de enlaces",
+    "tabLinksCount": "Capturador de enlaces ({count})",
+    "sections": "Secciones de Descargas",
+    "addLinks": "Agregar",
+    "clipboard": "Capturar también los enlaces que copie",
+    "captureEmpty": "No hay enlaces esperando. Pega algunos arriba, o cópialos con la app abierta.",
+    "checkHelp": "Consulta cada sitio. Úsalo con calma: si un sitio recibe muchos pedidos fallidos, puede bloquear tu cuenta por un tiempo.",
+    "remove": "Quitar",
+    "removeLink": "Quitar {name}",
+    "gameLinks": "Tus enlaces",
+    "gameLinksPrivate": "Privados: quedan solo en tus datos",
+    "downloadAgain": "Volver a bajar"
   }
 }

@@ -259,13 +259,13 @@
       "custom": "Other source",
       "stableHint": "The versions published on GitHub: tested and with their release notes.",
       "testingHint": "The latest in development, before it is published. It may have bugs.",
-      "localHint": "The packages you build on this computer with scripts/empaquetar.ps1. Its folder is remembered, so you can come back to it in one click.",
+      "localHint": "The packages you build on this computer with scripts/empaquetar.ps1. They are found on their own in the Otteretro\\Paquetes folder of your disks.",
       "customHint": "A folder, a web address or the GitHub repo of someone who builds their own Otteretro.",
       "origin": "Update source",
       "originPlaceholder": "D:\\packages or https://github.com/user/otteretro",
-      "localFolder": "Local packages folder",
-      "localPlaceholder": "For example D:\\dev\\artefactos\\otteretro\\paquetes",
-      "use": "Use"
+      "use": "Use",
+      "localFound": "Packages in {path}",
+      "localNone": "None of your disks has packages in Otteretro\\Paquetes."
     },
     "taskTitle": "Otteretro update",
     "checking": "Checking…",
@@ -1119,13 +1119,13 @@
     "systemMissing": "{name} is missing"
   },
   "downloads": {
-    "add": "Add a download",
-    "links": "Paste or drop your links, in any text",
+    "add": "Grab links",
+    "links": "Paste or drop your links, in any text: they are saved right away",
     "linksHint": "https://…",
     "disk": "Destination disk",
     "defaultDisk": "★ disk",
     "emptyTitle": "No downloads",
-    "emptyText": "Add links above: what comes down is sorted on your disk by itself.",
+    "emptyText": "Add links in the grabber: what you download sorts itself onto your disk.",
     "summary": "{disk} · {done} of {total} files",
     "speed": "{speed} MB/s",
     "pause": "Pause",
@@ -1139,8 +1139,8 @@
       "error": "Failed",
       "canceled": "Canceled"
     },
-    "addForGame": "Add links for {name}",
-    "check": "See packages",
+    "addForGame": "Grab links for {name}",
+    "check": "Check links",
     "checking": "Checking…",
     "noLinks": "No links found in that text.",
     "files": "{count, plural, one {# file} other {# files}}",
@@ -1149,10 +1149,24 @@
       "unavailable": "Not available",
       "blocked": "Needs your account or solving a captcha",
       "noConnector": "Site without a connector",
-      "unknown": "No answer"
+      "unknown": "No answer",
+      "unchecked": "Not checked"
     },
     "connections": "Connections",
     "connectionsHelp": "Per file. Each site has its cap, so your account is not at risk: 1fichier uses one.",
-    "openBrowser": "Open in browser"
+    "openBrowser": "Open in browser",
+    "tabQueue": "Downloads",
+    "tabLinks": "Link grabber",
+    "tabLinksCount": "Link grabber ({count})",
+    "sections": "Downloads sections",
+    "addLinks": "Add",
+    "clipboard": "Also grab the links I copy",
+    "captureEmpty": "No links waiting. Paste some above, or copy them with the app open.",
+    "checkHelp": "Asks each site. Use it calmly: a site that receives many failed requests may block your account for a while.",
+    "remove": "Remove",
+    "removeLink": "Remove {name}",
+    "gameLinks": "Your links",
+    "gameLinksPrivate": "Private: they stay only in your data",
+    "downloadAgain": "Download again"
   }
 }

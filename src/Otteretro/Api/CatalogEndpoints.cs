@@ -17,7 +17,9 @@ public record VerifyRequest(string? Console, long? GameId);
 public record ExecutableRequest(string Path);
 /// <param name="Skip">Lo que se desmarcó en la vista previa, relativo a la carpeta.</param>
 public record DownloadRequest(string Name, string? DiskId, List<string> Links, long? GameId = null);
-public record DownloadPreviewRequest(string Text);
+public record CaptureRequest(string Text, long? GameId = null);
+public record QueueLinksRequest(List<string> Packages, string? DiskId);
+public record ClipboardRequest(bool Enabled);
 public record ConnectionsRequest(int Connections);
 public record ImportRequest(string Path, List<string>? Skip = null);
 public record PreviewRequest(string Path);
@@ -145,11 +147,42 @@ public static class CatalogEndpoints
             return TypedResults.Ok();
         });
 
-        // Capturador (#203): los paquetes de un texto pegado, comprobando cada enlace. No baja nada.
-        api.MapPost("/downloads/preview", async Task<Results<Ok<List<Libraries.PackagePreview>>, Conflict<ApiError>>> (DownloadPreviewRequest request, AppSession s, SecretBox box, CancellationToken ct) =>
+        // Capturador (#203, #210): lo que pegas o copias queda guardado. Agregar no consulta los sitios; comprobar, solo cuando lo pides.
+        api.MapGet("/downloads/links", Results<Ok<List<Libraries.LinkPackage>>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(Libraries.DownloadLinks.Captured(db)) : NoData());
+
+        api.MapPost("/downloads/links", Results<Ok<int>, Conflict<ApiError>> (CaptureRequest request, AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(Libraries.DownloadLinks.Add(db, request.Text, request.GameId)) : NoData());
+
+        api.MapPost("/downloads/links/check", async Task<Results<Ok<List<Libraries.LinkPackage>>, Conflict<ApiError>>> (AppSession s, SecretBox box, CancellationToken ct) =>
         {
             if (Db(s) is not { } db) return NoData();
-            return TypedResults.Ok(await Libraries.Downloads.Preview(request.Text, new Credentials(db, s.Config.MachineId, box), ct));
+            await Libraries.DownloadLinks.Check(db, new Credentials(db, s.Config.MachineId, box), ct);
+            return TypedResults.Ok(Libraries.DownloadLinks.Captured(db));
+        });
+
+        api.MapPost("/downloads/links/queue", Results<Ok, BadRequest<ApiError>, Conflict<ApiError>> (QueueLinksRequest request, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var error = Libraries.DownloadLinks.Queue(db, request.Packages, request.DiskId, s.Config.DownloadConnections ?? Libraries.Downloads.DefaultConnections);
+            return error is null ? TypedResults.Ok() : TypedResults.BadRequest(error);
+        });
+
+        api.MapDelete("/downloads/links/{id:long}", Results<Ok, Conflict<ApiError>> (long id, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            Libraries.DownloadLinks.Remove(db, id);
+            return TypedResults.Ok();
+        });
+
+        api.MapGet("/games/{id:long}/links", Results<Ok<List<Libraries.CapturedLink>>, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(Libraries.DownloadLinks.OfGame(db, id)) : NoData());
+
+        api.MapGet("/downloads/clipboard", (AppSession s) => s.Config.ClipboardCapture ?? true);
+        api.MapPut("/downloads/clipboard", (ClipboardRequest request, AppSession s) =>
+        {
+            s.Config.ClipboardCapture = request.Enabled;
+            s.Config.Save(s.ConfigPath);
         });
 
         // «Convertir» (#233): lo que ya tienes de una consola al formato liviano.

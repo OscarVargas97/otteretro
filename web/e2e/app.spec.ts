@@ -277,22 +277,36 @@ test("Ajustes › Consolas: el detalle de una consola, su destino y mover sus ju
   await removeDisks();
 });
 
-test("Descargas: cada enlace con problema dice lo que respondió el sitio (#203, #204)", async () => {
-  const link = (url: string, name: string, state: string, detail?: object) => ({ url, name, size: null, site: "1fichier", state, detail: detail ?? null });
-  await page.route("**/api/downloads/preview", (route) => route.fulfill({ json: [
-    { name: "abc123", size: 0, links: [link("https://1fichier.com/?abc123", "abc123", "blocked", { code: "download.siteSaid", params: { site: "1fichier", message: "Resource not found #644" } })] },
-    { name: "Juego", size: 0, links: [link("https://1fichier.com/?parte1", "Juego.part1.rar", "ok"), link("https://1fichier.com/?parte2", "Juego.part2.rar", "blocked", { code: "download.needsAccount", params: { site: "1fichier" } })] },
-  ] }));
+test("Descargas: el capturador guarda lo pegado, sobrevive a cambiar de pantalla y dice lo que respondió el sitio (#203, #204, #210)", async () => {
+  await page.goto(`${base()}/downloads/?tab=links`);
+  await expect(page.getByRole("tab", { name: en.downloads.tabLinks })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByText(en.downloads.captureEmpty)).toBeVisible();
+  // Se guarda sin consultar el sitio, y sigue ahí después de irse y volver.
+  await page.getByLabel(en.downloads.links).fill("https://1fichier.com/?abc123&af=9 https://sitio.test/juego.part1.rar https://sitio.test/juego.part2.rar");
+  await page.getByRole("button", { name: en.downloads.addLinks, exact: true }).click();
+  await expect(page.getByRole("checkbox", { name: /^abc123/ })).toBeVisible();
+  await expect(page.getByText(en.downloads.state.unchecked)).toHaveCount(3);
+  await page.goto(`${base()}/tools/`);
   await page.goto(`${base()}/downloads/`);
-  await page.getByLabel(en.downloads.links).fill("https://1fichier.com/?abc123");
-  await page.getByRole("button", { name: en.downloads.check }).click();
+  await expect(page.getByRole("tab", { name: en.downloads.tabLinksCount.replace("{count}", "3") })).toBeVisible();
+  await page.getByRole("tab", { name: /Link grabber/ }).click();
+  await expect(page.getByRole("checkbox", { name: /^abc123/ })).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: /^juego/ })).toBeVisible();
+  await expect(page.getByText("juego.part2.rar")).toBeVisible();
+  // Lo que respondió el sitio, no un «falta tu cuenta» cualquiera.
+  await page.route("**/api/downloads/links/check", (route) => route.fulfill({ json: [
+    { name: "abc123", size: 0, links: [{ id: 1, url: "https://1fichier.com/?abc123", name: "abc123", size: null, site: "1fichier", state: "blocked", detail: { code: "download.siteSaid", params: { site: "1fichier", message: "Resource not found #644" } }, gameId: null, status: "captured" }] },
+  ] }));
+  await page.getByRole("button", { name: en.downloads.check, exact: true }).click();
   await expect(page.getByText("Resource not found #644")).toBeVisible();
-  await expect(page.getByText(en.downloads.state.blocked)).toHaveCount(0);
-  // Lo que falla se nombra cuando el paquete trae varias partes.
-  await expect(page.getByText("Juego.part2.rar")).toBeVisible();
   if (process.env.OTTERETRO_SHOT) await page.locator(".panel").first().screenshot({ path: process.env.OTTERETRO_SHOT });
+  await page.unroute("**/api/downloads/links/check");
   await expectNoRawKeys();
-  await page.unroute("**/api/downloads/preview");
+  // Quitar los deja fuera para siempre.
+  await page.reload();
+  for (const name of ["abc123", "juego.part1.rar", "juego.part2.rar"])
+    await page.getByRole("button", { name: en.downloads.removeLink.replace("{name}", name) }).click();
+  await expect(page.getByText(en.downloads.captureEmpty)).toBeVisible();
 });
 
 test("Herramientas: pestañas por tipo y subir un archivo de sistema con versiones (#154, #199)", async () => {
@@ -379,17 +393,16 @@ test("Ajustes en inglés: carpeta, idioma y actualización", async () => {
   await page.reload();
   await expect(page.getByRole("group", { name: en.update.channel.title }).getByRole("button", { name: en.update.channel.custom })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByLabel(en.update.channel.origin)).toHaveValue(dataDir("paquetes"));
-  // #163: Local pide su carpeta la primera vez y la recuerda aparte de Otro origen: después, un clic.
+  // #209: Local no pide nada: busca sus paquetes en tus discos y, sin paquetes, lo dice.
   const group = page.getByRole("group", { name: en.update.channel.title });
   await group.getByRole("button", { name: en.update.channel.local, exact: true }).click();
-  await page.getByLabel(en.update.channel.localFolder).fill(dataDir("locales"));
-  await page.getByRole("button", { name: en.update.channel.use, exact: true }).click();
   await expect(group.getByRole("button", { name: en.update.channel.local, exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText(en.update.channel.localNone)).toBeVisible();
+  await expect(page.getByLabel(en.update.channel.origin)).toHaveCount(0);
   await group.getByRole("button", { name: en.update.channel.stable }).click();
   await expect(group.getByRole("button", { name: en.update.channel.stable })).toHaveAttribute("aria-pressed", "true");
   await group.getByRole("button", { name: en.update.channel.local, exact: true }).click();
   await expect(group.getByRole("button", { name: en.update.channel.local, exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByLabel(en.update.channel.localFolder)).toHaveValue(dataDir("locales"));
   await group.getByRole("button", { name: en.update.channel.custom }).click();
   await expect(page.getByLabel(en.update.channel.origin)).toHaveValue(dataDir("paquetes"));
   await page.getByRole("group", { name: en.update.channel.title }).getByRole("button", { name: en.update.channel.stable }).click();
@@ -675,6 +688,17 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   await expect(page.getByRole("link", { name: /The Legend of Zelda/ })).toBeVisible();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/saga\/\?id=1/);
+});
+
+test("la ficha muestra tus enlaces de ese juego, y se pueden quitar (#210)", async () => {
+  await page.goto(`${base()}/game/?id=10`);
+  await expect(page.getByRole("heading", { name: es.downloads.gameLinks })).toHaveCount(0);
+  expect((await api("POST", "/api/downloads/links", { text: "https://sitio.test/fusion.zip", gameId: 10 })).ok).toBe(true);
+  await page.reload();
+  await expect(page.getByRole("heading", { name: es.downloads.gameLinks })).toBeVisible();
+  await expect(page.getByText("fusion.zip")).toBeVisible();
+  await page.getByRole("button", { name: es.downloads.removeLink.replace("{name}", "fusion.zip") }).click();
+  await expect(page.getByRole("heading", { name: es.downloads.gameLinks })).toHaveCount(0);
 });
 
 test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha y el siguiente juego en Inicio", async () => {

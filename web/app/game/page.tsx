@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { Suspense, useEffect, useState } from "react";
 import { size } from "@/lib/format";
@@ -13,7 +14,7 @@ import { PageSkeleton } from "@/components/Skeleton";
 import { useDescribeError } from "@/lib/i18n";
 import { optimistic } from "@/lib/optimistic";
 import { compareQuery, gameQuery } from "@/lib/queries";
-import type { FieldRow, GameDetail, ProgressInfo, RoutesPage, VersionCompare } from "@/lib/types";
+import type { CapturedLink, FieldRow, GameDetail, ProgressInfo, RoutesPage, VersionCompare } from "@/lib/types";
 
 const STATUSES = ["pending", "playing", "finished", "completed", "dropped"] as const;
 const FIELDS = ["name_es", "original_name", "year"] as const;
@@ -98,9 +99,49 @@ function Game() {
 
         <Versions game={g} compare={compare.data ?? []} />
 
+        <GameLinks gameId={Number(g.id)} />
+
         <Sources game={g} />
       </div>
     </div>
+  );
+}
+
+/** Tus enlaces de este juego (#210): datos privados, en tu base. Volver a bajar lo devuelve al capturador. */
+function GameLinks({ gameId }: { gameId: number }) {
+  const t = useTranslations("downloads");
+  const describe = useDescribeError();
+  const cache = useQueryClient();
+  const router = useRouter();
+  const links = useQuery({ queryKey: ["game-links", gameId], queryFn: () => request<CapturedLink[]>(`/api/games/${gameId}/links`) });
+  const again = useMutation({
+    mutationFn: (url: string) => request<number>("/api/downloads/links", { method: "POST", body: JSON.stringify({ text: url, gameId }) }),
+    onSuccess: () => router.push("/downloads/?tab=links"),
+  });
+  const open = useMutation({ mutationFn: (url: string) => request<void>("/api/downloads/open", { method: "POST", body: JSON.stringify({ url }) }) });
+  const remove = useMutation({
+    mutationFn: (id: number) => request<void>(`/api/downloads/links/${id}`, { method: "DELETE" }),
+    onSettled: () => cache.invalidateQueries({ queryKey: ["game-links", gameId] }),
+  });
+  if (!links.data?.length) return null;
+  const failure = again.error ?? open.error ?? remove.error;
+  return (
+    <section className="sec">
+      <div className="sec-h"><h2>{t("gameLinks")}</h2><span className="small muted">{t("gameLinksPrivate")}</span></div>
+      {failure && <p className="error small" role="alert">{describe(failure)}</p>}
+      <div className="panel" style={{ gap: 8 }}>
+        {links.data.map((l) => (
+          <div key={l.id} className="version-row small">
+            <span title={l.url}>{l.name}</span>
+            <span className="hero-actions">
+              <button className="ot-btn ot-btn-sm" type="button" onClick={() => again.mutate(l.url)}>{t("downloadAgain")}</button>
+              <button className="ot-btn ot-btn-sm" type="button" onClick={() => open.mutate(l.url)}>{t("openBrowser")}</button>
+              <button className="ot-btn ot-btn-sm" type="button" aria-label={t("removeLink", { name: l.name })} onClick={() => remove.mutate(Number(l.id))}>{t("remove")}</button>
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

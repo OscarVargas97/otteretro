@@ -60,6 +60,15 @@ public static class Disk
     /// <summary>La carpeta de cada disco cuyo contenido se importa solo (#221). No es un tipo de cosa: lo que hay ahí todavía no está en su lugar.</summary>
     public const string EntryFolder = "Entrada";
 
+    /// <summary>Donde `scripts/empaquetar.ps1` deja los paquetes de este equipo (decisión 244).</summary>
+    public const string PackagesFolder = "Paquetes";
+
+    /// <summary>La carpeta `Paquetes` con lo más reciente de tus discos conectados; null si ninguno tiene.</summary>
+    public static string? NewestPackages(Database db) => List(db).Where(d => d.Connected && d.Type == "disk")
+        .Select(d => Path.Combine(d.Path, PackagesFolder))
+        .Where(f => File.Exists(Path.Combine(f, "releases.win.json")))
+        .OrderByDescending(f => File.GetLastWriteTimeUtc(Path.Combine(f, "releases.win.json"))).FirstOrDefault();
+
     /// <summary>Carpetas de la estructura antigua dentro de cada consola (§5.5).</summary>
     public static readonly string[] LegacyFolders = ["Juegos", "Emuladores", "Ports"];
 

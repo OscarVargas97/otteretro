@@ -1811,7 +1811,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/downloads/preview": {
+    "/api/downloads/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LinkPackage"][];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CaptureRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": number | string;
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/downloads/links/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LinkPackage"][];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/downloads/links/queue": {
         parameters: {
             query?: never;
             header?: never;
@@ -1829,7 +1949,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["DownloadPreviewRequest"];
+                    "application/json": components["schemas"]["QueueLinksRequest"];
                 };
             };
             responses: {
@@ -1838,8 +1958,15 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
                     content: {
-                        "application/json": components["schemas"]["PackagePreview"][];
+                        "application/json": components["schemas"]["ApiError"];
                     };
                 };
                 /** @description Conflict */
@@ -1853,6 +1980,152 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/downloads/links/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/games/{id}/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CapturedLink"][];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/downloads/clipboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": boolean;
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ClipboardRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4919,6 +5192,25 @@ export interface components {
             examples: string[];
             issueUrl: null | string;
         };
+        CapturedLink: {
+            /** Format: int64 */
+            id: number | string;
+            url: string;
+            name: string;
+            /** Format: int64 */
+            size: null | number | string;
+            site: null | string;
+            state: string;
+            detail: null | components["schemas"]["ApiError"];
+            /** Format: int64 */
+            gameId: null | number | string;
+            status: string;
+        };
+        CaptureRequest: {
+            text: string;
+            /** Format: int64 */
+            gameId?: null | number | string;
+        };
         ChooseRouteRequest: {
             /** Format: int64 */
             routeId: null | number | string;
@@ -4949,6 +5241,9 @@ export interface components {
             /** Format: int64 */
             progress: number | string;
             resumeAt: null | string;
+        };
+        ClipboardRequest: {
+            enabled: boolean;
         };
         CollectionPage: {
             games: components["schemas"]["GameCard"][];
@@ -5082,9 +5377,6 @@ export interface components {
             progress: number | string;
             detail: null | components["schemas"]["ApiError"];
             createdAt: string;
-        };
-        DownloadPreviewRequest: {
-            text: string;
         };
         DownloadRequest: {
             name: string;
@@ -5237,14 +5529,11 @@ export interface components {
             /** @default game */
             type: string;
         };
-        LinkCheck: {
-            url: string;
+        LinkPackage: {
             name: string;
+            links: components["schemas"]["CapturedLink"][];
             /** Format: int64 */
-            size: null | number | string;
-            site: null | string;
-            state: string;
-            detail?: null | components["schemas"]["ApiError"];
+            size: number | string;
         };
         MegapackPreview: {
             items: components["schemas"]["PreviewItem"][];
@@ -5295,12 +5584,6 @@ export interface components {
         OpenLinkRequest: {
             url: string;
         };
-        PackagePreview: {
-            name: string;
-            links: components["schemas"]["LinkCheck"][];
-            /** Format: int64 */
-            size: number | string;
-        };
         PlatformInfo: {
             /** Format: int64 */
             igdbId: number | string;
@@ -5333,6 +5616,10 @@ export interface components {
             rating: null | number | string;
             notes: null | string;
             favorite: boolean;
+        };
+        QueueLinksRequest: {
+            packages: string[];
+            diskId: null | string;
         };
         ReconnectRequest: {
             path?: null | string;
