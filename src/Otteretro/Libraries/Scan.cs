@@ -59,7 +59,7 @@ public static partial class Scan
                 foreach (var file in Directory.EnumerateFiles(Path.Combine(root, relative), "*", new EnumerationOptions { RecurseSubdirectories = true }))
                 {
                     ct.ThrowIfCancellationRequested();
-                    if (!GameExtensions.Contains(Path.GetExtension(file))) continue;
+                    if (!GameExtensions.Contains(Path.GetExtension(file)) || file.Contains(".convirtiendo.", StringComparison.OrdinalIgnoreCase)) continue;
                     var name = Path.GetFileNameWithoutExtension(file);
                     var parent = Path.GetDirectoryName(file)!;
                     var folder = Disk.Same(parent, Path.Combine(root, relative)) ? null : Path.GetFileName(parent);

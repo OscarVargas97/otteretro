@@ -227,6 +227,9 @@ public static class DiskTasks
     /// <summary>Reescribe las rutas a juegos de todo lo instalado con receta. Devuelve cuántas cambió.</summary>
     public static int RewriteAll(string tools, string from, string to) => RewriteAll(Recipes.Installed(tools), from, to);
 
+    /// <summary>Lo que apunta a <paramref name="from"/> en cualquier herramienta instalada pasa a <paramref name="to"/> (§5.4).</summary>
+    public static int RewriteInstalled(Database db, string from, string to) => RewriteAll(Recipes.Installed(Disk.ToolRoots(db)), from, to);
+
     static int RewriteAll(List<ToolInfo> installed, string from, string to) =>
         installed.Where(t => t.RecipeId is not null).Sum(t => Recipes.RewriteGamePaths(Recipes.Find(t.RecipeId!)!, t.Path, from, to));
 

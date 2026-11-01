@@ -155,7 +155,23 @@ public static partial class Dats
                 continue;
             }
             run.Report((int)(done * 100 / total), ApiError.Of("dat.hashing", ("path", path)));
-            var sha1 = await Sha1(path, ct);
+            // Un CHD no se compara con Redump: se comprueba que esté sano (#231).
+            if (Path.GetExtension(path).Equals(".chd", StringComparison.OrdinalIgnoreCase))
+            {
+                if (await Converter.ChdIntact(run.Db, path, ct) is { } intact)
+                {
+                    using var chd = run.Db.Open();
+                    chd.Execute("UPDATE source SET verified = @intact WHERE id = @Id", new { f.Id, intact });
+                    if (intact) verified++;
+                    else missing++;
+                    run.Log(intact ? ApiError.Of("dat.log.chdIntact", ("path", path)) : ApiError.Of("dat.log.chdDamaged", ("path", path)), intact ? "info" : "warn");
+                }
+                else run.Log(ApiError.Of("convert.log.noTool", ("path", path)), "warn");
+                done += f.Size;
+                run.Report((int)(done * 100 / total), null, JsonSerializer.Serialize(job with { After = f.Id }, JsonSerializerOptions.Web));
+                continue;
+            }
+            var sha1 = await Converter.Sha1Of(run.Db, path, ct);
             done += f.Size;
             using var db = run.Db.Open();
             var match = db.QueryFirstOrDefault<string?>("SELECT name FROM dat_entry WHERE console = @Console AND sha1 = @sha1", new { f.Console, sha1 });

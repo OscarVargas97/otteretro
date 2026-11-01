@@ -276,12 +276,18 @@ public static partial class Import
                 continue;
             }
             foreach (var (from, to) in targets) MoveIn(from, to);
-            Register(db, disk.Id, Path.GetRelativePath(disk.Path, targets[0].To), console, item, version, sha1, datName is not null, size);
+            var placed = Path.GetRelativePath(disk.Path, targets[0].To);
+            var chdOk = Path.GetExtension(targets[0].To).Equals(".chd", StringComparison.OrdinalIgnoreCase) && await Converter.ChdIntact(db, targets[0].To, ct) == true;
+            Register(db, disk.Id, placed, console, item, version, sha1, datName is not null || chdOk, size);
             if (p.EntryDisk is { } mine) RemoveRow(db, mine, item.Path);
             if (archive is null)
                 foreach (var (from, _) in targets) RemoveEmptyFolders(Path.GetDirectoryName(from)!, root);
             run.Log(ApiError.Of("import.log.moved", ("path", item.Path), ("to", targets[0].To)));
             p.Moved++;
+            long id;
+            using (var c = db.Open())
+                id = c.ExecuteScalar<long>("SELECT id FROM source WHERE kind = 'file' AND library_id = @Id AND relative_path = @placed", new { disk.Id, placed });
+            await Converter.Convert(run, id, ct); // el formato liviano, al importar (#233)
         }
     }
 
@@ -343,7 +349,7 @@ public static partial class Import
                     try { await Dats.Download(run.Db, known, ct); }
                     catch (HttpRequestException) { run.Log(ApiError.Of("import.log.noDat", ("console", known)), "warn"); }
         }
-        var sha1 = await Dats.Sha1(item.Path, ct);
+        var sha1 = await Converter.Sha1Of(run.Db, item.Path, ct);
         using var db = run.Db.Open();
         var match = db.QueryFirstOrDefault<(string Console, string Name)?>(
             "SELECT console, name FROM dat_entry WHERE sha1 = @sha1 AND (@known IS NULL OR console = @known)", new { sha1, known = item.Console });
@@ -388,7 +394,7 @@ public static partial class Import
     }
 
     /// <summary>Lo que nombra un .cue o un .m3u, solo si está en su misma carpeta o debajo.</summary>
-    static List<string> Companions(string file)
+    internal static List<string> Companions(string file)
     {
         var ext = Path.GetExtension(file).ToLowerInvariant();
         if (ext is not (".cue" or ".m3u")) return [];

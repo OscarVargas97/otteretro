@@ -25,7 +25,7 @@ export function upsertTask(cache: QueryClient, task: TaskInfo) {
     cache.invalidateQueries({ queryKey: ["consoles", "detail"] });
   }
   // Un escaneo terminado cambia lo que tienes (#178).
-  if ((task.kind === "library.scan" || task.kind === "library.verify" || task.kind === "library.import") && task.status === "done") {
+  if ((task.kind === "library.scan" || task.kind === "library.verify" || task.kind === "library.import" || task.kind === "library.convert") && task.status === "done") {
     cache.invalidateQueries({ queryKey: ["game"] });
     cache.invalidateQueries({ queryKey: ["collection"] });
     cache.invalidateQueries({ queryKey: ["consoles"] });

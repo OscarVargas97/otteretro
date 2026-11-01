@@ -475,7 +475,9 @@
         "verified": "{path}: verified ({name}).",
         "notInDat": "{path}: its hash is not in the DAT.",
         "summary": "{verified} verified and {missing} with no match.",
-        "missingFile": "{path} is missing: it was deleted or moved since the last scan."
+        "missingFile": "{path} is missing: it was deleted or moved since the last scan.",
+        "chdIntact": "{path}: the CHD is intact.",
+        "chdDamaged": "{path}: the CHD is damaged."
       }
     },
     "review": {
@@ -510,6 +512,18 @@
         "archiveDone": "{path}: imported and deleted."
       },
       "extracting": "Extracting {path}"
+    },
+    "convert": {
+      "notConvertible": "That console has no light format.",
+      "file": "Converting {console}",
+      "converting": "Converting {path}",
+      "log": {
+        "portKeeps": "{path}: this game's port does not accept that format, so it stays as is.",
+        "noTool": "{path}: the conversion or verification tool is missing.",
+        "failed": "{path}: could not be converted; the original stays as is.",
+        "done": "{path}: converted and checked.",
+        "summary": "Converted: {converted}."
+      }
     }
   },
   "credentials": {
@@ -598,7 +612,8 @@
         "adopt": "Migrate a location to the new layout",
         "scan": "Scan your drives",
         "verify": "Verify files by hash",
-        "import": "Import a folder"
+        "import": "Import a folder",
+        "convert": "Convert to the light format"
       },
       "disk": {
         "migrate": "Move to the standard drive layout"
@@ -759,7 +774,10 @@
       "importPlaceholder": "D:\\Downloads\\Games",
       "importHint": "Each game moves to Juegos on its disk: it is copied, verified and only then deleted from here. Anything whose console is unknown stays in the folder.",
       "importCancel": "Cancel",
-      "importQueued": "Import queued: follow it in the tasks panel."
+      "importQueued": "Import queued: follow it in the tasks panel.",
+      "convert": "Convert",
+      "convertHelp": "Turns what you have of this console into RVZ or CHD. The original is deleted after checking the copy.",
+      "convertQueued": "Conversion queued: follow it in the tasks panel."
     },
     "game": {
       "noneTitle": "Pick a game",

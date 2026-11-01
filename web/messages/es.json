@@ -475,7 +475,9 @@
         "verified": "{path}: verificado ({name}).",
         "notInDat": "{path}: su hash no está en el DAT.",
         "summary": "{verified} verificados y {missing} sin coincidencia.",
-        "missingFile": "No está {path}: se borró o se movió desde el último escaneo."
+        "missingFile": "No está {path}: se borró o se movió desde el último escaneo.",
+        "chdIntact": "{path}: el CHD está sano.",
+        "chdDamaged": "{path}: el CHD está dañado."
       }
     },
     "review": {
@@ -510,6 +512,18 @@
         "archiveDone": "{path}: importado y borrado."
       },
       "extracting": "Descomprimiendo {path}"
+    },
+    "convert": {
+      "notConvertible": "Esa consola no tiene formato liviano.",
+      "file": "Convirtiendo {console}",
+      "converting": "Convirtiendo {path}",
+      "log": {
+        "portKeeps": "{path}: el port de este juego no acepta ese formato, se queda como está.",
+        "noTool": "{path}: falta la herramienta de conversión o verificación.",
+        "failed": "{path}: no se pudo convertir; el original queda igual.",
+        "done": "{path}: convertido y comprobado.",
+        "summary": "Convertidos: {converted}."
+      }
     }
   },
   "credentials": {
@@ -598,7 +612,8 @@
         "adopt": "Migrar una ubicación a la estructura nueva",
         "scan": "Escanear tus discos",
         "verify": "Verificar archivos por hash",
-        "import": "Importar una carpeta"
+        "import": "Importar una carpeta",
+        "convert": "Convertir al formato liviano"
       },
       "disk": {
         "migrate": "Pasar al estándar de discos"
@@ -759,7 +774,10 @@
       "importPlaceholder": "D:\\Descargas\\Juegos",
       "importHint": "Cada juego se mueve a Juegos en su disco: se copia, se verifica y recién entonces se borra de acá. Lo que no se sepa de qué consola es se queda en la carpeta.",
       "importCancel": "Cancelar",
-      "importQueued": "Importación en cola: mira su avance en el panel de tareas."
+      "importQueued": "Importación en cola: mira su avance en el panel de tareas.",
+      "convert": "Convertir",
+      "convertHelp": "Pasa lo que tienes de esta consola a RVZ o CHD. El original se borra después de comprobar la copia.",
+      "convertQueued": "Conversión en cola: mira su avance en el panel de tareas."
     },
     "game": {
       "noneTitle": "Elige un juego",

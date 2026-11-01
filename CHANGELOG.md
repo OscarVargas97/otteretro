@@ -17,6 +17,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **Importar carpeta** en Colección (#193): eliges una carpeta y cada juego va solo a `Juegos\<Consola>\<Juego>` de su disco: se copia, se verifica y recién entonces se borra del origen. Las actualizaciones y DLC van a la carpeta de su juego, y un `.cue` viaja con sus `.bin`. Lo que no se sabe de qué consola es, o chocaría con otro archivo, se queda donde estaba y lo dice el registro.
 - **Carpeta `Entrada` en cada disco** (#194): lo que dejas en `X:\Otteretro\Entrada` se ordena solo en ese mismo disco, si se reconoce con seguridad. Lo dudoso se queda ahí y aparece en Revisar; lo que se está copiando se deja hasta que termine.
 - **Descomprimir solo** (#195): al importar se abren zip, 7z y rar, también en varias partes y con contraseña, sin instalar 7-Zip. Tu lista de contraseñas va en Ajustes › Cuentas y claves y se prueba sola. El comprimido se borra solo si todo lo de adentro quedó en su lugar.
+- **Formatos livianos** (#196): al importar, y con «Convertir» por consola, GameCube y Wii pasan a RVZ y PS1 y PS2 a CHD. El original se borra solo después de comprobar la copia: un RVZ tiene que dar el mismo hash que su ISO, así sigue saliendo verificado por Redump. Si la receta de un port no acepta el formato, el juego se queda como está, y lo que apuntaba al ISO (como Dusklight) pasa a apuntar al nuevo archivo.
 - La ficha de un juego muestra **dónde tienes sus archivos**, con BASE, UPD y DLC, tamaño y si están verificados.
 
 ### Cambios

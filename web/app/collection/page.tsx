@@ -13,6 +13,7 @@ import { request } from "@/lib/client";
 import { usePaged } from "@/lib/paged";
 import type { CollectionPage, ConsoleCount } from "@/lib/types";
 
+const CONVERTIBLE = ["gc", "wii", "ps1", "ps2"]; // las consolas con formato liviano (#196)
 const FILTERS = ["all", "owned", "missing", "pc"] as const;
 const SORTS = ["saga", "name", "year"] as const;
 
@@ -54,6 +55,10 @@ function Collection() {
     onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
   });
   // «Verificar» (#179): el hash de lo que tienes de esta consola contra No-Intro o Redump.
+  // «Convertir» (#233): lo que ya tienes de esta consola al formato liviano.
+  const convert = useMutation({
+    mutationFn: () => request<number>("/api/collection/convert", { method: "POST", body: JSON.stringify({ console: selected }) }),
+  });
   const verify = useMutation({
     mutationFn: () => request<number>("/api/collection/verify", { method: "POST", body: JSON.stringify({ console: selected }) }),
     onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
@@ -97,6 +102,9 @@ function Collection() {
           <div className="toolbar-end">
             <button className="ot-btn" type="button" title={t("collection.scanHelp")} disabled={scan.isPending} onClick={() => scan.mutate()}>{t("collection.scan")}</button>
             <button className="ot-btn" type="button" title={t("collection.importHelp")} onClick={() => setImporting((v) => !v)}>{t("collection.import")}</button>
+            {selected && CONVERTIBLE.includes(selected) && Number(current?.owned ?? 0) > 0 && (
+              <button className="ot-btn" type="button" title={t("collection.convertHelp")} disabled={convert.isPending} onClick={() => convert.mutate()}>{t("collection.convert")}</button>
+            )}
             {current?.hasDat && Number(current.owned) > 0 && (
               <button className="ot-btn" type="button" title={t("collection.verifyHelp")} disabled={verify.isPending} onClick={() => verify.mutate()}>{t("collection.verify")}</button>
             )}
@@ -134,6 +142,8 @@ function Collection() {
         {importFolder.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("collection.importQueued")}</p>}
         {scan.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("collection.scanQueued")}</p>}
         {scan.isError && <p className="error small" role="alert">{describe(scan.error)}</p>}
+        {convert.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("collection.convertQueued")}</p>}
+        {convert.isError && <p className="error small" role="alert">{describe(convert.error)}</p>}
         {verify.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("collection.verifyQueued")}</p>}
         {verify.isError && <p className="error small" role="alert">{describe(verify.error)}</p>}
         {page.isError && <p className="error small" role="alert">{describe(page.error)}</p>}

@@ -16,6 +16,7 @@ public record VerifyRequest(string? Console, long? GameId);
 /// <summary>El ejecutable de un juego de PC suelto, relativo a su carpeta (#182).</summary>
 public record ExecutableRequest(string Path);
 public record ImportRequest(string Path);
+public record ConvertRequest(string Console);
 /// <param name="Ids">Las filas de <c>source</c> que se quitan del disco (#224).</param>
 public record TrashRequest(List<long> Ids);
 
@@ -97,6 +98,14 @@ public static class CatalogEndpoints
         {
             if (Db(s) is not { } db) return NoData();
             var (task, error) = Libraries.Import.Enqueue(db, request.Path);
+            return error is null ? TypedResults.Ok(task!.Value) : TypedResults.BadRequest(error);
+        });
+
+        // «Convertir» (#233): lo que ya tienes de una consola al formato liviano.
+        api.MapPost("/collection/convert", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (ConvertRequest request, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var (task, error) = Libraries.Converter.Enqueue(db, request.Console);
             return error is null ? TypedResults.Ok(task!.Value) : TypedResults.BadRequest(error);
         });
 
