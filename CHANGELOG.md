@@ -2,6 +2,10 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
+## 0.3.0 · en desarrollo
+
+`dev` (abierta por `feat/114-releases`) · lo que entra para la próxima release; sale como prerelease en el canal Pruebas.
+
 ## 0.2.0 · Claude ordena el catálogo
 
 `fase/f2-claude` y `feat/114-releases` · primera release publicada en GitHub, desde `main`
