@@ -29,14 +29,18 @@ public sealed class Credentials(Database db, string machineId, SecretBox box)
         new("steam", "apiKey", "https://steamcommunity.com/dev/apikey", 1),
         new("igdb", "clientId", "https://dev.twitch.tv/console/apps", 1),
         new("igdb", "clientSecret", "https://dev.twitch.tv/console/apps", 1),
-        new("screenscraper", "user", "https://www.screenscraper.fr/", 8),
-        new("screenscraper", "password", "https://www.screenscraper.fr/", 8),
+        new("screenscraper", "user", "https://www.screenscraper.fr/", 4),
+        new("screenscraper", "password", "https://www.screenscraper.fr/", 4),
+        new("archives", "passwords", "", 4),
+        new("onefichier", "apiKey", "https://1fichier.com/console/params.pl", 4),
+        new("mega", "email", "https://mega.io/", 4),
+        new("mega", "password", "https://mega.io/", 4),
+        new("mediafire", "email", "https://www.mediafire.com/", 4),
+        new("mediafire", "password", "https://www.mediafire.com/", 4),
         new("steamgriddb", "apiKey", "https://www.steamgriddb.com/profile/preferences/api", 1),
         new("rawg", "apiKey", "https://rawg.io/apidocs", 1),
         new("retroachievements", "user", "https://retroachievements.org/settings", 9),
         new("retroachievements", "apiKey", "https://retroachievements.org/settings", 9),
-        new("myjdownloader", "email", "https://my.jdownloader.org/", 8),
-        new("myjdownloader", "password", "https://my.jdownloader.org/", 8),
     ];
 
     public static bool IsKnown(string id) => Kinds.Any(k => k.Id == id);

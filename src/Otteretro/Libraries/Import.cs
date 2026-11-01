@@ -99,9 +99,11 @@ public static partial class Import
         var aliases = Scan.Aliases(db);
         var keys = SwitchTitle.HeaderKey(Scan.SystemFolders(db, Disk.List(db)));
 
-        var files = Directory.EnumerateFiles(job.Path, "*", new EnumerationOptions { RecurseSubdirectories = true }).ToList();
         var entryDisk = job.EntryDisk is null ? null : Disk.Get(db, job.EntryDisk);
         if (job.EntryDisk is not null && entryDisk is not { Connected: true }) throw new TaskException(ApiError.Of("library.notConnected"));
+        // Lo que dejó a medias una extracción cortada no se importa: esa extracción se repite.
+        var files = Directory.EnumerateFiles(job.Path, "*", new EnumerationOptions { RecurseSubdirectories = true })
+            .Where(f => !f.Contains(Extracting + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)).ToList();
         if (entryDisk is not null)
         {
             files = files.Where(f => !InUse(f)).ToList();
@@ -112,89 +114,175 @@ public static partial class Import
                          "SELECT id, relative_path FROM source WHERE kind = 'file' AND library_id = @Id AND substr(relative_path, 1, length(@prefix)) = @prefix", new { entryDisk.Id, prefix }).ToList())
                 if (!File.Exists(Path.Combine(entryDisk.Path, relative))) c.Execute("DELETE FROM source WHERE id = @id", new { id });
         }
-        foreach (var archive in files.Where(f => Path.GetExtension(f).ToLowerInvariant() is ".zip" or ".7z" or ".rar"))
-            run.Log(ApiError.Of("import.log.archive", ("path", archive)), "warn");
-        var items = files.Where(f => Scan.GameExtensions.Contains(Path.GetExtension(f)) && Path.GetExtension(f).ToLowerInvariant() is not (".zip" or ".7z"))
-            .Select(f => Classify(f, job.Path, consoles, keys))
+
+        var pass = new Pass(run, db, job, entryDisk, consoles, catalog, aliases, keys,
+            (run.Credentials.Read("archives.passwords") ?? "").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        await Place(pass, files.Where(f => !Archives.IsArchive(f)).ToList(), job.Path, null, ct);
+        foreach (var main in files.Where(Archives.IsMain).ToList()) await Unpack(pass, main, ct);
+        run.Log(ApiError.Of("import.log.summary", ("moved", pass.Moved.ToString()), ("skipped", pass.Skipped.ToString())));
+        // Completa lo demás y manda a Claude lo que no se reconoció (#180). Sin nada nuevo no hay nada que escanear.
+        if (pass.Moved + pass.Waiting > 0) Scan.Enqueue(db);
+    }
+
+    /// <summary>La carpeta temporal de una extracción, fuera de `Entrada\` para que el vigilante no la vea.</summary>
+    const string Extracting = ".extrayendo";
+
+    /// <summary>Lo que se comparte en una importación.</summary>
+    sealed record Pass(TaskRun Run, Database Db, Job Job, DiskInfo? EntryDisk, List<(string Id, string Name)> Consoles,
+        Dictionary<string, Dictionary<string, HashSet<long>>> Catalog, Dictionary<string, Dictionary<string, HashSet<long>>> Aliases, byte[]? Keys, string[] Passwords)
+    {
+        public Dictionary<string, (long? Version, string Folder)> Bases { get; } = [];
+        public HashSet<string> Taken { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public int Moved { get; set; }
+        public int Skipped { get; set; }
+        public int Waiting { get; set; }
+    }
+
+    /// <summary>De dónde salieron los archivos que se están ubicando: el comprimido, su nombre y las carpetas de su camino.</summary>
+    sealed record FromArchive(string Path, string Label, string[] Folders);
+
+    /// <summary>
+    /// Extrae un comprimido en un temporal y ubica sus juegos (§9.5, #230). El comprimido se borra solo si todo lo de adentro quedó en
+    /// su lugar; si algo no se pudo ubicar, se queda entero y lo ya movido no se repite.
+    /// </summary>
+    static async Task Unpack(Pass p, string main, CancellationToken ct)
+    {
+        var parts = Archives.Parts(main);
+        if (p.EntryDisk is not null && parts.Any(InUse)) return; // sigue llegando alguna parte
+        var label = ArchiveSuffix().Replace(Path.GetFileName(main), "");
+        var target = p.EntryDisk is { } disk
+            ? Path.Combine(disk.Path, Extracting, label)
+            : Path.Combine(Path.GetDirectoryName(main)!, label + Extracting);
+        p.Run.Report(0, ApiError.Of("import.extracting", ("path", main)));
+        if (Archives.Extract(main, target, p.Passwords, ct) is { } error)
+        {
+            p.Run.Log(error, "warn");
+            p.Skipped++;
+            RemoveExtracting(p);
+            return;
+        }
+        try
+        {
+            var inner = Directory.EnumerateFiles(target, "*", new EnumerationOptions { RecurseSubdirectories = true }).ToList();
+            var games = inner.Where(f => Scan.GameExtensions.Contains(Path.GetExtension(f)) && !Archives.IsArchive(f)).ToList();
+            if (games.Count == 0)
+            {
+                p.Run.Log(ApiError.Of("import.log.noGames", ("path", main)), "warn");
+                p.Skipped++;
+                return;
+            }
+            var skipped = p.Skipped;
+            await Place(p, inner, target, new(main, label, Folders(Path.GetDirectoryName(main)!, p.Job.Path)), ct);
+            if (p.Skipped != skipped) return;
+            foreach (var part in parts) File.Delete(part);
+            if (p.EntryDisk is { } entry) RemoveRow(p.Db, entry, main);
+            RemoveEmptyFolders(Path.GetDirectoryName(main)!, p.Job.Path);
+            p.Run.Log(ApiError.Of("import.log.archiveDone", ("path", main)));
+        }
+        finally
+        {
+            Directory.Delete(target, recursive: true);
+            RemoveExtracting(p);
+        }
+    }
+
+    /// <summary>La carpeta de las extracciones de `Entrada\`, cuando ya no tiene nada.</summary>
+    static void RemoveExtracting(Pass p)
+    {
+        if (p.EntryDisk is not { } disk) return;
+        var folder = Path.Combine(disk.Path, Extracting);
+        if (Directory.Exists(folder) && !Directory.EnumerateFileSystemEntries(folder).Any()) Directory.Delete(folder);
+    }
+
+    /// <summary>Las carpetas del camino desde la elegida, incluida ella: una que se llama como una consola la dice.</summary>
+    static string[] Folders(string folder, string root) =>
+        Path.GetRelativePath(root, folder).Split(Path.DirectorySeparatorChar).Prepend(Path.GetFileName(root)).Reverse().ToArray();
+
+    static void RemoveRow(Database db, DiskInfo disk, string path)
+    {
+        using var c = db.Open();
+        c.Execute("DELETE FROM source WHERE kind = 'file' AND library_id = @Id AND relative_path = @relative", new { disk.Id, relative = Path.GetRelativePath(disk.Path, path) });
+    }
+
+    /// <summary>Identifica y mueve cada archivo de juego de <paramref name="files"/>.</summary>
+    static async Task Place(Pass p, List<string> files, string root, FromArchive? archive, CancellationToken ct)
+    {
+        var (run, db) = (p.Run, p.Db);
+        var extra = archive?.Folders ?? [];
+        var items = files.Where(f => Scan.GameExtensions.Contains(Path.GetExtension(f)) && !Archives.IsArchive(f))
+            .Select(f => Classify(f, Folders(Path.GetDirectoryName(f)!, root).Concat(extra), p.Consoles, p.Keys))
             // Primero lo que lleva otros archivos, y el BASE antes que sus UPD y DLC, que van a su carpeta.
             .OrderBy(i => Path.GetExtension(i.Path).ToLowerInvariant() switch { ".m3u" => 0, ".cue" => 1, _ => 2 })
             .ThenBy(i => i.Component switch { "BASE" => 0, null => 1, _ => 2 })
             .ThenBy(i => i.Path, StringComparer.OrdinalIgnoreCase).ToList();
 
-        var bases = new Dictionary<string, (long? Version, string Folder)>();
-        var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        int moved = 0, skipped = 0, waiting = 0;
         for (var i = 0; i < items.Count; i++)
         {
             ct.ThrowIfCancellationRequested();
             var item = items[i];
-            if (!taken.Add(item.Path)) continue; // ya viajó con su .cue o su .m3u
+            if (!p.Taken.Add(item.Path)) continue; // ya viajó con su .cue o su .m3u
             run.Report(i * 100 / items.Count, ApiError.Of("import.file", ("path", item.Path)));
 
             var (sha1, datConsole, datName) = await Hash(run, item, ct);
             if ((item.Console ?? datConsole) is not { } console)
             {
-                run.Log(ApiError.Of("import.log.unknown", ("path", item.Path)), "warn");
-                skipped++;
+                run.Log(ApiError.Of("import.log.unknown", ("path", archive?.Path ?? item.Path)), "warn");
+                p.Skipped++;
                 continue;
             }
 
             var name = Path.GetFileNameWithoutExtension(item.Path);
             var parent = Path.GetDirectoryName(item.Path)!;
-            var folder = Disk.Same(parent, job.Path) ? null : Path.GetFileName(parent);
-            var versions = catalog.GetValueOrDefault(console) ?? [];
-            var learned = aliases.GetValueOrDefault(console) ?? [];
+            var folder = Disk.Same(parent, root) ? archive?.Label : Path.GetFileName(parent);
+            var versions = p.Catalog.GetValueOrDefault(console) ?? [];
+            var learned = p.Aliases.GetValueOrDefault(console) ?? [];
             var baseId = item.Component is null ? null : Scan.BaseOf(item.TitleId!);
-            (long? Version, string Folder)? ofBase = baseId is not null && bases.TryGetValue(baseId, out var b) ? b : null;
-            var version = Scan.Match(learned, name) ?? Scan.Match(versions, name) ?? (folder is null ? null : Scan.Match(versions, folder))
+            (long? Version, string Folder)? ofBase = baseId is not null && p.Bases.TryGetValue(baseId, out var b) ? b : null;
+            var version = Scan.Match(learned, name) ?? Scan.Match(versions, name) ?? (folder is null ? null : Scan.Match(learned, folder) ?? Scan.Match(versions, folder))
                 ?? (datName is null ? null : Scan.Match(versions, datName)) ?? ofBase?.Version ?? VersionOfBase(db, baseId);
 
             // Lo que llega solo se mueve si se reconoció con seguridad (#222); lo demás espera acá, y Revisar y Claude lo ven (#180).
-            if (entryDisk is not null && version is null)
+            if (p.EntryDisk is { } entry && version is null)
             {
-                Register(db, entryDisk.Id, Path.GetRelativePath(entryDisk.Path, item.Path), console, item, null, sha1, false, new FileInfo(item.Path).Length);
-                run.Log(ApiError.Of("import.log.waiting", ("path", item.Path)));
-                skipped++;
-                waiting++;
+                var waits = archive?.Path ?? item.Path;
+                Register(db, entry.Id, Path.GetRelativePath(entry.Path, waits), console, item, null, archive is null ? sha1 : null, false, new FileInfo(waits).Length);
+                run.Log(ApiError.Of("import.log.waiting", ("path", waits)));
+                p.Skipped++;
+                p.Waiting++;
                 continue;
             }
 
-            var disk = entryDisk ?? DiskOf(db, console);
+            var disk = p.EntryDisk ?? DiskOf(db, console);
             var gameFolder = ofBase?.Folder ?? GameFolder(db, version, folder, name);
-            if (baseId is not null) bases.TryAdd(baseId, (version, gameFolder));
-            var relative = Path.Combine(ConsoleFolder(db, disk, console, consoles), gameFolder);
+            if (baseId is not null) p.Bases.TryAdd(baseId, (version, gameFolder));
+            var relative = Path.Combine(ConsoleFolder(db, disk, console, p.Consoles), gameFolder);
 
             // El archivo y los que necesita (los .bin de un .cue, los discos de un .m3u), con la misma ruta relativa entre ellos.
-            var group = Companions(item.Path).Where(p => !Disk.Same(p, item.Path)).Prepend(item.Path).ToList();
-            var targets = group.Select(p => (From: p, To: Path.Combine(disk.Path, relative, Path.GetRelativePath(parent, p)))).ToList();
-            taken.UnionWith(group);
+            var group = Companions(item.Path).Where(f => !Disk.Same(f, item.Path)).Prepend(item.Path).ToList();
+            var targets = group.Select(f => (From: f, To: Path.Combine(disk.Path, relative, Path.GetRelativePath(parent, f)))).ToList();
+            p.Taken.UnionWith(group);
             // Un archivo distinto con ese nombre no se pisa; decidir qué hacer con un duplicado es de los megapacks (§9.4).
             if (targets.FirstOrDefault(t => File.Exists(t.To) && !FolderMove.SameContent(t.From, t.To)) is { To: not null } conflict)
             {
                 run.Log(ApiError.Of("import.log.conflict", ("path", conflict.From), ("to", conflict.To)), "warn");
-                skipped++;
+                p.Skipped++;
                 continue;
             }
             var size = new FileInfo(item.Path).Length;
-            if (!Mounts.Same(item.Path, disk.Path) && disk.Free is { } free && free < group.Sum(p => new FileInfo(p).Length))
+            if (!Mounts.Same(item.Path, disk.Path) && disk.Free is { } free && free < group.Sum(f => new FileInfo(f).Length))
             {
                 run.Log(ApiError.Of("import.log.noSpace", ("path", item.Path), ("disk", disk.Name)), "warn");
-                skipped++;
+                p.Skipped++;
                 continue;
             }
             foreach (var (from, to) in targets) MoveIn(from, to);
             Register(db, disk.Id, Path.GetRelativePath(disk.Path, targets[0].To), console, item, version, sha1, datName is not null, size);
-            if (entryDisk is not null)
-                using (var c = db.Open())
-                    c.Execute("DELETE FROM source WHERE kind = 'file' AND library_id = @Id AND relative_path = @relative",
-                        new { entryDisk.Id, relative = Path.GetRelativePath(entryDisk.Path, item.Path) });
-            foreach (var (from, _) in targets) RemoveEmptyFolders(Path.GetDirectoryName(from)!, job.Path);
+            if (p.EntryDisk is { } mine) RemoveRow(db, mine, item.Path);
+            if (archive is null)
+                foreach (var (from, _) in targets) RemoveEmptyFolders(Path.GetDirectoryName(from)!, root);
             run.Log(ApiError.Of("import.log.moved", ("path", item.Path), ("to", targets[0].To)));
-            moved++;
+            p.Moved++;
         }
-        run.Log(ApiError.Of("import.log.summary", ("moved", moved.ToString()), ("skipped", skipped.ToString())));
-        // Completa lo demás y manda a Claude lo que no se reconoció (#180). Sin nada nuevo no hay nada que escanear.
-        if (moved + waiting > 0) Scan.Enqueue(db);
     }
 
     /// <summary>Copiar, forzar a disco y verificar, y recién entonces borrar. Un corte deja el origen entero: la tarea se repite sin daño.</summary>
@@ -225,12 +313,11 @@ public static partial class Import
         File.Delete(from);
     }
 
-    static Item Classify(string file, string root, List<(string Id, string Name)> consoles, byte[]? keys)
+    static Item Classify(string file, IEnumerable<string> folders, List<(string Id, string Name)> consoles, byte[]? keys)
     {
         var ext = Path.GetExtension(file);
         // Una carpeta del camino que se llama como una consola manda, también la que se eligió («…\GameCube»).
-        var segments = Path.GetRelativePath(root, Path.GetDirectoryName(file)!).Split(Path.DirectorySeparatorChar).Prepend(Path.GetFileName(root));
-        var console = segments.Reverse().Select(s => consoles.FirstOrDefault(k => string.Equals(k.Name, s, StringComparison.OrdinalIgnoreCase)
+        var console = folders.Select(s => consoles.FirstOrDefault(k => string.Equals(k.Name, s, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(k.Id, s, StringComparison.OrdinalIgnoreCase)).Id).FirstOrDefault(id => id is not null)
             ?? ByExtension.GetValueOrDefault(ext);
         var serial = Scan.Serial(file);
@@ -336,6 +423,10 @@ public static partial class Import
         for (var dir = folder; Disk.Inside(dir, root) && Directory.Exists(dir) && !Directory.EnumerateFileSystemEntries(dir).Any(); dir = Path.GetDirectoryName(dir)!)
             Directory.Delete(dir);
     }
+
+    /// <summary>Lo que se le quita al nombre de un comprimido para quedarse con el del juego.</summary>
+    [GeneratedRegex(@"(\.part0*1\.rar|\.7z\.001|\.zip|\.7z|\.rar)$", RegexOptions.IgnoreCase)]
+    private static partial Regex ArchiveSuffix();
 
     [GeneratedRegex("""FILE\s+"?([^"]+?)"?\s+\w+\s*$""", RegexOptions.IgnoreCase)]
     private static partial Regex CueFile();

@@ -499,13 +499,17 @@
       "log": {
         "moved": "{path} → {to}",
         "unknown": "{path}: no se sabe de qué consola es y se queda donde está. Ponlo en una carpeta con el nombre de la consola.",
-        "archive": "{path}: los comprimidos todavía no se importan.",
         "conflict": "{path}: ya hay otro archivo distinto en {to}, no se pisa.",
         "noSpace": "{path}: no hay espacio en {disk}.",
         "noDat": "No se pudo bajar el DAT de {console}: se importa sin verificar.",
         "summary": "Importados: {moved}. Sin importar: {skipped}.",
-        "waiting": "{path} espera en Entrada: no se reconoció con seguridad. Revísalo en Revisar."
-      }
+        "waiting": "{path} espera en Entrada: no se reconoció con seguridad. Revísalo en Revisar.",
+        "archiveFailed": "{path}: no se pudo descomprimir (dañado o le falta una parte). Se queda donde está.",
+        "password": "{path}: ninguna contraseña de tu lista lo abre. Suma la suya en Ajustes › Cuentas y claves.",
+        "noGames": "{path}: no trae ningún juego. Se queda donde está.",
+        "archiveDone": "{path}: importado y borrado."
+      },
+      "extracting": "Descomprimiendo {path}"
     }
   },
   "credentials": {
@@ -527,7 +531,10 @@
       "steamgriddb": "SteamGridDB",
       "rawg": "RAWG (opcional)",
       "retroachievements": "RetroAchievements",
-      "myjdownloader": "MyJDownloader"
+      "archives": "Comprimidos",
+      "onefichier": "1fichier",
+      "mega": "Mega",
+      "mediafire": "MediaFire"
     },
     "field": {
       "token": "Token",
@@ -536,7 +543,8 @@
       "clientSecret": "Client secret",
       "user": "Usuario",
       "password": "Contraseña",
-      "email": "Correo"
+      "email": "Correo",
+      "passwords": "Contraseñas, una por línea"
     },
     "later": "Más adelante ({count})",
     "laterHint": "Todavía no hacen falta: cada una se pide cuando llega su fase.",
@@ -552,7 +560,10 @@
       "steamgriddb": "Portadas, fondos y logos.",
       "rawg": "Completa años que IGDB no tiene.",
       "retroachievements": "Tus logros en juegos retro.",
-      "myjdownloader": "Mandar descargas a JDownloader."
+      "archives": "Las contraseñas que se prueban solas al descomprimir.",
+      "onefichier": "Descargar con tu cuenta premium.",
+      "mega": "Descargar con tu cuenta.",
+      "mediafire": "Descargar con tu cuenta."
     }
   },
   "tasks": {

@@ -5,6 +5,7 @@ using Otteretro.Libraries;
 
 namespace Otteretro.Tests;
 
+[Collection("Dats.Handler")] // comparten ese estático
 public class DiskTests
 {
     [Fact]

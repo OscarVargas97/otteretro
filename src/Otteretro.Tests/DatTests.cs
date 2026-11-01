@@ -7,6 +7,7 @@ using Otteretro.Libraries;
 namespace Otteretro.Tests;
 
 /// <summary>#179: DAT de No-Intro y Redump y verificación por hash.</summary>
+[Collection("Dats.Handler")] // comparten ese estático
 public class DatTests
 {
     const string GameCubeDat = """
