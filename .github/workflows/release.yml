@@ -1,5 +1,5 @@
-# Publica una release estable con Velopack al fusionar en main (#181): la versión es la de VERSION (#179),
-# que se edita en el PR de dev a main. La app la toma del canal Estable (#180).
+# Publica una release estable con Velopack al fusionar en main (#181): 0.FASE.N, con la N de la punta de dev que se
+# fusiona (#207). La app la toma del canal Estable (#180).
 name: Release
 
 on:
@@ -27,10 +27,13 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      - name: Versión (la de VERSION, #179)
+      # La N de la punta de dev que se fusionó (#207): la misma de su última prerelease.
+      - name: Versión (0.FASE.N, #207)
         id: version
-        shell: bash
-        run: echo "valor=$(tr -d '[:space:]' < VERSION)" >> "$GITHUB_OUTPUT"
+        shell: pwsh
+        run: |
+          $rev = if (git rev-parse -q --verify HEAD^2) { 'HEAD^2' } else { 'HEAD' }
+          "valor=$(./scripts/version.ps1 -Rev $rev)" >> $env:GITHUB_OUTPUT
 
       - name: Pruebas
         run: dotnet test -c Release

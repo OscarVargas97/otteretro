@@ -28,6 +28,8 @@ public class UpdaterTests
         Assert.Equal(("win", typeof(SimpleWebSource)), Kind(Updater.SourceFor("custom", "https://example.org/otteretro")));
         Assert.Equal(("win", typeof(GithubSource)), Kind(Updater.SourceFor("custom", "https://github.com/alguien/otteretro")));
         Assert.Null(Updater.SourceFor("custom", " "));
+        Assert.Equal(("win", typeof(SimpleFileSource)), Kind(Updater.SourceFor("local", Folder)));
+        Assert.Null(Updater.SourceFor("local", null));
 
         Assert.Equal("stable", new AppConfig().EffectiveUpdateChannel);
         Assert.Equal("custom", new AppConfig { UpdateSource = Folder }.EffectiveUpdateChannel);

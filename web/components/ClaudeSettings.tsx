@@ -118,6 +118,17 @@ function UsageLog({ stamp }: { stamp: number }) {
   const num = (n: number | string) => format.number(Number(n));
   return (
     <>
+      {u.rows.length > 0 && (
+        // El total de la página, arriba del registro (#172).
+        <p className="small usage-total" style={{ margin: 0 }}>
+          {t("pageTotal", {
+            calls: u.rows.length,
+            input: num(u.rows.reduce((a, r) => a + Number(r.inputTokens), 0)),
+            output: num(u.rows.reduce((a, r) => a + Number(r.outputTokens), 0)),
+            cost: format.number(u.rows.reduce((a, r) => a + Number(r.costUsd), 0), { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 3 }),
+          })}
+        </p>
+      )}
       {u.rows.length === 0 ? <p className="small muted" style={{ margin: 0 }}>{t("noUsage")}</p> : (
         <div className="table-wrap">
           <table className="t">

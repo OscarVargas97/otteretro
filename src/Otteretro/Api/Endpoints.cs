@@ -4,12 +4,15 @@ using Otteretro.Data;
 
 namespace Otteretro.Api;
 
-public record AppState(string Version, string? DataFolder, bool Configured, string Language, bool Fullscreen);
+public record AppState(string Version, string? DataFolder, bool Configured, string Language, bool Fullscreen, bool MenuCollapsed);
 public record FolderRequest(string Path);
 public record LanguageRequest(string Language);
+public record MenuRequest(bool Collapsed);
 /// <param name="Channel">stable, testing o custom (#180).</param>
 /// <param name="Origin">Con custom: carpeta, URL o repo de GitHub.</param>
-public record UpdateChannelInfo(string Channel, string? Origin);
+/// <param name="Origin">Con «custom», el otro origen; con «local», la carpeta de los paquetes de este equipo (#163).</param>
+/// <param name="Local">La carpeta local guardada, para volver a ella de un clic.</param>
+public record UpdateChannelInfo(string Channel, string? Origin, string? Local = null);
 public record CredentialRequest(string Value);
 
 /// <summary>
@@ -78,6 +81,14 @@ public static class Endpoints
             return TypedResults.Ok(State(s));
         });
 
+        // Retraer o expandir el menú lateral (#130): se recuerda en config.json.
+        api.MapPut("/menu", (MenuRequest request, AppSession s) =>
+        {
+            s.Config.MenuCollapsed = request.Collapsed;
+            s.Config.Save(s.ConfigPath);
+            return State(s);
+        });
+
         api.MapGet("/drives", () => Mounts.Offer(DriveInfo.GetDrives()
                 .Where(d => d.IsReady && (!OperatingSystem.IsWindows() || d.DriveType == DriveType.Fixed))
                 .Select(d => (d.Name, d.DriveFormat, d.TotalFreeSpace, d.TotalSize)),
@@ -93,17 +104,23 @@ public static class Endpoints
         });
 
         // Ajustes › General › Actualizaciones (#180): el canal y, con «custom», el origen. Al cambiarlo se busca de inmediato.
-        api.MapGet("/update/channel", (AppSession s) => new UpdateChannelInfo(s.Config.EffectiveUpdateChannel, s.Config.UpdateSource));
+        static UpdateChannelInfo ChannelOf(AppConfig c) => new(c.EffectiveUpdateChannel, c.UpdateSource, c.LocalUpdateFolder);
+        api.MapGet("/update/channel", (AppSession s) => ChannelOf(s.Config));
         api.MapPut("/update/channel", async Task<Results<Ok<UpdateChannelInfo>, BadRequest<ApiError>>> (UpdateChannelInfo request, AppSession s, Updater u) =>
         {
             if (!AppConfig.UpdateChannels.Contains(request.Channel)) return TypedResults.BadRequest(ApiError.Of("update.channel"));
             if (request.Channel == "custom" && string.IsNullOrWhiteSpace(request.Origin)) return TypedResults.BadRequest(ApiError.Of("update.noOrigin"));
+            // Local: la carpeta que llega o la que ya estaba guardada.
+            var local = string.IsNullOrWhiteSpace(request.Origin) ? s.Config.LocalUpdateFolder : request.Origin.Trim();
+            if (request.Channel == "local" && (string.IsNullOrWhiteSpace(local) || !Path.IsPathFullyQualified(local)))
+                return TypedResults.BadRequest(ApiError.Of("update.noOrigin"));
             s.Config.UpdateChannel = request.Channel;
             if (request.Channel == "custom") s.Config.UpdateSource = request.Origin!.Trim();
+            if (request.Channel == "local") s.Config.LocalUpdateFolder = local;
             s.Config.Save(s.ConfigPath);
             u.Forget();
             _ = u.Check();
-            return TypedResults.Ok(new UpdateChannelInfo(s.Config.EffectiveUpdateChannel, s.Config.UpdateSource));
+            return TypedResults.Ok(ChannelOf(s.Config));
         });
 
         api.MapPost("/update/restart", Results<Ok, Conflict<ApiError>> (Updater u) =>
@@ -148,6 +165,7 @@ public static class Endpoints
 
         CatalogEndpoints.Map(api);
         ClaudeEndpoints.Map(api);
+        LibraryEndpoints.Map(api);
 
         // Panel de tareas: lo pendiente y lo reciente; cada cambio llega después por el evento "task".
         api.MapGet("/tasks", (TaskQueue q) => q.List());
@@ -156,6 +174,16 @@ public static class Endpoints
             CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(TaskQueue.ReadLog(db, id)) : CatalogEndpoints.NoData());
         api.MapDelete("/tasks/finished", Results<Ok<int>, Conflict<ApiError>> (AppSession s) =>
             CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(TaskQueue.Clear(db)) : CatalogEndpoints.NoData());
+        // Pausar, reanudar y cancelar desde el panel (#146).
+        api.MapPost("/tasks/{id:long}/pause", Results<Ok, NotFound, Conflict<ApiError>> (long id, AppSession s, TaskQueue queue) =>
+            CatalogEndpoints.Db(s) is not { } db ? CatalogEndpoints.NoData() : queue.Pause(db, id) ? TypedResults.Ok() : TypedResults.NotFound());
+        api.MapPost("/tasks/{id:long}/resume", Results<Ok, NotFound, Conflict<ApiError>> (long id, AppSession s, TaskQueue queue) =>
+            CatalogEndpoints.Db(s) is not { } db ? CatalogEndpoints.NoData() : queue.Resume(db, id) ? TypedResults.Ok() : TypedResults.NotFound());
+        api.MapPost("/tasks/{id:long}/cancel", Results<Ok, NotFound, Conflict<ApiError>> (long id, AppSession s, TaskQueue queue) =>
+            CatalogEndpoints.Db(s) is not { } db ? CatalogEndpoints.NoData() : queue.Cancel(db, id) ? TypedResults.Ok() : TypedResults.NotFound());
+        // Quitar una terminada desde su ✕ en el panel (#172); una que corre o espera no se toca.
+        api.MapDelete("/tasks/{id:long}", Results<Ok<int>, Conflict<ApiError>> (long id, AppSession s) =>
+            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(TaskQueue.Clear(db, id)) : CatalogEndpoints.NoData());
 
         // Portada, héroe o logo de un juego desde catalogo/imagenes. Va en <img src>, así que la clave llega en ?key=.
         api.MapGet("/images/{gameId:long}/{kind}", Results<PhysicalFileHttpResult, NotFound> (long gameId, string kind, AppSession s, HttpResponse response) =>
@@ -171,7 +199,7 @@ public static class Endpoints
     }
 
     /// <summary>Abre un enlace con el programa del sistema; false si no hay quién lo abra.</summary>
-    static bool Open(string url)
+    internal static bool Open(string url)
     {
         try
         {
@@ -196,5 +224,5 @@ public static class Endpoints
         DataFolder.IsReady(s.Config.DataFolder) ? new(DataFolder.Open(s.Config.DataFolder!), s.Config.MachineId, box) : null;
 
     static AppState State(AppSession s) =>
-        new(Startup.Version, s.Config.DataFolder, DataFolder.IsReady(s.Config.DataFolder), s.Config.EffectiveLanguage, s.Fullscreen);
+        new(Startup.Version, s.Config.DataFolder, DataFolder.IsReady(s.Config.DataFolder), s.Config.EffectiveLanguage, s.Fullscreen, s.Config.MenuCollapsed);
 }

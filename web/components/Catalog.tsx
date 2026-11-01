@@ -29,12 +29,33 @@ export function hours(minutes: number | string | null | undefined) {
   return m <= 0 ? "—" : m < 60 ? `${m} min` : `${Math.round(m / 60)} h`;
 }
 
-/** Portada 2:3. Sin imagen de SteamGridDB, el nombre sobre el fondo. */
-export function Cover({ gameId, name, hasCover, style }: { gameId: number | string; name: string; hasCover: boolean; style?: React.CSSProperties }) {
-  return hasCover ? (
-    <div className="ot-cover" style={{ backgroundImage: `url("${imageUrl(gameId, "cover")}")`, backgroundSize: "cover", backgroundPosition: "center", ...style }} role="img" aria-label={name} />
-  ) : (
-    <div className="ot-cover" style={style}>{name}</div>
+// Tono de cada consola (#169): la portada que aún no se bajó es un degradado de su color.
+const CONSOLE_HUE: Record<string, number> = {
+  nes: 0, gb: 80, snes: 265, vb: 350, n64: 140, gba: 240, gc: 270, ds: 205, wii: 195, "3ds": 355, wiiu: 190, switch: 358, switch2: 358,
+  ps1: 220, ps2: 228, psp: 232, ps3: 215, vita: 205, ps4: 222, ps5: 212, xbox: 110, x360: 100, xone: 120, xseries: 125, pc: 30, pcvr: 30,
+};
+
+/** Portada 2:3. Sin imagen de SteamGridDB, el nombre sobre un degradado del color de su consola. */
+export function Cover({ gameId, name, hasCover, platform, style }: { gameId: number | string; name: string; hasCover: boolean; platform?: string | null; style?: React.CSSProperties }) {
+  if (hasCover)
+    return <div className="ot-cover" style={{ backgroundImage: `url("${imageUrl(gameId, "cover")}")`, backgroundSize: "cover", backgroundPosition: "center", ...style }} role="img" aria-label={name} />;
+  const hue = platform ? CONSOLE_HUE[platform] : undefined;
+  const tint = hue === undefined ? undefined : { background: `linear-gradient(160deg, hsl(${hue} 45% 34%), hsl(${hue} 35% 14%))` };
+  return <div className="ot-cover" style={{ ...tint, ...style }}>{name}</div>;
+}
+
+// Nombre corto de cada consola para las tablas (#170); el nombre completo va en el título.
+const SHORT: Record<string, string> = { switch: "Switch", switch2: "Switch 2", wii: "Wii", wiiu: "Wii U", vita: "Vita", xbox: "Xbox", x360: "X360", xone: "XOne", xseries: "XSX", pcvr: "PC VR" };
+
+/** Consolas abreviadas, hasta `max` y «+N» con las demás en el título (#170). */
+export function ShortPlatforms({ ids, max = 4 }: { ids: string[]; max?: number }) {
+  const name = useConsoleName();
+  const rest = ids.slice(max);
+  return (
+    <>
+      {ids.slice(0, max).map((p) => <span key={p} className="ot-console" title={name(p)}>{SHORT[p] ?? p.toUpperCase()}</span>)}
+      {rest.length > 0 && <span className="ot-console" title={rest.map(name).join(", ")}>+{rest.length}</span>}
+    </>
   );
 }
 
@@ -49,7 +70,7 @@ export function GameTile({ game }: { game: GameCard }) {
   const id = Number(game.id);
   return (
     <Link className={`ot-game${game.owned ? "" : " is-missing"}${game.platforms.length === 0 ? " is-unplayable" : ""}`} href={`/game/?id=${id}`} style={{ textDecoration: "none", color: "var(--ink)" }}>
-      <Cover gameId={id} name={game.name} hasCover={game.hasCover} />
+      <Cover gameId={id} name={game.name} hasCover={game.hasCover} platform={game.platforms[0]} />
       <p className="ot-game-name" title={game.name}>{game.name}</p>
       <div className="ot-game-meta">
         <Platforms ids={game.platforms} />
@@ -65,6 +86,17 @@ export function GameTile({ game }: { game: GameCard }) {
   );
 }
 
+/** Barra de avance con «3 de 14» al lado (#170). `label` es lo que lee el lector de pantalla. */
+export function Progress({ done, total, label }: { done: number; total: number; label: string }) {
+  const t = useTranslations("catalog");
+  return (
+    <div className="progress-line" role="img" aria-label={label}>
+      <div className="ot-progress"><span style={{ width: `${total > 0 ? (100 * done) / total : 0}%` }} /></div>
+      <span className="small muted tabular" aria-hidden="true">{t("ofTotal", { done, total })}</span>
+    </div>
+  );
+}
+
 /** Tarjeta de saga (componente SagaCard). La id 0 es «Emulación», los juegos sin saga. */
 export function SagaTile({ saga }: { saga: SagaCard }) {
   const t = useTranslations("catalog");
@@ -75,14 +107,19 @@ export function SagaTile({ saga }: { saga: SagaCard }) {
     <Link className="ot-saga" href={`/saga/?id=${id}`} style={{ textDecoration: "none", color: "var(--ink)" }}>
       <div className="ot-saga-art" style={cover}><span className="saga-art-name">{name}</span></div>
       <div className="ot-saga-body">
-        <div className="ot-saga-stats">
-          <span>{id === 0 ? t("noSaga") : [saga.favorite && `★ ${t("favorite")}`, saga.following && t("following")].filter(Boolean).join(" · ") || " "}</span>
-          {Number(saga.playtime) > 0 && <span>{hours(saga.playtime)}</span>}
+        {/* Insignias (#170): ★, Icónica y Exclusiva de la empresa. La fila está siempre, así todas las tarjetas miden lo mismo. */}
+        <div className="ot-saga-badges">
+          {id === 0 && <span className="ot-badge">{t("noSaga")}</span>}
+          {saga.favorite && <span className="ot-badge ot-fav">★ {t("favorite")}</span>}
+          {saga.iconic && <span className="ot-badge ot-badge-iconic">{t("iconic")}</span>}
+          {saga.exclusive && <span className="ot-badge ot-badge-info">{t("exclusiveOf", { company: saga.exclusive })}</span>}
+          {saga.following && <span className="ot-badge">{t("following")}</span>}
         </div>
         <div className="ot-saga-stats">
           <span>{t("games", { count: Number(saga.games) })}</span>
-          <span>{t("ownedCount", { count: Number(saga.owned) })}</span>
+          {Number(saga.playtime) > 0 && <span>{hours(saga.playtime)}</span>}
         </div>
+        <Progress done={Number(saga.owned)} total={Number(saga.games)} label={t("ownedCount", { count: Number(saga.owned) })} />
         <div className="chips" style={{ gap: 4 }}><Platforms ids={saga.platforms} /></div>
       </div>
     </Link>

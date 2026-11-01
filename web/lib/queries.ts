@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { request } from "./client";
-import type { ApiError, ConsoleCount, GameDetail, NextGame, ReviewPage, RoutesPage, SagaDetail, VersionCompare } from "./types";
+import { pagedOptions } from "./paged";
+import type { ApiError, ConsoleCount, GameDetail, NextGame, ReviewPage, RoutesPage, SagaDetail, SagaPage, VersionCompare } from "./types";
 
 /** Consultas que se piden por adelantado (#105): la pantalla y el enlace usan la misma clave, así el clic encuentra los datos. */
 export const sagaQuery = (id: string) => ({ queryKey: ["saga", id], queryFn: () => request<SagaDetail>(`/api/sagas/${id}`) });
@@ -22,6 +23,10 @@ export function sagasUrl(filter: string, where: string, sort: string, offset: nu
   return `/api/sagas?${params}&offset=${offset}`;
 }
 
+/** La lista de Sagas por tramos: la misma para la pantalla y la pre-carga (#128). */
+export const sagasQuery = (filter: string, where: string, sort: string) =>
+  pagedOptions(["sagas", filter, where, sort], (offset) => sagasUrl(filter, where, sort, offset), (p: SagaPage) => ({ items: p.items, total: Number(p.total) }));
+
 /** Pide lo que abre un enlace (a una saga, un juego o una pestaña del menú) antes del clic. Lo ya pedido y fresco no se repite. */
 export function prefetchLink(client: QueryClient, href: string) {
   const url = new URL(href, location.origin);
@@ -36,7 +41,7 @@ export function prefetchLink(client: QueryClient, href: string) {
     client.prefetchQuery(compareQuery(id));
   }
   else if (path === "/sagas")
-    client.prefetchInfiniteQuery({ queryKey: ["sagas", "all", "", "recognized"], queryFn: ({ pageParam }) => request(sagasUrl("all", "", "recognized", pageParam)), initialPageParam: 0 });
+    client.prefetchInfiniteQuery(sagasQuery("all", "", "recognized"));
   else if (path === "/collection") client.prefetchQuery(consolesQuery);
   else if (path === "/review") client.prefetchQuery(reviewQuery);
   else if (path === "") {

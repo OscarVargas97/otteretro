@@ -116,8 +116,12 @@ public class CatalogCleanupTests : IAsyncDisposable
         Assert.Empty(TaskQueue.ReadLog(f.Db, task.Id));
 
         // Sin cambios en los datos, otra pasada no llama a Claude.
-        Assert.Equal("done", (await f.Run(CatalogCleanup.Enqueue(f.Db))).Status);
+        var again = await f.Run(CatalogCleanup.Enqueue(f.Db));
+        Assert.Equal("done", again.Status);
         Assert.Single(calls);
+        // #172: el ✕ de una tarea terminada borra solo esa.
+        Assert.Equal(0, TaskQueue.Clear(f.Db, again.Id + 1));
+        Assert.Equal(1, TaskQueue.Clear(f.Db, again.Id));
 
         foreach (var id in Enumerable.Range(1, 4).Reverse()) Assert.True(CatalogCleanup.Undo(f.Db, id));
         Assert.False(CatalogCleanup.Undo(f.Db, 1));

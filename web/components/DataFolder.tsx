@@ -1,12 +1,11 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { request } from "@/lib/client";
-import { gb } from "@/lib/format";
 import { useDescribeError, useDynamicT } from "@/lib/i18n";
-import type { AppState, Drive, FolderInfo, FolderRequest, MoveState } from "@/lib/types";
+import type { AppState, FolderRequest, MoveState } from "@/lib/types";
 
 /** Estado de la mudanza de la carpeta de datos; llega en vivo por el evento "move". */
 export const useMove = () =>
@@ -40,122 +39,77 @@ export function MoveTask() {
   );
 }
 
-/** Ajustes › Carpeta de datos: dónde está, cuánto ocupa, y moverla o usar otra (S7). */
-export function DataFolderSettings() {
+/** Llevar los datos de la app a otro disco (#169): es la fila «Datos de Otteretro» de Almacenamiento. */
+export function useMoveData() {
+  const cache = useQueryClient();
+  return useMutation({
+    mutationFn: (body: FolderRequest) => request<MoveState>("/api/data-folder/move", { method: "POST", body: JSON.stringify(body) }),
+    // El aviso de fin por SSE puede llegar antes que esta respuesta: no se pisa con el «empezó».
+    onSuccess: (state) => cache.setQueryData<MoveState>(["move"], (old) => (old && !old.running && old.destination === state.destination ? old : state)),
+  });
+}
+
+/** Progreso y resultado de la mudanza de los datos; al terminar, la ruta y el disco ★ pasan a ser los nuevos. */
+export function DataMoveStatus() {
   const t = useTranslations("dataFolder");
-  const locale = useLocale();
   const describe = useDescribeError();
   const stepName = useStepName();
   const cache = useQueryClient();
-  // Mientras se mide por primera vez (Used null), se vuelve a pedir cada 2 s (#106).
-  const info = useQuery({ queryKey: ["folder"], queryFn: () => request<FolderInfo>("/api/data-folder"), refetchInterval: (q) => q.state.data?.used == null ? 2000 : false }).data;
-  const drives = useQuery({ queryKey: ["drives"], queryFn: () => request<Drive[]>("/api/drives") }).data;
   const m = useMove();
-  const [mode, setMode] = useState<"move" | "use" | null>(null);
-  const [dismissed, setDismissed] = useState<string | null>(null); // el aviso de la mudanza se cierra (#111)
-  const open = useMutation({ mutationFn: () => request("/api/data-folder/open", { method: "POST" }) });
-  const [path, setPath] = useState("");
+  const [dismissed, setDismissed] = useState<string | null>(null); // el aviso se cierra (#111)
 
-  const refresh = () => {
-    cache.invalidateQueries({ queryKey: ["state"] });
-    cache.invalidateQueries({ queryKey: ["folder"] });
-  };
-  const move = useMutation({
-    mutationFn: (body: FolderRequest) => request<MoveState>("/api/data-folder/move", { method: "POST", body: JSON.stringify(body) }),
-    onSuccess: (state) => {
-      // El aviso de fin por SSE puede llegar antes que esta respuesta: no se pisa con el «empezó».
-      cache.setQueryData<MoveState>(["move"], (old) => (old && !old.running && old.destination === state.destination ? old : state));
-      setMode(null);
-    },
-  });
-  const switchTo = useMutation({
-    mutationFn: (body: FolderRequest) => request<AppState>("/api/data-folder", { method: "POST", body: JSON.stringify(body) }),
-    onSuccess: () => {
-      refresh();
-      setMode(null);
-    },
-  });
-  const action = mode === "move" ? move : switchTo;
-
-  // Al terminar la mudanza, la ruta mostrada pasa a ser la nueva.
   const finishedAt = m?.step === "done" ? m.destination : null;
   useEffect(() => {
-    if (finishedAt) {
-      cache.invalidateQueries({ queryKey: ["state"] });
-      cache.invalidateQueries({ queryKey: ["folder"] });
-    }
+    if (finishedAt) for (const key of ["state", "folder", "libraries"]) cache.invalidateQueries({ queryKey: [key] });
   }, [finishedAt, cache]);
 
-  const destination = m?.destination ?? "";
-  const notice = m && !m.running && (m.step === "done" || m.error) ? `${m.step}|${m.destination}` : null;
-  const showNotice = notice !== null && notice !== dismissed;
-  return (
-    <div className="panel">
+  if (!m) return null;
+  const destination = m.destination ?? "";
+  const notice = !m.running && (m.step === "done" || m.error) ? `${m.step}|${m.destination}` : null;
+  if (m.running) return (
+    <div className="form-block" role="status">
       <div className="version-row">
-        <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-          <span className="folder-path">{info?.path}</span>
-          {info && <span className="small muted">{info.used == null ? t("usageMeasuring", { free: gb(info.freeOnDrive, locale) }) : t("usage", { used: gb(info.used, locale), free: gb(info.freeOnDrive, locale) })}</span>}
-        </div>
-        <button className="ot-btn" type="button" onClick={() => open.mutate()}>{t("open")}</button>
+        <span><span className="spinner" aria-hidden="true" style={{ display: "inline-block", marginRight: 8 }} />{t("progress", { step: stepName(m.step), destination })}</span>
+        <span className="small muted">{percent(m)} %</span>
       </div>
-      <span className="small muted">{t("contents")}</span>
-      {open.error && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(open.error)}</p>}
-      {!m?.running && !mode && (
-        <>
-          <div className="sentence">
-            <button className="ot-btn ot-btn-primary" type="button" onClick={() => { setMode("move"); setPath(""); action.reset(); }}>{t("moveButton")}</button>
-            <button className="link-btn" type="button" onClick={() => { setMode("use"); setPath(""); action.reset(); }}>{t("useButton")}</button>
-          </div>
-          <p className="small muted" style={{ margin: 0 }}>{t("difference")}</p>
-        </>
-      )}
-
-      {mode && (
-        <div className="form-block">
-          <p className="small" style={{ margin: 0 }}>{mode === "move" ? t("moveHelp") : t("useHelp")}</p>
-          <div className="chips">
-            {drives?.map((d) => (
-              <button key={d.name} className="chip" type="button" onClick={() => setPath(d.folder)}>
-                {t("driveChip", { path: d.folder, free: gb(d.free, locale) })}
-              </button>
-            ))}
-          </div>
-          <label className="small muted" htmlFor="new-path">{t("folderLabel")}</label>
-          <input id="new-path" value={path} onChange={(e) => setPath(e.target.value)} placeholder={t("placeholder")} />
-          {action.isError && <p className="error small" style={{ margin: 0 }}>{describe(action.error)}</p>}
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="ot-btn" type="button" onClick={() => setMode(null)}>{t("cancel")}</button>
-            <button className="ot-btn ot-btn-primary" type="button" disabled={!path || action.isPending} onClick={() => action.mutate({ path })}>
-              {mode === "move" ? t("move") : t("useThis")}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {m?.running && (
-        <div className="form-block" role="status">
-          <div className="version-row">
-            <span><span className="spinner" aria-hidden="true" style={{ display: "inline-block", marginRight: 8 }} />{t("progress", { step: stepName(m.step), destination })}</span>
-            <span className="small muted">{percent(m)} %</span>
-          </div>
-          <div className="ot-progress"><span style={{ width: `${percent(m)}%` }} /></div>
-          <span className="small muted">{t("dontClose")}</span>
-        </div>
-      )}
-      {showNotice && m?.step === "done" && (
-        <div className="result" role="status">
-          <span className="ot-badge ot-badge-have">{t("moved")}</span>
-          <span className="small muted" style={{ flex: 1 }}>{m.warning ? describe(m.warning) : t("nowIn", { destination })}</span>
-          <button className="ot-btn ot-btn-sm ot-btn-ghost" type="button" aria-label={t("dismiss")} onClick={() => setDismissed(notice)}>✕</button>
-        </div>
-      )}
-      {showNotice && m?.error && (
-        <div className="result" role="status">
-          <span className="ot-badge ot-badge-danger">{t("error")}</span>
-          <span className="small muted" style={{ flex: 1 }}>{describe(m.error)}</span>
-          <button className="ot-btn ot-btn-sm ot-btn-ghost" type="button" aria-label={t("dismiss")} onClick={() => setDismissed(notice)}>✕</button>
-        </div>
-      )}
+      <div className="ot-progress"><span style={{ width: `${percent(m)}%` }} /></div>
+      <span className="small muted">{t("dontClose")}</span>
     </div>
+  );
+  if (notice === null || notice === dismissed) return null;
+  return (
+    <div className="result" role="status">
+      <span className={`ot-badge ${m.error ? "ot-badge-danger" : "ot-badge-have"}`}>{m.error ? t("error") : t("moved")}</span>
+      <span className="small muted" style={{ flex: 1 }}>{m.error ? describe(m.error) : m.warning ? describe(m.warning) : t("nowIn", { destination })}</span>
+      <button className="ot-btn ot-btn-sm ot-btn-ghost" type="button" aria-label={t("dismiss")} onClick={() => setDismissed(notice)}>✕</button>
+    </div>
+  );
+}
+
+/** «⋯ › Usar otra carpeta de datos» (S7): la de otro PC, por ejemplo. La actual no se toca. */
+export function UseOtherFolder({ onDone }: { onDone: () => void }) {
+  const t = useTranslations("dataFolder");
+  const describe = useDescribeError();
+  const cache = useQueryClient();
+  const [path, setPath] = useState("");
+  const use = useMutation({
+    mutationFn: (body: FolderRequest) => request<AppState>("/api/data-folder", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      for (const key of ["state", "folder", "libraries"]) cache.invalidateQueries({ queryKey: [key] });
+      onDone();
+    },
+  });
+  return (
+    <section className="settings-blocks">
+      <h2 id="use-folder" style={{ margin: 0 }}>{t("useButton")}</h2>
+      <p className="small" style={{ margin: 0 }}>{t("useHelp")}</p>
+      <label className="small muted" htmlFor="new-path">{t("folderLabel")}</label>
+      <input id="new-path" value={path} onChange={(e) => setPath(e.target.value)} placeholder={t("placeholder")} />
+      {use.isError && <p className="error small" style={{ margin: 0 }}>{describe(use.error)}</p>}
+      <div style={{ display: "flex", gap: 8 }}>
+        <button className="ot-btn" type="button" onClick={onDone}>{t("cancel")}</button>
+        <button className="ot-btn ot-btn-primary" type="button" disabled={!path || use.isPending} onClick={() => use.mutate({ path })}>{t("useThis")}</button>
+      </div>
+    </section>
   );
 }

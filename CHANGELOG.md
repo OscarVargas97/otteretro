@@ -2,6 +2,62 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
+## 0.3.12 · Carpetas y herramientas
+
+`fase/f3-carpetas`, `feat/146-pausar-cancelar-tareas`, `feat/148-almacenamiento-por-tipo`, `fix/151-pestanas-centradas`, `feat/157-discos-como-steam`, `feat/163-canal-local`, `feat/165-version-por-pr`, `feat/167-datos-en-disco`, `feat/169-almacenamiento-steam`, `feat/171-mover-por-grupos` y `chore/173-release-f3` · F3 (#141): tus juegos y herramientas en la estructura definitiva antes de construir lo demás encima · release a `main` en el canal Estable; trae también lo de F2.5 (0.2.1), que no había salido como estable.
+
+### Nuevo
+- **Canal Local** en Ajustes › General › Actualizaciones (#163): además de Estable y Pruebas, los paquetes que armas en este equipo. Su carpeta se recuerda aparte de Otro origen, así vuelves a ella de un clic.
+- **Discos, como en Steam** (#157): en Ajustes › Almacenamiento eliges discos y Otteretro arma solo en cada uno `X:\Otteretro` con Juegos, Emuladores, Ports, Complementos y Sistema. Ves cuánto ocupa cada tipo en una barra, marcas juegos, emuladores o la carpeta de sistema de una consola y los mueves a otro disco. El primero es el **predeterminado ★**: ahí va lo nuevo y lo de Herramientas.
+- **Pasar al estándar** (#157): `E:\Consolas` pasa a `E:\Otteretro\Juegos` (en el mismo disco, sin copiar nada) y Herramientas, al disco predeterminado, con las rutas de los emuladores y los enlaces al día. Adoptar una carpeta de antes lo hace solo.
+- **Almacenamiento por tipo**, en Ajustes › Almacenamiento (#148): juegos, emuladores, ports, complementos y sistema (BIOS, keys) tienen cada uno sus **ubicaciones**, en cualquier disco o en la red. Adopta la carpeta donde ya tienes tus juegos o crea una nueva. Cada ubicación muestra su espacio libre y si está conectada; se puede renombrar, mover y quitar (quitar nunca borra archivos). Si un disco cambia de letra o vuelve a conectarse, la ubicación se encuentra sola.
+- **La consola como centro**, en Ajustes › Consolas (#148): al elegir una ves juntos sus juegos (en qué ubicación), sus emuladores, sus ports con el juego que cubren, sus complementos y su sistema, y lo que le falta. Ahí eliges a qué ubicación van sus juegos nuevos.
+- **Adoptar `E:\Consolas` la ordena sola**: los juegos quedan en `Consola\Juego`, Dolphin, Ryujinx SS4K y Dusklight pasan a Herramientas con su versión, y las texturas y packs, a Complementos. Sus rutas internas se ponen al día, así que siguen encontrando tus juegos y partidas.
+- **Mover una ubicación, una consola o un emulador** a otro disco (la consola, desde su detalle en Ajustes › Consolas; un emulador, port o complemento, desde Herramientas a otra ubicación de su tipo): se copia, se verifica cada archivo y recién entonces se borra el origen. Si se corta, sigue donde quedó. Las rutas de los emuladores y los enlaces de texturas y partidas se actualizan solos.
+- **Herramientas** ya se abre: pestañas Emuladores, Ports, Complementos y Sistema, con cada instalación, su versión, su consola y, en los ports, el juego que cubren.
+- **Paso 4 de la bienvenida**: encuentra la carpeta con la estructura antigua y ofrece adoptarla.
+- **Pausar, reanudar y cancelar tareas** desde el panel de tareas (#146): una tarea pausada, como la carga con Claude, se queda quieta con lo que ya hizo hasta que la reanudas, y el horario de Claude no lanza otra encima. Cancelar pide confirmar y conserva lo hecho; una mudanza cancelada no toca el origen.
+
+### Cambios
+- **La versión avanza con cada cambio** (#165): cada PR que entra a dev sube el último número (0.3.8, 0.3.9…), en vez de quedarse en 0.3.0 hasta la release. La prerelease se llama 0.3.N-dev y la estable, 0.3.N.
+- El menú muestra las fases nuevas del plan: Steam llega en la F8, Descargas en la F10 y Descubrir en la F11.
+- **Almacenamiento nunca aparece vacío** (#167): el disco donde están los datos de la app se agrega solo y es el ★. La pestaña «Carpeta de datos» ya no está.
+- **Mover por consola o por cosa** (#171): en Almacenamiento, lo de cada disco va en grupos que se despliegan: Juegos › GBA › cada juego, Emuladores › Dolphin › cada versión. Marcas un tipo entero, toda una consola o solo algunos juegos, ves cuánto pesa lo marcado y lo mueves a otro disco, a la misma carpeta. Una consola entera se mueve de una vez y se junta con lo que el otro disco ya tenga de ella.
+- **Almacenamiento como el de Steam** (#169): arriba eliges el disco y tienes «+» para sumar otro y «⋯» para abrir su carpeta, reconectarlo o quitarlo; al medio, cuánto ocupa cada cosa en una barra; abajo, una tabla con lo que tiene y «Mover» al pie. Los datos de la app son una fila más: la marcas y los llevas a otro disco igual que un juego (se mueven solo los datos, los juegos se quedan).
+- **Ajustes en una sola columna centrada** (#151): siguen las pestañas de arriba y el contenido va al medio, sin los bloques en dos columnas. Herramientas, igual: pestañas Emuladores, Ports, Complementos y Sistema.
+
+### Arreglos
+- Ya no aparece «Failed to execute 'json' on 'Response'» al abrir una carpeta u otras acciones que no devuelven nada (#169).
+
+## 0.2.1 · Pulido de UI · sale con la 0.3.12
+
+`fase/f2.5-pulido`, `fix/128-prueba-f25`, `feat/130-ajustes-menu` y `feat/132-bajar-portadas` · F2.5 es un extra de F2, así que sale como 0.2.1 (antes se numeró 0.3.0) · lo que entra para la próxima release; sale como prerelease en el canal Pruebas.
+
+### Cambios
+- **La barra de arriba queda fija** al bajar, y en una saga o un juego muestra el camino («Sagas › saga › juego») para volver con un clic.
+- **Un solo aviso de claves**: dice todos los servicios que no tienen clave y lleva a Cuentas y claves.
+- **Las portadas que aún no bajan** se ven con el color de su consola, no grises.
+- **Descubrir, Descargas, Herramientas y Steam** se ven atenuadas en el menú con la fase en que llegan, y no se abren.
+- **Cada pantalla vacía** dice qué hacer y lleva ahí con un botón.
+- Los botones que son enlaces ya no van subrayados.
+- **Inicio**: «Siguiente en tus rutas» es una tarjeta por ruta con la saga, la ruta, cuánto llevas y «Ver ficha»; el bloque Revisar aparece solo si hay algo por aprobar.
+- **Sagas**: los filtros quedan fijos al bajar y dicen cuántas sagas hay; cada tarjeta muestra si es favorita, icónica o exclusiva de una empresa, y una barra con cuántos juegos tienes («3 de 14»).
+- **Saga**: la ruta se elige con pestañas junto al título, con el avance al lado; los pasos van unidos por una línea, con su número sobre la portada y lo jugado a color. En la tabla, las consolas van abreviadas (hasta 4 y «+N»), y «Pedir a Claude que la recalcule» pasó al menú «⋯» del encabezado.
+- **Juego**: el seguimiento es más compacto (el estado en un control de una línea; fechas, nota y tiempo en una fila; las notas plegadas). Versiones y comparativa son una sola tabla, con cada puntaje como barra de 5 y el mejor de cada criterio resaltado. En «Datos y fuentes», un lápiz junto a cada valor para corregirlo.
+- **Colección**: la lista de consolas muestra solo las que tienen algo según el filtro, agrupadas por empresa, y Cuadrícula/Lista es un control con íconos.
+- **Revisar**: una ruta por aprobar se ve con las portadas de sus juegos numeradas y la razón de cada paso.
+- **Panel de tareas**: cada tarea con su barra de progreso, el estado como insignia de color y una ✕ para quitar una terminada.
+- **Bienvenida** con la nutria y los 7 pasos, con la fase en que llega cada uno.
+- **Menú rápido del mando**: además de «Ir a Steam», Inicio, Buscar, Tareas y Ajustes.
+- **Ajustes › Claude**: arriba del registro de uso, el total de la página (llamadas, tokens y costo).
+- **Ajustes usa el ancho de la pantalla**: con espacio, sus bloques van en dos columnas (`feat/130-ajustes-menu`).
+- **El menú lateral se retrae** a una franja de íconos con su botón de abajo o Ctrl+B, y la app lo recuerda (`feat/130-ajustes-menu`).
+- **Bajar portadas a pedido**: en Ajustes › Consolas, el bloque «Portadas» dice cuántos juegos tienen portada y con «Bajar portadas» la descarga vuelve a la cola si se cortó (`feat/132-bajar-portadas`).
+
+### Arreglos
+- **Abrir una saga o un juego empieza arriba**: antes la ventana se quedaba a la altura de la pantalla anterior; «Atrás» sigue volviendo a donde estabas (`fix/128-prueba-f25`).
+- **Sagas ya no falla** con «getNextPageParam is not a function» al volver a la lista después de haberla bajado (`fix/128-prueba-f25`).
+
 ## 0.2.0 · Claude ordena el catálogo
 
 `fase/f2-claude` y `feat/114-releases` · primera release publicada en GitHub, desde `main`

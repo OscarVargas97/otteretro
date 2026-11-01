@@ -1,0 +1,14 @@
+{
+  "id": "dolphin",
+  "name": "Dolphin",
+  "kind": "emulator",
+  "folder": "GameCube",
+  "detect": "Dolphin.exe",
+  "version": { "from": "date" },
+  "portable": [{ "type": "file", "path": "portable.txt", "system": "windows" }],
+  "saves": ["User/GC", "User/Wii", "User/StateSaves"],
+  "config": ["User/Config", "User/GameSettings"],
+  "gamePaths": [{ "file": "User/Config/Dolphin.ini", "format": "ini", "key": "ISOPath*" }],
+  "settings": [{ "file": "User/Config/Dolphin.ini", "format": "ini", "section": "General", "key": "RecursiveISOPaths", "value": "True" }],
+  "formats": ["iso", "gcm", "rvz", "wbfs", "ciso", "gcz", "wia"]
+}

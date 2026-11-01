@@ -1,4 +1,4 @@
-# Publica una prerelease con Velopack en cada push a dev (#179, #180): VERSION-dev.N, en el canal «dev» de Velopack.
+# Publica una prerelease con Velopack en cada push a dev (#179, #180): 0.FASE.N-dev (#207: N sube con cada PR fusionado), en el canal «dev» de Velopack.
 # La app la toma solo con el canal Pruebas; las estables la ignoran.
 name: Prerelease
 
@@ -27,10 +27,11 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      - name: Versión (VERSION-dev.N, #179)
+      - name: Versión (0.FASE.N-dev, #207)
         id: version
-        shell: bash
-        run: echo "valor=$(tr -d '[:space:]' < VERSION)-dev.$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
+        shell: pwsh
+        run: |
+          "valor=$(./scripts/version.ps1)-dev" >> $env:GITHUB_OUTPUT
 
       - name: Pruebas
         run: dotnet test -c Release

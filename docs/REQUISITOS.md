@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-11-01, con la #179 a la #182 (versión por fase, canales de actualización, `main` por defecto y la primera release 0.2.0), la #178 (la imagen de cada saga), la #169 a la #177 (revisión de UI de toda la app y fluidez primero, encuesta 15), la #165 a la #168 (exclusivas, más reconocidas, catálogo separado de tus datos), la #162, la #163 y la #164 (consolas que habilitas tú, catálogo al día cada semana y reevaluar icónicas), la #161 (corregir lo que cambió Claude), la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
+> **Última actualización:** 2026-11-01, con la #211 (mover por grupos: tipo › consola › cada cosa, una consola entera en una sola tarea), la #210 (Almacenamiento con la distribución de Steam: tabla con los datos de la app como una fila más), la #208 y la #209 (la carpeta de datos es la raíz del disco ★, que se registra solo, y los discos en un desplegable como Steam), la #207 (el tercer número sube con cada PR a dev), la #206 (canal de actualizaciones Local), la #201 a la #205 (discos como Steam: una raíz `X:\Otteretro` por disco con cinco carpetas fijas, `E:\Consolas` y Herramientas pasan al estándar, disco predeterminado ★ y mover lo marcado), la #200 (Ajustes y Herramientas con pestañas arriba y una sola columna centrada; reemplaza la #196 y la #197), la #192 a la #199 (encuesta 16: la consola como centro, Almacenamiento por tipo con ubicaciones, Herramientas como inventario y Ajustes con lista y detalle), la #186 a la #189 (plan reorganizado desde la F3, adoptar migra a §5.1, Dusklight con su enlace y avisos de versiones nuevas), la #184 y la #185 (Ajustes en dos columnas y menú lateral retraíble), la #183 (`0.FASE.extra`: F2.5 es 0.2.1 y el plan completo, 1.0.0), la #179 a la #182 (versión por fase, canales de actualización, `main` por defecto y la primera release 0.2.0), la #178 (la imagen de cada saga), la #169 a la #177 (revisión de UI de toda la app y fluidez primero, encuesta 15), la #165 a la #168 (exclusivas, más reconocidas, catálogo separado de tus datos), la #162, la #163 y la #164 (consolas que habilitas tú, catálogo al día cada semana y reevaluar icónicas), la #161 (corregir lo que cambió Claude), la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
 
 ## Cómo se mantiene
 
@@ -52,8 +52,8 @@ Otteretro es una app **personal** para:
 - **Idioma y uso:** interfaz en **español e inglés** (#140 a #142), con los textos en un catálogo por idioma para que sumar otro sea agregar un archivo; se elige en Ajustes y por defecto sigue al sistema. Pensada para escritorio con ratón y teclado. Para la tele se usa Steam Big Picture.
 - **Idioma del código** (#125, #139): identificadores, tablas y columnas en **inglés**; documentación, comentarios, commits, PRs e issues en español.
 - **Repositorio:** en **GitHub, público** (#145). Ramas: **`dev`**, donde se trabaja, y **`main`**, que es lo publicado.
-- **Releases:** se desarrolla en `dev` y una release es un PR de `dev` a `main` (#181); al fusionarlo, GitHub Actions publica la versión de `VERSION`, `0.FASE.arreglo` (#179). Cada push a `dev` publica una prerelease `X-dev.N`.
-- **Canales** (#180): en Ajustes › General, Estable (releases de `main`, por defecto), Pruebas (prereleases de `dev`) u Otro origen (carpeta, URL o repo de GitHub de quien arma su propia versión).
+- **Releases:** se desarrolla en `dev` y una release es un PR de `dev` a `main` (#181); al fusionarlo, GitHub Actions publica `0.FASE.N` (#207, reemplaza el tercer número de la #183): `VERSION` dice la fase y N sube con cada PR fusionado en `dev`, que publica la prerelease `0.FASE.N-dev`; la estable lleva la N de la punta de dev que se fusiona. El plan completo, 1.0.0.
+- **Canales** (#180): en Ajustes › General, Estable (releases de `main`, por defecto), Pruebas (prereleases de `dev`), Local (la carpeta de los paquetes armados en este equipo, que se recuerda aparte; #206) u Otro origen (carpeta, URL o repo de GitHub de quien arma su propia versión).
 - **Instalación y actualización:** con **Velopack**, desde las releases de GitHub. En Windows se instala en `%LocalAppData%\Otteretro`. *En Linux, reemplazado por la #114:* paquete y módulo de Nix, que se actualiza con el sistema. Se actualiza sola y nunca toca la carpeta de datos.
 
 ## 4. Consolas ✅
@@ -78,7 +78,22 @@ Otteretro es una app **personal** para:
 
 **Fuera: 48 sistemas.** Game & Watch, FDS, Satellaview, Pokémon Mini y todo lo de Sega, NEC, SNK, Atari, otras marcas, arcade y computadoras retro. Detalle en [historial/v1-por-tema/consolas.md](historial/v1-por-tema/consolas.md).
 
-## 5. Bibliotecas
+## 5. Almacenamiento y ubicaciones
+
+> **La carpeta de datos es la raíz del disco ★ (#208):** se registra sola como disco y el ★ es siempre el suyo. Se ve y se mueve desde Almacenamiento: es la fila «Datos de Otteretro» de la tabla del disco ★ (#210), que mueve solo los datos de la app (`data`, `catalogo`, `logs`); los juegos y herramientas del disco se quedan. Los discos se eligen en un desplegable con «+» para agregar otro y «⋯» con sus acciones (#209, #210). Lo que tiene cada disco se agrupa por tipo › consola o emulador › cada cosa, en grupos desplegables: se mueve un tipo, una consola entera (en una sola tarea, junto a lo que el otro disco ya tenga de ella) o cosas sueltas, siempre a la misma ruta (#211).
+>
+> **Discos como Steam (#201 a #205), reemplaza lo de abajo:** se eligen **discos**. Cada uno tiene una raíz `X:\Otteretro\` (en Linux, `~/Otteretro`) con su marcador y cinco carpetas fijas que crea la app; el primero es el **predeterminado ★**, donde va lo nuevo y Herramientas. Las ubicaciones de un solo tipo y `Herramientas\` de la carpeta de datos pasan al estándar con una tarea (adoptar una carpeta de antes la lanza sola). En Almacenamiento se ve el uso de cada disco por tipo y se marca lo que se mueve a otro.
+>
+> ```
+> X:\Otteretro\                    ← un disco (otteretro-ubicacion.json, «contenido»: disk)
+> ├── Juegos\<Consola>\<Juego>\…
+> ├── Emuladores\<Consola>\<Instalación>\<versión>\
+> ├── Ports\<Consola>\<Port>\<versión>\
+> ├── Complementos\<Emulador o port>\<Complemento>\<versión>\
+> └── Sistema\<Consola>\…
+> ```
+>
+> **Encuesta 16 (#192 a #199):** cada tipo de cosa (juegos, emuladores, ports, complementos y sistema) tiene **una o varias ubicaciones**, en cualquier disco o en la red, y se configuran en **Ajustes › Almacenamiento**, un apartado por tipo. Lo que este capítulo llama «biblioteca» es una **ubicación de juegos**; las de los demás tipos funcionan igual (marcador, espacio libre, reconexión, mover). La consola muestra dónde quedó cada cosa y en qué ubicación caen sus juegos nuevos (#195). Hasta que se implemente, vale el diagrama de abajo con una sola `Herramientas\` en la carpeta de datos.
 
 ### 5.1 Tipos ✅
 
@@ -105,8 +120,8 @@ E:\Consolas\  ·  D:\Juegos\…    ← bibliotecas de JUEGOS (las que quieras, e
 
 | Tipo | Cuántas | Dónde |
 |---|---|---|
-| **Herramientas** | **Una sola** | Dentro de la **carpeta de datos** que eliges (supuesto S7). Se puede mover desde la app, igual que una biblioteca. |
-| **Juegos** | Las que quieras | En cualquier carpeta o disco |
+| **Herramientas** | ~~Una sola~~ → **una o varias por tipo** (#198) | ~~Dentro de la carpeta de datos (S7)~~ → en las ubicaciones de Emuladores, Ports, Complementos y Sistema que elijas; la primera, en la carpeta de datos |
+| **Juegos** | Las que quieras | En cualquier carpeta o disco; cada consola elige la suya para lo nuevo (#195) |
 
 - **En red** (#136): una biblioteca puede estar en una carpeta de red (SMB/NFS), pensando en el NAS con todas las ROMs (#115). En la ficha, **«traer a este equipo»** copia el juego por la red y lo verifica por hash.
 
@@ -118,7 +133,7 @@ E:\Consolas\  ·  D:\Juegos\…    ← bibliotecas de JUEGOS (las que quieras, e
 | Operación | Qué hace |
 |---|---|
 | Crear | Elige una carpeta, escribe el marcador y registra la biblioteca. Las carpetas de cada consola se crean cuando hacen falta. |
-| Adoptar | Registra una carpeta con marcador, o una con la estructura antigua. En ese caso crea el marcador y mueve sus emuladores y ports a `Herramientas\`. |
+| Adoptar | Registra una carpeta con marcador, o una con la estructura antigua. En ese caso crea el marcador y la **migra a §5.1** (#187): juegos a `<Consola>\<Juego>`, emuladores y ports a `Herramientas\` con su receta y sus complementos aparte, con las rutas internas al día. |
 | Renombrar / Quitar | Quitar saca la biblioteca del registro. **Nunca borra archivos.** |
 | Reconectar | Si una biblioteca no está en su última ruta, la marca como desconectada y la busca en las raíces de los discos y puntos de montaje (2 niveles), o te deja indicar la ruta. |
 | Mover o migrar | Funciona con una biblioteca, una consola, un juego o un emulador o port. Copia, verifica el hash, actualiza la base de datos, **reescribe las rutas internas** y por último borra el origen. |
@@ -129,7 +144,7 @@ E:\Consolas\  ·  D:\Juegos\…    ← bibliotecas de JUEGOS (las que quieras, e
 - Los juegos de una biblioteca desconectada aparecen como "no disponibles" y no se exportan.
 
 ### 5.5 Migración de lo actual ✅
-- `E:\Consolas` se adopta como primera biblioteca de juegos. Sus emuladores (Dolphin, Ryujinx SS4K), su port (Dusklight) y los packs de texturas pasan a `<carpeta de datos>\Herramientas\`.
+- `E:\Consolas` se adopta como primera biblioteca de juegos y se migra a §5.1 (#187): sus juegos quedan en `<Consola>\<Juego>`; sus emuladores (Dolphin, Ryujinx SS4K) y su port (Dusklight) pasan a `<carpeta de datos>\Herramientas\`, y los packs de texturas a `Herramientas\Complementos\`, enlazados donde los busca cada uno. Dusklight sigue con su enlace de AppData, apuntado a la carpeta nueva (#188).
 - `_Herramientas\Catalogo` se integra al repositorio (§11.6).
 - Carpetas sobrantes: `E:\Roms`, `E:\Emuladores` y `D:\Roms` están aprobadas para borrar, pero lo tienes que hacer tú, porque Claude Code bloquea los borrados en la raíz de un disco.
 
@@ -280,7 +295,7 @@ Todo va en `<carpeta de datos>\Herramientas\` (§5.1). Los **complementos** (pac
 - Puedes cambiar la elección a mano en cada juego, y los valores que usa la regla son editables.
 
 ### 8.4 Actualización ✅
-- La actualización la lanzas tú. La app **avisa** qué emuladores, ports y complementos tienen versión nueva, y tú eliges qué instalar.
+- La actualización la lanzas tú. La app **avisa** dentro de ella (Herramientas, barra lateral e Inicio › Novedades) qué emuladores, ports y complementos tienen versión nueva, y tú eliges qué instalar (#189).
 - La versión nueva se instala **al lado** de la anterior. **La vieja nunca se reemplaza** y puedes volver a ella.
 - **Migración:** antes de actualizar se hace una copia de seguridad puntual. Después se copian las partidas y la configuración según la receta. Cómo guarda sus partidas cada port se investiga al escribir su receta.
 
@@ -443,7 +458,8 @@ Así, cada tarea que Claude resolvía pasa a un script y la app depende cada vez
 - **Inicio y Sagas:** «Siguiente en tus rutas» como tarjeta con avance; Revisar solo si hay algo; filtros fijos con el total; tarjeta de saga con insignias y barra de lo que tienes.
 - **Saga y Juego:** ruta con pestañas junto al título y pasos unidos; consolas abreviadas («+N»); recalcular en «⋯»; Seguimiento compacto; Versiones y Comparativa en una tabla con barras de 5; Datos y fuentes plegado con lápiz.
 - **Colección, Revisar, Ajustes y el resto:** consolas con algo, por empresa; Cuadrícula/Lista con íconos; pestañas subrayadas en toda la app; ruta por aprobar con portadas; Ajustes › Claude en tres bloques; registro de uso con costo; panel de tareas con progreso y ✕; bienvenida con la nutria; menú rápido con más accesos.
-- **Ajustes (#175, en F2):** pestañas sin barra, las que no caben en «Más ▾»; sin segundo título; paneles angostos y botones de tamaño estándar en toda la app; Consolas por empresa con interruptor; puesta al día arriba; Claude con horario en una frase y registro compacto con costo; Cuentas y claves en lista con estado en color; Carpeta de datos más clara; Idioma y Acerca de en «General».
+- **Ajustes (#175, en F2):** pestañas sin barra, las que no caben en «Más ▾»; sin segundo título; paneles angostos y botones de tamaño estándar en toda la app; Consolas por empresa con interruptor; puesta al día arriba; Claude con horario en una frase y registro compacto con costo; Cuentas y claves en lista con estado en color; Carpeta de datos más clara; Idioma y Acerca de en «General». Con espacio, los bloques de Ajustes van en dos columnas (#184; **reemplazada por la #200**: pestañas arriba, como antes, y una sola columna de contenido centrada con ancho máximo; lo mismo en Herramientas).
+- **Menú lateral retraíble (#185):** su botón o Ctrl+B lo retraen a una franja de íconos y lo expanden; se recuerda al reabrir la app.
 - **Dónde va (#176):** Ajustes y fluidez en F2; el resto en «F2.5 · Pulido de UI».
 
 ### 12.7 Fluidez primero (#173, #174)

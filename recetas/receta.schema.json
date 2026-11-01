@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/OscarVargas97/otteretro/recetas/receta.schema.json",
+  "title": "Receta de Otteretro",
+  "description": "Cómo se instala, se deja portable y se mueve un emulador, port o complemento (REQUISITOS §8.1). La comparten Otteretro (Windows) y PlayOS (Nix, #135).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "kind", "folder", "detect"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "name": { "type": "string", "description": "Nombre de la carpeta de la instalación en Herramientas" },
+    "kind": { "enum": ["emulator", "port", "complement"] },
+    "folder": { "type": "string", "description": "Consola (emulador o port) o nombre del emulador o port padre (complemento): el segundo nivel de Herramientas" },
+    "game": { "type": "string", "description": "Port: el juego que cubre (#193)" },
+    "parent": { "type": "string", "description": "Complemento: id de la receta del emulador o port al que pertenece" },
+    "detect": { "type": "string", "description": "Ruta relativa que identifica la instalación (el ejecutable; en un complemento, su carpeta dentro del padre)" },
+    "version": {
+      "type": "object", "additionalProperties": false, "required": ["from"],
+      "properties": {
+        "from": { "enum": ["exe", "date", "fixed"], "description": "exe: versión del ejecutable (detect); date: fecha del ejecutable; fixed: value" },
+        "value": { "type": "string" }
+      }
+    },
+    "portable": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["type", "path"],
+        "properties": {
+          "type": { "enum": ["file", "folder", "junction"], "description": "file: crea path vacío si falta; folder: crea la carpeta path; junction: enlaza link (fuera de la instalación) a path" },
+          "path": { "type": "string" },
+          "link": { "type": "string", "description": "Con junction: ruta con variables de entorno (%APPDATA%)" },
+          "system": { "enum": ["windows", "linux"] }
+        }
+      }
+    },
+    "link": { "type": "string", "description": "Complemento: dónde tiene que aparecer dentro del padre (se enlaza con una junction)" },
+    "saves": { "type": "array", "items": { "type": "string" } },
+    "config": { "type": "array", "items": { "type": "string" } },
+    "gamePaths": {
+      "type": "array", "description": "Rutas internas a juegos que se reescriben al moverlos",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["file", "format", "key"],
+        "properties": {
+          "file": { "type": "string" },
+          "format": { "enum": ["ini", "json"] },
+          "key": { "type": "string", "description": "Clave; en ini, un * al final acepta cualquier sufijo (ISOPath*)" }
+        }
+      }
+    },
+    "settings": {
+      "type": "array", "description": "Valores que la instalación necesita (se escriben al dejarla portable)",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["file", "format", "key", "value"],
+        "properties": {
+          "file": { "type": "string" },
+          "format": { "enum": ["ini", "json"] },
+          "section": { "type": "string" },
+          "key": { "type": "string" },
+          "value": { "type": "string" }
+        }
+      }
+    },
+    "formats": { "type": "array", "items": { "type": "string" } },
+    "downloads": {
+      "type": "array", "description": "Por versión y sistema: URL y hash SRI (Nix las arma en PlayOS; Otteretro las descarga en Windows, F5)",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["version", "system", "url", "hash"],
+        "properties": {
+          "version": { "type": "string" },
+          "system": { "enum": ["windows", "linux"] },
+          "url": { "type": "string" },
+          "hash": { "type": "string", "pattern": "^sha256-" }
+        }
+      }
+    }
+  }
+}

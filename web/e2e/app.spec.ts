@@ -36,7 +36,7 @@ test.afterEach(() => {
 /** Ninguna clave sin traducir a la vista (next-intl muestra la ruta de la clave, por ejemplo "nav.home"). */
 async function expectNoRawKeys() {
   const text = await page.locator("body").innerText();
-  expect(text).not.toMatch(/\b(nav|topBar|comingSoon|welcome|settings|dataFolder|update|errors|move|credentials|catalog|notices|review|home)\.[a-zA-Z]+/);
+  expect(text).not.toMatch(/\b(nav|topBar|comingSoon|welcome|settings|dataFolder|update|errors|move|credentials|catalog|notices|review|home|libraries|tools)\.[a-zA-Z]+/);
 }
 
 /** El buscador mide 320 px y su texto de ejemplo cabe entero (#20): se acorta, no se corta. */
@@ -110,13 +110,21 @@ test("una ruta incompleta muestra el error del backend traducido", async () => {
   await page.screenshot({ path: "e2e-results/2-error-en.png" });
 });
 
-test("elegir la carpeta de datos lleva al inicio", async () => {
+test("elegir la carpeta de datos lleva al paso de bibliotecas y, al saltarlo, al inicio", async () => {
   await page.getByLabel(en.welcome.otherPath).fill(dataDir("data"));
   await page.getByRole("button", { name: /^Use / }).click();
+  // Paso 4 (F3): adoptar la estructura antigua, crear una biblioteca o saltar.
+  await expect(page.getByRole("heading", { name: en.welcome.librariesTitle })).toBeVisible();
+  await expectNoRawKeys();
+  await page.getByRole("button", { name: en.welcome.skip }).click();
   await expect(page).toHaveURL(`${base()}/`);
   await expect(page.getByRole("heading", { level: 1, name: en.nav.home })).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: en.home.next })).toBeVisible();
-  await expect(page.getByText(en.notices.missingKey.replace("{service}", en.credentials.service.igdb))).toBeVisible();
+  // #169: un solo aviso con todos los servicios sin clave y el botón a Cuentas y claves.
+  const notice = page.getByRole("note", { name: en.notices.title });
+  await expect(notice).toHaveCount(1);
+  await expect(notice).toContainText(en.credentials.service.igdb);
+  await expect(notice.getByRole("link", { name: en.notices.openCredentials })).toHaveAttribute("href", "/settings/?s=credentials");
   await expectNoRawKeys();
   await expectSearchFits();
   await expectTextFits();
@@ -131,8 +139,15 @@ test("todas las pantallas se ven en inglés", async () => {
     ["game", en.catalog.game.noneTitle],
     ["saga", en.catalog.saga.noneTitle],
     ["review", en.review.pendingEmptyTitle],
-    ...(["discover", "downloads", "tools", "steam"] as const).map((s) => [s, en.comingSoon[s].title] as const),
+    ["tools", en.tools.emptyTitle],
+    ...(["discover", "downloads", "steam"] as const).map((s) => [s, en.comingSoon[s].title] as const),
   ] as const;
+  // #169: las de fases futuras se ven atenuadas con su fase y no se abren desde el menú.
+  await page.goto(`${base()}/`);
+  for (const s of ["discover", "downloads", "steam"] as const) {
+    await expect(page.locator(".sidebar").getByRole("link", { name: en.nav[s] })).toHaveCount(0);
+    await expect(page.locator(".sidebar .is-future", { hasText: en.nav[s] })).toHaveAttribute("aria-disabled", "true");
+  }
   for (const [screen, title] of screens) {
     await page.goto(`${base()}/${screen}/`);
     await expect(page.getByRole("heading", { level: 1, name: en.nav[screen] })).toBeVisible();
@@ -140,6 +155,134 @@ test("todas las pantallas se ven en inglés", async () => {
     await expectNoRawKeys();
     await expectTextFits();
   }
+});
+
+/** Llama a la API desde la página, que tiene la clave de la sesión. */
+const api = (method: string, path: string, body?: unknown) => page.evaluate(async ([method, path, body]) => {
+  const r = await fetch(path as string, { method: method as string, body: body ? JSON.stringify(body) : undefined,
+    headers: { "Content-Type": "application/json", "X-Otteretro-Key": sessionStorage.getItem("otteretro.key") ?? "" } });
+  return { ok: r.ok, text: await r.text() };
+}, [method, path, body] as const);
+
+/** Agrega un disco por la API, con su carpeta Otteretro dentro de la carpeta de la prueba (el botón ofrece los discos reales). */
+async function addDisk(name: string) {
+  const path = join(dataDir(name), "Otteretro");
+  const r = await api("POST", "/api/disks", { path, name });
+  expect(r.ok, r.text).toBe(true);
+  return path;
+}
+
+async function removeDisks() {
+  for (const l of JSON.parse((await api("GET", "/api/locations")).text) as { id: string }[]) await api("DELETE", `/api/locations/${l.id}`);
+}
+
+test("Ajustes › Almacenamiento como Steam: discos, uso por tipo, mover lo marcado, ★ y quitar sin borrar (#161, #205)", async () => {
+  const [a, b] = [await addDisk("Disco A"), await addDisk("Disco B")];
+  const { existsSync } = await import("node:fs");
+  // Cada disco trae sus cinco carpetas.
+  for (const f of ["Juegos", "Emuladores", "Ports", "Complementos", "Sistema"]) expect(existsSync(join(a, f))).toBe(true);
+  mkdirSync(join(a, "Juegos", "Switch", "Zelda"), { recursive: true });
+  writeFileSync(join(a, "Juegos", "Switch", "Zelda", "juego.nsp"), "contenido");
+  mkdirSync(join(a, "Juegos", "GBA"), { recursive: true });
+  for (const rom of ["metroid.gba", "pokemon.gba"]) writeFileSync(join(a, "Juegos", "GBA", rom), "rom");
+  await page.goto(`${base()}/settings/?s=storage`);
+  // #208: el disco ★ es el de la carpeta de datos, se registró solo y se abre primero con sus datos.
+  const picker = page.getByLabel(en.libraries.disk, { exact: true });
+  await expect(picker.locator("option:checked")).toContainText("★");
+  // #169: como Steam, los datos de la app son una fila más de la tabla.
+  await expect(page.getByRole("checkbox", { name: en.libraries.appData })).toBeVisible();
+  await expect(page.locator(".usage-legend").getByText(en.libraries.dataUse, { exact: false })).toBeVisible();
+  await expectNoRawKeys();
+  await expectTextFits();
+  await page.screenshot({ path: "e2e-results/7-storage-en.png", fullPage: true });
+  const pick = async (name: string) => picker.selectOption((await picker.locator("option", { hasText: name }).getAttribute("value"))!);
+  await pick("Disco A");
+  await expect(page.getByRole("heading", { level: 2, name: "Disco A" })).toBeVisible();
+  await expect(page.getByText(en.libraries.otherUse, { exact: false })).toBeVisible();
+  // #171: grupos desplegables, tipo › consola › cada cosa. Zelda suelto y toda GBA (una sola tarea), a la misma ruta.
+  await page.locator(".disk-table").getByRole("button", { name: en.libraries.type.game.title }).click();
+  await page.locator(".disk-table").getByRole("button", { name: "Switch" }).click();
+  await page.getByRole("checkbox", { name: "Zelda" }).check();
+  await page.getByRole("checkbox", { name: "GBA" }).check();
+  await expect(page.getByRole("checkbox", { name: en.libraries.type.game.title })).toHaveAttribute("aria-checked", "true");
+  await page.screenshot({ path: "e2e-results/7d-storage-tree-en.png" });
+  await page.locator('select[id^="to-"]').selectOption({ label: "Disco B" });
+  await page.locator(".panel").getByRole("button", { name: en.libraries.move, exact: true }).click();
+  await expect(page.getByText(en.libraries.queued)).toBeVisible();
+  await expect.poll(() => existsSync(join(b, "Juegos", "Switch", "Zelda", "juego.nsp")), { timeout: 15_000 }).toBe(true);
+  await expect.poll(() => existsSync(join(b, "Juegos", "GBA", "pokemon.gba")), { timeout: 15_000 }).toBe(true);
+  expect(existsSync(join(a, "Juegos", "GBA"))).toBe(false);
+  // Quitar avisa que no borra nada; el marcador sigue en la carpeta.
+  await pick("Disco B");
+  await page.locator(".ot-menu summary").click();
+  await page.screenshot({ path: "e2e-results/7c-disk-menu-en.png" });
+  await page.getByRole("menuitem", { name: en.libraries.removeDisk }).click();
+  const remove = page.getByRole("dialog", { name: en.libraries.removeDisk });
+  await expect(remove.getByText(en.libraries.removeHelp.replace("{name}", "Disco B"))).toBeVisible();
+  await remove.getByRole("button", { name: en.libraries.removeConfirm }).click();
+  await expect(picker.locator("option", { hasText: "Disco B" })).toHaveCount(0);
+  expect(existsSync(join(b, "otteretro-ubicacion.json"))).toBe(true);
+  // «+» abre la ventanita con las unidades (sin tocarlas).
+  await page.getByRole("button", { name: en.libraries.addDisk }).click();
+  const add = page.getByRole("dialog", { name: en.libraries.addDisk });
+  await expect(add.getByText(en.libraries.addDiskHelp)).toBeVisible();
+  await page.screenshot({ path: "e2e-results/7b-add-disk-en.png" });
+  await expectTextFits();
+  await add.getByRole("button", { name: en.libraries.cancel }).click();
+  await expect(add).toBeHidden();
+  await page.getByRole("button", { name: en.topBar.tasks }).click();
+  await page.getByRole("dialog", { name: en.topBar.tasksPanel }).getByRole("button", { name: en.tasks.clear }).click();
+  await page.keyboard.press("Escape");
+  await removeDisks();
+});
+
+test("Ajustes › Consolas: el detalle de una consola, su destino y mover sus juegos (#192, #195)", async () => {
+  const [a, b] = [await addDisk("Disco C"), await addDisk("Disco D")];
+  mkdirSync(join(a, "Juegos", "Switch", "Zelda"), { recursive: true });
+  writeFileSync(join(a, "Juegos", "Switch", "Zelda", "juego.nsp"), "contenido");
+  // Lista a la izquierda; al elegir Switch, su detalle dice dónde están sus juegos y qué le falta.
+  await page.goto(`${base()}/settings/?s=consoles`);
+  await expect(page.getByText(en.settings.consoles.detail.pick)).toBeVisible();
+  await page.getByRole("button", { name: en.settings.consoles.detail.open.replace("{name}", "Switch"), exact: true }).click();
+  await expect(page).toHaveURL(/c=switch/);
+  const detail = page.locator(".console-detail");
+  await expect(detail.getByText(en.settings.consoles.detail.noEmulators)).toBeVisible();
+  await expect(detail.getByText(en.settings.consoles.detail.noSystem)).toBeVisible();
+  await expectNoRawKeys();
+  await expectTextFits();
+  // El destino de los juegos nuevos se guarda.
+  await detail.getByLabel(en.settings.consoles.detail.destination).selectOption({ label: "Disco D" });
+  await page.reload();
+  await expect.poll(() => page.locator(".console-detail").getByLabel(en.settings.consoles.detail.destination)
+    .evaluate((s) => (s as HTMLSelectElement).selectedOptions[0].text)).toBe("Disco D");
+  // #190: mover los juegos de la consola a otro disco.
+  const loc = page.locator(".console-location", { hasText: en.settings.consoles.location.in.replace("{library}", "Disco C") });
+  await loc.getByRole("button", { name: en.settings.consoles.location.move }).click();
+  await loc.getByLabel(en.settings.consoles.location.to, { exact: true }).selectOption({ label: "Disco D" });
+  await loc.getByRole("button", { name: en.settings.consoles.location.confirm, exact: true }).click();
+  await expect(loc.getByText(en.settings.consoles.location.queued)).toBeVisible();
+  const { existsSync } = await import("node:fs");
+  await expect.poll(() => existsSync(join(b, "Juegos", "Switch", "Zelda", "juego.nsp")), { timeout: 15_000 }).toBe(true);
+  await expect.poll(() => existsSync(join(a, "Juegos", "Switch")), { timeout: 15_000 }).toBe(false);
+  // Se limpian la tarea y los discos para no dejar estado a las demás pruebas (quitar no borra archivos).
+  await page.getByRole("button", { name: en.topBar.tasks }).click();
+  await page.getByRole("dialog", { name: en.topBar.tasksPanel }).getByRole("button", { name: en.tasks.clear }).click();
+  await expect(page.getByText(en.topBar.noTasksTitle)).toBeVisible();
+  await page.keyboard.press("Escape");
+  await removeDisks();
+});
+
+test("Herramientas: pestañas por tipo y Sistema lleva a Almacenamiento (#154)", async () => {
+  await page.goto(`${base()}/tools/`);
+  for (const k of ["emulator", "port", "complement", "system"] as const) await expect(page.getByRole("tab", { name: en.tools.kind[k] })).toBeVisible();
+  await expect(page.getByRole("tab", { name: en.tools.kind.emulator })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("tab", { name: en.tools.kind.system }).click();
+  await expect(page).toHaveURL(/k=system/);
+  await expect(page.getByText(en.tools.systemHelp)).toBeVisible();
+  await expectNoRawKeys();
+  await expectTextFits();
+  await page.getByRole("link", { name: en.tools.openStorage }).click();
+  await expect(page.getByRole("tab", { name: en.settings.storage })).toHaveAttribute("aria-selected", "true");
 });
 
 test("el panel de tareas y la búsqueda están traducidos", async () => {
@@ -168,15 +311,15 @@ test("Ajustes en inglés: carpeta, idioma y actualización", async () => {
   await page.goto(`${base()}/settings/`);
   await expect(page.getByRole("heading", { level: 1, name: en.nav.settings })).toBeVisible();
   // #97: pestañas, una sección a la vez; sin ?s= abre la primera.
-  await expect(page.getByRole("tab", { name: en.settings.dataFolder })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByText(dataDir("data"))).toBeVisible();
+  await expect(page.getByRole("tab", { name: en.settings.storage })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("checkbox", { name: en.libraries.appData })).toBeVisible();
   await expect(page.getByRole("button", { name: en.update.check })).toHaveCount(0);
-  await page.getByRole("tab", { name: en.settings.dataFolder }).focus();
+  await page.getByRole("tab", { name: en.settings.storage }).focus();
   await page.keyboard.press("End");
   await expect(page).toHaveURL(/\?s=general$/);
   await expect(page.getByRole("tab", { name: en.settings.general })).toHaveAttribute("aria-selected", "true");
   await page.goBack();
-  await expect(page.getByText(dataDir("data"))).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: en.libraries.appData })).toBeVisible();
   // #98: cambiar a una pestaña corta no cambia el ancho (la barra de scroll tiene su lugar reservado).
   const tabsWidth = async () => (await page.getByRole("tablist").boundingBox())!.width;
   const wide = await tabsWidth();
@@ -211,6 +354,19 @@ test("Ajustes en inglés: carpeta, idioma y actualización", async () => {
   await page.reload();
   await expect(page.getByRole("group", { name: en.update.channel.title }).getByRole("button", { name: en.update.channel.custom })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByLabel(en.update.channel.origin)).toHaveValue(dataDir("paquetes"));
+  // #163: Local pide su carpeta la primera vez y la recuerda aparte de Otro origen: después, un clic.
+  const group = page.getByRole("group", { name: en.update.channel.title });
+  await group.getByRole("button", { name: en.update.channel.local, exact: true }).click();
+  await page.getByLabel(en.update.channel.localFolder).fill(dataDir("locales"));
+  await page.getByRole("button", { name: en.update.channel.use, exact: true }).click();
+  await expect(group.getByRole("button", { name: en.update.channel.local, exact: true })).toHaveAttribute("aria-pressed", "true");
+  await group.getByRole("button", { name: en.update.channel.stable }).click();
+  await expect(group.getByRole("button", { name: en.update.channel.stable })).toHaveAttribute("aria-pressed", "true");
+  await group.getByRole("button", { name: en.update.channel.local, exact: true }).click();
+  await expect(group.getByRole("button", { name: en.update.channel.local, exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel(en.update.channel.localFolder)).toHaveValue(dataDir("locales"));
+  await group.getByRole("button", { name: en.update.channel.custom }).click();
+  await expect(page.getByLabel(en.update.channel.origin)).toHaveValue(dataDir("paquetes"));
   await page.getByRole("group", { name: en.update.channel.title }).getByRole("button", { name: en.update.channel.stable }).click();
   await expect(page.getByRole("group", { name: en.update.channel.title }).getByRole("button", { name: en.update.channel.stable })).toHaveAttribute("aria-pressed", "true");
   await expectNoRawKeys();
@@ -218,18 +374,31 @@ test("Ajustes en inglés: carpeta, idioma y actualización", async () => {
   await page.screenshot({ path: "e2e-results/4-settings-en.png", fullPage: true });
 });
 
-test("mover la carpeta de datos muestra el progreso y el resultado traducidos", async () => {
-  await page.getByRole("tab", { name: en.settings.dataFolder }).click();
-  // #111: «Abrir carpeta» a la vista (no se toca: abriría el explorador) y «Usar otra carpeta» como enlace con su explicación.
-  await expect(page.getByRole("button", { name: en.dataFolder.open })).toBeVisible();
-  await expect(page.getByText(en.dataFolder.difference)).toBeVisible();
-  await page.getByRole("button", { name: en.dataFolder.moveButton }).click();
-  await page.getByLabel(en.dataFolder.folderLabel, { exact: true }).fill(dataDir("moved"));
-  await page.getByRole("button", { name: en.dataFolder.move, exact: true }).click();
-  await expect(page.getByText(en.dataFolder.moved, { exact: true })).toBeVisible({ timeout: 15_000 });
+test("llevar los datos a otro disco muestra el progreso y el resultado traducidos (#208)", async () => {
+  // El disco de destino ya tiene un juego: se queda, y solo llegan los datos.
+  const r = await api("POST", "/api/disks", { path: dataDir("moved"), name: "Moved" });
+  expect(r.ok, r.text).toBe(true);
+  mkdirSync(join(dataDir("moved"), "Juegos", "GBA"), { recursive: true });
+  writeFileSync(join(dataDir("moved"), "Juegos", "GBA", "metroid.gba"), "juego");
+  await page.getByRole("tab", { name: en.settings.storage }).click();
+  // «⋯» del disco ★: abrir carpeta (no se toca: abriría el explorador) y usar otra carpeta de datos.
+  await page.locator(".ot-menu summary").click();
+  await expect(page.getByRole("menuitem", { name: en.libraries.openFolder })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: en.libraries.useOtherData })).toBeVisible();
+  await page.locator(".ot-menu summary").click();
+  // #169: se marca la fila de los datos y se mueve como lo demás.
+  await page.getByRole("checkbox", { name: en.libraries.appData }).check();
+  await page.locator('select[id^="to-"]').selectOption({ label: "Moved" });
+  await page.locator(".panel").getByRole("button", { name: en.libraries.move, exact: true }).click();
+  await expect(page.locator(".result").getByText(en.dataFolder.moved, { exact: true })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(dataDir("moved")).first()).toBeVisible();
   await page.getByRole("button", { name: en.dataFolder.dismiss }).click();
-  await expect(page.getByText(en.dataFolder.moved, { exact: true })).toHaveCount(0);
+  await expect(page.locator(".result").getByText(en.dataFolder.moved, { exact: true })).toHaveCount(0);
+  // Ahora el ★ es ese disco, y el juego que ya tenía sigue ahí.
+  await expect(page.getByLabel(en.libraries.disk, { exact: true }).locator("option:checked")).toContainText("Moved ★");
+  const { existsSync } = await import("node:fs");
+  expect(existsSync(join(dataDir("moved"), "Juegos", "GBA", "metroid.gba"))).toBe(true);
+  expect(existsSync(join(dataDir("data"), "data"))).toBe(false);
   await expectNoRawKeys();
 });
 
@@ -327,6 +496,13 @@ test("con mando se recorre la app: foco, barra de botones, buscar con el teclado
   await pad.screenshot({ path: "e2e-results/7-mando-menu-rapido.png" });
   await press(B);
   await expect(pad.getByRole("dialog", { name: es.pad.quickMenu })).toBeHidden();
+  // #172: el menú rápido también lleva a Inicio, Buscar, Tareas y Ajustes; Tareas abre su panel.
+  await press(GUIDE);
+  const quick = pad.getByRole("dialog", { name: es.pad.quickMenu });
+  for (const item of [es.pad.home, es.pad.search, es.pad.tasks, es.pad.settings]) await expect(quick.getByRole("button", { name: item })).toBeVisible();
+  await quick.getByRole("button", { name: es.pad.tasks }).click();
+  await expect(pad.getByRole("dialog", { name: es.topBar.tasksPanel })).toBeVisible();
+  await pad.keyboard.press("Escape");
 
   // Con el ratón, la interfaz vuelve a su forma normal.
   await pad.mouse.move(400, 400);
@@ -356,6 +532,10 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   await page.goto(`${base()}/sagas/`);
   const tiles = page.locator("a.ot-saga");
   await expect(tiles).toHaveCount(60);
+  // #170: el total en la barra de filtros, y la tarjeta con sus insignias y «lo que tienes».
+  await expect(page.locator(".toolbar-total")).toContainText("102");
+  const zelda = tiles.filter({ hasText: "The Legend of Zelda" });
+  await expect(zelda.locator(".ot-badge-iconic")).toHaveText(es.catalog.iconic);
   const menuTop = async () => (await page.locator(".sidebar").boundingBox())!.y;
   const before = await menuTop();
   for (let i = 0; i < 5 && (await tiles.count()) < 102; i++) await page.mouse.wheel(0, 20000);
@@ -363,6 +543,20 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   // #100: el menú lateral sigue en su lugar después de bajar.
   expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(500);
   expect(await menuTop()).toBe(before);
+  // #169: la barra superior también queda arriba.
+  expect((await page.locator(".top").boundingBox())!.y).toBe(0);
+  // #128: con la lista en varios tramos, se abre una saga y, ya vieja (más de 10 s), pasar por «Sagas» del menú la pide de nuevo sin romper.
+  await tiles.filter({ hasText: "Saga de prueba 1090" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "Saga de prueba 1090" })).toBeVisible();
+  await page.waitForTimeout(10_500);
+  const sagasLink = page.locator(".sidebar").getByRole("link", { name: es.nav.sagas });
+  const asked: string[] = [];
+  page.on("request", (r) => { if (r.url().includes("/api/sagas?")) asked.push(new URL(r.url()).searchParams.get("offset")!); });
+  await sagasLink.hover();
+  await expect.poll(() => asked).toEqual(["0", "60"]); // los dos tramos, como la lista (antes, el segundo fallaba)
+  await sagasLink.click();
+  await expect(tiles).toHaveCount(102);
+  await expect(page.locator("p.error")).toHaveCount(0);
   many.exec("DELETE FROM saga WHERE id >= 1000");
   many.close();
 
@@ -389,8 +583,26 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   await expect(page.locator(".hero-art")).toHaveCount(0);
   await page.goBack();
 
+  // #128: con la saga desplazada hacia abajo, abrir un juego empieza arriba y «Atrás» vuelve a la misma altura.
+  await page.addStyleTag({ content: ".hero { margin-bottom: 3000px } .app-main { min-height: 6000px }" }); // páginas tan largas como las reales
+  await page.getByRole("link", { name: "Ocarina of Time" }).scrollIntoViewIfNeeded();
+  const deep = await page.evaluate(() => window.scrollY);
+  expect(deep).toBeGreaterThan(1000);
+  await page.route("**/api/games/10*", async (route) => { await new Promise((r) => setTimeout(r, 800)); await route.continue(); }); // con el catálogo real, la ficha tarda
   await page.getByRole("link", { name: "Ocarina of Time" }).click();
   await expect(page.getByRole("heading", { level: 2, name: "Ocarina of Time" })).toBeVisible();
+  await page.unroute("**/api/games/10*");
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await page.goBack();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(deep - 200);
+  await page.getByRole("link", { name: "Ocarina of Time" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "Ocarina of Time" })).toBeVisible();
+  // #169: el camino en la barra, con un enlace por parte, y la portada sin bajar con el color de su consola.
+  const crumbs = page.getByRole("navigation", { name: es.topBar.crumbs });
+  await expect(crumbs.getByRole("link", { name: es.nav.sagas })).toHaveAttribute("href", "/sagas/");
+  await expect(crumbs.getByRole("link", { name: "The Legend of Zelda" })).toHaveAttribute("href", "/saga/?id=1");
+  await expect(crumbs.getByText("Ocarina of Time")).toHaveAttribute("aria-current", "page");
+  expect(await page.locator(".hero .ot-cover").evaluate((e) => getComputedStyle(e).backgroundImage)).toContain("linear-gradient");
   await page.getByRole("radio", { name: es.catalog.status.finished }).click();
   await expect(page.getByLabel(es.catalog.game.finished)).toBeVisible();
   await page.getByLabel(es.catalog.game.rating).selectOption("9");
@@ -416,8 +628,13 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   await expect(page.getByRole("button", { name: es.catalog.collection.filter.owned })).toHaveAttribute("aria-pressed", "true");
   const n64 = page.getByRole("navigation", { name: es.catalog.collection.consoles }).getByRole("button", { name: /Nintendo 64/ });
   await expect(n64).toContainText("0");
+  // #171: con «Lo tengo», solo las consolas con algo (y la elegida), agrupadas por empresa.
+  const consoleNav = page.getByRole("navigation", { name: es.catalog.collection.consoles });
+  await expect(consoleNav.getByRole("button", { name: /Switch/ })).toHaveCount(0);
   await page.getByRole("button", { name: es.catalog.collection.filter.all }).click();
   await expect(n64).toContainText("1");
+  await expect(consoleNav.getByRole("button", { name: /Switch/ })).toBeVisible();
+  await expect(consoleNav.locator(".console-nav-company").first()).toHaveText("Nintendo");
 
   await page.goto(`${base()}/collection/?console=pc`);
   await expect(page.getByRole("link", { name: /Half-Life/ })).toBeVisible();
@@ -455,6 +672,10 @@ test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha
 
   await page.goto(`${base()}/review/`);
   await expect(page.getByText("Así se recomienda empezar.")).toBeVisible();
+  // #171: la ruta por aprobar con sus portadas numeradas y la razón de cada paso.
+  const preview = page.locator(".timeline.is-plain").first();
+  await expect(preview.locator(".step-num").first()).toHaveText("1");
+  await expect(preview).toContainText("Ocarina of Time");
   await expectNoRawKeys();
   await expectTextFits();
   await page.screenshot({ path: "e2e-results/11-revisar-es.png", fullPage: true });
@@ -472,22 +693,39 @@ test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha
   await page.goto(`${base()}/saga/?id=1`);
   await expect(page.getByText(es.catalog.saga.why)).toBeVisible();
   await expect(page.getByText("El de 3DS se ve mejor")).toBeVisible();
-  await page.getByRole("button", { name: es.catalog.route.community }).click(); // elegirla es seguirla
-  await expect(page.getByRole("button", { name: es.catalog.route.community })).toHaveAttribute("aria-pressed", "true");
-  // Editada: Breath of the Wild quedó primero.
+  // #170: la ruta se elige con pestañas junto al título; elegirla es seguirla.
+  await page.getByRole("tab", { name: es.catalog.route.community }).click();
+  await expect(page.getByRole("tab", { name: es.catalog.route.community })).toHaveAttribute("aria-selected", "true");
+  // Editada: Breath of the Wild quedó primero. Los pasos llevan su número y lo jugado (Ocarina) va a color.
   await expect(page.locator(".timeline").first()).toContainText(/Breath of the Wild[\s\S]*Ocarina of Time/);
+  await expect(page.locator(".timeline li.is-played")).toContainText("Ocarina of Time");
+  await expect(page.locator(".timeline .step-num").first()).toHaveText("1");
+  // «Pedir a Claude que la recalcule» está en el menú «⋯» del encabezado (no se pulsa: encolaría una llamada real).
+  await page.getByRole("button", { name: es.catalog.saga.moreActions }).click();
+  await expect(page.getByRole("menuitem", { name: es.catalog.saga.recalculate })).toBeVisible();
+  await page.keyboard.press("Escape");
+  // Las consolas de la tabla, abreviadas: Ocarina está en N64 y 3DS.
+  await expect(page.getByRole("row", { name: /Ocarina of Time/ }).locator(".ot-console")).toHaveText(["N64", "3DS"]);
   await expectNoRawKeys();
   await expectTextFits();
   await page.screenshot({ path: "e2e-results/12-saga-ruta-es.png", fullPage: true });
 
   await page.goto(`${base()}/game/?id=10`);
-  await expect(page.getByRole("heading", { level: 2, name: es.catalog.game.compare })).toBeVisible();
+  // #171: versiones y comparativa en una sola tabla, con barras de 5 y el mejor de cada columna resaltado.
+  await expect(page.getByRole("heading", { level: 2, name: es.catalog.game.versions })).toBeVisible();
   await expect(page.getByText("Pantalla táctil para el inventario")).toBeVisible();
+  const ds = page.getByRole("row", { name: /Nintendo 3DS/ });
+  await expect(ds.getByRole("img", { name: "5/5" })).toHaveClass(/is-best/);
+  await expect(page.getByRole("row", { name: /Nintendo 64/ }).getByRole("img", { name: "3/5" })).not.toHaveClass(/is-best/);
   await page.screenshot({ path: "e2e-results/13-comparativa-es.png", fullPage: true });
 
   // Ocarina ya está terminado (prueba anterior): lo siguiente es Breath of the Wild.
   await page.goto(`${base()}/`);
-  await expect(page.getByRole("link", { name: /Breath of the Wild/ })).toBeVisible();
+  // #170: tarjeta horizontal con la ruta, el avance y «Ver ficha»; Revisar solo si hay algo (aquí ya se aprobó todo).
+  const card = page.locator(".next-card", { hasText: "Breath of the Wild" });
+  await expect(card.getByRole("link", { name: `${es.home.viewGame}: Breath of the Wild` })).toHaveAttribute("href", "/game/?id=11");
+  await expect(card).toContainText(es.catalog.ofTotal.replace("{done}", "1").replace("{total}", "2"));
+  await expect(page.getByRole("heading", { level: 2, name: es.home.review })).toHaveCount(0);
   await page.screenshot({ path: "e2e-results/14-inicio-es.png", fullPage: true });
 
   // F2.21: terminar Breath of the Wild completa la ruta que sigues: la nutria lo celebra.
@@ -512,6 +750,8 @@ test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha
   await expect(page.getByRole("columnheader", { name: es.settings.claude.cost })).toBeVisible();
   const usageTable = page.locator("table").filter({ hasText: "uso-12" });
   await expect(usageTable.locator("tbody tr")).toHaveCount(10);
+  // #172: el total de la página arriba del registro.
+  await expect(page.locator(".usage-total")).toContainText(/10/);
   await page.getByRole("button", { name: es.settings.claude.next }).click();
   await expect(page.getByRole("cell", { name: "uso-1", exact: true })).toBeVisible();
   await page.getByRole("button", { name: es.settings.claude.previous }).click();
@@ -537,10 +777,39 @@ test("panel de tareas: terminadas por hora de término, registro al hacer clic y
   await expect(panel.locator("button.ot-task-title")).toHaveText([/#901/, /#900/]); // la que terminó después, arriba
   await panel.getByRole("button", { name: /#901/ }).click();
   await expect(panel.getByText("Ocarina of Time: bajó cover (80 KB).")).toBeVisible();
+  // #172: estado como insignia de color, barra en cada tarea y ✕ para quitar una terminada.
+  await expect(panel.locator(".ot-task", { hasText: "#901" }).locator(".ot-badge-danger")).toHaveText(es.tasks.status.error);
+  await expect(panel.locator(".ot-task", { hasText: "#900" }).locator(".ot-badge-have")).toHaveText(es.tasks.status.done);
+  await expect(panel.locator(".ot-task", { hasText: "#900" }).locator(".ot-progress")).toBeVisible();
   await expectNoRawKeys();
   await page.screenshot({ path: "e2e-results/15-registro-tarea-es.png" });
+  await panel.locator(".ot-task", { hasText: "#900" }).getByRole("button", { name: es.tasks.remove.replace("{name}", es.tasks.kind.demo) }).click();
+  await expect(panel.locator("button.ot-task-title")).toHaveText([/#901/]);
   await panel.getByRole("button", { name: es.tasks.clear }).click();
   await expect(panel.locator("button.ot-task-title")).toHaveCount(0);
+});
+
+test("panel de tareas: pausar, reanudar y cancelar (#146)", async () => {
+  // En cola para dentro de un día: la cola no la toma sola mientras se prueba.
+  const db = await openDb();
+  db.exec(`INSERT INTO task (id, kind, status, progress, resume_at, created_at) VALUES
+    (910, 'demo', 'queued', 30, '${new Date(Date.now() + 86_400_000).toISOString()}', '${new Date().toISOString()}')`);
+  db.close();
+  await page.goto(`${base()}/`);
+  await page.getByRole("button", { name: es.topBar.tasks }).click();
+  const row = page.getByRole("dialog", { name: es.topBar.tasksPanel }).locator(".ot-task", { hasText: "#910" });
+  await row.getByRole("button", { name: es.tasks.pause }).click();
+  await expect(row.locator(".ot-badge")).toHaveText(es.tasks.status.paused);
+  await row.getByRole("button", { name: es.tasks.resume }).click();
+  await expect(row.locator(".ot-badge")).toHaveText(es.tasks.status.queued);
+  await row.getByRole("button", { name: es.tasks.cancel }).click();
+  await expect(row.getByText(es.tasks.cancelConfirm)).toBeVisible();
+  await expectNoRawKeys();
+  await row.getByRole("button", { name: es.tasks.cancel }).click();
+  await expect(row.locator(".ot-badge")).toHaveText(es.tasks.status.canceled);
+  await expect(row.getByRole("button", { name: es.tasks.pause })).toHaveCount(0);
+  await page.getByRole("dialog", { name: es.topBar.tasksPanel }).getByRole("button", { name: es.tasks.clear }).click();
+  await page.keyboard.press("Escape");
 });
 
 test("Aprendizajes: cada cambio en claro, filtros y corregir con una nota para Claude", async () => {
@@ -612,6 +881,11 @@ test("las pestañas nunca tienen barra: en una ventana angosta, lo que no cabe v
   await expect(more).toHaveCount(0);
   await expect(page.getByRole("tab")).toHaveCount(5);
   await noScroll();
+  // #200: una sola columna centrada con ancho máximo.
+  const content = (await page.locator(".content").boundingBox())!;
+  const column = (await page.locator(".centered").boundingBox())!;
+  expect(column.width).toBeLessThanOrEqual(881);
+  expect(Math.abs((column.x - content.x) - (content.x + content.width - column.x - column.width))).toBeLessThan(40);
 });
 
 test("Ajustes: consolas habilitadas, al día y reevaluar icónicas", async () => {
@@ -645,4 +919,56 @@ test("Ajustes: consolas habilitadas, al día y reevaluar icónicas", async () =>
   await expect(page.getByRole("button", { name: es.settings.claude.iconic })).toBeVisible();
   await expectNoRawKeys();
   await page.screenshot({ path: "e2e-results/18-claude-es.png", fullPage: true });
+});
+
+test("Ajustes en una sola columna a cualquier ancho, y el menú se retrae, se recuerda y se expande", async () => {
+  // #200 (reemplaza a #130 y #196): los bloques van en una sola columna, también con 1920 px.
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto(`${base()}/settings/?s=claude`);
+  const blocks = page.locator("#settings-panel .settings-blocks > .panel");
+  await expect(blocks).toHaveCount(3);
+  const columns = async () => new Set(await Promise.all([0, 1, 2].map(async (i) => Math.round((await blocks.nth(i).boundingBox())!.x)))).size;
+  expect(await columns()).toBe(1);
+  await page.screenshot({ path: "e2e-results/19-claude-una-columna-es.png", fullPage: true });
+  await page.setViewportSize({ width: 900, height: 900 });
+  expect(await columns()).toBe(1);
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  // #130: el menú se retrae a una franja de íconos con el nombre en el título, se recuerda al recargar y Ctrl+B lo expande.
+  const sidebar = page.locator(".sidebar");
+  const wide = (await sidebar.boundingBox())!.width;
+  await page.getByRole("button", { name: es.nav.collapse }).click();
+  await expect(sidebar).toHaveClass(/is-collapsed/);
+  expect((await sidebar.boundingBox())!.width).toBeLessThan(80);
+  await expect(sidebar.getByRole("link", { name: es.nav.sagas })).toHaveAttribute("title", es.nav.sagas);
+  await expectTextFits();
+  await page.screenshot({ path: "e2e-results/20-menu-retraido-es.png" });
+  await page.reload();
+  await expect(sidebar).toHaveClass(/is-collapsed/);
+  await page.keyboard.press("Control+b");
+  await expect(sidebar).not.toHaveClass(/is-collapsed/);
+  expect((await sidebar.boundingBox())!.width).toBe(wide);
+  await page.reload();
+  await expect(sidebar).not.toHaveClass(/is-collapsed/);
+});
+
+test("Ajustes › Consolas: portadas con su total, bajarlas a pedido y «En curso»", async () => {
+  // #132: sin clave de SteamGridDB, el bloque lleva a Cuentas y claves.
+  await page.goto(`${base()}/settings/?s=consoles`);
+  const block = page.getByRole("region", { name: es.settings.consoles.covers.title });
+  await expect(block).toContainText(/\d+ de \d+ juegos con portada/);
+  await expect(block.getByRole("link", { name: es.settings.consoles.covers.noKey })).toHaveAttribute("href", "/settings/?s=credentials");
+  // Con clave (la descarga real se prueba en xUnit, sin red): el botón encola y queda «En curso».
+  let queued = 0;
+  await page.route("**/api/covers", (route) => {
+    if (route.request().method() === "POST") queued++;
+    return route.fulfill({ json: { have: 31967, total: 40210, running: queued > 0, hasKey: true } });
+  });
+  await page.reload();
+  await expect(block).toContainText("31.967 de 40.210 juegos con portada");
+  await block.getByRole("button", { name: es.settings.consoles.covers.download }).click();
+  await expect(block.getByRole("button", { name: es.settings.consoles.covers.running })).toBeDisabled();
+  expect(queued).toBe(1);
+  await expectNoRawKeys();
+  await page.unroute("**/api/covers");
 });

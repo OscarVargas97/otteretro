@@ -10,7 +10,8 @@ import { useDescribeError } from "@/lib/i18n";
 import { Panels } from "@/components/Skeleton";
 import { Tabs } from "@/components/Tabs";
 import { usePaged } from "@/lib/paged";
-import { reviewQuery } from "@/lib/queries";
+import { reviewQuery, sagaQuery } from "@/lib/queries";
+import { Cover } from "@/components/Catalog";
 import type { LearningItem, LearningPage, ReviewItem, ReviewPage } from "@/lib/types";
 
 type Tab = "pending" | "learnings";
@@ -55,7 +56,7 @@ export default function Review() {
       <div id="review-panel" role="tabpanel" aria-labelledby={`tab-${tab}`} style={{ display: "contents" }}>
 
       {tab === "pending" && (pending.length === 0
-        ? <Empty title={t("pendingEmptyTitle")} text={t("pendingEmptyText")} />
+        ? <Empty title={t("pendingEmptyTitle")} text={t("pendingEmptyText")}><Link className="ot-btn" href="/settings/?s=claude">{t("openClaude")}</Link></Empty>
         : pending.map((item) => (
           <Pending key={item.id} item={item} busy={act.isPending}
             approve={(routes) => act.mutate(routes ? { path: `/api/review/${item.id}/approve-edited`, body: { routes } } : { path: `/api/review/${item.id}/approve` })}
@@ -117,6 +118,34 @@ function RouteEditor({ routes, onChange }: { routes: Route[]; onChange: (routes:
   ))}</>;
 }
 
+/** Las rutas por aprobar con sus portadas numeradas y la razón de cada paso (#171). Nombres y portadas salen de la saga. */
+function RoutesPreview({ sagaId, routes, sources }: { sagaId: string; routes: Route[]; sources: (list: Source[]) => React.ReactNode }) {
+  const tc = useTranslations("catalog");
+  const saga = useQuery(sagaQuery(sagaId));
+  const game = (id: number) => saga.data?.games.find((g) => Number(g.id) === id);
+  return <>{routes.map((r) => (
+    <div key={r.kind} className="sec">
+      <p style={{ margin: 0 }}><b>{tc(`route.${r.kind}`)}</b> · <span className="small">{r.rationale}</span></p>
+      <ol className="timeline is-plain">
+        {r.steps.map((s, i) => {
+          const g = game(s.gameId);
+          return (
+            <li key={i}>
+              <span className="step-cover">
+                <Cover gameId={s.gameId} name={g?.name ?? ""} hasCover={!!g?.hasCover} platform={g?.platforms[0]} />
+                <span className="step-num" aria-hidden="true">{i + 1}</span>
+              </span>
+              <p className="ot-game-name" title={g?.name}><span className="sr-only">{i + 1}. </span>{g?.name ?? "…"}</p>
+              <p className="small muted" style={{ margin: 0 }}>{s.reason}</p>
+            </li>
+          );
+        })}
+      </ol>
+      {sources(r.sources)}
+    </div>
+  ))}</>;
+}
+
 /** El resultado en palabras, según el prompt. */
 function Result({ item }: { item: ReviewItem }) {
   const t = useTranslations("review");
@@ -127,13 +156,7 @@ function Result({ item }: { item: ReviewItem }) {
   );
   switch (item.prompt) {
     case "ruta-saga":
-      return <>{(value as Route[]).map((r) => (
-        <div key={r.kind}>
-          <b>{tc(`route.${r.kind}`)}</b> · <span className="small">{r.rationale}</span>
-          <ol className="small" style={{ margin: "4px 0" }}>{r.steps.map((s, i) => <li key={i}>{s.reason}</li>)}</ol>
-          {sources(r.sources)}
-        </div>
-      ))}</>;
+      return <RoutesPreview sagaId={String(item.entityId)} routes={value as Route[]} sources={sources} />;
     case "iconico": {
       const v = value as Iconic;
       return <><p>{v.iconic ? t("iconicYes") : t("iconicNo")} · {v.reason}</p>{sources(v.sources)}</>;

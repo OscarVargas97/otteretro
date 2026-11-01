@@ -204,7 +204,7 @@ Estados (§0.5): **vacío** (la nutria, «Escanear una carpeta» y «Explorar sa
 | Pestaña | Contenido | Acciones |
 |---|---|---|
 | **Emuladores** | Por consola: predeterminado y alternativos (#72), versiones instaladas lado a lado, cuál usa cada juego, compatibilidad | Instalar · **Actualizar** (con migración y copia previa, §8.4) · Volver a una versión · Hacer predeterminado · Abrir configuración · Detectar instalados a mano |
-| **Ports** | Ports instalados y **ports nuevos** de la lista (Recompendium, §11.1), con su estado | Instalar · Actualizar · Ver qué juego cubre |
+| **Ports** | Ports instalados y **ports nuevos** de la lista (Recompendium, §11.1), con su estado; cada port aparece también en su consola y en la ficha del juego (#193) | Instalar · Actualizar · Ver qué juego cubre |
 | **Complementos** | Texturas, shaders, ReShade y mods, agrupados por emulador o port | Instalar · Actualizar · Activar o desactivar |
 | **Sistema** | BIOS, keys y firmware por consola, con versión y si están bien (§8.5) | **Subir archivo** · Ver qué emuladores lo usan · Avisos de lo que falta |
 | **Recetas** | Lista de recetas, quién las escribió (Claude o el repositorio) y cuándo | Ver · Pedir a Claude la receta de algo nuevo |
@@ -227,10 +227,12 @@ Estados (§0.5): **vacío** (la nutria, «Escanear una carpeta» y «Explorar sa
 
 ## 10. Ajustes
 
+**Diseño (#200, reemplaza la #196 y la #197):** pestañas arriba y una sola columna de contenido centrada con ancho máximo; nunca dos columnas de bloques. Herramientas, igual.
+
 | Sección | Contenido |
 |---|---|
-| **Bibliotecas** (D8) | Lista con nombre, ruta, disco, espacio libre, estado (conectada o desconectada). Acciones: crear, adoptar, renombrar, quitar (sin borrar), **reconectar** y **mover o migrar** con progreso (§5.3) |
-| **Carpeta de datos** | Ruta actual y espacio. Mover la carpeta de datos (S7) |
+| **Almacenamiento** (D8, #201 a #205, #208 a #210, con la distribución de Steam) | Arriba, un **desplegable** con el disco elegido (nombre, ★, espacio libre), «+» (ventana con las unidades; crea `Otteretro` con sus cinco carpetas) y «⋯» (abrir carpeta, reconectar, usar otra carpeta de datos en el ★, quitar disco sin borrar). Al medio, el disco: espacio libre, una **barra de uso gruesa** por tipo (juegos, emuladores, ports, complementos, sistema, datos de la app, otros archivos y libre) y su leyenda. Abajo, una **tabla** con casilla, nombre y tamaño; en el ★, la primera fila es «Datos de Otteretro» (se mueve sola, con su progreso, y el ★ la sigue). Lo demás va en **grupos desplegables** (#211), cerrados al abrir: tipo › consola o emulador › cada cosa, con cuántas tiene y su tamaño; la casilla de un grupo marca todo lo de adentro o queda a medias. Al pie, «Mover N cosas (tamaño) a [disco] · Mover». Si quedan carpetas de antes o Herramientas en la carpeta de datos, un aviso «Pasar al estándar» (§5.3) |
+| **Consolas** (#192, #195) | Lista de consolas por empresa con interruptor; al abrir una: sus juegos (en qué ubicación, destino de lo nuevo, mover), sus emuladores (predeterminado y alternativos), sus ports (con el juego que cubren) y su sistema (BIOS, keys, firmware) |
 | **Cuentas y claves** | Una tarjeta por servicio de la fase en curso, con para qué sirve y su estado («Lista», «Falta 1 de 2»; válida y vencida llegan con su integración, #148); «Configurar» abre un diálogo para pegar, cambiar o borrar cada campo y el enlace para conseguirla. Los servicios de fases posteriores van plegados en «Más adelante», con su fase (#57). Recordatorio de que el respaldo manual va en Bitwarden (§5.6) |
 | **Respaldo** | Repositorio, último respaldo de cada tipo, uso de LFS sobre 10 GiB (#70), conflictos guardados aparte (#77). Acciones: respaldar ahora, restaurar |
 | **Cómo jugar** | Orden de la regla automática y sus valores editables (§8.3) |

@@ -28,7 +28,9 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const body: ApiError | null = await response.json().catch(() => null);
     throw new ApiRequestError(body?.code ? body : { code: "http", params: { status: String(response.status) } });
   }
-  return response.json() as Promise<T>;
+  // Algunas respuestas no traen cuerpo (abrir carpeta, borrar): no se leen como JSON.
+  const text = await response.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 /** EventSource no admite cabeceras, así que la clave va en la URL. */

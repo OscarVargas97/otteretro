@@ -19,7 +19,10 @@
     "tools": "Herramientas",
     "steam": "Steam",
     "settings": "Ajustes",
-    "pending": "{count, plural, one {# por revisar} other {# por revisar}}"
+    "pending": "{count, plural, one {# por revisar} other {# por revisar}}",
+    "comingIn": "Llega en la fase {phase}",
+    "collapse": "Retraer el menú",
+    "expand": "Expandir el menú"
   },
   "topBar": {
     "search": "Buscar sagas y juegos…",
@@ -32,7 +35,8 @@
     "reconnecting": "Reconectando…",
     "searchLabel": "Buscar",
     "searchPlaceholder": "Sagas, juegos, emuladores, ajustes…",
-    "goToSteam": "Ir a Steam"
+    "goToSteam": "Ir a Steam",
+    "crumbs": "Camino"
   },
   "comingSoon": {
     "badge": "Llega en la fase {phase}",
@@ -66,7 +70,7 @@
       "welcome": "Bienvenida",
       "dataFolder": "Carpeta de datos",
       "backup": "Respaldo",
-      "libraries": "Bibliotecas",
+      "libraries": "Ubicaciones de juegos",
       "steam": "Steam",
       "keys": "Claves",
       "initialLoad": "Carga inicial"
@@ -82,14 +86,23 @@
     "back": "Atrás",
     "preparing": "Preparando…",
     "use": "Usar {path}",
-    "nextSteps": "Los pasos siguientes (respaldo, bibliotecas, Steam, claves y carga inicial) se activan con su fase."
+    "nextSteps": "Respaldo, Steam y el resto de los pasos se activan con su fase.",
+    "librariesTitle": "Tus discos",
+    "librariesText": "Elige en qué discos guardar juegos y herramientas: en cada uno se crea la carpeta Otteretro con todo ordenado. Si ya tienes una carpeta con la estructura antigua, adóptala y pasa sola al estándar.",
+    "librariesFound": "Encontramos carpetas con la estructura antigua:",
+    "adoptThis": "Adoptar {path}",
+    "skip": "Saltar",
+    "disksText": "Discos:",
+    "useDisk": "Usar {path}",
+    "diskAdded": "{path} ✓",
+    "done": "Listo"
   },
   "settings": {
     "dataFolder": "Carpeta de datos",
     "about": "Acerca de",
     "general": "General",
     "language": "Idioma",
-    "later": "Bibliotecas, respaldo y el resto de ajustes llegan con su fase.",
+    "later": "Respaldo y el resto de ajustes llegan con su fase.",
     "credentials": "Cuentas y claves",
     "sections": "Secciones de Ajustes",
     "claude": {
@@ -138,7 +151,8 @@
       "noAutomation": "Nada por ahora: aparece cuando Claude hace {count} veces el mismo cambio por la misma razón.",
       "automationTimes": "{count, plural, one {# vez} other {# veces}}",
       "createIssue": "Crear issue",
-      "issueCreated": "Issue creado"
+      "issueCreated": "Issue creado",
+      "pageTotal": "En esta página: {calls, plural, one {# llamada} other {# llamadas}} · {input} de entrada · {output} de salida · {cost}"
     },
     "consoles": {
       "title": "Consolas",
@@ -167,25 +181,50 @@
       "enable": "Habilitar",
       "already": "Ya está",
       "refreshNow": "Actualizar ahora",
-      "queued": "En la cola de tareas."
-    }
+      "queued": "En la cola de tareas.",
+      "covers": {
+        "title": "Portadas",
+        "count": "{have, number} de {total, number} juegos con portada",
+        "download": "Bajar portadas",
+        "running": "En curso",
+        "noKey": "Falta la clave de SteamGridDB"
+      },
+      "location": {
+        "in": "Sus juegos: {library}",
+        "move": "Mover a otra ubicación",
+        "to": "A",
+        "cancel": "Cancelar",
+        "confirm": "Mover",
+        "queued": "quedó en el panel de tareas"
+      },
+      "detail": {
+        "pick": "Elige una consola para ver sus juegos, emuladores, ports y sistema.",
+        "games": "Juegos",
+        "emulators": "Emuladores",
+        "ports": "Ports",
+        "system": "Sistema",
+        "complements": "Complementos",
+        "destination": "Los juegos nuevos van a",
+        "noDestination": "Sin elegir",
+        "noGames": "No hay una carpeta de esta consola en ninguna ubicación de juegos.",
+        "noEmulators": "No hay un emulador instalado para esta consola.",
+        "noPorts": "No hay ports de esta consola.",
+        "noSystem": "No hay BIOS ni keys de esta consola en una ubicación de sistema.",
+        "covers": "Cubre {game}",
+        "inDataFolder": "En Herramientas",
+        "inLocation": "En {location}",
+        "open": "Ver {name}"
+      }
+    },
+    "storage": "Almacenamiento"
   },
   "dataFolder": {
-    "open": "Abrir carpeta",
-    "difference": "«Mover» lleva todo a otra carpeta y borra la actual cuando termina de copiar y comprobar. «Usar otra carpeta» empieza a usar una que ya existe (por ejemplo, la de otro PC) sin tocar la actual.",
     "dismiss": "Cerrar aviso",
-    "usage": "Ocupa {used} · {free} libres en ese disco",
-    "usageMeasuring": "Midiendo lo que ocupa · {free} libres en ese disco",
-    "moveButton": "Mover…",
     "useButton": "Usar otra carpeta",
-    "contents": "Base de datos, Herramientas, caché de imágenes y registro de errores.",
-    "moveHelp": "Se copiará todo a la carpeta nueva, se comprobará cada archivo y solo entonces se borrará la actual. En el mismo disco se mueve al instante. La carpeta nueva tiene que estar vacía o no existir.",
     "useHelp": "La app empezará a usar esa carpeta (por ejemplo, una que traes de otro PC). La actual no se mueve ni se borra. Si la carpeta elegida está vacía, empezarás de cero.",
-    "driveChip": "{path} · {free} libres",
     "folderLabel": "Carpeta",
     "placeholder": "Por ejemplo E:\\Otteretro",
     "cancel": "Cancelar",
-    "move": "Mover",
     "useThis": "Usar esta carpeta",
     "progress": "{step} hacia {destination}",
     "dontClose": "No cierres la app hasta que termine.",
@@ -212,12 +251,16 @@
       "title": "Actualizaciones",
       "stable": "Estable",
       "testing": "Pruebas",
+      "local": "Local",
       "custom": "Otro origen",
       "stableHint": "Las versiones publicadas en GitHub: probadas y con su lista de novedades.",
       "testingHint": "Lo último en desarrollo, antes de publicarse. Puede traer errores.",
+      "localHint": "Los paquetes que armas en este equipo con scripts/empaquetar.ps1. Se guarda su carpeta, así vuelves a ella de un clic.",
       "customHint": "Una carpeta, una dirección web o el repo de GitHub de quien arma su propia versión de Otteretro.",
       "origin": "Origen de las actualizaciones",
       "originPlaceholder": "D:\\paquetes o https://github.com/usuario/otteretro",
+      "localFolder": "Carpeta de los paquetes locales",
+      "localPlaceholder": "Por ejemplo D:\\dev\\artefactos\\otteretro\\paquetes",
       "use": "Usar"
     },
     "taskTitle": "Actualización de Otteretro",
@@ -251,7 +294,8 @@
     "unknown": "Algo salió mal ({code}).",
     "path": {
       "notAbsolute": "La ruta tiene que ser completa, por ejemplo E:\\Otteretro.",
-      "isFile": "Esa ruta es un archivo, no una carpeta."
+      "isFile": "Esa ruta es un archivo, no una carpeta.",
+      "notFound": "Esa carpeta no existe."
     },
     "folder": {
       "createFailed": "No se pudo crear la carpeta: {detail}"
@@ -358,7 +402,10 @@
         },
         "images": "{game}: bajó {kinds} ({kb} KB).",
         "noImages": "{game}: no encontró imágenes.",
-        "refresh": "{platform}: {count} juegos nuevos o cambiados."
+        "refresh": "{platform}: {count} juegos nuevos o cambiados.",
+        "paused": "En pausa: sigue desde aquí al reanudarla.",
+        "resumed": "Reanudada.",
+        "canceled": "Cancelada."
       }
     },
     "progress": {
@@ -384,6 +431,33 @@
       "notFound": "Esa sugerencia ya no está.",
       "ghMissing": "No se encontró gh (GitHub CLI). Instálalo e inicia sesión con «gh auth login».",
       "ghFailed": "gh no pudo crear el issue: {detail}"
+    },
+    "library": {
+      "hasMarker": "Esa carpeta ya es una ubicación: adóptala en vez de crearla.",
+      "noName": "Escribe un nombre.",
+      "notFound": "Esa ubicación ya no está registrada.",
+      "overlaps": "Se cruza con la ubicación «{name}»: una no puede estar dentro de otra.",
+      "notConnected": "La ubicación está desconectada. Reconéctala primero.",
+      "otherMarker": "En esa carpeta no está esta ubicación (su marcador es de otra o no tiene).",
+      "notFoundOnDrives": "No apareció en los discos. Conecta el disco o escribe la ruta donde está.",
+      "outside": "La carpeta tiene que estar dentro de la ubicación.",
+      "conflict": "Ya existe {path}: muévelo o renómbralo y vuelve a migrar.",
+      "copying": "Copiando a {path}",
+      "updating": "Poniendo al día la base y las rutas de los emuladores",
+      "portable": "Dejando portables los emuladores y ports",
+      "games": "Ordenando los juegos de {console}",
+      "log": {
+        "moved": "Movida {from} a {to}; {paths} rutas de emuladores al día.",
+        "tool": "{name} quedó en {path}.",
+        "notEmpty": "{path} no quedó vacía y no se borró: revisa qué tiene.",
+        "skipped": "{name} está desconectada: no se pasó al estándar."
+      },
+      "badType": "Ese tipo de ubicación no existe.",
+      "notGames": "Elige una ubicación de juegos.",
+      "otherType": "Esa ubicación es de otro tipo.",
+      "notDisk": "Eso no es un disco.",
+      "toDisk": "Pasando {name} a su disco",
+      "toolsToDisk": "Llevando Herramientas al disco predeterminado"
     }
   },
   "credentials": {
@@ -458,17 +532,32 @@
       },
       "catalog": {
         "extra": "Completar con Wikidata y RAWG"
+      },
+      "library": {
+        "move": "Mover una ubicación o una carpeta",
+        "adopt": "Migrar una ubicación a la estructura nueva"
+      },
+      "disk": {
+        "migrate": "Pasar al estándar de discos"
       }
     },
     "status": {
       "queued": "En cola",
       "running": "{progress} %",
       "done": "Terminada",
-      "error": "Error"
+      "error": "Error",
+      "paused": "En pausa",
+      "canceled": "Cancelada"
     },
     "clear": "Limpiar terminadas",
     "log": "Registro de la tarea",
-    "logEmpty": "Esta tarea todavía no anotó nada."
+    "logEmpty": "Esta tarea todavía no anotó nada.",
+    "remove": "Quitar {name}",
+    "pause": "Pausar",
+    "resume": "Reanudar",
+    "cancel": "Cancelar",
+    "keep": "Seguir",
+    "cancelConfirm": "¿Cancelar la tarea? Lo que ya hizo se conserva."
   },
   "pad": {
     "choose": "Elegir",
@@ -483,7 +572,10 @@
     "space": "Espacio",
     "delete": "Borrar",
     "done": "Listo",
-    "menu": "Menú"
+    "menu": "Menú",
+    "home": "Inicio",
+    "tasks": "Tareas",
+    "settings": "Ajustes"
   },
   "catalog": {
     "owned": "Lo tengo",
@@ -532,7 +624,8 @@
       "emptyText": "Las sagas y sus juegos se cargan desde IGDB. Pega la cuenta en Ajustes › Cuentas y claves y carga una saga con «otteretro catalogo cargar --saga zelda».",
       "noMatch": "Ninguna saga cumple el filtro.",
       "platform": "Empresa o consola",
-      "allPlatforms": "Todas las consolas"
+      "allPlatforms": "Todas las consolas",
+      "total": "{count, plural, one {# saga} other {# sagas}}"
     },
     "saga": {
       "back": "← Sagas",
@@ -554,7 +647,9 @@
       "why": "Por qué este orden",
       "sources": "Fuentes",
       "recommends": "Versión: {platform}",
-      "progress": "{done} de {total}"
+      "progress": "{done} de {total}",
+      "moreActions": "Más acciones",
+      "progressLabel": "{done} de {total} jugados"
     },
     "collection": {
       "consoles": "Consolas",
@@ -584,7 +679,8 @@
       "year": "Año",
       "store": "Tienda",
       "hours": "Horas",
-      "lastPlayed": "Última vez"
+      "lastPlayed": "Última vez",
+      "otherCompany": "Otras"
     },
     "game": {
       "noneTitle": "Elige un juego",
@@ -630,7 +726,6 @@
       "undoFix": "Volver al de las fuentes",
       "manualNote": "Lo corregido a mano gana y ninguna carga lo pisa.",
       "shown": "Se muestra",
-      "compare": "Comparativa de versiones",
       "best": "Recomendada",
       "noCompare": "Claude todavía no comparó las versiones de este juego.",
       "description": "Descripción",
@@ -654,12 +749,20 @@
       "release": "Lanzamiento",
       "story": "Historia",
       "community": "Comunidad"
-    }
+    },
+    "goToSagas": "Ver Sagas",
+    "openConsoles": "Abrir Consolas",
+    "openCredentials": "Abrir Cuentas y claves",
+    "iconic": "Icónica",
+    "exclusiveOf": "Exclusiva de {company}",
+    "ofTotal": "{done} de {total}"
   },
   "notices": {
     "title": "Avisos",
     "missingKey": "Falta la clave de {service}: sin ella no se cargan sus datos.",
-    "openSettings": "Abrir Ajustes"
+    "openSettings": "Abrir Ajustes",
+    "missingKeys": "Faltan claves de {services}: sin ellas no se cargan sus datos.",
+    "openCredentials": "Cuentas y claves"
   },
   "review": {
     "tabs": "Secciones de Revisar",
@@ -720,14 +823,104 @@
     "approveEdited": "Aprobar como quedó",
     "stepUp": "Subir el paso {step}",
     "stepDown": "Bajar el paso {step}",
-    "stepRemove": "Quitar el paso {step}"
+    "stepRemove": "Quitar el paso {step}",
+    "openClaude": "Abrir Ajustes › Claude"
   },
   "home": {
     "next": "Siguiente en tus rutas",
     "nextEmpty": "Sigue una ruta en una saga y aquí verás tu siguiente juego.",
-    "step": "{saga} · {route} · {done} de {total}",
     "review": "Revisar",
     "reviewCount": "{count} resultados de Claude por aprobar",
-    "reviewNone": "Nada por revisar."
+    "nextEmptyTitle": "Todavía no sigues ninguna ruta",
+    "viewGame": "Ver ficha",
+    "routeOf": "{saga} · {route}",
+    "progress": "{done} de {total} jugados"
+  },
+  "libraries": {
+    "cancel": "Cancelar",
+    "free": "{free} libres de {total}",
+    "network": "En red",
+    "disconnected": "Desconectada",
+    "migrationStarted": "La migración quedó en el panel de tareas. Puedes seguir usando la app mientras tanto.",
+    "queued": "Quedó en el panel de tareas.",
+    "reconnect": "Reconectar",
+    "move": "Mover",
+    "remove": "Quitar",
+    "removeHelp": "Se quita «{name}» de Otteretro. No se borra ningún archivo: puedes volver a agregarlo cuando quieras.",
+    "removeConfirm": "Quitar sin borrar",
+    "type": {
+      "game": {
+        "title": "Juegos"
+      },
+      "emulator": {
+        "title": "Emuladores"
+      },
+      "port": {
+        "title": "Ports"
+      },
+      "complement": {
+        "title": "Complementos"
+      },
+      "system": {
+        "title": "Sistema"
+      }
+    },
+    "addDisk": "+ Agregar disco",
+    "addDiskHelp": "Elige un disco: Otteretro crea en él la carpeta Otteretro con Juegos, Emuladores, Ports, Complementos y Sistema. Una por disco.",
+    "noDrives": "Todos los discos ya están agregados.",
+    "add": "Agregar",
+    "usage": "Uso del disco por tipo",
+    "otherUse": "Otros archivos",
+    "freeSpace": "Libre",
+    "diskEmpty": "Este disco todavía no tiene nada.",
+    "noOtherDisk": "Agrega otro disco para mover cosas entre ellos.",
+    "moveTo": "Mover {count, plural, =0 {lo marcado} one {1 cosa} other {# cosas}} ({size}) a",
+    "migration": {
+      "title": "Pasar al estándar",
+      "help": "Estas carpetas tienen el formato anterior. Pasarlas deja cada cosa en la carpeta fija de su disco (en el mismo disco, se renombra) y lo de Herramientas en el disco predeterminado, con las rutas de los emuladores al día.",
+      "tools": "Herramientas, en la carpeta de datos",
+      "toDefault": "disco predeterminado ★",
+      "run": "Pasar al estándar"
+    },
+    "disk": "Disco",
+    "dataUse": "Datos de la app",
+    "moreActions": "Más opciones del disco",
+    "openFolder": "Abrir carpeta",
+    "useOtherData": "Usar otra carpeta de datos…",
+    "removeDisk": "Quitar disco…",
+    "colName": "Nombre",
+    "colSize": "Tamaño",
+    "appData": "Datos de Otteretro",
+    "appType": "App",
+    "things": "{count, plural, one {1 cosa} other {# cosas}}"
+  },
+  "tools": {
+    "emptyTitle": "Aún no hay emuladores ni ports",
+    "emptyText": "Al adoptar una ubicación de juegos con la estructura antigua, sus emuladores y ports llegan aquí. Desde la F5 se instalan y actualizan desde esta pantalla.",
+    "kind": {
+      "emulator": "Emuladores",
+      "port": "Ports",
+      "complement": "Complementos",
+      "system": "Sistema"
+    },
+    "noRecipe": "Sin receta",
+    "noRecipeHelp": "Otteretro todavía no sabe cómo dejarlo portable ni reescribir sus rutas.",
+    "sections": "Tipos de herramientas",
+    "pick": "Elige una herramienta para ver su detalle.",
+    "none": "Nada de este tipo todavía.",
+    "version": "Versión",
+    "console": "Consola",
+    "path": "Carpeta",
+    "covers": "Cubre",
+    "location": "Ubicación",
+    "recipe": "Receta",
+    "move": "Mover a otra ubicación",
+    "to": "A",
+    "cancel": "Cancelar",
+    "confirm": "Mover",
+    "queued": "Quedó en el panel de tareas.",
+    "systemHelp": "BIOS, keys y firmware viven en las ubicaciones de sistema de Ajustes › Almacenamiento. Cada consola muestra los suyos.",
+    "openStorage": "Abrir Almacenamiento",
+    "dataFolder": "Herramientas (carpeta de datos)"
   }
 }

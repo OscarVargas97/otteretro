@@ -19,7 +19,10 @@
     "tools": "Tools",
     "steam": "Steam",
     "settings": "Settings",
-    "pending": "{count, plural, one {# to review} other {# to review}}"
+    "pending": "{count, plural, one {# to review} other {# to review}}",
+    "comingIn": "Coming in phase {phase}",
+    "collapse": "Collapse menu",
+    "expand": "Expand menu"
   },
   "topBar": {
     "search": "Search sagas and games…",
@@ -32,7 +35,8 @@
     "reconnecting": "Reconnecting…",
     "searchLabel": "Search",
     "searchPlaceholder": "Sagas, games, emulators, settings…",
-    "goToSteam": "Go to Steam"
+    "goToSteam": "Go to Steam",
+    "crumbs": "Breadcrumb"
   },
   "comingSoon": {
     "badge": "Coming in phase {phase}",
@@ -66,7 +70,7 @@
       "welcome": "Welcome",
       "dataFolder": "Data folder",
       "backup": "Backup",
-      "libraries": "Libraries",
+      "libraries": "Game locations",
       "steam": "Steam",
       "keys": "Keys",
       "initialLoad": "Initial load"
@@ -82,14 +86,23 @@
     "back": "Back",
     "preparing": "Preparing…",
     "use": "Use {path}",
-    "nextSteps": "The next steps (backup, libraries, Steam, keys and initial load) turn on with their phase."
+    "nextSteps": "Backup, Steam and the remaining steps turn on with their phase.",
+    "librariesTitle": "Your drives",
+    "librariesText": "Choose which drives keep games and tools: each gets an Otteretro folder with everything in order. If you already have a folder with the old layout, adopt it and it moves to the standard on its own.",
+    "librariesFound": "We found folders with the old layout:",
+    "adoptThis": "Adopt {path}",
+    "skip": "Skip",
+    "disksText": "Drives:",
+    "useDisk": "Use {path}",
+    "diskAdded": "{path} ✓",
+    "done": "Done"
   },
   "settings": {
     "dataFolder": "Data folder",
     "about": "About",
     "general": "General",
     "language": "Language",
-    "later": "Libraries, backup and the rest of the settings arrive with their phase.",
+    "later": "Backup and the remaining settings arrive with their phase.",
     "credentials": "Accounts and keys",
     "sections": "Settings sections",
     "claude": {
@@ -138,7 +151,8 @@
       "noAutomation": "Nothing yet: it shows up when Claude makes the same change for the same reason {count} times.",
       "automationTimes": "{count, plural, one {# time} other {# times}}",
       "createIssue": "Create issue",
-      "issueCreated": "Issue created"
+      "issueCreated": "Issue created",
+      "pageTotal": "On this page: {calls, plural, one {# call} other {# calls}} · {input} in · {output} out · {cost}"
     },
     "consoles": {
       "title": "Consoles",
@@ -167,25 +181,50 @@
       "enable": "Enable",
       "already": "Already added",
       "refreshNow": "Update now",
-      "queued": "Queued."
-    }
+      "queued": "Queued.",
+      "covers": {
+        "title": "Covers",
+        "count": "{have, number} of {total, number} games with a cover",
+        "download": "Download covers",
+        "running": "In progress",
+        "noKey": "SteamGridDB key missing"
+      },
+      "location": {
+        "in": "Its games: {library}",
+        "move": "Move to another location",
+        "to": "To",
+        "cancel": "Cancel",
+        "confirm": "Move",
+        "queued": "it is in the tasks panel"
+      },
+      "detail": {
+        "pick": "Pick a console to see its games, emulators, ports and system files.",
+        "games": "Games",
+        "emulators": "Emulators",
+        "ports": "Ports",
+        "system": "System",
+        "complements": "Add-ons",
+        "destination": "New games go to",
+        "noDestination": "Not chosen",
+        "noGames": "No game location has a folder for this console.",
+        "noEmulators": "No emulator is installed for this console.",
+        "noPorts": "No ports for this console.",
+        "noSystem": "No BIOS or keys for this console in a system location.",
+        "covers": "Covers {game}",
+        "inDataFolder": "In Herramientas",
+        "inLocation": "In {location}",
+        "open": "Show {name}"
+      }
+    },
+    "storage": "Storage"
   },
   "dataFolder": {
-    "open": "Open folder",
-    "difference": "“Move” takes everything to another folder and deletes the current one once it is copied and checked. “Use another folder” starts using one that already exists (for example, from another PC) without touching the current one.",
     "dismiss": "Dismiss",
-    "usage": "Uses {used} · {free} free on that drive",
-    "usageMeasuring": "Measuring its size · {free} free on that drive",
-    "moveButton": "Move…",
     "useButton": "Use another folder",
-    "contents": "Database, Tools, image cache and error log.",
-    "moveHelp": "Everything will be copied to the new folder, each file will be checked and only then the current one will be deleted. On the same drive it moves instantly. The new folder must be empty or not exist.",
     "useHelp": "The app will start using that folder (for example, one you bring from another PC). The current one is not moved or deleted. If the chosen folder is empty, you will start from scratch.",
-    "driveChip": "{path} · {free} free",
     "folderLabel": "Folder",
     "placeholder": "For example E:\\Otteretro",
     "cancel": "Cancel",
-    "move": "Move",
     "useThis": "Use this folder",
     "progress": "{step} to {destination}",
     "dontClose": "Do not close the app until it finishes.",
@@ -212,12 +251,16 @@
       "title": "Updates",
       "stable": "Stable",
       "testing": "Testing",
+      "local": "Local",
       "custom": "Other source",
       "stableHint": "The versions published on GitHub: tested and with their release notes.",
       "testingHint": "The latest in development, before it is published. It may have bugs.",
+      "localHint": "The packages you build on this computer with scripts/empaquetar.ps1. Its folder is remembered, so you can come back to it in one click.",
       "customHint": "A folder, a web address or the GitHub repo of someone who builds their own Otteretro.",
       "origin": "Update source",
       "originPlaceholder": "D:\\packages or https://github.com/user/otteretro",
+      "localFolder": "Local packages folder",
+      "localPlaceholder": "For example D:\\dev\\artefactos\\otteretro\\paquetes",
       "use": "Use"
     },
     "taskTitle": "Otteretro update",
@@ -251,7 +294,8 @@
     "unknown": "Something went wrong ({code}).",
     "path": {
       "notAbsolute": "The path must be complete, for example E:\\Otteretro.",
-      "isFile": "That path is a file, not a folder."
+      "isFile": "That path is a file, not a folder.",
+      "notFound": "That folder does not exist."
     },
     "folder": {
       "createFailed": "Could not create the folder: {detail}"
@@ -358,7 +402,10 @@
         },
         "images": "{game}: downloaded {kinds} ({kb} KB).",
         "noImages": "{game}: no images found.",
-        "refresh": "{platform}: {count} new or changed games."
+        "refresh": "{platform}: {count} new or changed games.",
+        "paused": "Paused: it continues from here when resumed.",
+        "resumed": "Resumed.",
+        "canceled": "Canceled."
       }
     },
     "progress": {
@@ -384,6 +431,33 @@
       "notFound": "That suggestion is gone.",
       "ghMissing": "gh (GitHub CLI) was not found. Install it and sign in with “gh auth login”.",
       "ghFailed": "gh could not create the issue: {detail}"
+    },
+    "library": {
+      "hasMarker": "That folder is already a location: adopt it instead of creating it.",
+      "noName": "Type a name.",
+      "notFound": "That location is no longer registered.",
+      "overlaps": "It overlaps the location “{name}”: one cannot be inside another.",
+      "notConnected": "The location is disconnected. Reconnect it first.",
+      "otherMarker": "This location is not in that folder (its marker belongs to another one, or it has none).",
+      "notFoundOnDrives": "It was not found on your drives. Connect the drive or type where it is.",
+      "outside": "The folder has to be inside the location.",
+      "conflict": "{path} already exists: move or rename it and migrate again.",
+      "copying": "Copying to {path}",
+      "updating": "Updating the database and emulator paths",
+      "portable": "Making emulators and ports portable",
+      "games": "Sorting {console} games",
+      "log": {
+        "moved": "Moved {from} to {to}; {paths} emulator paths updated.",
+        "tool": "{name} is now in {path}.",
+        "notEmpty": "{path} was not empty and was not deleted: check what is in it.",
+        "skipped": "{name} is disconnected: it was not moved to the standard layout."
+      },
+      "badType": "That location type does not exist.",
+      "notGames": "Pick a game location.",
+      "otherType": "That location is of another type.",
+      "notDisk": "That is not a drive.",
+      "toDisk": "Moving {name} to its drive",
+      "toolsToDisk": "Moving Herramientas to the default drive"
     }
   },
   "credentials": {
@@ -458,17 +532,32 @@
       },
       "catalog": {
         "extra": "Complete with Wikidata and RAWG"
+      },
+      "library": {
+        "move": "Move a location or a folder",
+        "adopt": "Migrate a location to the new layout"
+      },
+      "disk": {
+        "migrate": "Move to the standard drive layout"
       }
     },
     "status": {
       "queued": "Queued",
       "running": "{progress}%",
       "done": "Done",
-      "error": "Error"
+      "error": "Error",
+      "paused": "Paused",
+      "canceled": "Canceled"
     },
     "clear": "Clear finished",
     "log": "Task log",
-    "logEmpty": "This task has not logged anything yet."
+    "logEmpty": "This task has not logged anything yet.",
+    "remove": "Remove {name}",
+    "pause": "Pause",
+    "resume": "Resume",
+    "cancel": "Cancel",
+    "keep": "Keep going",
+    "cancelConfirm": "Cancel the task? What it already did is kept."
   },
   "pad": {
     "choose": "Select",
@@ -483,7 +572,10 @@
     "space": "Space",
     "delete": "Delete",
     "done": "Done",
-    "menu": "Menu"
+    "menu": "Menu",
+    "home": "Home",
+    "tasks": "Tasks",
+    "settings": "Settings"
   },
   "catalog": {
     "owned": "I own it",
@@ -532,7 +624,8 @@
       "emptyText": "Series and their games are loaded from IGDB. Paste the account in Settings › Accounts and keys and load one with “otteretro catalogo cargar --saga zelda”.",
       "noMatch": "No series match this filter.",
       "platform": "Company or console",
-      "allPlatforms": "All consoles"
+      "allPlatforms": "All consoles",
+      "total": "{count, plural, one {# saga} other {# sagas}}"
     },
     "saga": {
       "back": "‹ Series",
@@ -554,7 +647,9 @@
       "why": "Why this order",
       "sources": "Sources",
       "recommends": "Version: {platform}",
-      "progress": "{done} of {total}"
+      "progress": "{done} of {total}",
+      "moreActions": "More actions",
+      "progressLabel": "{done} of {total} played"
     },
     "collection": {
       "consoles": "Consoles",
@@ -584,7 +679,8 @@
       "year": "Year",
       "store": "Store",
       "hours": "Hours",
-      "lastPlayed": "Last played"
+      "lastPlayed": "Last played",
+      "otherCompany": "Others"
     },
     "game": {
       "noneTitle": "Pick a game",
@@ -630,7 +726,6 @@
       "undoFix": "Back to the sources' value",
       "manualNote": "What you correct by hand wins and no load overwrites it.",
       "shown": "Shown",
-      "compare": "Version comparison",
       "best": "Recommended",
       "noCompare": "Claude hasn't compared this game's versions yet.",
       "description": "Description",
@@ -654,12 +749,20 @@
       "release": "Release",
       "story": "Story",
       "community": "Community"
-    }
+    },
+    "goToSagas": "Browse sagas",
+    "openConsoles": "Open Consoles",
+    "openCredentials": "Open Accounts and keys",
+    "iconic": "Iconic",
+    "exclusiveOf": "{company} exclusive",
+    "ofTotal": "{done} of {total}"
   },
   "notices": {
     "title": "Notices",
     "missingKey": "The {service} key is missing: its data can't be loaded without it.",
-    "openSettings": "Open Settings"
+    "openSettings": "Open Settings",
+    "missingKeys": "Keys are missing for {services}: their data can't be loaded without them.",
+    "openCredentials": "Accounts and keys"
   },
   "review": {
     "tabs": "Review sections",
@@ -720,14 +823,104 @@
     "approveEdited": "Approve as edited",
     "stepUp": "Move step {step} up",
     "stepDown": "Move step {step} down",
-    "stepRemove": "Remove step {step}"
+    "stepRemove": "Remove step {step}",
+    "openClaude": "Open Settings › Claude"
   },
   "home": {
     "next": "Next in your routes",
     "nextEmpty": "Follow a route in a saga and your next game will show up here.",
-    "step": "{saga} · {route} · {done} of {total}",
     "review": "Review",
     "reviewCount": "{count} Claude results to approve",
-    "reviewNone": "Nothing to review."
+    "nextEmptyTitle": "You're not following any route yet",
+    "viewGame": "View game",
+    "routeOf": "{saga} · {route}",
+    "progress": "{done} of {total} played"
+  },
+  "libraries": {
+    "cancel": "Cancel",
+    "free": "{free} free of {total}",
+    "network": "Network",
+    "disconnected": "Disconnected",
+    "migrationStarted": "The migration is in the tasks panel. You can keep using the app meanwhile.",
+    "queued": "It is in the tasks panel.",
+    "reconnect": "Reconnect",
+    "move": "Move",
+    "remove": "Remove",
+    "removeHelp": "«{name}» is removed from Otteretro. No file is deleted: you can add it back whenever you want.",
+    "removeConfirm": "Remove without deleting",
+    "type": {
+      "game": {
+        "title": "Games"
+      },
+      "emulator": {
+        "title": "Emulators"
+      },
+      "port": {
+        "title": "Ports"
+      },
+      "complement": {
+        "title": "Add-ons"
+      },
+      "system": {
+        "title": "System"
+      }
+    },
+    "addDisk": "+ Add drive",
+    "addDiskHelp": "Pick a drive: Otteretro creates an Otteretro folder on it with Juegos, Emuladores, Ports, Complementos and Sistema. One per drive.",
+    "noDrives": "Every drive is already added.",
+    "add": "Add",
+    "usage": "Drive usage by type",
+    "otherUse": "Other files",
+    "freeSpace": "Free",
+    "diskEmpty": "This drive has nothing yet.",
+    "noOtherDisk": "Add another drive to move things between them.",
+    "moveTo": "Move {count, plural, =0 {the selection} one {1 item} other {# items}} ({size}) to",
+    "migration": {
+      "title": "Move to the standard layout",
+      "help": "These folders use the old layout. Moving them puts each thing in its drive's fixed folder (on the same drive it's a rename) and Herramientas on the default drive, with emulator paths updated.",
+      "tools": "Herramientas, in the data folder",
+      "toDefault": "default drive ★",
+      "run": "Move to the standard layout"
+    },
+    "disk": "Drive",
+    "dataUse": "App data",
+    "moreActions": "More drive options",
+    "openFolder": "Open folder",
+    "useOtherData": "Use another data folder…",
+    "removeDisk": "Remove drive…",
+    "colName": "Name",
+    "colSize": "Size",
+    "appData": "Otteretro data",
+    "appType": "App",
+    "things": "{count, plural, one {1 item} other {# items}}"
+  },
+  "tools": {
+    "emptyTitle": "No emulators or ports yet",
+    "emptyText": "When you adopt a game location with the old layout, its emulators and ports land here. From F5 on they are installed and updated from this screen.",
+    "kind": {
+      "emulator": "Emulators",
+      "port": "Ports",
+      "complement": "Add-ons",
+      "system": "System"
+    },
+    "noRecipe": "No recipe",
+    "noRecipeHelp": "Otteretro does not know yet how to make it portable or rewrite its paths.",
+    "sections": "Tool types",
+    "pick": "Pick a tool to see its details.",
+    "none": "Nothing of this type yet.",
+    "version": "Version",
+    "console": "Console",
+    "path": "Folder",
+    "covers": "Covers",
+    "location": "Location",
+    "recipe": "Recipe",
+    "move": "Move to another location",
+    "to": "To",
+    "cancel": "Cancel",
+    "confirm": "Move",
+    "queued": "Added to the tasks panel.",
+    "systemHelp": "BIOS, keys and firmware live in the system locations of Settings › Storage. Each console shows its own.",
+    "openStorage": "Open Storage",
+    "dataFolder": "Herramientas (data folder)"
   }
 }
