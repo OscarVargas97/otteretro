@@ -386,7 +386,10 @@
         },
         "images": "{game}: bajó {kinds} ({kb} KB).",
         "noImages": "{game}: no encontró imágenes.",
-        "refresh": "{platform}: {count} juegos nuevos o cambiados."
+        "refresh": "{platform}: {count} juegos nuevos o cambiados.",
+        "paused": "En pausa: sigue desde aquí al reanudarla.",
+        "resumed": "Reanudada.",
+        "canceled": "Cancelada."
       }
     },
     "progress": {
@@ -516,12 +519,19 @@
       "queued": "En cola",
       "running": "{progress} %",
       "done": "Terminada",
-      "error": "Error"
+      "error": "Error",
+      "paused": "En pausa",
+      "canceled": "Cancelada"
     },
     "clear": "Limpiar terminadas",
     "log": "Registro de la tarea",
     "logEmpty": "Esta tarea todavía no anotó nada.",
-    "remove": "Quitar {name}"
+    "remove": "Quitar {name}",
+    "pause": "Pausar",
+    "resume": "Reanudar",
+    "cancel": "Cancelar",
+    "keep": "Seguir",
+    "cancelConfirm": "¿Cancelar la tarea? Lo que ya hizo se conserva."
   },
   "pad": {
     "choose": "Elegir",

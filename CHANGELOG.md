@@ -4,7 +4,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.3.0 · Carpetas y herramientas · en desarrollo
 
-`fase/f3-carpetas` · F3 (#141): tus juegos y herramientas en la estructura definitiva antes de construir lo demás encima · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+`fase/f3-carpetas` y `feat/146-pausar-cancelar-tareas` · F3 (#141): tus juegos y herramientas en la estructura definitiva antes de construir lo demás encima · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
 
 ### Nuevo
 - **Bibliotecas de juegos**, en Ajustes › Bibliotecas de juegos: adopta la carpeta donde ya tienes tus juegos o crea una nueva en cualquier disco o en la red. Cada una muestra su espacio libre y si está conectada; se puede renombrar, mover y quitar (quitar nunca borra archivos). Si un disco cambia de letra o vuelve a conectarse, la biblioteca se encuentra sola.
@@ -12,6 +12,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **Mover una biblioteca o una consola** a otro disco (la consola, desde Ajustes › Consolas, que dice en qué biblioteca están sus juegos): se copia, se verifica cada archivo y recién entonces se borra el origen. Si se corta, sigue donde quedó. Las rutas de los emuladores se actualizan solas.
 - **Herramientas** ya se abre: muestra cada emulador, port y complemento instalado con su versión.
 - **Paso 4 de la bienvenida**: encuentra la carpeta con la estructura antigua y ofrece adoptarla.
+- **Pausar, reanudar y cancelar tareas** desde el panel de tareas (#146): una tarea pausada, como la carga con Claude, se queda quieta con lo que ya hizo hasta que la reanudas, y el horario de Claude no lanza otra encima. Cancelar pide confirmar y conserva lo hecho; una mudanza cancelada no toca el origen.
 
 ### Cambios
 - El menú muestra las fases nuevas del plan: Steam llega en la F8, Descargas en la F10 y Descubrir en la F11.

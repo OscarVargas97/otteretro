@@ -386,7 +386,10 @@
         },
         "images": "{game}: downloaded {kinds} ({kb} KB).",
         "noImages": "{game}: no images found.",
-        "refresh": "{platform}: {count} new or changed games."
+        "refresh": "{platform}: {count} new or changed games.",
+        "paused": "Paused: it continues from here when resumed.",
+        "resumed": "Resumed.",
+        "canceled": "Canceled."
       }
     },
     "progress": {
@@ -516,12 +519,19 @@
       "queued": "Queued",
       "running": "{progress}%",
       "done": "Done",
-      "error": "Error"
+      "error": "Error",
+      "paused": "Paused",
+      "canceled": "Canceled"
     },
     "clear": "Clear finished",
     "log": "Task log",
     "logEmpty": "This task has not logged anything yet.",
-    "remove": "Remove {name}"
+    "remove": "Remove {name}",
+    "pause": "Pause",
+    "resume": "Resume",
+    "cancel": "Cancel",
+    "keep": "Keep going",
+    "cancelConfirm": "Cancel the task? What it already did is kept."
   },
   "pad": {
     "choose": "Select",

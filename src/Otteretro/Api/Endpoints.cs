@@ -166,6 +166,13 @@ public static class Endpoints
             CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(TaskQueue.ReadLog(db, id)) : CatalogEndpoints.NoData());
         api.MapDelete("/tasks/finished", Results<Ok<int>, Conflict<ApiError>> (AppSession s) =>
             CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(TaskQueue.Clear(db)) : CatalogEndpoints.NoData());
+        // Pausar, reanudar y cancelar desde el panel (#146).
+        api.MapPost("/tasks/{id:long}/pause", Results<Ok, NotFound, Conflict<ApiError>> (long id, AppSession s, TaskQueue queue) =>
+            CatalogEndpoints.Db(s) is not { } db ? CatalogEndpoints.NoData() : queue.Pause(db, id) ? TypedResults.Ok() : TypedResults.NotFound());
+        api.MapPost("/tasks/{id:long}/resume", Results<Ok, NotFound, Conflict<ApiError>> (long id, AppSession s, TaskQueue queue) =>
+            CatalogEndpoints.Db(s) is not { } db ? CatalogEndpoints.NoData() : queue.Resume(db, id) ? TypedResults.Ok() : TypedResults.NotFound());
+        api.MapPost("/tasks/{id:long}/cancel", Results<Ok, NotFound, Conflict<ApiError>> (long id, AppSession s, TaskQueue queue) =>
+            CatalogEndpoints.Db(s) is not { } db ? CatalogEndpoints.NoData() : queue.Cancel(db, id) ? TypedResults.Ok() : TypedResults.NotFound());
         // Quitar una terminada desde su ✕ en el panel (#172); una que corre o espera no se toca.
         api.MapDelete("/tasks/{id:long}", Results<Ok<int>, Conflict<ApiError>> (long id, AppSession s) =>
             CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(TaskQueue.Clear(db, id)) : CatalogEndpoints.NoData());

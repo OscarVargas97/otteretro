@@ -183,7 +183,8 @@ public static partial class ClaudeBudget
     }
 
     // Las tareas de Claude que esperan o corren.
-    const string Pending = "kind LIKE 'claude.%' AND status IN ('queued', 'running')";
+    // Una pausada también cuenta (#146): el horario no lanza otra carga encima de la que pausaste.
+    const string Pending = "kind LIKE 'claude.%' AND status IN ('queued', 'running', 'paused')";
 
     /// <summary>
     /// «Ejecutar ahora» (F2.9): salta el horario hasta que empiece el siguiente y lanza ya la carga (o la tarea de Claude que

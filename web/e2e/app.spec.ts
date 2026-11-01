@@ -694,6 +694,29 @@ test("panel de tareas: terminadas por hora de término, registro al hacer clic y
   await expect(panel.locator("button.ot-task-title")).toHaveCount(0);
 });
 
+test("panel de tareas: pausar, reanudar y cancelar (#146)", async () => {
+  // En cola para dentro de un día: la cola no la toma sola mientras se prueba.
+  const db = await openDb();
+  db.exec(`INSERT INTO task (id, kind, status, progress, resume_at, created_at) VALUES
+    (910, 'demo', 'queued', 30, '${new Date(Date.now() + 86_400_000).toISOString()}', '${new Date().toISOString()}')`);
+  db.close();
+  await page.goto(`${base()}/`);
+  await page.getByRole("button", { name: es.topBar.tasks }).click();
+  const row = page.getByRole("dialog", { name: es.topBar.tasksPanel }).locator(".ot-task", { hasText: "#910" });
+  await row.getByRole("button", { name: es.tasks.pause }).click();
+  await expect(row.locator(".ot-badge")).toHaveText(es.tasks.status.paused);
+  await row.getByRole("button", { name: es.tasks.resume }).click();
+  await expect(row.locator(".ot-badge")).toHaveText(es.tasks.status.queued);
+  await row.getByRole("button", { name: es.tasks.cancel }).click();
+  await expect(row.getByText(es.tasks.cancelConfirm)).toBeVisible();
+  await expectNoRawKeys();
+  await row.getByRole("button", { name: es.tasks.cancel }).click();
+  await expect(row.locator(".ot-badge")).toHaveText(es.tasks.status.canceled);
+  await expect(row.getByRole("button", { name: es.tasks.pause })).toHaveCount(0);
+  await page.getByRole("dialog", { name: es.topBar.tasksPanel }).getByRole("button", { name: es.tasks.clear }).click();
+  await page.keyboard.press("Escape");
+});
+
 test("Aprendizajes: cada cambio en claro, filtros y corregir con una nota para Claude", async () => {
   const db = await openDb();
   const content = {
