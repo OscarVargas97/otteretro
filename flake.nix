@@ -31,7 +31,7 @@
         inherit version;
         src = lib.fileset.toSource {
           root = ./.;
-          fileset = lib.fileset.unions [ ./src ./Directory.Build.props ./Otteretro.slnx ];
+          fileset = lib.fileset.unions [ ./src ./prompts ./recetas ./Directory.Build.props ./Otteretro.slnx ];
         };
         projectFile = "src/Otteretro/Otteretro.csproj";
         testProjectFile = "src/Otteretro.Tests/Otteretro.Tests.csproj";

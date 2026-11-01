@@ -25,6 +25,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Data\Migrations\*.sql" />
     <EmbeddedResource Include="..\..\prompts\*.md" LogicalName="prompts/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\..\recetas\*.json" LogicalName="recetas/%(Filename)%(Extension)" />
     <None Include="nutria.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 

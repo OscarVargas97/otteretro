@@ -1,0 +1,10 @@
+{
+  "id": "dusklight-texturas",
+  "name": "Texturas",
+  "kind": "complement",
+  "folder": "Dusklight",
+  "parent": "dusklight",
+  "detect": "Datos/texture_replacements",
+  "link": "Datos/texture_replacements",
+  "version": { "from": "fixed", "value": "original" }
+}
