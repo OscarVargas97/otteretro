@@ -337,6 +337,13 @@ test("con mando se recorre la app: foco, barra de botones, buscar con el teclado
   await pad.screenshot({ path: "e2e-results/7-mando-menu-rapido.png" });
   await press(B);
   await expect(pad.getByRole("dialog", { name: es.pad.quickMenu })).toBeHidden();
+  // #172: el menú rápido también lleva a Inicio, Buscar, Tareas y Ajustes; Tareas abre su panel.
+  await press(GUIDE);
+  const quick = pad.getByRole("dialog", { name: es.pad.quickMenu });
+  for (const item of [es.pad.home, es.pad.search, es.pad.tasks, es.pad.settings]) await expect(quick.getByRole("button", { name: item })).toBeVisible();
+  await quick.getByRole("button", { name: es.pad.tasks }).click();
+  await expect(pad.getByRole("dialog", { name: es.topBar.tasksPanel })).toBeVisible();
+  await pad.keyboard.press("Escape");
 
   // Con el ratón, la interfaz vuelve a su forma normal.
   await pad.mouse.move(400, 400);
@@ -560,6 +567,8 @@ test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha
   await expect(page.getByRole("columnheader", { name: es.settings.claude.cost })).toBeVisible();
   const usageTable = page.locator("table").filter({ hasText: "uso-12" });
   await expect(usageTable.locator("tbody tr")).toHaveCount(10);
+  // #172: el total de la página arriba del registro.
+  await expect(page.locator(".usage-total")).toContainText(/10/);
   await page.getByRole("button", { name: es.settings.claude.next }).click();
   await expect(page.getByRole("cell", { name: "uso-1", exact: true })).toBeVisible();
   await page.getByRole("button", { name: es.settings.claude.previous }).click();
@@ -585,8 +594,14 @@ test("panel de tareas: terminadas por hora de término, registro al hacer clic y
   await expect(panel.locator("button.ot-task-title")).toHaveText([/#901/, /#900/]); // la que terminó después, arriba
   await panel.getByRole("button", { name: /#901/ }).click();
   await expect(panel.getByText("Ocarina of Time: bajó cover (80 KB).")).toBeVisible();
+  // #172: estado como insignia de color, barra en cada tarea y ✕ para quitar una terminada.
+  await expect(panel.locator(".ot-task", { hasText: "#901" }).locator(".ot-badge-danger")).toHaveText(es.tasks.status.error);
+  await expect(panel.locator(".ot-task", { hasText: "#900" }).locator(".ot-badge-have")).toHaveText(es.tasks.status.done);
+  await expect(panel.locator(".ot-task", { hasText: "#900" }).locator(".ot-progress")).toBeVisible();
   await expectNoRawKeys();
   await page.screenshot({ path: "e2e-results/15-registro-tarea-es.png" });
+  await panel.locator(".ot-task", { hasText: "#900" }).getByRole("button", { name: es.tasks.remove.replace("{name}", es.tasks.kind.demo) }).click();
+  await expect(panel.locator("button.ot-task-title")).toHaveText([/#901/]);
   await panel.getByRole("button", { name: es.tasks.clear }).click();
   await expect(panel.locator("button.ot-task-title")).toHaveCount(0);
 });

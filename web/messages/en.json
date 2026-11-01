@@ -140,7 +140,8 @@
       "noAutomation": "Nothing yet: it shows up when Claude makes the same change for the same reason {count} times.",
       "automationTimes": "{count, plural, one {# time} other {# times}}",
       "createIssue": "Create issue",
-      "issueCreated": "Issue created"
+      "issueCreated": "Issue created",
+      "pageTotal": "On this page: {calls, plural, one {# call} other {# calls}} · {input} in · {output} out · {cost}"
     },
     "consoles": {
       "title": "Consoles",
@@ -470,7 +471,8 @@
     },
     "clear": "Clear finished",
     "log": "Task log",
-    "logEmpty": "This task has not logged anything yet."
+    "logEmpty": "This task has not logged anything yet.",
+    "remove": "Remove {name}"
   },
   "pad": {
     "choose": "Select",
@@ -485,7 +487,10 @@
     "space": "Space",
     "delete": "Delete",
     "done": "Done",
-    "menu": "Menu"
+    "menu": "Menu",
+    "home": "Home",
+    "tasks": "Tasks",
+    "settings": "Settings"
   },
   "catalog": {
     "owned": "I own it",

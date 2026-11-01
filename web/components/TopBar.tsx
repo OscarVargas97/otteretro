@@ -14,6 +14,7 @@ import { UpdateTask, useUpdate } from "./Update";
 import { MoveTask, useMove } from "./DataFolder";
 import { ClearTasks, TaskRows, upsertTask, useTasks } from "./Tasks";
 import { Empty, useAppState } from "./Shell";
+import { OPEN_TASKS } from "./Gamepad";
 
 /** Título de la pantalla (en Saga y Juego, el camino), búsqueda global (Ctrl+K) y panel de tareas en segundo plano. Fija al bajar (#169). */
 export function TopBar({ title, crumbs }: { title: string; crumbs?: "/saga" | "/game" }) {
@@ -53,8 +54,13 @@ export function TopBar({ title, crumbs }: { title: string; crumbs?: "/saga" | "/
         setTasksOpen(false);
       }
     };
+    const openTasks = () => setTasksOpen(true);
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener(OPEN_TASKS, openTasks);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener(OPEN_TASKS, openTasks);
+    };
   }, []);
 
   return (

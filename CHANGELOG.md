@@ -19,6 +19,10 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **Juego**: el seguimiento es más compacto (el estado en un control de una línea; fechas, nota y tiempo en una fila; las notas plegadas). Versiones y comparativa son una sola tabla, con cada puntaje como barra de 5 y el mejor de cada criterio resaltado. En «Datos y fuentes», un lápiz junto a cada valor para corregirlo.
 - **Colección**: la lista de consolas muestra solo las que tienen algo según el filtro, agrupadas por empresa, y Cuadrícula/Lista es un control con íconos.
 - **Revisar**: una ruta por aprobar se ve con las portadas de sus juegos numeradas y la razón de cada paso.
+- **Panel de tareas**: cada tarea con su barra de progreso, el estado como insignia de color y una ✕ para quitar una terminada.
+- **Bienvenida** con la nutria y los 7 pasos, con la fase en que llega cada uno.
+- **Menú rápido del mando**: además de «Ir a Steam», Inicio, Buscar, Tareas y Ajustes.
+- **Ajustes › Claude**: arriba del registro de uso, el total de la página (llamadas, tokens y costo).
 
 ## 0.2.0 · Claude ordena el catálogo
 

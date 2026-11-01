@@ -140,7 +140,8 @@
       "noAutomation": "Nada por ahora: aparece cuando Claude hace {count} veces el mismo cambio por la misma razón.",
       "automationTimes": "{count, plural, one {# vez} other {# veces}}",
       "createIssue": "Crear issue",
-      "issueCreated": "Issue creado"
+      "issueCreated": "Issue creado",
+      "pageTotal": "En esta página: {calls, plural, one {# llamada} other {# llamadas}} · {input} de entrada · {output} de salida · {cost}"
     },
     "consoles": {
       "title": "Consolas",
@@ -470,7 +471,8 @@
     },
     "clear": "Limpiar terminadas",
     "log": "Registro de la tarea",
-    "logEmpty": "Esta tarea todavía no anotó nada."
+    "logEmpty": "Esta tarea todavía no anotó nada.",
+    "remove": "Quitar {name}"
   },
   "pad": {
     "choose": "Elegir",
@@ -485,7 +487,10 @@
     "space": "Espacio",
     "delete": "Borrar",
     "done": "Listo",
-    "menu": "Menú"
+    "menu": "Menú",
+    "home": "Inicio",
+    "tasks": "Tareas",
+    "settings": "Ajustes"
   },
   "catalog": {
     "owned": "Lo tengo",
