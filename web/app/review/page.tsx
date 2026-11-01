@@ -7,7 +7,8 @@ import { useState } from "react";
 import { Empty } from "@/components/Shell";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
-import type { LearningItem, ReviewItem, ReviewPage } from "@/lib/types";
+import { usePaged } from "@/lib/paged";
+import type { LearningItem, LearningPage, ReviewItem, ReviewPage } from "@/lib/types";
 
 type Tab = "pending" | "learnings";
 
@@ -32,6 +33,7 @@ export default function Review() {
       request<ReviewPage>(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) }),
     onSuccess: (data) => {
       cache.setQueryData(["review"], data);
+      cache.invalidateQueries({ queryKey: ["learnings"] });
       cache.invalidateQueries({ queryKey: ["review", "count"] });
       cache.invalidateQueries({ queryKey: ["saga"] });
       cache.invalidateQueries({ queryKey: ["home"] });
@@ -40,14 +42,14 @@ export default function Review() {
 
   if (page.isError) return <div className="content"><p className="error" role="alert">{describe(page.error)}</p></div>;
   if (!page.data) return <div className="content"><p className="muted">{t("loading")}</p></div>;
-  const { pending, learnings } = page.data;
+  const { pending, activeLearnings } = page.data;
 
   return (
     <div className="content">
       <div className="chips" role="tablist">
         {(["pending", "learnings"] as const).map((k) => (
           <button key={k} className="chip" type="button" role="tab" aria-selected={tab === k} aria-pressed={tab === k} onClick={() => setTab(k)}>
-            {t(`tab.${k}`, { count: k === "pending" ? pending.length : learnings.filter((l) => !l.undone).length })}
+            {t(`tab.${k}`, { count: k === "pending" ? pending.length : Number(activeLearnings) })}
           </button>
         ))}
       </div>
@@ -61,10 +63,8 @@ export default function Review() {
             reject={() => act.mutate({ path: `/api/review/${item.id}/reject` })} />
         )))}
 
-      {tab === "learnings" && (learnings.length === 0
-        ? <Empty title={t("learningsEmptyTitle")} text={t("learningsEmptyText")} />
-        : <Learnings learnings={learnings} busy={act.isPending} undo={(id) => act.mutate({ path: `/api/learnings/${id}/undo` })}
-            onCorrected={(data) => cache.setQueryData(["review"], data)} />)}
+      {tab === "learnings" && <Learnings busy={act.isPending} undo={(id) => act.mutate({ path: `/api/learnings/${id}/undo` })}
+        onCorrected={(data) => { cache.setQueryData(["review"], data); cache.invalidateQueries({ queryKey: ["learnings"] }); }} />}
     </div>
   );
 }
@@ -153,17 +153,19 @@ function Result({ item }: { item: ReviewItem }) {
   }
 }
 
-/** Aprendizajes (F2.12): cada cambio en claro, con filtros, agrupado por tarea; se deshace o se corrige con una nota para Claude. */
-function Learnings({ learnings, busy, undo, onCorrected }: {
-  learnings: LearningItem[]; busy: boolean; undo: (id: number) => void; onCorrected: (page: ReviewPage) => void;
-}) {
+/**
+ * Aprendizajes (F2.12): cada cambio en claro, con filtros, agrupado por tarea; se deshace o se corrige con una nota para Claude.
+ * Llega por tramos al bajar, ya filtrado por el servidor (#177).
+ */
+function Learnings({ busy, undo, onCorrected }: { busy: boolean; undo: (id: number) => void; onCorrected: (page: ReviewPage) => void }) {
   const t = useTranslations("review");
   const [kind, setKind] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const text = query.trim().toLowerCase();
-  const shown = learnings.filter((l) => (!kind || l.change === kind)
-    && (!text || [l.sagaName, l.to, l.kept, l.nameBefore, l.nameAfter, ...l.games, ...l.from].some((x) => x?.toLowerCase().includes(text))));
-  const groups = Map.groupBy(shown, (l) => (l.taskId == null ? null : Number(l.taskId)));
+  const text = query.trim();
+  const page = usePaged(["learnings", kind, text], (offset) => `/api/learnings?${new URLSearchParams({ ...(kind && { kind }), ...(text && { q: text }), offset: String(offset) })}`,
+    (p: LearningPage) => ({ items: p.items, total: Number(p.total) }));
+  if (page.data && page.total === 0 && !kind && !text) return <Empty title={t("learningsEmptyTitle")} text={t("learningsEmptyText")} />;
+  const groups = Map.groupBy(page.items, (l: LearningItem) => (l.taskId == null ? null : Number(l.taskId)));
   return (
     <>
       <div className="chips" style={{ alignItems: "center" }}>
@@ -180,6 +182,7 @@ function Learnings({ learnings, busy, undo, onCorrected }: {
           {items.map((l) => <Learning key={l.id} l={l} busy={busy} undo={undo} onCorrected={onCorrected} />)}
         </section>
       ))}
+      <div ref={page.end} aria-hidden="true" />
     </>
   );
 }

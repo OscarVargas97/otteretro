@@ -31,6 +31,7 @@ export type CorrectRequest = Schemas["CorrectRequest"];
 export type ReviewPage = Schemas["ReviewPage"];
 export type ReviewItem = Schemas["ReviewItem"];
 export type LearningItem = Schemas["LearningItem"];
+export type LearningPage = Schemas["LearningPage"];
 export type RoutesPage = Schemas["RoutesPage"];
 export type RouteInfo = Schemas["RouteInfo"];
 export type RouteStepInfo = Schemas["RouteStepInfo"];

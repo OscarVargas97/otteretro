@@ -18,7 +18,9 @@ public record LearningItem(long Id, string Change, string? Reason, string Detail
     string? SagaName, List<string> Games, List<string> From, string? To, string? ToKind, string? Kept, string? NameBefore, string? NameAfter, List<string> Rules);
 public record CorrectRequest(string Note);
 
-public record ReviewPage(List<ReviewItem> Pending, List<LearningItem> Learnings);
+/// <param name="ActiveLearnings">Cuántos cambios de Claude siguen vigentes (sin deshacer), para la pestaña Aprendizajes.</param>
+public record ReviewPage(List<ReviewItem> Pending, int ActiveLearnings);
+public record LearningPage(List<LearningItem> Items, int Total);
 
 public record SourceRef(string Title, string Url);
 public record RouteStepInfo(int Position, long GameId, string Name, int? Year, long? VersionId, string? VersionPlatform, string? Reason,
@@ -58,14 +60,44 @@ public static class ClaudeReview
             return new ReviewItem(r.Id, doc.RootElement.GetProperty("prompt").GetString()!, r.Entity, r.EntityId, r.Title ?? "?",
                 doc.RootElement.GetProperty("result").GetRawText(), r.CreatedAt);
         }).Where(r => r.Title != "?").ToList(); // lo que ya no existe (una saga unida) no se muestra
-        var sagas = c.Query<(long Id, string Name)>("SELECT id, name FROM saga").ToDictionary(x => x.Id, x => x.Name);
-        var games = c.Query<(long Id, string Name)>("SELECT id, name_es FROM game").ToDictionary(x => x.Id, x => x.Name);
-        var igdbNames = c.Query<(long Id, string Name)>("SELECT entity_id, value FROM field_value WHERE entity = 'saga' AND field = 'name' AND source = 'igdb'")
-            .ToDictionary(x => x.Id, x => x.Name);
-        var rules = c.Query<(long LearningId, string Text)>("SELECT learning_id, text FROM saga_rule WHERE learning_id IS NOT NULL ORDER BY id")
+        return new ReviewPage(pending, c.ExecuteScalar<int>("SELECT count(*) FROM learning WHERE undone = 0"));
+    }
+
+    /// <summary>
+    /// Revisar › Aprendizajes por tramos (#177), lo más nuevo primero. <paramref name="kind"/> filtra por tipo de cambio y
+    /// <paramref name="q"/> busca en los nombres en claro (sagas y juegos), que solo existen ya traducidos: con búsqueda se
+    /// traducen los últimos 2.000 y se filtra; sin ella, solo el tramo.
+    /// </summary>
+    public static LearningPage Learnings(Database db, string? kind, string? q, int offset, int limit)
+    {
+        using var c = db.Open();
+        const string Where = "WHERE @kind IS NULL OR coalesce(json_extract(content, '$.change.kind'), json_extract(content, '$.kind')) = @kind";
+        var text = q?.Trim().ToLowerInvariant() is { Length: > 0 } t ? t : null;
+        if (text is null)
+        {
+            var total = c.ExecuteScalar<int>($"SELECT count(*) FROM learning {Where}", new { kind });
+            var rows = c.Query<(long Id, string Content, string CreatedAt, bool Undone, long? TaskId)>($"SELECT id, content, created_at, undone, task_id FROM learning {Where} ORDER BY id DESC LIMIT @limit OFFSET @offset",
+                new { kind, limit, offset });
+            return new LearningPage(Describe(c, rows), total);
+        }
+        var all = Describe(c, c.Query<(long Id, string Content, string CreatedAt, bool Undone, long? TaskId)>($"SELECT id, content, created_at, undone, task_id FROM learning {Where} ORDER BY id DESC LIMIT 2000", new { kind }))
+            .Where(l => new[] { l.SagaName, l.To, l.Kept, l.NameBefore, l.NameAfter }.Concat(l.Games).Concat(l.From)
+                .Any(x => x?.ToLowerInvariant().Contains(text) == true)).ToList();
+        return new LearningPage(all.Skip(offset).Take(limit).ToList(), all.Count);
+    }
+
+    /// <summary>Cada cambio en claro. Los nombres se buscan solo para estas filas, no el catálogo entero.</summary>
+    static List<LearningItem> Describe(System.Data.IDbConnection c, IEnumerable<(long Id, string Content, string CreatedAt, bool Undone, long? TaskId)> rows)
+    {
+        var sagas = new Dictionary<long, string?>();
+        var games = new Dictionary<long, string?>();
+        string? SagaName(long id) => sagas.TryGetValue(id, out var n) ? n : sagas[id] = c.ExecuteScalar<string?>("SELECT name FROM saga WHERE id = @id", new { id });
+        string? GameName(long id) => games.TryGetValue(id, out var n) ? n : games[id] = c.ExecuteScalar<string?>("SELECT name_es FROM game WHERE id = @id", new { id });
+        var list = rows.ToList();
+        var ids = JsonSerializer.Serialize(list.Select(l => l.Id));
+        var rules = c.Query<(long LearningId, string Text)>("SELECT learning_id, text FROM saga_rule WHERE learning_id IN (SELECT value FROM json_each(@ids)) ORDER BY id", new { ids })
             .GroupBy(r => r.LearningId).ToDictionary(g => g.Key, g => g.Select(r => r.Text).ToList());
-        var learnings = c.Query<(long Id, string Content, string CreatedAt, bool Undone, long? TaskId)>(
-            "SELECT id, content, created_at, undone, task_id FROM learning ORDER BY id DESC LIMIT 2000").Select(l =>
+        return list.Select(l =>
         {
             using var doc = JsonDocument.Parse(l.Content);
             var change = doc.RootElement.TryGetProperty("change", out var ch) ? ch : doc.RootElement;
@@ -73,10 +105,10 @@ public static class ClaudeReview
                 change.TryGetProperty("reason", out var why) ? why.GetString() : null, change.GetRawText(), l.CreatedAt, l.Undone, l.TaskId,
                 null, null, [], [], null, null, null, null, null, rules.GetValueOrDefault(l.Id) ?? []);
             if (!doc.RootElement.TryGetProperty("before", out var before)) return item;
-            string Saga(long? id) => id is { } x ? sagas.GetValueOrDefault(x) ?? $"#{x}" : "";
-            string Game(long id) => games.GetValueOrDefault(id) ?? $"#{id}";
+            string Saga(long? id) => id is { } x ? SagaName(x) ?? $"#{x}" : "";
+            string Game(long id) => GameName(id) ?? $"#{id}";
             var sagaId = CatalogCleanup.SagaOf(c, l.Content);
-            item = item with { SagaId = sagaId, SagaName = sagaId is { } sid ? sagas.GetValueOrDefault(sid) : null };
+            item = item with { SagaId = sagaId, SagaName = sagaId is { } sid ? SagaName(sid) : null };
             var c2 = change.Deserialize<CatalogCleanup.Change>(Web)!;
             switch (item.Change)
             {
@@ -94,12 +126,12 @@ public static class ClaudeReview
                     return item with { Kept = Game(merge.Keep), Games = merge.Games.Select(g => g.Year is { } y ? $"{g.NameEs} ({y})" : g.NameEs).ToList() };
                 case "rename":
                     var rename = before.Deserialize<CatalogCleanup.RenameBefore>(CatalogCleanup.Tuples)!;
-                    return item with { NameBefore = rename.Claude ?? igdbNames.GetValueOrDefault(rename.Saga), NameAfter = c2.Name };
+                    return item with { NameBefore = rename.Claude ?? c.ExecuteScalar<string?>(
+                        "SELECT value FROM field_value WHERE entity = 'saga' AND entity_id = @saga AND field = 'name' AND source = 'igdb'", new { saga = rename.Saga }), NameAfter = c2.Name };
                 default:
                     return item;
             }
         }).ToList();
-        return new ReviewPage(pending, learnings);
     }
 
     /// <summary>Aplica un resultado por aprobar. False si no existe o ya se resolvió.</summary>

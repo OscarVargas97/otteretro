@@ -141,7 +141,12 @@ public class CatalogCleanupTests : IAsyncDisposable
         ], []), new CatalogCleanup.Reply([], []));
         var task = await f.Run(CatalogCleanup.Enqueue(f.Db));
 
-        var page = ClaudeReview.Page(f.Db).Learnings.ToDictionary(l => l.Change);
+        var page = ClaudeReview.Learnings(f.Db, null, null, 0, 60).Items.ToDictionary(l => l.Change);
+        Assert.Equal(3, ClaudeReview.Page(f.Db).ActiveLearnings);
+        // Por tramos (#177): filtro por tipo, búsqueda en los nombres en claro y el total de lo que coincide.
+        Assert.Equal((1, 3), (ClaudeReview.Learnings(f.Db, null, null, 1, 1).Items.Count, ClaudeReview.Learnings(f.Db, null, null, 1, 1).Total));
+        Assert.Equal("merge", Assert.Single(ClaudeReview.Learnings(f.Db, "merge", null, 0, 60).Items).Change);
+        Assert.Equal("move", Assert.Single(ClaudeReview.Learnings(f.Db, null, "tingle", 0, 60).Items).Change);
         Assert.Equal(("The Legend of Zelda: Ocarina of Time", "The Legend of Zelda: Ocarina of Time 3D (2011)"), (page["merge"].Kept, Assert.Single(page["merge"].Games)));
         Assert.Equal(["Zelda"], page["move"].From);
         Assert.Equal(("new", "Tingle"), (page["move"].ToKind, page["move"].To));
@@ -151,7 +156,8 @@ public class CatalogCleanupTests : IAsyncDisposable
         Assert.Equal("claude.badNote", CatalogCleanup.Correct(f.Db, page["move"].Id, " ")?.Code);
         Assert.Null(CatalogCleanup.Correct(f.Db, page["move"].Id, "Tingle es parte de Zelda"));
         Assert.Equal(1, Scalar<long>("SELECT saga_id FROM game WHERE id = 12")); // se deshizo
-        var after = ClaudeReview.Page(f.Db).Learnings.Single(l => l.Change == "move");
+        var after = ClaudeReview.Learnings(f.Db, "move", null, 0, 60).Items.Single();
+        Assert.Equal(2, ClaudeReview.Page(f.Db).ActiveLearnings);
         Assert.True(after.Undone);
         Assert.Equal(["Tingle es parte de Zelda"], after.Rules);
 

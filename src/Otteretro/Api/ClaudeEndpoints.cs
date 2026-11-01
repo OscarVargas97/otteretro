@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Otteretro.App;
+using Otteretro.Catalog;
 using Otteretro.Claude;
 using static Otteretro.Api.CatalogEndpoints;
 
@@ -17,6 +18,10 @@ public static class ClaudeEndpoints
     {
         api.MapGet("/review", Results<Ok<ReviewPage>, Conflict<ApiError>> (AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(ClaudeReview.Page(db)) : NoData());
+
+        // Aprendizajes por tramos al bajar (#177).
+        api.MapGet("/learnings", Results<Ok<LearningPage>, Conflict<ApiError>> (AppSession s, string? kind, string? q, int offset = 0, int limit = CatalogQueries.PageSize) =>
+            Db(s) is { } db ? TypedResults.Ok(ClaudeReview.Learnings(db, kind, q, Math.Max(0, offset), Math.Clamp(limit, 1, 500))) : NoData());
 
         api.MapPost("/review/{id:long}/approve", Results<Ok<ReviewPage>, NotFound, Conflict<ApiError>> (long id, AppSession s) =>
             Db(s) is not { } db ? NoData() : ClaudeReview.Approve(db, id) ? TypedResults.Ok(ClaudeReview.Page(db)) : TypedResults.NotFound());
