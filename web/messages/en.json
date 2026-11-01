@@ -821,7 +821,13 @@
     "moveHelp": "Choose an empty or new folder. It is copied, every file is verified, emulator paths are updated and only then is the source deleted. If interrupted, it resumes where it left off.",
     "remove": "Remove",
     "removeHelp": "“{name}” is removed from Otteretro. No file is deleted: you can adopt it again any time.",
-    "removeConfirm": "Remove without deleting"
+    "removeConfirm": "Remove without deleting",
+    "moveFolder": "Move a folder",
+    "moveFolderHelp": "A console or a game (for example Switch, or Switch\\Zelda) moves to another library or to another path in this one. It is copied, verified and only then is the source deleted; emulator paths are updated.",
+    "folder": "Folder inside the library",
+    "folderPlaceholder": "For example Switch",
+    "toLibrary": "Destination library",
+    "toRelative": "Path at the destination (optional: the same if left empty)"
   },
   "tools": {
     "emptyTitle": "No emulators or ports yet",

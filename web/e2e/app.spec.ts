@@ -178,6 +178,42 @@ test("Ajustes › Bibliotecas: crear, ver y quitar sin borrar", async () => {
   expect(existsSync(join(folder, "otteretro-biblioteca.json"))).toBe(true);
 });
 
+test("Ajustes › Bibliotecas: mover una consola a otra biblioteca", async () => {
+  const [a, b] = [dataDir("disco-a"), dataDir("disco-b")];
+  mkdirSync(join(a, "Switch", "Zelda"), { recursive: true });
+  writeFileSync(join(a, "Switch", "Zelda", "juego.nsp"), "contenido");
+  mkdirSync(b, { recursive: true });
+  await page.goto(`${base()}/settings/?s=libraries`);
+  for (const [folder, name] of [[a, "Disco A"], [b, "Disco B"]]) {
+    await page.getByRole("button", { name: en.libraries.create }).click();
+    await page.getByLabel(en.libraries.path).fill(folder);
+    await page.getByLabel(en.libraries.name).fill(name);
+    await page.locator(".form-block").getByRole("button", { name: en.libraries.create }).click();
+    await expect(page.getByText(folder, { exact: true })).toBeVisible();
+  }
+  const row = page.locator("section.panel", { hasText: "Disco A" });
+  await row.getByRole("button", { name: en.libraries.moveFolder }).click();
+  await row.getByLabel(en.libraries.folder).fill("Switch");
+  await row.getByLabel(en.libraries.toLibrary).selectOption({ label: "Disco B" });
+  await expectNoRawKeys();
+  await row.locator(".form-block").getByRole("button", { name: en.libraries.moveFolder }).click();
+  await expect(row.getByText(en.libraries.queued)).toBeVisible();
+  const { existsSync } = await import("node:fs");
+  await expect.poll(() => existsSync(join(b, "Switch", "Zelda", "juego.nsp")), { timeout: 15_000 }).toBe(true);
+  await expect.poll(() => existsSync(join(a, "Switch")), { timeout: 15_000 }).toBe(false);
+  // Se limpian la tarea y las bibliotecas para no dejar estado a las demás pruebas (quitar no borra archivos).
+  await page.getByRole("button", { name: en.topBar.tasks }).click();
+  await page.getByRole("dialog", { name: en.topBar.tasksPanel }).getByRole("button", { name: en.tasks.clear }).click();
+  await expect(page.getByText(en.topBar.noTasksTitle)).toBeVisible();
+  await page.keyboard.press("Escape");
+  for (const name of ["Disco A", "Disco B"]) {
+    const r = page.locator("section.panel", { hasText: name });
+    await r.getByRole("button", { name: en.libraries.remove, exact: true }).click();
+    await r.getByRole("button", { name: en.libraries.removeConfirm }).click();
+    await expect(r).toHaveCount(0);
+  }
+});
+
 test("el panel de tareas y la búsqueda están traducidos", async () => {
   // El botón no cambia de ancho con 0, 1 o varias tareas (#20): se prueba cambiando el número del contador.
   const tasks = page.getByRole("button", { name: en.topBar.tasks });

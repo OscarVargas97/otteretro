@@ -821,7 +821,13 @@
     "moveHelp": "Elige una carpeta vacía o nueva. Se copia, se verifica cada archivo, se ponen al día las rutas de los emuladores y recién entonces se borra el origen. Si se corta, sigue donde quedó.",
     "remove": "Quitar",
     "removeHelp": "Se quita «{name}» de Otteretro. No se borra ningún archivo: puedes volver a adoptarla cuando quieras.",
-    "removeConfirm": "Quitar sin borrar"
+    "removeConfirm": "Quitar sin borrar",
+    "moveFolder": "Mover una carpeta",
+    "moveFolderHelp": "Una consola o un juego (por ejemplo Switch, o Switch\\Zelda) pasa a otra biblioteca o a otra ruta de esta. Se copia, se verifica y recién entonces se borra el origen; las rutas de los emuladores se ponen al día.",
+    "folder": "Carpeta dentro de la biblioteca",
+    "folderPlaceholder": "Por ejemplo Switch",
+    "toLibrary": "Biblioteca de destino",
+    "toRelative": "Ruta en el destino (opcional: si la dejas vacía, la misma)"
   },
   "tools": {
     "emptyTitle": "Aún no hay emuladores ni ports",
