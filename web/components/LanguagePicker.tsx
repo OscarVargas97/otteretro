@@ -16,14 +16,14 @@ export function LanguagePicker() {
     onSuccess: (state) => cache.setQueryData(["state"], state),
   });
   return (
-    <label className="language-picker small muted">
-      {t("language")}
-      {/* Cada idioma se muestra con su propio nombre (languageName de su catálogo). */}
-      <select value={locale} disabled={change.isPending} onChange={(e) => change.mutate({ language: e.target.value as Locale })}>
-        {LOCALES.map((l) => (
-          <option key={l} value={l}>{CATALOGS[l].languageName}</option>
-        ))}
-      </select>
-    </label>
+    // Dos botones (#111). Cada idioma se muestra con su propio nombre (languageName de su catálogo).
+    <div className="chips" role="group" aria-label={t("language")}>
+      {LOCALES.map((l) => (
+        <button key={l} type="button" className="chip chip-lg" lang={l} aria-pressed={l === locale} disabled={change.isPending}
+          onClick={() => l !== locale && change.mutate({ language: l as Locale })}>
+          {CATALOGS[l].languageName}
+        </button>
+      ))}
+    </div>
   );
 }

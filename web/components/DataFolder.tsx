@@ -52,6 +52,8 @@ export function DataFolderSettings() {
   const drives = useQuery({ queryKey: ["drives"], queryFn: () => request<Drive[]>("/api/drives") }).data;
   const m = useMove();
   const [mode, setMode] = useState<"move" | "use" | null>(null);
+  const [dismissed, setDismissed] = useState<string | null>(null); // el aviso de la mudanza se cierra (#111)
+  const open = useMutation({ mutationFn: () => request("/api/data-folder/open", { method: "POST" }) });
   const [path, setPath] = useState("");
 
   const refresh = () => {
@@ -85,21 +87,28 @@ export function DataFolderSettings() {
   }, [finishedAt, cache]);
 
   const destination = m?.destination ?? "";
+  const notice = m && !m.running && (m.step === "done" || m.error) ? `${m.step}|${m.destination}` : null;
+  const showNotice = notice !== null && notice !== dismissed;
   return (
     <div className="panel">
       <div className="version-row">
         <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-          <span>{info?.path}</span>
+          <span className="folder-path">{info?.path}</span>
           {info && <span className="small muted">{info.used == null ? t("usageMeasuring", { free: gb(info.freeOnDrive, locale) }) : t("usage", { used: gb(info.used, locale), free: gb(info.freeOnDrive, locale) })}</span>}
         </div>
-        {!m?.running && !mode && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button className="ot-btn" type="button" onClick={() => { setMode("move"); setPath(""); action.reset(); }}>{t("moveButton")}</button>
-            <button className="ot-btn ot-btn-ghost" type="button" onClick={() => { setMode("use"); setPath(""); action.reset(); }}>{t("useButton")}</button>
-          </div>
-        )}
+        <button className="ot-btn" type="button" onClick={() => open.mutate()}>{t("open")}</button>
       </div>
       <span className="small muted">{t("contents")}</span>
+      {open.error && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(open.error)}</p>}
+      {!m?.running && !mode && (
+        <>
+          <div className="sentence">
+            <button className="ot-btn ot-btn-primary" type="button" onClick={() => { setMode("move"); setPath(""); action.reset(); }}>{t("moveButton")}</button>
+            <button className="link-btn" type="button" onClick={() => { setMode("use"); setPath(""); action.reset(); }}>{t("useButton")}</button>
+          </div>
+          <p className="small muted" style={{ margin: 0 }}>{t("difference")}</p>
+        </>
+      )}
 
       {mode && (
         <div className="form-block">
@@ -133,16 +142,18 @@ export function DataFolderSettings() {
           <span className="small muted">{t("dontClose")}</span>
         </div>
       )}
-      {!m?.running && m?.step === "done" && (
+      {showNotice && m?.step === "done" && (
         <div className="result" role="status">
           <span className="ot-badge ot-badge-have">{t("moved")}</span>
-          <span className="small muted">{m.warning ? describe(m.warning) : t("nowIn", { destination })}</span>
+          <span className="small muted" style={{ flex: 1 }}>{m.warning ? describe(m.warning) : t("nowIn", { destination })}</span>
+          <button className="ot-btn ot-btn-sm ot-btn-ghost" type="button" aria-label={t("dismiss")} onClick={() => setDismissed(notice)}>✕</button>
         </div>
       )}
-      {!m?.running && m?.error && (
+      {showNotice && m?.error && (
         <div className="result" role="status">
           <span className="ot-badge ot-badge-danger">{t("error")}</span>
-          <span className="small muted">{describe(m.error)}</span>
+          <span className="small muted" style={{ flex: 1 }}>{describe(m.error)}</span>
+          <button className="ot-btn ot-btn-sm ot-btn-ghost" type="button" aria-label={t("dismiss")} onClick={() => setDismissed(notice)}>✕</button>
         </div>
       )}
     </div>

@@ -89,11 +89,10 @@ test("con un catálogo grande, cada pantalla aparece al instante y no salta", as
     ["Revisar", '.sidebar a[href="/review/"]', content, '.content [role="tablist"]'],
     ["Inicio", '.sidebar a[href="/"]', content, ".content .sec"],
     ["Ajustes", '.sidebar a[href="/settings/"]', content, "#settings-panel .version-row"],
-    ["Ajustes › Cuentas y claves", "#tab-credentials", panel, "#settings-panel .cred-grid"],
+    ["Ajustes › Cuentas y claves", "#tab-credentials", panel, "#settings-panel .cred-line"],
     ["Ajustes › Consolas", "#tab-consoles", panel, '#settings-panel input[type="checkbox"]'],
     ["Ajustes › Claude", "#tab-claude", panel, '#settings-panel input[type="time"]'],
-    ["Ajustes › Idioma", "#tab-language", panel, "#settings-panel select"],
-    ["Ajustes › Acerca de", "#tab-about", panel, "#settings-panel .version-row"],
+    ["Ajustes › General", "#tab-general", panel, "#settings-panel .version-row"],
   ];
   const lines = [`Abrir la app (menú lateral): ${opening} ms`];
   const slow: string[] = [];

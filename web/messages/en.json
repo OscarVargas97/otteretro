@@ -87,6 +87,7 @@
   "settings": {
     "dataFolder": "Data folder",
     "about": "About",
+    "general": "General",
     "language": "Language",
     "later": "Libraries, backup and the rest of the settings arrive with their phase.",
     "credentials": "Accounts and keys",
@@ -170,10 +171,13 @@
     }
   },
   "dataFolder": {
+    "open": "Open folder",
+    "difference": "“Move” takes everything to another folder and deletes the current one once it is copied and checked. “Use another folder” starts using one that already exists (for example, from another PC) without touching the current one.",
+    "dismiss": "Dismiss",
     "usage": "Uses {used} · {free} free on that drive",
     "usageMeasuring": "Measuring its size · {free} free on that drive",
-    "moveButton": "Move to another folder…",
-    "useButton": "Use another folder…",
+    "moveButton": "Move…",
+    "useButton": "Use another folder",
     "contents": "Database, Tools, image cache and error log.",
     "moveHelp": "Everything will be copied to the new folder, each file will be checked and only then the current one will be deleted. On the same drive it moves instantly. The new folder must be empty or not exist.",
     "useHelp": "The app will start using that folder (for example, one you bring from another PC). The current one is not moved or deleted. If the chosen folder is empty, you will start from scratch.",
@@ -398,11 +402,9 @@
       "password": "Password",
       "email": "Email"
     },
-    "now": "In use now",
     "later": "Later ({count})",
     "laterHint": "Not needed yet: each one is asked for when its phase arrives.",
     "phase": "Phase {phase}",
-    "ready": "Ready",
     "partial": "{missing} of {total} missing",
     "configure": "Set up",
     "close": "Close",

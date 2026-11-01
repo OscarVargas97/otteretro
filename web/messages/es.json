@@ -87,6 +87,7 @@
   "settings": {
     "dataFolder": "Carpeta de datos",
     "about": "Acerca de",
+    "general": "General",
     "language": "Idioma",
     "later": "Bibliotecas, respaldo y el resto de ajustes llegan con su fase.",
     "credentials": "Cuentas y claves",
@@ -170,10 +171,13 @@
     }
   },
   "dataFolder": {
+    "open": "Abrir carpeta",
+    "difference": "«Mover» lleva todo a otra carpeta y borra la actual cuando termina de copiar y comprobar. «Usar otra carpeta» empieza a usar una que ya existe (por ejemplo, la de otro PC) sin tocar la actual.",
+    "dismiss": "Cerrar aviso",
     "usage": "Ocupa {used} · {free} libres en ese disco",
     "usageMeasuring": "Midiendo lo que ocupa · {free} libres en ese disco",
-    "moveButton": "Mover a otra carpeta…",
-    "useButton": "Usar otra carpeta…",
+    "moveButton": "Mover…",
+    "useButton": "Usar otra carpeta",
     "contents": "Base de datos, Herramientas, caché de imágenes y registro de errores.",
     "moveHelp": "Se copiará todo a la carpeta nueva, se comprobará cada archivo y solo entonces se borrará la actual. En el mismo disco se mueve al instante. La carpeta nueva tiene que estar vacía o no existir.",
     "useHelp": "La app empezará a usar esa carpeta (por ejemplo, una que traes de otro PC). La actual no se mueve ni se borra. Si la carpeta elegida está vacía, empezarás de cero.",
@@ -398,11 +402,9 @@
       "password": "Contraseña",
       "email": "Correo"
     },
-    "now": "En uso ahora",
     "later": "Más adelante ({count})",
     "laterHint": "Todavía no hacen falta: cada una se pide cuando llega su fase.",
     "phase": "Fase {phase}",
-    "ready": "Lista",
     "partial": "Falta {missing} de {total}",
     "configure": "Configurar",
     "close": "Cerrar",

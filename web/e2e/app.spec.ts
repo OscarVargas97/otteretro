@@ -75,7 +75,7 @@ test("sin carpeta de datos, abre el asistente en español", async () => {
 });
 
 test("cambiar a inglés en el asistente cambia la interfaz al momento", async () => {
-  await page.getByRole("combobox", { name: es.settings.language }).selectOption("en");
+  await page.getByRole("button", { name: en.languageName }).click();
   await expect(page.getByRole("button", { name: en.welcome.start })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expectNoRawKeys();
@@ -154,18 +154,20 @@ test("Ajustes en inglés: carpeta, idioma y actualización", async () => {
   await expect(page.getByRole("button", { name: en.update.check })).toHaveCount(0);
   await page.getByRole("tab", { name: en.settings.dataFolder }).focus();
   await page.keyboard.press("End");
-  await expect(page).toHaveURL(/\?s=about$/);
-  await expect(page.getByRole("tab", { name: en.settings.about })).toHaveAttribute("aria-selected", "true");
+  await expect(page).toHaveURL(/\?s=general$/);
+  await expect(page.getByRole("tab", { name: en.settings.general })).toHaveAttribute("aria-selected", "true");
   await page.goBack();
   await expect(page.getByText(dataDir("data"))).toBeVisible();
   // #98: cambiar a una pestaña corta no cambia el ancho (la barra de scroll tiene su lugar reservado).
   const tabsWidth = async () => (await page.getByRole("tablist").boundingBox())!.width;
   const wide = await tabsWidth();
-  await page.getByRole("tab", { name: en.settings.language }).click();
-  await expect(page.getByRole("combobox")).toBeVisible();
+  await page.getByRole("tab", { name: en.settings.general }).click();
+  await expect(page.getByRole("button", { name: en.languageName })).toHaveAttribute("aria-pressed", "true");
   expect(await tabsWidth()).toBe(wide);
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).scrollbarGutter)).toBe("stable");
+  // #111: ?s=about de antes lleva a General.
   await page.goto(`${base()}/settings/?s=about`);
+  await expect(page.getByRole("tab", { name: en.settings.general })).toHaveAttribute("aria-selected", "true");
   // El botón no cambia de ancho mientras busca (#20).
   const check = page.getByRole("button", { name: en.update.check });
   const idle = (await check.boundingBox())!.width;
@@ -185,17 +187,22 @@ test("Ajustes en inglés: carpeta, idioma y actualización", async () => {
 
 test("mover la carpeta de datos muestra el progreso y el resultado traducidos", async () => {
   await page.getByRole("tab", { name: en.settings.dataFolder }).click();
+  // #111: «Abrir carpeta» a la vista (no se toca: abriría el explorador) y «Usar otra carpeta» como enlace con su explicación.
+  await expect(page.getByRole("button", { name: en.dataFolder.open })).toBeVisible();
+  await expect(page.getByText(en.dataFolder.difference)).toBeVisible();
   await page.getByRole("button", { name: en.dataFolder.moveButton }).click();
   await page.getByLabel(en.dataFolder.folderLabel, { exact: true }).fill(dataDir("moved"));
   await page.getByRole("button", { name: en.dataFolder.move, exact: true }).click();
   await expect(page.getByText(en.dataFolder.moved, { exact: true })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(dataDir("moved")).first()).toBeVisible();
+  await page.getByRole("button", { name: en.dataFolder.dismiss }).click();
+  await expect(page.getByText(en.dataFolder.moved, { exact: true })).toHaveCount(0);
   await expectNoRawKeys();
 });
 
 test("volver a español en Ajustes cambia todo y se mantiene al recargar", async () => {
-  await page.getByRole("tab", { name: en.settings.language }).click();
-  await page.getByRole("combobox", { name: en.settings.language }).selectOption("es");
+  await page.getByRole("tab", { name: en.settings.general }).click();
+  await page.getByRole("button", { name: es.languageName }).click();
   await expect(page.getByRole("heading", { level: 1, name: es.nav.settings })).toBeVisible();
   await page.reload();
   await expect(page.getByRole("heading", { level: 1, name: es.nav.settings })).toBeVisible();
@@ -208,7 +215,7 @@ test("volver a español en Ajustes cambia todo y se mantiene al recargar", async
 
 test("Cuentas y claves: pegar una clave la deja guardada sin mostrarla, y borrarla la deja en falta", async () => {
   await page.getByRole("tab", { name: es.settings.credentials }).click();
-  // Arriba, las tarjetas de lo que usa F1; lo de otras fases, plegado (#57).
+  // Una fila por servicio de esta fase; lo de otras, en una línea gris plegada (#57, #111).
   const steam = `${es.credentials.configure}: ${es.credentials.service.steam}`;
   await expect(page.getByRole("button", { name: steam })).toBeVisible();
   await expect(page.getByRole("button", { name: `${es.credentials.configure}: ${es.credentials.service.github}` })).toBeHidden();
@@ -223,8 +230,8 @@ test("Cuentas y claves: pegar una clave la deja guardada sin mostrarla, y borrar
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
   await page.reload();
-  const card = page.locator(".cred-card").filter({ hasText: es.credentials.service.steam });
-  await expect(card.getByText(es.credentials.ready, { exact: true })).toBeVisible();
+  const line = page.locator(".cred-line").filter({ hasText: es.credentials.service.steam });
+  await expect(line.locator(".ot-badge-have").getByText(es.credentials.saved, { exact: true })).toBeVisible();
   expect(await page.locator("body").innerText()).not.toContain("clave-e2e-123");
   await expectNoRawKeys();
   await expectTextFits();
@@ -538,7 +545,7 @@ test("los cambios se ven al tocar y, si el guardado falla, vuelven y avisan", as
   await page.unroute("**/api/sagas/1");
 });
 
-test("las pestañas nunca tienen barra: a 700 px lo que no cabe va a «Más ▾»", async () => {
+test("las pestañas nunca tienen barra: en una ventana angosta, lo que no cabe va a «Más ▾»", async () => {
   // #108: a ningún ancho hay barra ni segunda línea; la elegida siempre se ve.
   const noScroll = async () => {
     const row = page.locator('.content [role="tablist"]');
@@ -546,7 +553,7 @@ test("las pestañas nunca tienen barra: a 700 px lo que no cabe va a «Más ▾�
     expect(scroll).toBeLessThanOrEqual(client);
     expect(height).toBeLessThan(50); // una sola línea
   };
-  await page.setViewportSize({ width: 700, height: 900 });
+  await page.setViewportSize({ width: 520, height: 900 });
   await page.goto(`${base()}/settings/?s=claude`);
   const more = page.getByRole("button", { name: new RegExp(es.tabs.more) });
   await expect(more).toBeVisible();
@@ -559,7 +566,7 @@ test("las pestañas nunca tienen barra: a 700 px lo que no cabe va a «Más ▾�
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${base()}/settings/`);
   await expect(more).toHaveCount(0);
-  await expect(page.getByRole("tab")).toHaveCount(6);
+  await expect(page.getByRole("tab")).toHaveCount(5);
   await noScroll();
 });
 

@@ -12,8 +12,10 @@ import { useAppState } from "@/components/Shell";
 import { Tabs } from "@/components/Tabs";
 import { VersionAndUpdate } from "@/components/Update";
 
-/** Las pestañas de Ajustes, en orden (#97). La que viene en `?s=` se abre; sin ella, la primera. */
-const SECTIONS = ["dataFolder", "credentials", "consoles", "claude", "language", "about"] as const;
+/** Las pestañas de Ajustes, en orden (#97, #111). La que viene en `?s=` se abre; sin ella, la primera. */
+const SECTIONS = ["dataFolder", "credentials", "consoles", "claude", "general"] as const;
+/** Las pestañas de antes llevan a General (#111). */
+const OLD: Record<string, Section> = { language: "general", about: "general" };
 type Section = (typeof SECTIONS)[number];
 
 export default function Settings() {
@@ -24,7 +26,7 @@ function SettingsTabs() {
   const t = useTranslations("settings");
   const router = useRouter();
   const asked = useSearchParams().get("s");
-  const current: Section = SECTIONS.find((s) => s === asked) ?? SECTIONS[0];
+  const current: Section = SECTIONS.find((s) => s === asked) ?? OLD[asked ?? ""] ?? SECTIONS[0];
   const title = (s: Section) => t(s === "consoles" ? "consoles.title" : s === "claude" ? "claude.title" : s);
 
   return (
@@ -47,12 +49,12 @@ function Panel({ section }: { section: Section }) {
     case "credentials": return <CredentialsSettings />;
     case "consoles": return <ConsoleSettings />;
     case "claude": return <ClaudeSettings />;
-    case "language": return <div className="panel"><LanguagePicker /></div>;
-    case "about": return (
-      <>
+    case "general": return (
+      <div className="settings-blocks">
+        <section className="panel"><h2>{t("language")}</h2><LanguagePicker /></section>
         <VersionAndUpdate version={data?.version} />
         <p className="small muted" style={{ margin: 0 }}>{t("later")}</p>
-      </>
+      </div>
     );
   }
 }

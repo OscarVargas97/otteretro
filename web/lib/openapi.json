@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:63407/"
+      "url": "http://127.0.0.1:52854/"
     }
   ],
   "paths": {
@@ -88,6 +88,28 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/FolderInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/data-folder/open": {
+      "post": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }

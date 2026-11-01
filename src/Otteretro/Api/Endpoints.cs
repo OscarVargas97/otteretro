@@ -52,6 +52,12 @@ public static class Endpoints
                 root is not null && Directory.Exists(root) ? new DriveInfo(root).AvailableFreeSpace : 0);
         });
 
+        // «Abrir carpeta» (#111): la abre en el explorador de archivos del sistema.
+        api.MapPost("/data-folder/open", Results<Ok, Conflict<ApiError>> (AppSession s) =>
+            s.Config.DataFolder is { } folder && Directory.Exists(folder)
+                ? Open(folder) ? TypedResults.Ok() : TypedResults.Conflict(ApiError.Of("link.openFailed"))
+                : TypedResults.Conflict(ApiError.Of("move.noDataFolder")));
+
         api.MapGet("/data-folder/move", (FolderMoveService m) => m.State);
 
         api.MapPost("/data-folder/move", Results<Accepted<MoveState>, BadRequest<ApiError>> (FolderRequest request, FolderMoveService m, TaskQueue q) =>

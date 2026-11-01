@@ -59,9 +59,6 @@ input:not([type="checkbox"], [type="radio"], [type="range"]), select { height: 3
 /* Ajustes › Cuentas y claves (#57): tarjetas por servicio y un diálogo para configurar */
 .cred-settings { display: flex; flex-direction: column; gap: var(--space-3); }
 .cred-group { margin: 0; font-weight: 700; }
-.cred-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--space-3); }
-.cred-card { background: var(--surface); border-radius: var(--radius-lg); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); }
-.cred-card .ot-btn { align-self: flex-start; margin-top: auto; }
 .cred-purpose { margin: 0; flex: 1; }
 .cred-name { margin: 0; font-size: 16px; }
 .cred-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
@@ -123,3 +120,12 @@ details.fold[open] summary { border-bottom: 1px solid var(--line); }
 .console-name { display: flex; align-items: center; gap: var(--space-2); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .console-games { margin-left: auto; text-align: right; min-width: 96px; }
 table.t .num { text-align: right; white-space: nowrap; }
+
+/* Cuentas y claves y Carpeta de datos (#111) */
+.cred-line { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--line); }
+.cred-line:last-child { border-bottom: 0; }
+.cred-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.cred-text .small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fold-line summary { cursor: pointer; padding: var(--space-3) 0; }
+.folder-path { overflow-wrap: anywhere; }
+.link-btn { font: inherit; font-weight: 700; padding: 0 var(--space-2); background: none; border: 0; color: var(--accent); text-decoration: underline; cursor: pointer; }
