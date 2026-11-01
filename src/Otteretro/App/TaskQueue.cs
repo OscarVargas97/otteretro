@@ -6,7 +6,7 @@ using Otteretro.Data;
 
 namespace Otteretro.App;
 
-/// <param name="Status">queued, running, done o error.</param>
+/// <param name="Status">queued, running, paused, done, error o canceled.</param>
 /// <param name="Detail">Qué está haciendo o por qué falló, como código para el front (`tasks.*`, #142).</param>
 public record TaskInfo(long Id, string Kind, string Status, int Progress, ApiError? Detail, string CreatedAt, string? FinishedAt);
 
@@ -67,6 +67,8 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
 
     readonly HashSet<string> running = [];
     readonly Lock gate = new();
+    /// <summary>Las que corren, con su token y el estado al que pasan si se detienen a pedido (#146).</summary>
+    readonly Dictionary<long, (CancellationTokenSource Token, string? StopAs)> live = [];
 
     /// <summary>Hay alguna tarea corriendo (la mudanza de la carpeta de datos espera a que no haya).</summary>
     public bool Busy { get { lock (gate) return running.Count > 0; } }
@@ -105,8 +107,8 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         if (CurrentDb() is not { } db) return [];
         using var c = db.Open();
         return c.Query<Row>($"""
-            SELECT {Columns} FROM task WHERE status IN ('queued', 'running') OR finished_at >= @since
-            ORDER BY CASE status WHEN 'running' THEN 0 WHEN 'queued' THEN 1 ELSE 2 END, finished_at DESC, id LIMIT 50
+            SELECT {Columns} FROM task WHERE status IN ('queued', 'running', 'paused') OR finished_at >= @since
+            ORDER BY CASE status WHEN 'running' THEN 0 WHEN 'queued' THEN 1 WHEN 'paused' THEN 2 ELSE 3 END, finished_at DESC, id LIMIT 50
             """, new { since = DateTime.UtcNow.AddDays(-1).ToString("O") }).Select(r => r.Info()).ToList();
     }
 
@@ -114,13 +116,54 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
     /// <summary>Borra las tareas terminadas (o solo la `id`, si está terminada; #172) con su registro.</summary>
     public static int Clear(Database db, long? id = null)
     {
-        const string finished = "status IN ('done', 'error') AND (@id IS NULL OR id = @id)";
+        const string finished = "status IN ('done', 'error', 'canceled') AND (@id IS NULL OR id = @id)";
         using var c = db.Open();
         using var t = c.BeginTransaction();
         c.Execute($"DELETE FROM task_log WHERE task_id IN (SELECT id FROM task WHERE {finished})", new { id }, t);
         var count = c.Execute($"DELETE FROM task WHERE {finished}", new { id }, t);
         t.Commit();
         return count;
+    }
+
+    /// <summary>
+    /// Pausar (#146): una en cola pasa a `paused` al momento; una en curso se detiene en su punto de control y queda `paused`
+    /// cuando su paso termina de cortarse. La cola y el arranque no toman las pausadas. False si no está en cola ni corriendo.
+    /// </summary>
+    public bool Pause(Database db, long id) => Stop(db, id, "paused", ["queued", "running"]);
+
+    /// <summary>Cancelar (#146): en cola, en curso o pausada, termina como `canceled`. Cada tipo sigue sus reglas al cortarse
+    /// (mover no borra el origen hasta haber verificado la copia, así que cortado a mitad lo deja como estaba).</summary>
+    public bool Cancel(Database db, long id) => Stop(db, id, "canceled", ["queued", "running", "paused"]);
+
+    /// <summary>Reanudar (#146): una pausada vuelve a la cola y sigue desde su punto de control.</summary>
+    public bool Resume(Database db, long id)
+    {
+        int changed;
+        using (var c = db.Open())
+            changed = c.Execute("UPDATE task SET status = 'queued', resume_at = NULL, detail = NULL WHERE id = @id AND status = 'paused'", new { id });
+        if (changed == 0) return false;
+        Log(db, id, ApiError.Of("tasks.log.resumed"));
+        Publish(db, id);
+        return true;
+    }
+
+    bool Stop(Database db, long id, string status, string[] from)
+    {
+        lock (gate)
+            if (live.TryGetValue(id, out var run))
+            {
+                live[id] = run with { StopAs = status };
+                run.Token.Cancel();
+                return true;
+            }
+        int changed;
+        using (var c = db.Open())
+            changed = c.Execute($"UPDATE task SET status = @status, finished_at = {(status == "canceled" ? "@now" : "NULL")} WHERE id = @id AND status IN @from",
+                new { id, status, from, now = Now() });
+        if (changed == 0) return false;
+        Log(db, id, ApiError.Of($"tasks.log.{status}"));
+        Publish(db, id);
+        return true;
     }
 
     protected override async Task ExecuteAsync(CancellationToken ct)
@@ -167,11 +210,13 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
             c.Execute("UPDATE task SET status = 'running', attempts = attempts + 1 WHERE id = @Id", t);
             Log(db, t.Id, ApiError.Of("tasks.log.started"));
             Publish(db, t.Id);
-            _ = Task.Run(() => Run(db, t, ct), CancellationToken.None);
+            var token = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            lock (gate) live[t.Id] = (token, null);
+            _ = Task.Run(() => Run(db, t, token.Token, ct), CancellationToken.None);
         }
     }
 
-    async Task Run(Database db, Row t, CancellationToken ct)
+    async Task Run(Database db, Row t, CancellationToken ct, CancellationToken app)
     {
         var clock = Stopwatch.StartNew();
         try
@@ -180,7 +225,8 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
             await handler(new TaskRun(this, db, t.Id, t.Data, new Credentials(db, session.Config.MachineId, box)), ct);
             Finish(db, t.Id, "done", null, clock.Elapsed);
         }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        catch (OperationCanceledException) when (app.IsCancellationRequested) { }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { Stopped(db, t.Id); }
         catch (Claude.ClaudePausedException e) { Pause(db, t, e); }
         catch (Exception e) when (IsTransient(e) && Retry(db, t, e)) { }
         catch (TaskException e)
@@ -195,8 +241,24 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         }
         finally
         {
-            lock (gate) running.Remove(LockOf(t.Kind));
+            lock (gate)
+            {
+                running.Remove(LockOf(t.Kind));
+                if (live.Remove(t.Id, out var run)) run.Token.Dispose();
+            }
         }
+    }
+
+    /// <summary>Se detuvo a pedido (#146): queda pausada (con su punto de control) o cancelada.</summary>
+    void Stopped(Database db, long id)
+    {
+        string status;
+        lock (gate) status = live.GetValueOrDefault(id).StopAs ?? "paused";
+        using (var c = db.Open())
+            c.Execute($"UPDATE task SET status = @status, attempts = MAX(attempts - 1, 0), finished_at = {(status == "canceled" ? "@now" : "NULL")} WHERE id = @id",
+                new { id, status, now = Now() });
+        Log(db, id, ApiError.Of($"tasks.log.{status}"));
+        Publish(db, id);
     }
 
     static bool IsTransient(Exception e) => e switch
