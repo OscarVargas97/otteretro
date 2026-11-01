@@ -511,6 +511,27 @@ test("Aprendizajes: cada cambio en claro, filtros y corregir con una nota para C
   await page.screenshot({ path: "e2e-results/16-aprendizajes-es.png", fullPage: true });
 });
 
+test("los cambios se ven al tocar y, si el guardado falla, vuelven y avisan", async () => {
+  // #107: el servidor retiene el guardado; la estrella ya cambió y el botón sigue activo. Después responde con error.
+  await page.goto(`${base()}/saga/?id=1`);
+  const fav = page.getByRole("button", { name: new RegExp(es.catalog.saga.favorite) });
+  const before = (await fav.getAttribute("aria-pressed"))!;
+  let release = () => {};
+  const held = new Promise<void>((r) => (release = r));
+  await page.route("**/api/sagas/1", async (route) => {
+    if (route.request().method() !== "PUT") return route.fallback();
+    await held;
+    await route.fulfill({ status: 409, contentType: "application/json", body: "{}" });
+  });
+  await fav.click();
+  await expect(fav).toHaveAttribute("aria-pressed", before === "true" ? "false" : "true");
+  await expect(fav).toBeEnabled();
+  release();
+  await expect(fav).toHaveAttribute("aria-pressed", before);
+  await expect(page.getByRole("alert").filter({ hasText: es.errors.http.replace("{status}", "409") })).toBeVisible();
+  await page.unroute("**/api/sagas/1");
+});
+
 test("Ajustes: consolas habilitadas, al día y reevaluar icónicas", async () => {
   await page.goto(`${base()}/settings/?s=consoles`);
   await expect(page.getByRole("heading", { level: 2, name: es.settings.consoles.title })).toBeVisible();

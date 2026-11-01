@@ -9,6 +9,7 @@ import { Empty } from "@/components/Shell";
 import { request } from "@/lib/client";
 import { PageSkeleton } from "@/components/Skeleton";
 import { useDescribeError } from "@/lib/i18n";
+import { optimistic } from "@/lib/optimistic";
 import { compareQuery, gameQuery } from "@/lib/queries";
 import type { FieldRow, GameDetail, ProgressInfo, RoutesPage, VersionCompare } from "@/lib/types";
 
@@ -120,6 +121,7 @@ function useSaveProgress(game: GameDetail) {
   const cache = useQueryClient();
   return useMutation({
     mutationFn: (progress: ProgressInfo) => request<GameDetail>(`/api/games/${game.id}/progress`, { method: "PUT", body: JSON.stringify(progress) }),
+    ...optimistic(cache, ["game", String(game.id)], (d: GameDetail, progress: ProgressInfo) => ({ ...d, progress })),
     onSuccess: (data) => {
       cache.setQueryData(["game", String(game.id)], data);
       cache.invalidateQueries({ queryKey: ["collection"] });
@@ -134,7 +136,7 @@ function FavoriteButton({ game }: { game: GameDetail }) {
   const p = game.progress;
   return (
     <div className="hero-actions">
-      <button className="ot-btn" type="button" aria-pressed={p.favorite} disabled={save.isPending} onClick={() => save.mutate({ ...p, favorite: !p.favorite })}>
+      <button className="ot-btn" type="button" aria-pressed={p.favorite} onClick={() => save.mutate({ ...p, favorite: !p.favorite })}>
         {t("game.favorite")}
       </button>
     </div>

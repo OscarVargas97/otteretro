@@ -10,6 +10,7 @@ import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
 import { PageSkeleton, Rows } from "@/components/Skeleton";
 import { usePaged } from "@/lib/paged";
+import { optimistic } from "@/lib/optimistic";
 import { routesQuery, sagaQuery } from "@/lib/queries";
 import type { GamePage, RoutesPage, SagaDetail } from "@/lib/types";
 
@@ -32,6 +33,7 @@ function Saga() {
   const more = usePaged(["saga", id, "games"], (offset) => `/api/sagas/${id}/games?offset=${offset}`, (p: GamePage) => ({ items: p.items, total: Number(p.total) }), id !== null);
   const flags = useMutation({
     mutationFn: (body: { favorite?: boolean; following?: boolean }) => request<SagaDetail>(`/api/sagas/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+    ...optimistic(cache, ["saga", id], (d: SagaDetail, body: { favorite?: boolean; following?: boolean }) => ({ ...d, saga: { ...d.saga, ...body } })),
     onSuccess: (data) => {
       cache.setQueryData(["saga", id], data);
       cache.invalidateQueries({ queryKey: ["sagas"] });
@@ -57,10 +59,10 @@ function Saga() {
           <h2 className="hero-title">{emulation ? t("emulation") : s.name}</h2>
           {!emulation && (
             <div className="hero-actions">
-              <button className="ot-btn" type="button" aria-pressed={s.favorite} disabled={flags.isPending} onClick={() => flags.mutate({ favorite: !s.favorite })}>
+              <button className="ot-btn" type="button" aria-pressed={s.favorite} onClick={() => flags.mutate({ favorite: !s.favorite })}>
                 <span className="ot-fav">{s.favorite ? "★" : "☆"}</span> {t("saga.favorite")}
               </button>
-              <button className="ot-btn" type="button" aria-pressed={s.following} disabled={flags.isPending} onClick={() => flags.mutate({ following: !s.following })}>
+              <button className="ot-btn" type="button" aria-pressed={s.following} onClick={() => flags.mutate({ following: !s.following })}>
                 {s.following ? t("saga.following") : t("saga.follow")}
               </button>
             </div>
@@ -112,6 +114,7 @@ function Routes({ sagaId }: { sagaId: string }) {
   const routes = useQuery(routesQuery(sagaId));
   const choose = useMutation({
     mutationFn: (routeId: number | null) => request<RoutesPage>(`/api/sagas/${sagaId}/route`, { method: "PUT", body: JSON.stringify({ routeId }) }),
+    ...optimistic(cache, ["saga", sagaId, "routes"], (d: RoutesPage, routeId: number | null) => ({ ...d, chosenRoute: routeId })),
     onSuccess: (data) => {
       cache.setQueryData(["saga", sagaId, "routes"], data);
       cache.invalidateQueries({ queryKey: ["saga", sagaId] });
@@ -139,7 +142,7 @@ function Routes({ sagaId }: { sagaId: string }) {
         <h2>{t("saga.route")}</h2>
         <div className="chips">
           {list.map((r) => (
-            <button key={r.id} className="chip" type="button" aria-pressed={r.id === chosen.id && routes.data.chosenRoute !== null} disabled={choose.isPending}
+            <button key={r.id} className="chip" type="button" aria-pressed={r.id === chosen.id && routes.data.chosenRoute !== null}
               onClick={() => choose.mutate(Number(r.id))}>{t(`route.${r.kind as "release"}`)}</button>
           ))}
         </div>

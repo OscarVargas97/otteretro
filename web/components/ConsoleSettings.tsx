@@ -5,6 +5,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useState } from "react";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
+import { optimistic } from "@/lib/optimistic";
 import type { ConsolesPage, PlatformInfo } from "@/lib/types";
 
 /** Ajustes › Consolas (F2.13, F2.14): las consolas habilitadas, agregar otras de IGDB y cada cuánto se pone al día el catálogo. */
@@ -27,6 +28,8 @@ export function ConsoleSettings() {
   const toggle = useMutation({
     mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
       request<ConsolesPage>(`/api/consoles/${id}`, { method: "PUT", body: JSON.stringify({ enabled }) }),
+    ...optimistic(cache, ["consoles", "settings"], (d: ConsolesPage, v: { id: string; enabled: boolean }) =>
+      ({ ...d, consoles: d.consoles.map((c) => (c.id === v.id ? { ...c, enabled: v.enabled } : c)) })),
     onSuccess: done,
   });
   const enable = useMutation({
@@ -56,7 +59,7 @@ export function ConsoleSettings() {
         {p.consoles.map((c) => (
           <li key={c.id}>
             <label className="small" style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
-              <input type="checkbox" checked={c.enabled} disabled={toggle.isPending} onChange={(e) => toggle.mutate({ id: c.id, enabled: e.target.checked })} />
+              <input type="checkbox" checked={c.enabled} onChange={(e) => toggle.mutate({ id: c.id, enabled: e.target.checked })} />
               <span>
                 <b>{c.name}</b>{" "}
                 <span className="muted">· {t("games", { count: Number(c.games) })} · {c.refreshedAt ? t("refreshedAt", { at: date(c.refreshedAt) }) : t("never")}</span>
