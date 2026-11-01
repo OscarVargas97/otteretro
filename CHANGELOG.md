@@ -4,7 +4,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.2.0 · Claude ordena el catálogo
 
-`fase/f2-claude` y `feat/114-releases` · primera release publicada en GitHub
+`fase/f2-claude` y `feat/114-releases` · primera release publicada en GitHub, desde `main`
 
 ### Nuevo
 - **Claude revisa las sagas dudosas y las ordena solo**: une fichas repetidas del mismo juego, pone en su saga los juegos sueltos que son de ella, separa sub-sagas (como Tingle) y corrige nombres. Primero tus sagas. Se lanza con `otteretro catalogo depurar`; con `--contar` dice cuántos casos hay y cuánto gastaría, sin llamar a Claude. Cada cambio se puede deshacer con `otteretro catalogo deshacer <n>`.
