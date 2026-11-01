@@ -220,16 +220,14 @@
   },
   "dataFolder": {
     "open": "Open folder",
-    "difference": "“Move” takes everything to another folder and deletes the current one once it is copied and checked. “Use another folder” starts using one that already exists (for example, from another PC) without touching the current one.",
     "dismiss": "Dismiss",
-    "usage": "Uses {used} · {free} free on that drive",
-    "usageMeasuring": "Measuring its size · {free} free on that drive",
-    "moveButton": "Move…",
+    "usage": "Uses {used}",
+    "usageMeasuring": "Measuring its size",
+    "moveButton": "Take to another drive…",
     "useButton": "Use another folder",
-    "contents": "Database, Tools, image cache and error log.",
-    "moveHelp": "Everything will be copied to the new folder, each file will be checked and only then the current one will be deleted. On the same drive it moves instantly. The new folder must be empty or not exist.",
+    "contents": "database, catalog with its images and log",
+    "moveHelp": "Only the app data (database, catalog and log) is copied to that drive's Otteretro folder, every file is checked, and only then is it deleted here. Your games and tools stay where they are. That drive becomes the ★ one.",
     "useHelp": "The app will start using that folder (for example, one you bring from another PC). The current one is not moved or deleted. If the chosen folder is empty, you will start from scratch.",
-    "driveChip": "{path} · {free} free",
     "folderLabel": "Folder",
     "placeholder": "For example E:\\Otteretro",
     "cancel": "Cancel",
@@ -242,7 +240,9 @@
     "error": "Error",
     "taskTitle": "Move the data folder",
     "taskDone": "Done",
-    "taskNowIn": "Now in {destination}"
+    "taskNowIn": "Now in {destination}",
+    "title": "App data",
+    "toDisk": "Destination drive"
   },
   "move": {
     "step": {
@@ -875,15 +875,12 @@
         "title": "System"
       }
     },
-    "disks": "Drives",
     "addDisk": "+ Add drive",
     "addDiskHelp": "Pick a drive: Otteretro creates an Otteretro folder on it with Juegos, Emuladores, Ports, Complementos and Sistema. One per drive.",
     "noDisks": "No drives yet. Add one to keep games and tools.",
     "noDrives": "Every drive is already added.",
     "add": "Add",
-    "default": "Default",
-    "defaultHelp": "The default ★: new things and Herramientas go here.",
-    "makeDefault": "Make default ★",
+    "defaultHelp": "The ★ drive holds the app data: new things and Herramientas go here. It changes if you take the data to another drive.",
     "usage": "Drive usage by type",
     "otherUse": "Other files",
     "freeSpace": "Free",
@@ -896,7 +893,9 @@
       "tools": "Herramientas, in the data folder",
       "toDefault": "default drive ★",
       "run": "Move to the standard layout"
-    }
+    },
+    "disk": "Drive",
+    "dataUse": "App data"
   },
   "tools": {
     "emptyTitle": "No emulators or ports yet",

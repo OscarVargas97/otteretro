@@ -44,6 +44,7 @@ public static class LibraryEndpoints
         api.MapGet("/locations", Results<Ok<List<LibraryInfo>>, Conflict<ApiError>> (AppSession s) =>
         {
             if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            if (Library.EnsureDataDisk(db, s.Config.DataFolder!) is { } error) FileLog.Write(LogLevel.Warning, "Library", error.Code);
             var list = Library.List(db);
             // Una desconectada se busca sola (§5.3), como mucho cada 30 s y por detrás: la lista no espera a recorrer discos.
             if (list.Any(l => !l.Connected))
@@ -86,12 +87,6 @@ public static class LibraryEndpoints
             }
             var (_, _, error) = Library.Adopt(db, request.Path, request.Name, "disk");
             return error is null ? TypedResults.Ok(Library.List(db)) : TypedResults.BadRequest(error);
-        });
-
-        api.MapPut("/disks/{id}/default", Results<Ok<List<LibraryInfo>>, BadRequest<ApiError>, Conflict<ApiError>> (string id, AppSession s) =>
-        {
-            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
-            return Library.SetDefault(db, id) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(Library.List(db));
         });
 
         // Lo que falta pasar al estándar (#159) y la tarea que lo hace.

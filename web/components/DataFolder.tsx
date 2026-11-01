@@ -4,9 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { request } from "@/lib/client";
-import { gb } from "@/lib/format";
+import { size } from "@/lib/format";
 import { useDescribeError, useDynamicT } from "@/lib/i18n";
-import type { AppState, Drive, FolderInfo, FolderRequest, MoveState } from "@/lib/types";
+import type { AppState, FolderInfo, FolderRequest, MoveState } from "@/lib/types";
 
 /** Estado de la mudanza de la carpeta de datos; llega en vivo por el evento "move". */
 export const useMove = () =>
@@ -40,8 +40,11 @@ export function MoveTask() {
   );
 }
 
-/** Ajustes › Carpeta de datos: dónde está, cuánto ocupa, y moverla o usar otra (S7). */
-export function DataFolderSettings() {
+/**
+ * Los datos de la app dentro del disco ★ (#208): dónde están, cuánto ocupan, llevarlos a otro disco (solo `data`,
+ * `catalogo` y `logs`; los juegos se quedan) o usar los de otra carpeta (S7).
+ */
+export function DataFolderSettings({ disks }: { disks: { id: string; name: string; path: string }[] }) {
   const t = useTranslations("dataFolder");
   const locale = useLocale();
   const describe = useDescribeError();
@@ -49,7 +52,6 @@ export function DataFolderSettings() {
   const cache = useQueryClient();
   // Mientras se mide por primera vez (Used null), se vuelve a pedir cada 2 s (#106).
   const info = useQuery({ queryKey: ["folder"], queryFn: () => request<FolderInfo>("/api/data-folder"), refetchInterval: (q) => q.state.data?.used == null ? 2000 : false }).data;
-  const drives = useQuery({ queryKey: ["drives"], queryFn: () => request<Drive[]>("/api/drives") }).data;
   const m = useMove();
   const [mode, setMode] = useState<"move" | "use" | null>(null);
   const [dismissed, setDismissed] = useState<string | null>(null); // el aviso de la mudanza se cierra (#111)
@@ -59,6 +61,7 @@ export function DataFolderSettings() {
   const refresh = () => {
     cache.invalidateQueries({ queryKey: ["state"] });
     cache.invalidateQueries({ queryKey: ["folder"] });
+    cache.invalidateQueries({ queryKey: ["libraries"] });
   };
   const move = useMutation({
     mutationFn: (body: FolderRequest) => request<MoveState>("/api/data-folder/move", { method: "POST", body: JSON.stringify(body) }),
@@ -77,51 +80,48 @@ export function DataFolderSettings() {
   });
   const action = mode === "move" ? move : switchTo;
 
-  // Al terminar la mudanza, la ruta mostrada pasa a ser la nueva.
+  // Al terminar la mudanza, la ruta y el disco ★ pasan a ser los nuevos.
   const finishedAt = m?.step === "done" ? m.destination : null;
   useEffect(() => {
-    if (finishedAt) {
-      cache.invalidateQueries({ queryKey: ["state"] });
-      cache.invalidateQueries({ queryKey: ["folder"] });
-    }
+    if (finishedAt) for (const key of ["state", "folder", "libraries"]) cache.invalidateQueries({ queryKey: [key] });
   }, [finishedAt, cache]);
 
   const destination = m?.destination ?? "";
   const notice = m && !m.running && (m.step === "done" || m.error) ? `${m.step}|${m.destination}` : null;
   const showNotice = notice !== null && notice !== dismissed;
   return (
-    <div className="panel">
+    <div className="app-data">
       <div className="version-row">
-        <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-          <span className="folder-path">{info?.path}</span>
-          {info && <span className="small muted">{info.used == null ? t("usageMeasuring", { free: gb(info.freeOnDrive, locale) }) : t("usage", { used: gb(info.used, locale), free: gb(info.freeOnDrive, locale) })}</span>}
+        <div className="grow">
+          <b>{t("title")}</b>
+          {info && <span className="small muted">{info.used == null ? t("usageMeasuring") : t("usage", { used: size(info.used, locale) })} · {t("contents")}</span>}
         </div>
-        <button className="ot-btn" type="button" onClick={() => open.mutate()}>{t("open")}</button>
+        <button className="ot-btn ot-btn-sm" type="button" onClick={() => open.mutate()}>{t("open")}</button>
       </div>
-      <span className="small muted">{t("contents")}</span>
       {open.error && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(open.error)}</p>}
       {!m?.running && !mode && (
-        <>
-          <div className="sentence">
-            <button className="ot-btn ot-btn-primary" type="button" onClick={() => { setMode("move"); setPath(""); action.reset(); }}>{t("moveButton")}</button>
-            <button className="link-btn" type="button" onClick={() => { setMode("use"); setPath(""); action.reset(); }}>{t("useButton")}</button>
-          </div>
-          <p className="small muted" style={{ margin: 0 }}>{t("difference")}</p>
-        </>
+        <div className="sentence">
+          {disks.length > 0 && <button className="ot-btn ot-btn-sm" type="button" onClick={() => { setMode("move"); setPath(disks[0].path); action.reset(); }}>{t("moveButton")}</button>}
+          <button className="link-btn" type="button" onClick={() => { setMode("use"); setPath(""); action.reset(); }}>{t("useButton")}</button>
+        </div>
       )}
 
       {mode && (
         <div className="form-block">
           <p className="small" style={{ margin: 0 }}>{mode === "move" ? t("moveHelp") : t("useHelp")}</p>
-          <div className="chips">
-            {drives?.map((d) => (
-              <button key={d.name} className="chip" type="button" onClick={() => setPath(d.folder)}>
-                {t("driveChip", { path: d.folder, free: gb(d.free, locale) })}
-              </button>
-            ))}
-          </div>
-          <label className="small muted" htmlFor="new-path">{t("folderLabel")}</label>
-          <input id="new-path" value={path} onChange={(e) => setPath(e.target.value)} placeholder={t("placeholder")} />
+          {mode === "move" ? (
+            <>
+              <label className="small muted" htmlFor="data-to">{t("toDisk")}</label>
+              <select id="data-to" value={path} onChange={(e) => setPath(e.target.value)}>
+                {disks.map((d) => <option key={d.id} value={d.path}>{d.name}</option>)}
+              </select>
+            </>
+          ) : (
+            <>
+              <label className="small muted" htmlFor="new-path">{t("folderLabel")}</label>
+              <input id="new-path" value={path} onChange={(e) => setPath(e.target.value)} placeholder={t("placeholder")} />
+            </>
+          )}
           {action.isError && <p className="error small" style={{ margin: 0 }}>{describe(action.error)}</p>}
           <div style={{ display: "flex", gap: 8 }}>
             <button className="ot-btn" type="button" onClick={() => setMode(null)}>{t("cancel")}</button>

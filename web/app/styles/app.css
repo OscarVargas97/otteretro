@@ -270,10 +270,13 @@ a.ot-btn, a.chip { text-decoration: none; }
 .wizard-steps li { display: flex; justify-content: space-between; align-items: center; }
 
 /* Almacenamiento como Steam (#161, #205): los discos arriba, el uso por tipo y lo que tiene cada uno. */
-.disk-picker { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.disk-card { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 160px; padding: var(--space-2) var(--space-3); border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
-.disk-card.active { border-color: var(--accent); background: var(--accent-soft); }
-.disk-add { justify-content: center; border-style: dashed; }
+.disk-select { display: flex; gap: var(--space-2); align-items: stretch; }
+.disk-select select { flex: 1; min-width: 0; font-weight: 600; }
+.ot-dialog { width: min(560px, calc(100vw - 32px)); padding: var(--space-4); border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); }
+.ot-dialog::backdrop { background: rgb(0 0 0 / .55); }
+.app-data { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border-radius: 8px; background: var(--surface-raised); }
+.app-data .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.usage-data { background: var(--accent-soft); outline: 1px solid var(--accent); outline-offset: -1px; }
 .usage-bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--surface-raised); border: 1px solid var(--line); }
 .usage-legend { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); margin: 0; padding: 0; list-style: none; }
 .usage-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }

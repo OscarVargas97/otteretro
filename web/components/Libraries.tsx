@@ -2,11 +2,12 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { DataFolderSettings } from "@/components/DataFolder";
 import { request } from "@/lib/client";
 import { gb, size } from "@/lib/format";
 import { useDescribeError } from "@/lib/i18n";
-import type { DiskItem, Drive, LibraryInfo, MigrationPlan, ToolInfo } from "@/lib/types";
+import type { DiskItem, Drive, FolderInfo, LibraryInfo, MigrationPlan, ToolInfo } from "@/lib/types";
 
 /** Los discos y las ubicaciones de antes (#198, #201). La clave sigue siendo «libraries»: así se llaman en la base. */
 export const librariesQuery = { queryKey: ["libraries"], queryFn: () => request<LibraryInfo[]>("/api/locations") };
@@ -28,36 +29,29 @@ export function StorageSettings() {
   const locations = useQuery({ ...librariesQuery, refetchInterval: (q) => (q.state.data?.some((l) => !l.connected) ? 10_000 : false) });
   const disks = (locations.data ?? []).filter((l) => l.type === "disk");
   const [picked, setPicked] = useState<string | null>(null);
-  const [adding, setAdding] = useState(false);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const locale = useLocale();
   const current = disks.find((d) => d.id === picked) ?? disks.find((d) => d.default) ?? disks[0];
+  const label = (d: LibraryInfo) => `${d.name}${d.default ? " ★" : ""} — ${!d.connected ? t("disconnected")
+    : d.free != null && d.total != null ? t("free", { free: gb(d.free, locale), total: gb(d.total, locale) }) : d.path}`;
 
   return (
     <div className="settings-blocks">
       {locations.isError && <p className="error small" role="alert">{describe(locations.error)}</p>}
       <Migration />
-      <div className="disk-picker" role="group" aria-label={t("disks")}>
-        {disks.map((d) => <DiskCard key={d.id} disk={d} active={d.id === current?.id} onPick={() => { setPicked(d.id); setAdding(false); }} />)}
-        <button className={`disk-card disk-add${adding ? " active" : ""}`} type="button" aria-pressed={adding} onClick={() => setAdding(!adding)}>
-          <b>{t("addDisk")}</b>
-        </button>
+      {/* Como Steam (#209): el disco elegido arriba y «+» para sumar otro. */}
+      <div className="disk-select">
+        <label className="sr-only" htmlFor="disk">{t("disk")}</label>
+        <select id="disk" value={current?.id ?? ""} onChange={(e) => setPicked(e.target.value)} disabled={disks.length === 0}>
+          {disks.map((d) => <option key={d.id} value={d.id}>{label(d)}</option>)}
+        </select>
+        <button className="ot-btn" type="button" aria-label={t("addDisk")} title={t("addDisk")} onClick={() => dialog.current?.showModal()}>+</button>
       </div>
-      {locations.data && disks.length === 0 && !adding && <p className="missing small">{t("noDisks")}</p>}
-      {adding && <AddDisk disks={disks} onDone={(id) => { setPicked(id); setAdding(false); }} />}
-      {!adding && current && <DiskPanel key={current.id} disk={current} others={disks.filter((d) => d.id !== current.id && d.connected)} />}
+      <dialog ref={dialog} className="ot-dialog" aria-labelledby="add-disk">
+        <AddDisk disks={disks} onDone={(id) => { setPicked(id); dialog.current?.close(); }} onCancel={() => dialog.current?.close()} />
+      </dialog>
+      {current && <DiskPanel key={current.id} disk={current} others={disks.filter((d) => d.id !== current.id && d.connected)} />}
     </div>
-  );
-}
-
-function DiskCard({ disk, active, onPick }: { disk: LibraryInfo; active: boolean; onPick: () => void }) {
-  const t = useTranslations("libraries");
-  const locale = useLocale();
-  return (
-    <button className={`disk-card${active ? " active" : ""}`} type="button" aria-pressed={active} onClick={onPick}>
-      <b>{disk.name}{disk.default && <span title={t("default")}> ★</span>}</b>
-      <span className="small muted">
-        {!disk.connected ? t("disconnected") : disk.free != null && disk.total != null ? t("free", { free: gb(disk.free, locale), total: gb(disk.total, locale) }) : disk.path}
-      </span>
-    </button>
   );
 }
 
@@ -93,7 +87,7 @@ function Migration() {
 }
 
 /** Agregar un disco (#158): se elige la unidad y la app crea `Otteretro` con sus cinco carpetas. */
-function AddDisk({ disks, onDone }: { disks: LibraryInfo[]; onDone: (id: string) => void }) {
+function AddDisk({ disks, onDone, onCancel }: { disks: LibraryInfo[]; onDone: (id: string) => void; onCancel: () => void }) {
   const t = useTranslations("libraries");
   const locale = useLocale();
   const describe = useDescribeError();
@@ -109,8 +103,8 @@ function AddDisk({ disks, onDone }: { disks: LibraryInfo[]; onDone: (id: string)
     },
   });
   return (
-    <section className="panel" aria-labelledby="add-disk">
-      <h2 id="add-disk">{t("addDisk")}</h2>
+    <section className="settings-blocks">
+      <h2 id="add-disk" style={{ margin: 0 }}>{t("addDisk")}</h2>
       <p className="small muted" style={{ margin: 0 }}>{t("addDiskHelp")}</p>
       {drives.data && free.length === 0 && <p className="missing small">{t("noDrives")}</p>}
       <ul className="detail-list">
@@ -123,6 +117,7 @@ function AddDisk({ disks, onDone }: { disks: LibraryInfo[]; onDone: (id: string)
         ))}
       </ul>
       {add.isError && <p className="error small" style={{ margin: 0 }}>{describe(add.error)}</p>}
+      <div><button className="ot-btn" type="button" onClick={onCancel}>{t("cancel")}</button></div>
     </section>
   );
 }
@@ -143,9 +138,8 @@ function DiskPanel({ disk, others }: { disk: LibraryInfo; others: LibraryInfo[] 
     cache.invalidateQueries({ queryKey: ["tools"] });
   };
   const action = useMutation({
-    mutationFn: async (kind: "default" | "reconnect" | "remove" | "move") => {
+    mutationFn: async (kind: "reconnect" | "remove" | "move") => {
       switch (kind) {
-        case "default": return request<LibraryInfo[]>(`/api/disks/${disk.id}/default`, { method: "PUT" });
         case "reconnect": return request<LibraryInfo[]>(`/api/locations/${disk.id}/reconnect`, post({ path: null }));
         case "remove": return request<LibraryInfo[]>(`/api/locations/${disk.id}`, { method: "DELETE" });
         case "move": await request<number[]>(`/api/disks/${disk.id}/move`, post({ items: marked, toLocation: target })); setMarked([]); return null;
@@ -154,11 +148,14 @@ function DiskPanel({ disk, others }: { disk: LibraryInfo; others: LibraryInfo[] 
     onSuccess: (list) => { if (list) cache.setQueryData(["libraries"], list); setRemoving(false); done(); },
   });
 
+  // En el disco ★ están los datos de la app (#208): su peso es un segmento más de la barra.
+  const data = Number(useQuery({ queryKey: ["folder"], queryFn: () => request<FolderInfo>("/api/data-folder"), enabled: disk.default }).data?.used ?? 0);
+  const dataUse = disk.default ? data : 0;
   const all = items.data ?? [];
   const used = (type: string) => all.filter((i) => i.type === type).reduce((s, i) => s + Number(i.size), 0);
   const total = Number(disk.total ?? 0);
   const ours = TYPES.reduce((s, type) => s + used(type), 0);
-  const other = Math.max(0, total - Number(disk.free ?? 0) - ours);
+  const other = Math.max(0, total - Number(disk.free ?? 0) - ours - dataUse);
   const share = (n: number) => (total > 0 ? `${(n * 100) / total}%` : "0");
   const toggle = (relative: string) => setMarked((m) => (m.includes(relative) ? m.filter((x) => x !== relative) : [...m, relative]));
 
@@ -175,11 +172,11 @@ function DiskPanel({ disk, others }: { disk: LibraryInfo; others: LibraryInfo[] 
         </span>
       </div>
       <div className="sentence">
-        {!disk.default && <button className="ot-btn ot-btn-sm" type="button" disabled={action.isPending} onClick={() => action.mutate("default")}>{t("makeDefault")}</button>}
         {!disk.connected && <button className="ot-btn ot-btn-sm ot-btn-primary" type="button" disabled={action.isPending} onClick={() => action.mutate("reconnect")}>{t("reconnect")}</button>}
-        <button className="ot-btn ot-btn-sm ot-btn-ghost" type="button" onClick={() => setRemoving(true)}>{t("remove")}</button>
+        {!disk.default && <button className="ot-btn ot-btn-sm ot-btn-ghost" type="button" onClick={() => setRemoving(true)}>{t("remove")}</button>}
       </div>
       {disk.default && <p className="small muted" style={{ margin: 0 }}>{t("defaultHelp")}</p>}
+      {disk.default && <DataFolderSettings disks={others} />}
       {removing && (
         <div className="form-block" role="alertdialog" aria-label={t("remove")}>
           <p className="small" style={{ margin: 0 }}>{t("removeHelp", { name: disk.name })}</p>
@@ -194,10 +191,12 @@ function DiskPanel({ disk, others }: { disk: LibraryInfo; others: LibraryInfo[] 
         <>
           <div className="usage-bar" role="img" aria-label={t("usage")}>
             {TYPES.map((type) => <span key={type} className={`usage-${type}`} style={{ width: share(used(type)) }} />)}
+            {disk.default && <span className="usage-data" style={{ width: share(dataUse) }} />}
             <span className="usage-other" style={{ width: share(other) }} />
           </div>
           <ul className="usage-legend small">
             {TYPES.map((type) => <li key={type}><i className={`usage-${type}`} />{t(`type.${type}.title`)}: {size(used(type), locale)}</li>)}
+            {disk.default && <li><i className="usage-data" />{t("dataUse")}: {size(dataUse, locale)}</li>}
             <li><i className="usage-other" />{t("otherUse")}: {gb(other, locale)}</li>
             <li><i className="usage-free" />{t("freeSpace")}: {gb(disk.free ?? 0, locale)}</li>
           </ul>

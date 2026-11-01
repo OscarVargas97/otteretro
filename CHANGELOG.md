@@ -4,7 +4,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.3.0 · Carpetas y herramientas · en desarrollo
 
-`fase/f3-carpetas`, `feat/146-pausar-cancelar-tareas`, `feat/148-almacenamiento-por-tipo`, `fix/151-pestanas-centradas`, `feat/157-discos-como-steam`, `feat/163-canal-local` y `feat/165-version-por-pr` · F3 (#141): tus juegos y herramientas en la estructura definitiva antes de construir lo demás encima · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+`fase/f3-carpetas`, `feat/146-pausar-cancelar-tareas`, `feat/148-almacenamiento-por-tipo`, `fix/151-pestanas-centradas`, `feat/157-discos-como-steam`, `feat/163-canal-local`, `feat/165-version-por-pr` y `feat/167-datos-en-disco` · F3 (#141): tus juegos y herramientas en la estructura definitiva antes de construir lo demás encima · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
 
 ### Nuevo
 - **Canal Local** en Ajustes › General › Actualizaciones (#163): además de Estable y Pruebas, los paquetes que armas en este equipo. Su carpeta se recuerda aparte de Otro origen, así vuelves a ella de un clic.
@@ -21,6 +21,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 ### Cambios
 - **La versión avanza con cada cambio** (#165): cada PR que entra a dev sube el último número (0.3.8, 0.3.9…), en vez de quedarse en 0.3.0 hasta la release. La prerelease se llama 0.3.N-dev y la estable, 0.3.N.
 - El menú muestra las fases nuevas del plan: Steam llega en la F8, Descargas en la F10 y Descubrir en la F11.
+- **Almacenamiento nunca aparece vacío** (#167): el disco donde están los datos de la app se agrega solo y es el ★. Los discos se eligen en un desplegable, como en Steam, y «+» abre una ventana para sumar otro. Los datos de la app se ven y se llevan a otro disco desde ahí: se mueven solo los datos, los juegos se quedan. La pestaña «Carpeta de datos» ya no está.
 - **Ajustes en una sola columna centrada** (#151): siguen las pestañas de arriba y el contenido va al medio, sin los bloques en dos columnas. Herramientas, igual: pestañas Emuladores, Ports, Complementos y Sistema.
 
 ## 0.2.1 · Pulido de UI · en desarrollo
