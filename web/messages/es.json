@@ -874,7 +874,7 @@
     "freeSpace": "Libre",
     "diskEmpty": "Este disco todavía no tiene nada.",
     "noOtherDisk": "Agrega otro disco para mover cosas entre ellos.",
-    "moveTo": "Mover {count, plural, =0 {lo marcado} one {1 cosa} other {# cosas}} a",
+    "moveTo": "Mover {count, plural, =0 {lo marcado} one {1 cosa} other {# cosas}} ({size}) a",
     "migration": {
       "title": "Pasar al estándar",
       "help": "Estas carpetas tienen el formato anterior. Pasarlas deja cada cosa en la carpeta fija de su disco (en el mismo disco, se renombra) y lo de Herramientas en el disco predeterminado, con las rutas de los emuladores al día.",
@@ -889,10 +889,10 @@
     "useOtherData": "Usar otra carpeta de datos…",
     "removeDisk": "Quitar disco…",
     "colName": "Nombre",
-    "colType": "Tipo",
     "colSize": "Tamaño",
     "appData": "Datos de Otteretro",
-    "appType": "App"
+    "appType": "App",
+    "things": "{count, plural, one {1 cosa} other {# cosas}}"
   },
   "tools": {
     "emptyTitle": "Aún no hay emuladores ni ports",

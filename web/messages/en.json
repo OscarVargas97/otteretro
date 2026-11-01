@@ -874,7 +874,7 @@
     "freeSpace": "Free",
     "diskEmpty": "This drive has nothing yet.",
     "noOtherDisk": "Add another drive to move things between them.",
-    "moveTo": "Move {count, plural, =0 {the selection} one {1 item} other {# items}} to",
+    "moveTo": "Move {count, plural, =0 {the selection} one {1 item} other {# items}} ({size}) to",
     "migration": {
       "title": "Move to the standard layout",
       "help": "These folders use the old layout. Moving them puts each thing in its drive's fixed folder (on the same drive it's a rename) and Herramientas on the default drive, with emulator paths updated.",
@@ -889,10 +889,10 @@
     "useOtherData": "Use another data folder…",
     "removeDisk": "Remove drive…",
     "colName": "Name",
-    "colType": "Type",
     "colSize": "Size",
     "appData": "Otteretro data",
-    "appType": "App"
+    "appType": "App",
+    "things": "{count, plural, one {1 item} other {# items}}"
   },
   "tools": {
     "emptyTitle": "No emulators or ports yet",

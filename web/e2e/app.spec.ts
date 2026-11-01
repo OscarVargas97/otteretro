@@ -183,6 +183,8 @@ test("Ajustes › Almacenamiento como Steam: discos, uso por tipo, mover lo marc
   for (const f of ["Juegos", "Emuladores", "Ports", "Complementos", "Sistema"]) expect(existsSync(join(a, f))).toBe(true);
   mkdirSync(join(a, "Juegos", "Switch", "Zelda"), { recursive: true });
   writeFileSync(join(a, "Juegos", "Switch", "Zelda", "juego.nsp"), "contenido");
+  mkdirSync(join(a, "Juegos", "GBA"), { recursive: true });
+  for (const rom of ["metroid.gba", "pokemon.gba"]) writeFileSync(join(a, "Juegos", "GBA", rom), "rom");
   await page.goto(`${base()}/settings/?s=storage`);
   // #208: el disco ★ es el de la carpeta de datos, se registró solo y se abre primero con sus datos.
   const picker = page.getByLabel(en.libraries.disk, { exact: true });
@@ -197,12 +199,19 @@ test("Ajustes › Almacenamiento como Steam: discos, uso por tipo, mover lo marc
   await pick("Disco A");
   await expect(page.getByRole("heading", { level: 2, name: "Disco A" })).toBeVisible();
   await expect(page.getByText(en.libraries.otherUse, { exact: false })).toBeVisible();
-  // Marcar Zelda y moverlo al otro disco: queda en la misma ruta dentro de él.
-  await page.getByRole("checkbox", { name: /Zelda/ }).check();
-  await page.getByLabel(en.libraries.moveTo.replace(/\{count.*\}\}/, "1 item"), { exact: true }).selectOption({ label: "Disco B" });
+  // #171: grupos desplegables, tipo › consola › cada cosa. Zelda suelto y toda GBA (una sola tarea), a la misma ruta.
+  await page.locator(".disk-table").getByRole("button", { name: en.libraries.type.game.title }).click();
+  await page.locator(".disk-table").getByRole("button", { name: "Switch" }).click();
+  await page.getByRole("checkbox", { name: "Zelda" }).check();
+  await page.getByRole("checkbox", { name: "GBA" }).check();
+  await expect(page.getByRole("checkbox", { name: en.libraries.type.game.title })).toHaveAttribute("aria-checked", "true");
+  await page.screenshot({ path: "e2e-results/7d-storage-tree-en.png" });
+  await page.locator('select[id^="to-"]').selectOption({ label: "Disco B" });
   await page.locator(".panel").getByRole("button", { name: en.libraries.move, exact: true }).click();
   await expect(page.getByText(en.libraries.queued)).toBeVisible();
   await expect.poll(() => existsSync(join(b, "Juegos", "Switch", "Zelda", "juego.nsp")), { timeout: 15_000 }).toBe(true);
+  await expect.poll(() => existsSync(join(b, "Juegos", "GBA", "pokemon.gba")), { timeout: 15_000 }).toBe(true);
+  expect(existsSync(join(a, "Juegos", "GBA"))).toBe(false);
   // Quitar avisa que no borra nada; el marcador sigue en la carpeta.
   await pick("Disco B");
   await page.locator(".ot-menu summary").click();
@@ -379,7 +388,7 @@ test("llevar los datos a otro disco muestra el progreso y el resultado traducido
   await page.locator(".ot-menu summary").click();
   // #169: se marca la fila de los datos y se mueve como lo demás.
   await page.getByRole("checkbox", { name: en.libraries.appData }).check();
-  await page.getByLabel(en.libraries.moveTo.replace(/\{count.*\}\}/, "1 item"), { exact: true }).selectOption({ label: "Moved" });
+  await page.locator('select[id^="to-"]').selectOption({ label: "Moved" });
   await page.locator(".panel").getByRole("button", { name: en.libraries.move, exact: true }).click();
   await expect(page.locator(".result").getByText(en.dataFolder.moved, { exact: true })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(dataDir("moved")).first()).toBeVisible();
