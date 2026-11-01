@@ -2,8 +2,8 @@
 
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { NextIntlClientProvider, useTranslations } from "next-intl";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useLayoutEffect, useSyncExternalStore, type ReactNode } from "react";
 import { request } from "@/lib/client";
 import { prefetchLink } from "@/lib/queries";
 import { useDescribeError } from "@/lib/i18n";
@@ -44,6 +44,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <Content>{children}</Content>
         <Gamepad />
         <Prefetch />
+        <Suspense fallback={null}><ScrollTop /></Suspense>
       </Translations>
     </QueryClientProvider>
   );
@@ -95,6 +96,20 @@ function Content({ children }: { children: ReactNode }) {
       </main>
     </div>
   );
+}
+
+// «Atrás» y «Adelante» llegan por popstate: ahí el navegador devuelve la altura que había.
+let fromHistory = false;
+if (typeof window !== "undefined") window.addEventListener("popstate", () => { fromHistory = true; });
+
+/** Otra pantalla (o la misma con otro `?id=`) empieza arriba (#128); «Atrás» vuelve a donde estabas. */
+function ScrollTop() {
+  const where = usePathname() + "?" + useSearchParams();
+  useLayoutEffect(() => {
+    if (fromHistory) fromHistory = false;
+    else window.scrollTo(0, 0);
+  }, [where]);
+  return null;
 }
 
 /** Al pasar el ratón o el foco (también el del mando) por un enlace, pide sus datos antes del clic (#105). */

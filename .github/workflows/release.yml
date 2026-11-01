@@ -1,4 +1,4 @@
-# Publica una release estable con Velopack al fusionar en main (#181): la versión es la de VERSION (#179),
+# Publica una release estable con Velopack al fusionar en main (#181): la versión es la de VERSION (#179, #183),
 # que se edita en el PR de dev a main. La app la toma del canal Estable (#180).
 name: Release
 
