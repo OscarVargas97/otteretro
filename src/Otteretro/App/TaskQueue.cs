@@ -68,7 +68,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
     public static bool OnOpen { get; set; } = Environment.GetEnvironmentVariable("OTTERETRO_E2E") is null;
 
     readonly Libraries.GamesWatcher games = new();
-    readonly ClipboardWatcher clipboard = new();
+    ClipboardWatcher? clipboard;
 
     /// <summary>
     /// Espera antes de cada reintento de un error pasajero (#59): se corta la red, vence el tiempo, o la fuente responde 429 o 5xx.
@@ -205,6 +205,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
                     if (OnOpen)
                     {
                         games.Tick(db);
+                        clipboard ??= new(notify: (found, added) => Notify.LinksCaptured(session.Config.EffectiveLanguage, found, added));
                         clipboard.Tick(db, session.Config.ClipboardCapture ?? true);
                     }
                     if (AutoClaude) Claude.ClaudeBudget.AutoStart(db);
@@ -405,29 +406,41 @@ public sealed class TaskRun(TaskQueue queue, Database db, long id, string? data,
 /// <summary>Notificación del sistema (libnotify en Linux, aviso de Windows). Si falla, solo queda en el log.</summary>
 static class Notify
 {
-    public static void TaskFinished(string language, bool failed)
+    public static void TaskFinished(string language, bool failed) => Send((language, failed) switch
     {
-        var text = (language, failed) switch
-        {
-            ("en", false) => "A background task finished. See it in the tasks panel.",
-            ("en", true) => "A background task failed. See it in the tasks panel.",
-            (_, false) => "Terminó una tarea en segundo plano. Mírala en el panel de tareas.",
-            (_, true) => "Falló una tarea en segundo plano. Mírala en el panel de tareas.",
-        };
+        ("en", false) => "A background task finished. See it in the tasks panel.",
+        ("en", true) => "A background task failed. See it in the tasks panel.",
+        (_, false) => "Terminó una tarea en segundo plano. Mírala en el panel de tareas.",
+        (_, true) => "Falló una tarea en segundo plano. Mírala en el panel de tareas.",
+    });
+
+    /// <summary>Lo copiado entró al capturador (#210). Solo dice cuántos: lo que copias no sale a ninguna parte.</summary>
+    public static void LinksCaptured(string language, int found, int added) => Send((language, added) switch
+    {
+        ("en", 0) => found == 1 ? "That link was already in the link grabber." : "Those links were already in the link grabber.",
+        ("en", 1) => "Link added to the link grabber.",
+        ("en", _) => $"{added} links added to the link grabber.",
+        (_, 0) => found == 1 ? "Ese enlace ya estaba en el capturador." : "Esos enlaces ya estaban en el capturador.",
+        (_, 1) => "Enlace agregado al capturador.",
+        _ => $"{added} enlaces agregados al capturador.",
+    });
+
+    static void Send(string text)
+    {
         try
         {
             ProcessStartInfo start;
             if (OperatingSystem.IsWindows())
             {
-                // ponytail: usa el id de aplicación de PowerShell (el aviso dice «Windows PowerShell»); con el del acceso
-                // directo de Velopack diría Otteretro.
+                // Con el acceso directo de Velopack el aviso dice Otteretro; sin él (fuera de la app instalada), «Windows PowerShell».
                 start = new ProcessStartInfo("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", """
                     [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null
                     $x = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02)
                     $t = $x.GetElementsByTagName('text')
                     $t.Item(0).AppendChild($x.CreateTextNode('Otteretro')) > $null
                     $t.Item(1).AppendChild($x.CreateTextNode($env:OTTERETRO_TEXT)) > $null
-                    $id = '{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe'
+                    $app = Get-StartApps -Name Otteretro | Select-Object -First 1
+                    $id = if ($app) { $app.AppID } else { '{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe' }
                     [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($id).Show([Windows.UI.Notifications.ToastNotification]::new($x))
                     """]) { CreateNoWindow = true };
                 start.Environment["OTTERETRO_TEXT"] = text;

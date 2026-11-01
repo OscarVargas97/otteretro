@@ -21,8 +21,8 @@ public class DownloadLinksTests
     {
         await using var f = new Fixture();
         var text = "mira https://1fichier.com/?abc123&af=9 y https://1fichier.com/?abc123 y https://1fichier.com/?def456";
-        Assert.Equal(3, DownloadLinks.Add(f.Db, text));
-        DownloadLinks.Add(f.Db, text);
+        Assert.Equal((3, 2), DownloadLinks.Add(f.Db, text));
+        Assert.Equal((3, 0), DownloadLinks.Add(f.Db, text));
 
         // Otra conexión a la misma base: es lo que ve la app al volver a abrir. Sin clave ni red de por medio: no se consultó nada.
         var links = All(f);
@@ -125,6 +125,33 @@ public class DownloadLinksTests
         watcher.Tick(f.Db, false);
         watcher.Tick(f.Db, true);
         Assert.Single(All(f));
+    }
+
+    /// <summary>Copiar avisa (#210): lo nuevo, lo que ya estaba, y nada si no era un enlace o está apagado.</summary>
+    [Fact]
+    public async Task CopyingALinkNotifies()
+    {
+        await using var f = new Fixture();
+        uint sequence = 1;
+        var text = "";
+        var notices = new List<(int Found, int Added)>();
+        var watcher = new ClipboardWatcher(() => sequence, () => (true, text), (found, added) => notices.Add((found, added)));
+        watcher.Tick(f.Db, true);
+
+        void Copy(string copied, bool enabled = true)
+        {
+            sequence++;
+            text = copied;
+            watcher.Tick(f.Db, enabled);
+        }
+
+        Copy("texto sin enlaces https://ejemplo.test/noticia.html");
+        Assert.Empty(notices);
+        Copy("https://1fichier.com/?nuevo1");
+        Copy("https://1fichier.com/?nuevo1");
+        Copy("https://1fichier.com/?nuevo2 https://1fichier.com/?nuevo3");
+        Copy("https://1fichier.com/?apagado", enabled: false);
+        Assert.Equal([(1, 1), (1, 0), (2, 2)], notices);
     }
 
     /// <summary>Otro programa tiene el portapapeles abierto: se reintenta en la próxima vuelta y no se pierde lo copiado.</summary>

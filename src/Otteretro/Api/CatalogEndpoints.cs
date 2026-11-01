@@ -152,7 +152,7 @@ public static class CatalogEndpoints
             Db(s) is { } db ? TypedResults.Ok(Libraries.DownloadLinks.Captured(db)) : NoData());
 
         api.MapPost("/downloads/links", Results<Ok<int>, Conflict<ApiError>> (CaptureRequest request, AppSession s) =>
-            Db(s) is { } db ? TypedResults.Ok(Libraries.DownloadLinks.Add(db, request.Text, request.GameId)) : NoData());
+            Db(s) is { } db ? TypedResults.Ok(Libraries.DownloadLinks.Add(db, request.Text, request.GameId).Found) : NoData());
 
         api.MapPost("/downloads/links/check", async Task<Results<Ok<List<Libraries.LinkPackage>>, Conflict<ApiError>>> (AppSession s, SecretBox box, CancellationToken ct) =>
         {

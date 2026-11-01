@@ -30,11 +30,12 @@ public static class DownloadLinks
     /// <summary>Guarda los enlaces de un texto, sin consultar los sitios.</summary>
     /// <param name="revive">Un enlace que ya bajaste vuelve al capturador: lo pediste tú. Lo copiado (<paramref name="only"/>) no.</param>
     /// <param name="only">Qué sitios entran; sin esto, todos.</param>
-    /// <returns>Cuántos enlaces reconoció.</returns>
-    public static int Add(Database db, string text, long? gameId = null, bool revive = true, Func<IDownloadSite, bool>? only = null)
+    /// <returns>Cuántos enlaces reconoció y cuántos no estaban.</returns>
+    public static (int Found, int New) Add(Database db, string text, long? gameId = null, bool revive = true, Func<IDownloadSite, bool>? only = null)
     {
         var count = 0;
         using var c = db.Open();
+        var before = c.ExecuteScalar<int>("SELECT count(*) FROM download_link");
         foreach (var raw in Downloads.LinksIn(text))
         {
             if (!Uri.TryCreate(raw, UriKind.Absolute, out var url)) continue;
@@ -51,7 +52,7 @@ public static class DownloadLinks
                 """, new { clean, name, package = Downloads.PackageOf(name), site?.Id, gameId, now = DateTime.UtcNow.ToString("O"), revive });
             count++;
         }
-        return count;
+        return (count, c.ExecuteScalar<int>("SELECT count(*) FROM download_link") - before);
     }
 
     /// <summary>Lo que espera en el capturador, por paquete.</summary>

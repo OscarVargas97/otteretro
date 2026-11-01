@@ -9,7 +9,8 @@ namespace Otteretro.App;
 /// registra, y el interruptor de Descargas lo apaga. Lo que ya estaba copiado al abrir la app no cuenta.
 /// </summary>
 /// <remarks>ponytail: los enlaces directos no entran, porque casi cualquier dirección copiada lo parecería; se pegan a mano. Linux llega en L.</remarks>
-public sealed class ClipboardWatcher(Func<uint>? sequence = null, Func<(bool Read, string? Text)>? read = null)
+/// <param name="notify">Avisa cuántos enlaces reconoció y cuántos son nuevos.</param>
+public sealed class ClipboardWatcher(Func<uint>? sequence = null, Func<(bool Read, string? Text)>? read = null, Action<int, int>? notify = null)
 {
     const int MaxLength = 1_000_000;
 
@@ -29,7 +30,9 @@ public sealed class ClipboardWatcher(Func<uint>? sequence = null, Func<(bool Rea
         var (done, text) = read();
         if (!done) return; // otro programa lo tiene abierto: la próxima vuelta
         last = current;
-        if (text is { Length: > 0 and <= MaxLength }) DownloadLinks.Add(db, text, revive: false, only: site => site is not DirectSite);
+        if (text is not { Length: > 0 and <= MaxLength }) return;
+        var (found, added) = DownloadLinks.Add(db, text, revive: false, only: site => site is not DirectSite);
+        if (found > 0) notify?.Invoke(found, added);
     }
 
     /// <summary>El texto del portapapeles. False si no se pudo abrir; null si no hay texto.</summary>
