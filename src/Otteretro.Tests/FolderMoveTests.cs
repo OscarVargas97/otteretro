@@ -11,7 +11,7 @@ public class FolderMoveTests
     {
         var source = tmp["origen"];
         DataFolder.Prepare(source);
-        var db = new Database(DataFolder.DatabasePath(source));
+        var db = DataFolder.Open(source);
         Migrations.Apply(db);
         Migrations.RegisterMachine(db, "pc-prueba");
         File.WriteAllBytes(Path.Combine(source, "Herramientas", "emulador.bin"), Enumerable.Range(0, 100_000).Select(i => (byte)i).ToArray());
@@ -33,7 +33,7 @@ public class FolderMoveTests
         Assert.True(DataFolder.IsReady(destination));
         Assert.Equal(File.ReadAllBytes(Path.Combine(source, "Herramientas", "emulador.bin")),
                      File.ReadAllBytes(Path.Combine(destination, "Herramientas", "emulador.bin")));
-        using (var c = new Database(DataFolder.DatabasePath(destination)).Open())
+        using (var c = DataFolder.Open(destination).Open())
             Assert.Equal("pc-prueba", c.ExecuteScalar<string>("SELECT id FROM machine"));
         Assert.True(Directory.Exists(source)); // el origen no se toca hasta DeleteSource
 

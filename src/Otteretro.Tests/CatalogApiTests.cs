@@ -21,7 +21,8 @@ public class CatalogApiTests : IAsyncLifetime
         using (var c = f.Db.Open())
         {
             c.Execute("""
-                INSERT INTO saga (id, name, favorite, iconic) VALUES (1, 'The Legend of Zelda', 1, 1), (2, 'Half-Life', 0, 0);
+                INSERT INTO saga (id, name, iconic) VALUES (1, 'The Legend of Zelda', 1), (2, 'Half-Life', 0);
+                INSERT INTO saga_user (saga_id, favorite) VALUES (1, 1);
                 INSERT INTO game (id, saga_id, name_es, original_name, year) VALUES
                     (10, 1, 'Ocarina of Time', 'Ocarina of Time', 1998), (11, 1, 'Breath of the Wild', 'Breath of the Wild', 2017),
                     (20, 2, 'Half-Life', 'Half-Life', 1998), (30, NULL, 'Tetris', 'Tetris', 1989);
@@ -52,22 +53,60 @@ public class CatalogApiTests : IAsyncLifetime
     [Fact]
     public async Task SagasHaveTheirPlatformsFiltersAndEmulationLast()
     {
-        var all = (await Get<List<SagaCard>>("/api/sagas"))!;
+        var all = (await Get<SagaPage>("/api/sagas"))!.Items;
         Assert.Equal([2L, 1L, 0L], all.Select(s => s.Id)); // por nombre; «Emulación» al final
         var zelda = all.Single(s => s.Id == 1);
         Assert.Equal(["n64", "3ds", "switch"], zelda.Platforms);
         Assert.Equal((2, 0), (zelda.Games, zelda.Owned));
 
-        Assert.Equal([2L], (await Get<List<SagaCard>>("/api/sagas?filter=pc"))!.Select(s => s.Id));
-        Assert.Equal([1L], (await Get<List<SagaCard>>("/api/sagas?filter=favorite"))!.Select(s => s.Id));
-        Assert.Equal([2L], (await Get<List<SagaCard>>("/api/sagas?filter=owned"))!.Select(s => s.Id));
-        Assert.Equal([1L, 0L], (await Get<List<SagaCard>>("/api/sagas?company=Nintendo"))!.Select(s => s.Id));
-        Assert.Equal(2L, (await Get<List<SagaCard>>("/api/sagas?sort=played"))![0].Id);
-        Assert.Equal(1L, (await Get<List<SagaCard>>("/api/sagas?sort=iconic"))![0].Id);
+        Assert.Equal([2L], (await Get<SagaPage>("/api/sagas?filter=pc"))!.Items.Select(s => s.Id));
+        Assert.Equal([1L], (await Get<SagaPage>("/api/sagas?filter=favorite"))!.Items.Select(s => s.Id));
+        Assert.Equal([2L], (await Get<SagaPage>("/api/sagas?filter=owned"))!.Items.Select(s => s.Id));
+        Assert.Equal([1L, 0L], (await Get<SagaPage>("/api/sagas?company=Nintendo"))!.Items.Select(s => s.Id));
+        Assert.Equal(2L, (await Get<SagaPage>("/api/sagas?sort=played"))!.Items[0].Id);
+        Assert.Equal(1L, (await Get<SagaPage>("/api/sagas?sort=recognized"))!.Items[0].Id);
 
         var follow = await http.PutAsJsonAsync("/api/sagas/2", new SagaFlagsRequest(null, true));
         Assert.True((await follow.Content.ReadFromJsonAsync<SagaDetail>())!.Saga.Following);
         Assert.Equal(["Tetris"], (await Get<SagaDetail>("/api/sagas/0"))!.Games.Select(g => g.Name));
+    }
+
+    /// <summary>#177: Sagas, los juegos de una saga y Colección se piden por tramos, con el total para seguir bajando.</summary>
+    [Fact]
+    public async Task ListsComeInPagesWithTheirTotal()
+    {
+        var first = (await Get<SagaPage>("/api/sagas?limit=2"))!;
+        Assert.Equal((2, 3), (first.Items.Count, first.Total));
+        var rest = (await Get<SagaPage>("/api/sagas?offset=2&limit=2"))!;
+        Assert.Equal([0L], rest.Items.Select(s => s.Id)); // «Emulación», al final
+        Assert.Equal(10L, first.Items.Single(s => s.Id == 1).CoverGameId ?? 10L); // las del tramo llevan su portada (aquí, sin archivos)
+
+        var zelda = (await Get<GamePage>("/api/sagas/1/games?offset=1&limit=1"))!;
+        Assert.Equal((2, "Breath of the Wild"), (zelda.Total, Assert.Single(zelda.Items).Name));
+
+        var page = (await Get<CollectionPage>("/api/collection/pc?limit=1"))!;
+        Assert.Equal((1, 1), (page.Total, page.Games.Count));
+        Assert.Empty((await Get<CollectionPage>("/api/collection/pc?offset=1"))!.Unlinked); // lo de Steam sin IGDB, solo en el primer tramo
+        Assert.Equal(HttpStatusCode.NotFound, (await http.GetAsync("/api/collection/nada")).StatusCode);
+    }
+
+    /// <summary>F2.16 y F2.17: exclusivas de una empresa (PC no cuenta) y «más reconocidas» (icónico, después popularidad en IGDB).</summary>
+    [Fact]
+    public async Task ExclusivesAndMostRecognized()
+    {
+        using (var c = f.Db.Open())
+            c.Execute("""
+                INSERT INTO saga (id, name) VALUES (3, 'Persona'), (4, 'Halo');
+                INSERT INTO game (id, saga_id, name_es, popularity) VALUES (40, 3, 'Persona 5', 50), (50, 4, 'Halo', 2000);
+                INSERT INTO version (game_id, platform) VALUES (40, 'ps2'), (40, 'switch'), (50, 'xbox'), (50, 'pc');
+                UPDATE game SET popularity = 900 WHERE id = 20;
+                """);
+
+        Assert.Equal([4L, 1L], (await Get<SagaPage>("/api/sagas?filter=exclusive"))!.Items.Select(s => s.Id)); // Persona no; Half-Life es solo PC
+        Assert.Equal([1L], (await Get<SagaPage>("/api/sagas?filter=exclusive&company=Nintendo"))!.Items.Select(s => s.Id));
+        Assert.Equal("Microsoft", (await Get<SagaDetail>("/api/sagas/4"))!.Saga.Exclusive);
+        Assert.Equal([1L, 4L, 2L, 3L, 0L], (await Get<SagaPage>("/api/sagas?sort=recognized"))!.Items.Select(s => s.Id));
+        Assert.Equal([1L, 3L], (await Get<SagaPage>("/api/sagas?sort=recognized&platform=switch"))!.Items.Select(s => s.Id));
     }
 
     [Fact]

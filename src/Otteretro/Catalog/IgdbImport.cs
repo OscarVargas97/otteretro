@@ -13,43 +13,14 @@ namespace Otteretro.Catalog;
 /// </summary>
 public static class IgdbImport
 {
-    /// <summary>Plataformas de IGDB → `console.id`. Las variantes van con su consola (GBC con Game Boy, DSi con DS…).</summary>
-    public static readonly Dictionary<long, string> Platforms = new()
-    {
-        [18] = "nes",
-        [33] = "gb",
-        [22] = "gb",
-        [19] = "snes",
-        [87] = "vb",
-        [4] = "n64",
-        [416] = "n64",
-        [24] = "gba",
-        [21] = "gc",
-        [20] = "ds",
-        [159] = "ds",
-        [5] = "wii",
-        [37] = "3ds",
-        [137] = "3ds",
-        [41] = "wiiu",
-        [130] = "switch",
-        [508] = "switch2",
-        [7] = "ps1",
-        [8] = "ps2",
-        [38] = "psp",
-        [9] = "ps3",
-        [46] = "vita",
-        [48] = "ps4",
-        [167] = "ps5",
-        [11] = "xbox",
-        [12] = "x360",
-        [49] = "xone",
-        [169] = "xseries",
-        [6] = "pc",
-        [161] = "pcvr", // Windows Mixed Reality
-        [162] = "pcvr", // Oculus VR
-        [163] = "pcvr", // SteamVR
-        [385] = "pcvr", // Oculus Rift
-    };
+    /// <summary>
+    /// Plataformas de IGDB → `console.id`, de las consolas habilitadas (tabla `console_platform`, F2.13). Las variantes van con
+    /// su consola (GBC con Game Boy, DSi con DS…).
+    /// </summary>
+    public static Dictionary<long, string> Platforms(System.Data.IDbConnection c, System.Data.IDbTransaction? t = null) =>
+        c.Query<(long IgdbId, string ConsoleId)>(
+            "SELECT p.igdb_id, p.console_id FROM console_platform p JOIN console k ON k.id = p.console_id WHERE k.enabled = 1", transaction: t)
+            .ToDictionary(r => r.IgdbId, r => r.ConsoleId);
 
     /// <summary>PC y PC VR: se cargan solo por saga y sus versiones llevan el id de Steam.</summary>
     public static readonly string[] PcPlatforms = ["pc", "pcvr"];
@@ -109,7 +80,8 @@ public static class IgdbImport
     {
         var job = JsonSerializer.Deserialize<PlatformJob>(run.Data!, JsonSerializerOptions.Web)!;
         if (PcPlatforms.Contains(job.Platform)) throw new TaskException(ApiError.Of("tasks.igdb.pcBySaga"));
-        var ids = Platforms.Where(p => p.Value == job.Platform).Select(p => p.Key).ToList();
+        List<long> ids;
+        using (var c = run.Db.Open()) ids = Platforms(c).Where(p => p.Value == job.Platform).Select(p => p.Key).ToList();
         if (ids.Count == 0) throw new TaskException(ApiError.Of("tasks.igdb.unknownPlatform", ("platform", job.Platform)));
 
         var igdb = Client(run);
@@ -123,7 +95,83 @@ public static class IgdbImport
             Report(run, job.Offset, total, ApiError.Of("tasks.igdb.platform", ("platform", job.Platform), ("done", job.Offset.ToString()), ("total", total.ToString())), job);
             if (page.Length < Page) break;
         }
+        using (var c = run.Db.Open())
+            c.Execute("UPDATE console SET refreshed_at = (SELECT created_at FROM task WHERE id = @Id) WHERE id = @Platform", new { run.Id, job.Platform });
         QueueFollowUps(run.Db);
+    }
+
+    /// <summary>
+    /// F2.14 (#84): lo nuevo o cambiado en IGDB (`updated_at`) de cada consola habilitada desde su última carga, sin recargar
+    /// todo. Una consola que nunca se cargó se carga entera. PC y PC VR siguen por saga. Al terminar cada consola se guarda
+    /// hasta cuándo quedó al día.
+    /// </summary>
+    public static async Task Refresh(TaskRun run, CancellationToken ct)
+    {
+        var job = run.Data is null ? null : JsonSerializer.Deserialize<RefreshJob>(run.Data, JsonSerializerOptions.Web);
+        if (job is null)
+            using (var c = run.Db.Open())
+                job = new RefreshJob(c.Query<string>("SELECT id FROM console WHERE enabled = 1 AND id NOT IN ('pc', 'pcvr') ORDER BY rowid").ToList(), 0,
+                    DateTime.UtcNow.ToString("O"));
+        var igdb = Client(run);
+        var total = job.Consoles.Count;
+        while (job.Consoles.Count > 0)
+        {
+            var console = job.Consoles[0];
+            string? since;
+            List<long> ids;
+            using (var c = run.Db.Open())
+            {
+                since = c.ExecuteScalar<string?>("SELECT refreshed_at FROM console WHERE id = @console", new { console });
+                ids = Platforms(c).Where(p => p.Value == console).Select(p => p.Key).ToList();
+            }
+            if (ids.Count > 0)
+            {
+                var after = since is null ? "" : $" & updated_at > {new DateTimeOffset(DateTime.Parse(since, null, System.Globalization.DateTimeStyles.AdjustToUniversal)).ToUnixTimeSeconds()}";
+                var where = $"where platforms = ({string.Join(',', ids)}) & version_parent = null & game_type = ({string.Join(',', IgdbGame.PlayableTypes)}){after};";
+                while (true)
+                {
+                    var page = await igdb.Query<IgdbGame>("games", $"{IgdbGame.Fields} {where} sort id asc; limit {Page}; offset {job.Offset};", ct);
+                    await Import(run.Db, igdb, page, null, ct);
+                    if (page.Length > 0) run.Log(ApiError.Of("tasks.log.refresh", ("platform", console), ("count", page.Length.ToString())));
+                    job = job with { Offset = job.Offset + page.Length };
+                    Report(run, total - job.Consoles.Count, total, ApiError.Of("tasks.igdb.refresh", ("platform", console),
+                        ("done", (total - job.Consoles.Count).ToString()), ("total", total.ToString())), job);
+                    if (page.Length < Page) break;
+                }
+            }
+            using (var c = run.Db.Open())
+                c.Execute("UPDATE console SET refreshed_at = @Started WHERE id = @console", new { job.Started, console });
+            job = job with { Consoles = job.Consoles.Skip(1).ToList(), Offset = 0 };
+            Report(run, total - job.Consoles.Count, total, ApiError.Of("tasks.igdb.refresh", ("platform", console),
+                ("done", (total - job.Consoles.Count).ToString()), ("total", total.ToString())), job);
+        }
+        using (var c = run.Db.Open()) Claude.ClaudeBudget.Set(c, LastRefresh, job.Started);
+        QueueFollowUps(run.Db);
+    }
+
+    /// <param name="Started">Cuándo empezó: lo que cambie en IGDB mientras corre entra en la próxima.</param>
+    public record RefreshJob(List<string> Consoles, long Offset, string Started);
+
+    public const string RefreshDays = "catalog.refreshDays", LastRefresh = "catalog.lastRefresh";
+
+    /// <summary>Encola la actualización si pasaron los días configurados (7 por defecto) y no hay una pendiente. La lanza el horario de noche.</summary>
+    public static long? RefreshIfDue(Database db, DateTime nowUtc)
+    {
+        using var c = db.Open();
+        var days = c.ExecuteScalar<string?>("SELECT value FROM setting WHERE machine_id = '' AND name = @RefreshDays", new { RefreshDays }) is { } d && int.TryParse(d, out var n) ? n : 7;
+        var last = c.ExecuteScalar<string?>("SELECT value FROM setting WHERE machine_id = '' AND name = @LastRefresh", new { LastRefresh });
+        // Sin actualización previa, cuenta desde la última carga de una consola.
+        last ??= c.ExecuteScalar<string?>("SELECT max(refreshed_at) FROM console");
+        if (last is not null && DateTime.Parse(last, null, System.Globalization.DateTimeStyles.AdjustToUniversal) > nowUtc.AddDays(-days)) return null;
+        return EnqueueRefresh(db);
+    }
+
+    /// <summary>«Actualizar ahora»: encola la actualización si no hay una pendiente.</summary>
+    public static long EnqueueRefresh(Database db)
+    {
+        using (var c = db.Open())
+            if (c.ExecuteScalar<long?>("SELECT id FROM task WHERE kind = 'igdb.refresh' AND status IN ('queued', 'running')") is { } id) return id;
+        return TaskQueue.Enqueue(db, "igdb.refresh");
     }
 
     /// <summary>
@@ -145,6 +193,46 @@ public static class IgdbImport
             if (page.Length < size) break;
         }
         QueueFollowUps(run.Db);
+    }
+
+    /// <summary>
+    /// F2.17 (#89): completa la popularidad de los juegos cargados antes de guardarla, de a 500 por consulta. Sigue sola tras
+    /// un reinicio: pide lo que aún no la tiene (los que IGDB no calificó quedan en 0).
+    /// </summary>
+    public static async Task Popularity(TaskRun run, CancellationToken ct)
+    {
+        var igdb = Client(run);
+        long total, left;
+        using (var c = run.Db.Open()) total = c.ExecuteScalar<long>("SELECT count(*) FROM game WHERE igdb_id IS NOT NULL AND popularity IS NULL");
+        do
+        {
+            List<long> ids;
+            using (var c = run.Db.Open()) ids = c.Query<long>("SELECT igdb_id FROM game WHERE igdb_id IS NOT NULL AND popularity IS NULL LIMIT 500").ToList();
+            if (ids.Count == 0) break;
+            var rated = (await igdb.Query<Rated>("games", $"fields total_rating_count; where id = ({string.Join(',', ids)}); limit 500;", ct))
+                .ToDictionary(r => r.Id, r => r.TotalRatingCount ?? 0);
+            using (var c = run.Db.Open())
+            {
+                using var t = c.BeginTransaction();
+                foreach (var id in ids)
+                    c.Execute("UPDATE game SET popularity = @pop WHERE igdb_id = @id", new { id, pop = rated.GetValueOrDefault(id) }, t);
+                t.Commit();
+                left = c.ExecuteScalar<long>("SELECT count(*) FROM game WHERE igdb_id IS NOT NULL AND popularity IS NULL");
+            }
+            run.Report((int)((total - left) * 100 / Math.Max(total, 1)), ApiError.Of("tasks.igdb.popularity",
+                ("done", (total - left).ToString()), ("total", total.ToString())));
+        } while (left > 0);
+    }
+
+    record Rated(long Id, long? TotalRatingCount);
+
+    /// <summary>Al arrancar: si hay juegos sin popularidad y nada que la esté trayendo, encola la tarea (también reintenta tras un error).</summary>
+    public static void EnqueuePopularity(Database db)
+    {
+        using var c = db.Open();
+        if (c.ExecuteScalar<long>("SELECT count(*) FROM game WHERE igdb_id IS NOT NULL AND popularity IS NULL LIMIT 1") == 0) return;
+        if (c.ExecuteScalar<long>("SELECT count(*) FROM task WHERE kind = 'igdb.popularity' AND status IN ('queued', 'running')") > 0) return;
+        TaskQueue.Enqueue(db, "igdb.popularity");
     }
 
     record SteamLink(long Game, string Uid);
@@ -194,7 +282,8 @@ public static class IgdbImport
         bool Waiting(string kind)
         {
             using var c = db.Open();
-            return c.ExecuteScalar<long>("SELECT count(*) FROM task WHERE kind = @kind AND status = 'queued'", new { kind }) > 0;
+            // También la que corre (#78): si no, cada carga encola otra que vuelve a consultar los juegos sin portada.
+            return c.ExecuteScalar<long>("SELECT count(*) FROM task WHERE kind = @kind AND status IN ('queued', 'running')", new { kind }) > 0;
         }
         if (!Waiting("sgdb.images")) SteamGridDb.Enqueue(db);
         if (!Waiting("catalog.extra")) ExtraSources.Enqueue(db);
@@ -320,6 +409,14 @@ public static class IgdbImport
         FieldValues.Set(c, "game", id, "original_name", Clean(g.Name), Source, t);
         FieldValues.Set(c, "game", id, "name_es", Clean(SpanishName(g)), Source, t);
         FieldValues.Set(c, "game", id, "year", Year(g.FirstReleaseDate), Source, t);
+        // Cuánta gente lo calificó en IGDB: la medida de «más reconocidas» (#89, decisión #166).
+        c.Execute("UPDATE game SET popularity = @pop WHERE id = @id", new { id, pop = g.TotalRatingCount ?? 0 }, t);
+        // La descripción (en inglés) no tiene columna: se guarda como dato y Claude la traduce una vez (F2.5).
+        if (!string.IsNullOrWhiteSpace(g.Summary))
+            c.Execute("""
+                INSERT INTO field_value (entity, entity_id, field, value, source) VALUES ('game', @id, 'summary', @Summary, @Source)
+                ON CONFLICT (entity, entity_id, field, source) DO UPDATE SET value = excluded.value
+                """, new { id, g.Summary, Source }, t);
 
         // La saga se elige una vez; recargar otra saga no mueve el juego (Hyrule Warriors sigue en Zelda).
         if (c.ExecuteScalar<long?>("SELECT saga_id FROM game WHERE id = @id", new { id }, t) is null && SagaOf(g, preferred) is { } saga)
@@ -369,7 +466,8 @@ public static class IgdbImport
 
     static void UpsertVersions(SqliteConnection c, SqliteTransaction t, IgdbGame g, long gameId, string kind)
     {
-        foreach (var platform in (g.Platforms ?? []).Where(Platforms.ContainsKey).GroupBy(p => Platforms[p]))
+        var platforms = Platforms(c, t);
+        foreach (var platform in (g.Platforms ?? []).Where(platforms.ContainsKey).GroupBy(p => platforms[p]))
         {
             var dates = (g.ReleaseDates ?? []).Where(d => d.Platform is { } p && platform.Contains(p) && d.Date is not null).Select(d => d.Date!.Value).ToList();
             var year = Year(dates.Count > 0 ? dates.Min() : g.FirstReleaseDate);

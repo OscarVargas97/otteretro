@@ -20,7 +20,8 @@ public record ApiError(string Code, Dictionary<string, string>? Params = null)
 }
 /// <summary>Un disco para la carpeta de datos: la carpeta que propone y si es la sugerida.</summary>
 public record Drive(string Name, long Free, long Total, string Folder, bool Suggested);
-public record FolderInfo(string? Path, long Used, long FreeOnDrive);
+/// <param name="Used">Null mientras se mide por primera vez.</param>
+public record FolderInfo(string? Path, long? Used, long FreeOnDrive);
 
 /// <summary>Endpoints base de F0. Cada módulo añadirá los suyos.</summary>
 public static class Endpoints
@@ -47,9 +48,15 @@ public static class Endpoints
         {
             var folder = s.Config.DataFolder;
             var root = folder is null ? null : Mounts.Of(folder);
-            return new FolderInfo(folder, folder is null ? 0 : FolderMove.Size(folder),
+            return new FolderInfo(folder, folder is null ? 0 : FolderMove.RememberedSize(folder),
                 root is not null && Directory.Exists(root) ? new DriveInfo(root).AvailableFreeSpace : 0);
         });
+
+        // «Abrir carpeta» (#111): la abre en el explorador de archivos del sistema.
+        api.MapPost("/data-folder/open", Results<Ok, Conflict<ApiError>> (AppSession s) =>
+            s.Config.DataFolder is { } folder && Directory.Exists(folder)
+                ? Open(folder) ? TypedResults.Ok() : TypedResults.Conflict(ApiError.Of("link.openFailed"))
+                : TypedResults.Conflict(ApiError.Of("move.noDataFolder")));
 
         api.MapGet("/data-folder/move", (FolderMoveService m) => m.State);
 
@@ -123,17 +130,23 @@ public static class Endpoints
             Open("steam://open/bigpicture") ? TypedResults.Ok() : TypedResults.Conflict(ApiError.Of("steam.notInstalled")));
 
         CatalogEndpoints.Map(api);
+        ClaudeEndpoints.Map(api);
 
         // Panel de tareas: lo pendiente y lo reciente; cada cambio llega después por el evento "task".
         api.MapGet("/tasks", (TaskQueue q) => q.List());
+        // Registro de una tarea (F2.10) y «Limpiar terminadas» (F2.11).
+        api.MapGet("/tasks/{id:long}/log", Results<Ok<List<TaskLogEntry>>, Conflict<ApiError>> (long id, AppSession s) =>
+            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(TaskQueue.ReadLog(db, id)) : CatalogEndpoints.NoData());
+        api.MapDelete("/tasks/finished", Results<Ok<int>, Conflict<ApiError>> (AppSession s) =>
+            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(TaskQueue.Clear(db)) : CatalogEndpoints.NoData());
 
-        // Portada, héroe o logo de un juego desde cache/imagenes. Va en <img src>, así que la clave llega en ?key=.
+        // Portada, héroe o logo de un juego desde catalogo/imagenes. Va en <img src>, así que la clave llega en ?key=.
         api.MapGet("/images/{gameId:long}/{kind}", Results<PhysicalFileHttpResult, NotFound> (long gameId, string kind, AppSession s, HttpResponse response) =>
         {
             // La ventana pregunta siempre (con ETag): si la imagen cambió, no se queda con la vieja (#58).
             response.Headers.CacheControl = "no-cache";
             if (!Catalog.SteamGridDb.Kinds.Contains(kind) || !DataFolder.IsReady(s.Config.DataFolder)) return TypedResults.NotFound();
-            var file = Catalog.SteamGridDb.Find(new Database(DataFolder.DatabasePath(s.Config.DataFolder!)), gameId, kind);
+            var file = Catalog.SteamGridDb.Find(DataFolder.Open(s.Config.DataFolder!), gameId, kind);
             return file is null ? TypedResults.NotFound() : TypedResults.PhysicalFile(file, ImageType(file), enableRangeProcessing: false);
         });
 
@@ -163,7 +176,7 @@ public static class Endpoints
     };
 
     static Credentials? CredentialsOf(AppSession s, SecretBox box) =>
-        DataFolder.IsReady(s.Config.DataFolder) ? new(new Database(DataFolder.DatabasePath(s.Config.DataFolder!)), s.Config.MachineId, box) : null;
+        DataFolder.IsReady(s.Config.DataFolder) ? new(DataFolder.Open(s.Config.DataFolder!), s.Config.MachineId, box) : null;
 
     static AppState State(AppSession s) =>
         new(Startup.Version, s.Config.DataFolder, DataFolder.IsReady(s.Config.DataFolder), s.Config.EffectiveLanguage, s.Fullscreen);

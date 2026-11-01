@@ -10,6 +10,9 @@ namespace Otteretro.App;
 /// <param name="Detail">Qué está haciendo o por qué falló, como código para el front (`tasks.*`, #142).</param>
 public record TaskInfo(long Id, string Kind, string Status, int Progress, ApiError? Detail, string CreatedAt, string? FinishedAt);
 
+/// <param name="Level">info, warn o error.</param>
+public record TaskLogEntry(long Id, string At, string Level, ApiError Message);
+
 /// <summary>
 /// Cola de tareas en la tabla `task` (F1.2): un trabajador en segundo plano con una tarea a la vez por tipo.
 /// Revisa la tabla cada pocos segundos, así que también ve lo que encola la CLI desde otro proceso.
@@ -25,18 +28,26 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         ["demo"] = Demo,
         ["igdb.saga"] = Catalog.IgdbImport.Saga,
         ["igdb.platform"] = Catalog.IgdbImport.Platform,
+        ["igdb.refresh"] = Catalog.IgdbImport.Refresh,
         ["igdb.popular"] = Catalog.IgdbImport.Popular,
+        ["igdb.popularity"] = Catalog.IgdbImport.Popularity,
         ["sgdb.images"] = Catalog.SteamGridDb.Images,
         ["sgdb.webp"] = Catalog.SteamGridDb.Convert,
         ["catalog.extra"] = Catalog.ExtraSources.Run,
         ["steam.sync"] = Catalog.Steam.Sync,
         ["igdb.steam"] = Catalog.IgdbImport.FromSteam,
+        [Claude.CatalogCleanup.Kind] = Claude.CatalogCleanup.Run,
+        [Claude.SagaAnalysis.Kind] = Claude.SagaAnalysis.Run,
+        [Claude.InitialLoad.Kind] = Claude.InitialLoad.Run,
     };
 
     /// <summary>Las que duran más que esto avisan con una notificación del sistema al terminar.</summary>
     public static readonly TimeSpan LongTask = TimeSpan.FromMinutes(1);
 
     public TimeSpan Poll { get; init; } = TimeSpan.FromSeconds(2);
+
+    /// <summary>Lanza la carga de Claude al empezar su horario (F2.9). Las pruebas lo apagan para no depender de la hora.</summary>
+    public static bool AutoClaude { get; set; } = true;
 
     /// <summary>
     /// Espera antes de cada reintento de un error pasajero (#59): se corta la red, vence el tiempo, o la fuente responde 429 o 5xx.
@@ -62,14 +73,47 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
             new { kind, data, now = Now() });
     }
 
-    /// <summary>Lo pendiente y lo de las últimas 24 horas, lo más nuevo primero.</summary>
+    /// <summary>Anota una línea en el registro de la tarea (F2.10). Sin tarea (la CLI, las pruebas sueltas), no hace nada.</summary>
+    public static void Log(Database db, long? taskId, ApiError message, string level = "info")
+    {
+        if (taskId is null) return;
+        using var c = db.Open();
+        c.Execute("INSERT INTO task_log (task_id, at, level, message) VALUES (@taskId, @at, @level, @message)",
+            new { taskId, at = Now(), level, message = JsonSerializer.Serialize(message, JsonSerializerOptions.Web) });
+    }
+
+    /// <summary>El registro de una tarea, lo más nuevo primero (las últimas 500 líneas).</summary>
+    public static List<TaskLogEntry> ReadLog(Database db, long taskId)
+    {
+        using var c = db.Open();
+        return c.Query<(long Id, string At, string Level, string Message)>(
+                "SELECT id, at, level, message FROM task_log WHERE task_id = @taskId ORDER BY id DESC LIMIT 500", new { taskId })
+            .Select(r => new TaskLogEntry(r.Id, r.At, r.Level, JsonSerializer.Deserialize<ApiError>(r.Message, JsonSerializerOptions.Web)!)).ToList();
+    }
+
+    /// <summary>
+    /// Lo pendiente y lo de las últimas 24 horas (F2.11): primero lo que corre, después la cola y al final lo terminado, por
+    /// hora de término (lo más reciente arriba).
+    /// </summary>
     public IReadOnlyList<TaskInfo> List()
     {
         if (CurrentDb() is not { } db) return [];
         using var c = db.Open();
         return c.Query<Row>($"""
-            SELECT {Columns} FROM task WHERE status IN ('queued', 'running') OR finished_at >= @since ORDER BY id DESC LIMIT 20
+            SELECT {Columns} FROM task WHERE status IN ('queued', 'running') OR finished_at >= @since
+            ORDER BY CASE status WHEN 'running' THEN 0 WHEN 'queued' THEN 1 ELSE 2 END, finished_at DESC, id LIMIT 50
             """, new { since = DateTime.UtcNow.AddDays(-1).ToString("O") }).Select(r => r.Info()).ToList();
+    }
+
+    /// <summary>«Limpiar terminadas» (F2.11): borra las tareas hechas o con error y su registro. Devuelve cuántas.</summary>
+    public static int Clear(Database db)
+    {
+        using var c = db.Open();
+        using var t = c.BeginTransaction();
+        c.Execute("DELETE FROM task_log WHERE task_id IN (SELECT id FROM task WHERE status IN ('done', 'error'))", transaction: t);
+        var count = c.Execute("DELETE FROM task WHERE status IN ('done', 'error')", transaction: t);
+        t.Commit();
+        return count;
     }
 
     protected override async Task ExecuteAsync(CancellationToken ct)
@@ -88,6 +132,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
                         using (var c = db.Open()) c.Execute("UPDATE task SET status = 'queued' WHERE status = 'running'");
                         recovered = db.FilePath;
                     }
+                    if (AutoClaude) Claude.ClaudeBudget.AutoStart(db);
                     StartPending(db, ct);
                 }
             }
@@ -113,6 +158,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
             lock (gate)
                 if (!running.Add(t.Kind)) continue;
             c.Execute("UPDATE task SET status = 'running', attempts = attempts + 1 WHERE id = @Id", t);
+            Log(db, t.Id, ApiError.Of("tasks.log.started"));
             Publish(db, t.Id);
             _ = Task.Run(() => Run(db, t, ct), CancellationToken.None);
         }
@@ -128,6 +174,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
             Finish(db, t.Id, "done", null, clock.Elapsed);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        catch (Claude.ClaudePausedException e) { Pause(db, t, e); }
         catch (Exception e) when (IsTransient(e) && Retry(db, t, e)) { }
         catch (TaskException e)
         {
@@ -161,6 +208,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         var wait = RetryDelays[attempt - 1];
         if (e.Data[RetryAfterKey] is TimeSpan asked && asked > wait) wait = asked;
         FileLog.Write(LogLevel.Warning, "Tasks", $"Tarea {t.Id} ({t.Kind}): reintento {attempt} de {RetryDelays.Length} en {wait}: {e.Message}");
+        Log(db, t.Id, ApiError.Of("tasks.log.retry", ("detail", e.Message)), "warn");
         c.Execute("UPDATE task SET status = 'queued', resume_at = @at, detail = @detail WHERE id = @Id", new
         {
             t.Id,
@@ -172,8 +220,25 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         return true;
     }
 
+    /// <summary>Claude tiene que esperar (límite, tope u horario, F2.2): vuelve a la cola hasta esa hora sin gastar un intento.</summary>
+    void Pause(Database db, Row t, Claude.ClaudePausedException e)
+    {
+        FileLog.Write(LogLevel.Information, "Tasks", $"Tarea {t.Id} ({t.Kind}): espera hasta {e.Until:O} ({e.Reason.Code})");
+        Log(db, t.Id, e.Reason, "warn");
+        using (var c = db.Open())
+            c.Execute("UPDATE task SET status = 'queued', resume_at = @at, detail = @detail, attempts = MAX(attempts - 1, 0) WHERE id = @Id", new
+            {
+                t.Id,
+                at = e.Until.ToString("O"),
+                detail = JsonSerializer.Serialize(e.Reason, JsonSerializerOptions.Web),
+            });
+        Publish(db, t.Id);
+    }
+
     void Finish(Database db, long id, string status, ApiError? detail, TimeSpan elapsed)
     {
+        Log(db, id, detail is not null && status == "error" ? detail : ApiError.Of("tasks.log.done", ("minutes", ((int)Math.Ceiling(elapsed.TotalMinutes)).ToString())),
+            status == "error" ? "error" : "info");
         using (var c = db.Open())
             c.Execute("UPDATE task SET status = @status, detail = COALESCE(@detail, detail), progress = CASE WHEN @status = 'done' THEN 100 ELSE progress END, finished_at = @now WHERE id = @id",
                 new { id, status, detail = detail is null ? null : JsonSerializer.Serialize(detail, JsonSerializerOptions.Web), now = Now() });
@@ -189,7 +254,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
     }
 
     Database? CurrentDb() =>
-        DataFolder.IsReady(session.Config.DataFolder) ? new Database(DataFolder.DatabasePath(session.Config.DataFolder!)) : null;
+        DataFolder.IsReady(session.Config.DataFolder) ? DataFolder.Open(session.Config.DataFolder!) : null;
 
     static string Now() => DateTime.UtcNow.ToString("O");
 
@@ -222,6 +287,9 @@ public sealed class TaskRun(TaskQueue queue, Database db, long id, string? data,
     public long Id { get; } = id;
     public Database Db { get; } = db;
     public Credentials Credentials { get; } = credentials;
+
+    /// <summary>Anota una línea en el registro de esta tarea (F2.10).</summary>
+    public void Log(ApiError message, string level = "info") => TaskQueue.Log(Db, Id, message, level);
 
     /// <summary>Punto de control con el que arrancó (null la primera vez).</summary>
     public string? Data { get; private set; } = data;

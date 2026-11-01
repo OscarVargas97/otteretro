@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-30, con la #153 (sub-sagas: Counter-Strike fuera de Half-Life).
+> **Última actualización:** 2026-10-31, con la #178 (la imagen de cada saga), la #169 a la #177 (revisión de UI de toda la app y fluidez primero, encuesta 15), la #165 a la #168 (exclusivas, más reconocidas, catálogo separado de tus datos), la #162, la #163 y la #164 (consolas que habilitas tú, catálogo al día cada semana y reevaluar icónicas), la #161 (corregir lo que cambió Claude), la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
 
 ## Cómo se mantiene
 
@@ -57,7 +57,7 @@ Otteretro es una app **personal** para:
 
 ## 4. Consolas ✅
 
-**Incluidas: 24 sistemas** (Switch 2 desde la #152).
+**Incluidas: 24 sistemas** (Switch 2 desde la #152), y las que habilites tú (#162).
 
 | Empresa | Sistemas |
 |---|---|
@@ -70,6 +70,8 @@ Otteretro es una app **personal** para:
 - Los add-ons van dentro de su consola base y las variantes, junto con su consola.
 - Las consolas sin emulación también se catalogan.
 - El estado de la emulación es un dato que se actualiza, no un valor fijo.
+- **Sumar consolas** (#162): en Ajustes › Consolas se agrega cualquier plataforma de IGDB, una a la vez, y al habilitarla se cargan sus juegos. Una consola deshabilitada no se carga ni se pone al día.
+- **Juegos nuevos** (#163): cada semana (editable) la app trae de IGDB lo nuevo o cambiado de las consolas habilitadas.
 - Un juego va a la saga de su colección de IGDB cuando esa colección no lleva el nombre de su franquicia: Counter-Strike tiene su propia saga aunque IGDB lo ponga en Half-Life (#153).
 - Un juego de una saga sin ninguna de estas consolas (Game & Watch, CD-i, Satellaview…) se muestra en la saga atenuado, con «Sin consola en Otteretro», y no cuenta para la colección (#152).
 
@@ -84,8 +86,10 @@ Otteretro es una app **personal** para:
                                    guarda una sola cosa: dónde está la carpeta de datos
 
 <carpeta de datos>\             ← la ELIGES tú la primera vez que abres la app (ej. E:\Otteretro)
-├── data\otteretro.db           ← registro + catálogo
-├── cache\imagenes\             ← portadas y arte de SteamGridDB
+├── data\otteretro.db           ← lo tuyo: lo que tienes, progreso, favoritas, claves, ajustes
+├── catalogo\                   ← el catálogo, sin nada tuyo, para poder distribuirlo (#167)
+│   ├── catalogo.db             ← sagas, juegos, versiones, rutas, consolas
+│   └── imagenes\               ← portadas y arte de SteamGridDB
 └── Herramientas\               ← la ÚNICA biblioteca de herramientas
     ├── Emuladores\<Consola>\<Instalación>\<versión>\
     ├── Ports\<Consola>\<Port>\<versión>\
@@ -142,6 +146,9 @@ E:\Consolas\  ·  D:\Juegos\…    ← bibliotecas de JUEGOS (las que quieras, e
 - **La carga es por partes** (scripts y Claude): nunca todas las sagas de PC de golpe, para que termine y no agote la suscripción. PC va después de Microsoft (#69, #131).
 - **Todo lo que tienes aparece siempre.**
 - Para cada juego se indica **si existe versión de PC**.
+- **Exclusivas** (#165): una saga es exclusiva de una empresa si todas sus versiones de consola son de ella; una versión de PC no le quita lo exclusivo.
+- **Más reconocidas** (#166): primero las icónicas aprobadas y después la popularidad en IGDB (cuánta gente calificó sus juegos, en la consola que mires).
+- **El catálogo va aparte de lo tuyo** (#167), con sus imágenes, para poder distribuirlo algún día sin tus datos. Cómo se distribuye queda para después.
 
 ### 6.2 Modelo ✅
 **Saga → Juego → Versión** (consola o PC; original, remaster o remake) **→ Origen** (un archivo en una biblioteca o tu cuenta en una tienda de PC).
@@ -191,7 +198,7 @@ Se comparan todas las versiones con cuatro criterios, que se muestran **por sepa
 | IGDB · Metacritic / OpenCritic | Notas: la agregada de IGDB; en las sagas icónicas, Claude cita además Metacritic y OpenCritic (#63) |
 | HowLongToBeat | Duración. **Opcional**: no tiene API y el scraper puede fallar; entonces se muestra "sin datos" (#66). Fuera de F1, para una fase posterior (#151) |
 | RAWG | Complemento |
-| SteamGridDB | **Imágenes** de la app y de Steam |
+| SteamGridDB | **Imágenes** de la app y de Steam. La cabecera de una saga usa el héroe de su juego icónico más reciente (o del más reciente), y la del juego, el suyo (#178) |
 | Steam Web API | Lo que tienes y horas jugadas |
 | IsThereAnyDeal · GamerPower · catálogo de Game Pass | Disponibilidad en tiendas, precios y juegos gratis (T2) |
 
@@ -349,7 +356,7 @@ Se prueba en este orden:
 - **Claude** se encarga de lo que requiere **criterio**: qué es icónico, la mejor versión, las rutas, Descubrir, los casos ambiguos y la primera receta de cada emulador o port.
 - **Los scripts**, en C# dentro de la app, hacen lo **repetitivo y determinista**. Se usan desde la interfaz o desde la línea de comandos: `otteretro <tarea>`.
 - **El script va siempre primero.** Claude entra solo cuando el script no puede resolver algo.
-- **Aprendizaje automático:** lo que resuelve Claude se guarda solo como dato (un alias, una regla, una receta o una ruta). Hay un **registro** donde puedes revisarlo o deshacerlo.
+- **Aprendizaje automático:** lo que resuelve Claude se guarda solo como dato (un alias, una regla, una receta o una ruta). Hay un **registro** (Revisar › Aprendizajes) donde ves cada cambio con sus juegos y sagas, agrupado por tarea, y puedes deshacerlo o **corregirlo** con una nota: se deshace y la nota queda como regla de la saga para la próxima depuración (#161).
 - **Mientras la app funciona, Claude solo genera datos**, nunca código. El código nuevo entra por el repositorio (§11.5).
 
 | Función | Script (sin tokens) | Claude (solo cuando hace falta) |
@@ -369,7 +376,7 @@ Se prueba en este orden:
 - **Información de tiendas y versión de PC, precios y versiones nuevas**: se comprueban **solo con la app abierta**, al abrirla y cada cierto intervalo configurable. Con la app cerrada no corre nada; los avisos (como una bajada de precio) llegan la próxima vez que la abras (#75).
 - **Bibliotecas**: se escanean **solo cuando pulsas "Escanear"**. La app no vigila las carpetas.
 - **Carga inicial del catálogo**: **completa**, todas las sagas y juegos, en orden **Nintendo → Sony → Microsoft** (#69). Los scripts bajan primero todos los datos de las APIs. Claude solo juzga, **por lotes de varias sagas por llamada**, para gastar los mínimos tokens.
-- **Tope de Claude**: la carga inicial no tiene tope propio, pero **dura días** por los límites de la suscripción (ventanas de 5 h y semanales): la cola se pausa al llegar al límite y **continúa sola** cuando se renueva. Después, cada ejecución tiene un tope configurable de tareas: al llegar a él, la app se pausa y avisa.
+- **Horario y tope de Claude**: Claude trabaja en segundo plano **de noche** (00:00 a 08:00 por defecto, ajustable; #154) y ahí usa la ventana entera, **sin tope** de uso ni de tareas (#157, #158). La carga inicial **dura días** por los límites de la suscripción (ventanas de 5 h y semanales): la cola se pausa al llegar al límite y **continúa sola** cuando se renueva. Al empezar el horario, la app **lanza sola** la carga si no hay nada de Claude en la cola; lo que no cambió se salta sin gastar (#159). De día corre si lo lanzas con «Ejecutar ahora», que arranca **de inmediato** (#159); con la casilla «Con tope» se queda en el porcentaje elegido de cada ventana (**50 %** por defecto) para no quitarte cuota mientras programas, y sin ella usa la ventana entera (#157, #160).
 - **Descripciones**: se **traducen al español con Claude una sola vez** y quedan guardadas.
 
 ### 11.3 Claude Code ✅
@@ -429,6 +436,18 @@ Así, cada tarea que Claude resolvía pasa a un script y la app depende cada vez
 - **Escribir:** el teclado en pantalla de Steam; fuera de la sesión de Steam, uno propio.
 - **Botón Guía:** menú rápido de Otteretro (volver a Otteretro, ir a Steam, cerrar el juego, capturar). En la sesión de Steam ese botón es de Steam, así que se usa una combinación (por ejemplo Guía + A).
 - Desde F1, **cada pantalla nueva se hace navegable con mando** (#138).
+
+### 12.6 Revisión de UI (encuesta 15, #169 a #172)
+- **Toda la app:** barra superior fija; en Saga y Juego, el camino en la barra; un solo aviso de claves que faltan; enlaces-botón sin subrayado; portada sin bajar con el color de su consola; menú de fases futuras atenuado con su fase; vacíos con la nutria y el siguiente paso; encabezado de Saga y Juego con el arte del juego.
+- **Inicio y Sagas:** «Siguiente en tus rutas» como tarjeta con avance; Revisar solo si hay algo; filtros fijos con el total; tarjeta de saga con insignias y barra de lo que tienes.
+- **Saga y Juego:** ruta con pestañas junto al título y pasos unidos; consolas abreviadas («+N»); recalcular en «⋯»; Seguimiento compacto; Versiones y Comparativa en una tabla con barras de 5; Datos y fuentes plegado con lápiz.
+- **Colección, Revisar, Ajustes y el resto:** consolas con algo, por empresa; Cuadrícula/Lista con íconos; pestañas subrayadas en toda la app; ruta por aprobar con portadas; Ajustes › Claude en tres bloques; registro de uso con costo; panel de tareas con progreso y ✕; bienvenida con la nutria; menú rápido con más accesos.
+- **Ajustes (#175, en F2):** pestañas sin barra, las que no caben en «Más ▾»; sin segundo título; paneles angostos y botones de tamaño estándar en toda la app; Consolas por empresa con interruptor; puesta al día arriba; Claude con horario en una frase y registro compacto con costo; Cuentas y claves en lista con estado en color; Carpeta de datos más clara; Idioma y Acerca de en «General».
+- **Dónde va (#176):** Ajustes y fluidez en F2; el resto en «F2.5 · Pulido de UI».
+
+### 12.7 Fluidez primero (#173, #174)
+**Regla para todo lo que se haga:** el marco de cada pantalla aparece en menos de 100 ms y ninguna consulta pasa de 200 ms con los datos reales; una prueba lo mide y está en la revisión de cada PR. Se logra con esqueletos de la forma real, datos ya vistos al instante y adelantados al pasar por un enlace, bloques y selectores que cargan por su cuenta, consultas con índices o precalculadas, cambios que se ven al tocar y el marco de la app antes que los datos.
+- **En concreto (#177):** consultas simples con índices, sin copias guardadas de respuestas de la base (nunca datos viejos); lo que lee el disco (portadas, tamaño de la carpeta) se recuerda; toda lista larga es scroll infinito pedido por tramos de 60 al servidor (Colección, saga «Emulación», Sagas, Buscar, Aprendizajes).
 
 ## 13. Pendientes
 

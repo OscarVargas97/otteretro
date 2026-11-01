@@ -2,6 +2,68 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
+## Claude ordena el catálogo · en revisión
+
+`fase/f2-claude`
+
+### Nuevo
+- **Claude revisa las sagas dudosas y las ordena solo**: une fichas repetidas del mismo juego, pone en su saga los juegos sueltos que son de ella, separa sub-sagas (como Tingle) y corrige nombres. Primero tus sagas. Se lanza con `otteretro catalogo depurar`; con `--contar` dice cuántos casos hay y cuánto gastaría, sin llamar a Claude. Cada cambio se puede deshacer con `otteretro catalogo deshacer <n>`.
+- **Claude trabaja de noche, sin quitarte cuota**: al empezar su horario (00:00 a 08:00, editable) se lanza solo y usa la ventana entera; si llega al límite de la suscripción, espera y sigue solo. De día, «Ejecutar ahora» en Ajustes › Claude (o `otteretro claude ahora`) lo lanza al instante; con «Con tope» marcado se queda en el porcentaje que elijas de cada ventana (la mitad, por defecto).
+- **Claude prepara cada saga para que la apruebes**: las tres rutas (lanzamiento, historia y la que recomienda la comunidad, con sus fuentes), si es icónica y sus juegos icónicos, la mejor versión de cada juego con los cuatro criterios, las versiones mal clasificadas (remaster o remake) y la descripción en español. Nada se aplica sin ti: todo queda por aprobar en Revisar. Las descripciones de IGDB ahora se guardan al cargar el catálogo.
+- **Revisar**: apruebas o rechazas lo que preparó Claude, y en Aprendizajes deshaces cualquier cambio que hizo al catálogo.
+- **La ruta de cada saga**: en la saga eliges la ruta (lanzamiento, historia o comunidad) y la ves como línea de tiempo, con qué versión recomienda la comunidad, por qué ese orden y sus fuentes. Puedes pedirle a Claude que la recalcule.
+- **Inicio te dice tu siguiente juego** de cada ruta que sigues, y cuánto espera en Revisar.
+- **La ficha compara las versiones** con los cuatro criterios por separado y marca la recomendada; muestra la descripción en español.
+- **Ajustes › Claude**: horario, tope de día opcional, «Ejecutar ahora», qué está haciendo Claude y el registro de cada llamada.
+- **La carga inicial con Claude corre sola durante días**: `otteretro claude cargar` recorre Nintendo, Sony, Microsoft y PC; en cada parte primero ordena el catálogo y después prepara las sagas. Se pausa al llegar al límite de la suscripción y sigue sola, y en el panel de tareas ves en qué parte va. Con `--parte` corre solo una.
+- **Cada tarea dice qué hizo**: al hacer clic en una tarea del panel ves su registro: cuándo empezó o esperó y por qué, cada llamada a Claude con sus tokens, cada cambio que aplicó la depuración (con su número para deshacerlo), lo que dejó en Revisar y cada imagen que bajó con su peso.
+- **Ves y corriges lo que cambió Claude**: en Revisar › Aprendizajes cada cambio dice qué juegos movió y de qué saga a cuál, qué fichas unió o cómo se llamaba la saga, agrupado por tarea y con filtros. Si algo está mal, «Corregir» lo deshace y tu nota queda como regla de esa saga: Claude la cumple en la próxima depuración.
+- **Panel de tareas más claro**: arriba lo que corre, después la cola y al final lo terminado, lo más reciente primero; y «Limpiar terminadas» las borra.
+- **Consolas que habilitas tú**: en Ajustes › Consolas marcas o desmarcas cada consola, y «Agregar consola» busca entre todas las de IGDB. Al habilitar una, se cargan sus juegos; las deshabilitadas no se vuelven a cargar.
+- **Catálogo al día solo**: cada semana (los días se cambian en Ajustes › Consolas) la app busca en IGDB lo nuevo o cambiado de cada consola habilitada y lo suma. «Actualizar ahora» lo hace al instante.
+- **Reevaluar sagas icónicas**: en Ajustes › Claude, Claude vuelve a decidir qué sagas son icónicas, de todas las consolas o de una.
+- **Sagas exclusivas**: el filtro «Exclusivas» muestra las sagas que solo salieron en consolas de una empresa (una versión de PC no les quita lo exclusivo). Se combina con la empresa o la consola, que ahora se elige en una lista.
+- **Más reconocidas**: el orden por defecto de Sagas. Primero las icónicas que aprobaste y después las más calificadas en IGDB, contando solo los juegos de la consola elegida. Al actualizar, una tarea trae la popularidad de los juegos que ya tenías.
+- **Tu catálogo y tus datos, separados**: el catálogo (sagas, juegos, versiones, rutas y consolas) vive en `catalogo/catalogo.db` junto con sus imágenes (`catalogo/imagenes`), y lo tuyo (lo que tienes, progreso, favoritas, claves, ajustes y tareas) sigue en `data/otteretro.db`. Así el catálogo se puede pasar a otra instalación sin nada tuyo. Al actualizar se separa solo y deja una copia de la base de antes (`data/otteretro.antes-del-catalogo.db`).
+- **Revisar tiene contador** en la barra lateral, y una ruta se puede **editar antes de aprobarla**: subir, bajar o quitar pasos.
+- **La nutria celebra** cuando terminas un juego y cuando con eso completas la ruta que sigues.
+- **Sugerencias de automatizar** (Ajustes › Claude): cuando Claude hace 10 veces el mismo cambio por la misma razón, la app lo sugiere y «Crear issue» lo deja en GitHub con la etiqueta `automatizar` (usa `gh`).
+- **No paga dos veces**: lo que Claude ya revisó no se vuelve a pedir mientras sus datos no cambien.
+
+### Cambios
+- **La saga y el juego con su imagen**: la cabecera de una saga muestra el arte de su juego icónico más reciente (o del más reciente, si no hay icónicos), y la del juego, el suyo; el color de la pantalla sale de esa imagen. Aprobar las icónicas ahora guarda también qué juegos son icónicos (los ya aprobados se recuperan solos al actualizar).
+- **Ajustes en 5 pestañas**: Carpeta de datos, Cuentas y claves, Consolas, Claude y General. **Cuentas y claves** es una lista: una fila por servicio con para qué sirve, su estado («Guardada» en verde, «Falta» en naranja) y «Configurar»; lo de fases posteriores queda en una línea gris al final. **Carpeta de datos** tiene «Abrir carpeta», «Mover…» como botón principal y «Usar otra carpeta» como enlace con una línea que explica la diferencia; el aviso de la mudanza se cierra. **General** junta el idioma (dos botones, Español | English, también en el asistente) con la versión y «Buscar actualización»; las direcciones de antes (`?s=language`, `?s=about`) llevan a ella.
+- **Ajustes › Claude en tres bloques**: Horario («Corre de 00:00 a 08:00» y, con el interruptor, «De día, parar al 50 % de cada ventana de 5 h», todo se guarda solo, sin botón), Ahora (qué está haciendo, «Ejecutar ahora» y reevaluar icónicas) y Uso. El registro es más compacto: cuándo («hace 2 horas»), tarea, modelo, duración, tokens de entrada y salida y el costo de cada llamada; «ok» ya no se muestra y un error va en rojo con su motivo.
+- **Ajustes › Consolas más claro**: arriba, cada cuántos días se pone al día el catálogo, cuándo fue la última vez y cuándo es la próxima, con «Actualizar ahora». Abajo, las consolas en filas por empresa (Nintendo, PlayStation, Xbox, PC) con su interruptor y sus juegos a la derecha. La fecha de carga aparece una sola vez, y una consola solo lleva insignia si difiere: «Sin cargar», «Carga incompleta» o «Cargando 40 %». Los días se guardan solos.
+- **Pestañas sin barra**: en Ajustes y Revisar las pestañas van en una sola línea; las que no caben pasan a «Más ▾». Ajustes ya no repite el nombre de la pestaña como título y sus paneles no ocupan todo el ancho. Campos y botones tienen la misma altura en toda la app, con un tamaño chico para las acciones dentro de una lista.
+- **Los cambios se ven al tocar**: Favorita y Seguir, el estado, la nota y las fechas de un juego, las consolas habilitadas y la ruta elegida cambian en el acto y se guardan por detrás; ningún botón queda gris esperando. Si el guardado falla, vuelven a como estaban y la app avisa.
+- **Nada dice «Cargando…» ni salta**: el menú y la barra aparecen apenas abre la app; mientras llegan los datos, cada pantalla muestra su forma (tarjetas, filas, cabecera) y todo aparece junto, sin empujar lo de abajo. Lo que ya viste vuelve al instante, y al pasar el ratón o el mando por una saga, un juego o una pestaña, sus datos se piden antes del clic.
+- **Sagas, una saga, Colección y Revisar › Aprendizajes cargan al instante, aunque el catálogo sea enorme**: llegan los primeros 60 y el resto aparece al bajar, sin espera. Las consultas ahora usan índices, y lo que pide recorrer el disco (las portadas, cuánto ocupa la carpeta de datos) se mide una vez y se recuerda; mientras se mide, Ajustes dice «Midiendo lo que ocupa».
+- **Letras más claras y coherentes**: una sola escala de tamaños en toda la app, «← Sagas» y «← saga» se leen como botón, las consolas en letra normal (no en pixel y mayúsculas), las tablas sin subrayados, un solo título en Saga y Juego, «No tienes ninguno» y «Tiempo jugado: —» en una línea.
+- **Barras de scroll delgadas y oscuras**, y la página ya no cambia de ancho cuando la barra aparece o desaparece (por ejemplo, al cambiar de pestaña en Ajustes).
+- **Ajustes por pestañas**, una sección a la vez. Cada pestaña tiene su dirección, así «Abrir Ajustes» desde un aviso lleva directo a Cuentas y claves.
+- **Colección**: «Lo tengo» queda marcado al entrar y el número de cada consola sigue al filtro (lo que tienes, lo que te falta o lo que tiene versión de PC).
+- **Las sagas abren al instante**: abrir una saga ya no calcula las 5.800.
+- **`catalogo depurar --contar` estima con lo real**: usa lo que gastó cada llamada a Claude (la primera depuración gastó unas tres veces lo que se estimaba, sobre todo en respuesta).
+
+### Arreglos
+- **El menú lateral queda fijo** al bajar por una página larga.
+- **Ya no aparecen dos «Bajar portadas de SteamGridDB» a la vez**: si una corre, la carga de IGDB no encola otra; lo que entra mientras tanto se baja después, desde donde terminó.
+- **Sagas abre al instante y se recorre sin esperas**: dibuja de a 60 sagas y agrega más antes de que llegues al final, en vez de las 5.800 juntas.
+- **El registro de uso de Claude va de a 10 llamadas**, con «Anterior» y «Siguiente», y llega a todo el historial (antes mostraba las últimas 50 juntas).
+- **La búsqueda de consolas en IGDB se puede cerrar** (Ajustes › Consolas), con «Cerrar» o con Escape.
+- **Un corte al separar el catálogo ya no deja la app sin arrancar**: cada paso escribe un solo archivo y, si se interrumpe, se rehace al abrirla de nuevo.
+- **Deshacer una saga creada por la depuración** también borra lo tuyo de esa saga (favorita, seguimiento).
+- **El registro de una tarea** se pone al día cuando la tarea avanza, sin preguntar cada 3 segundos.
+- **Mudar la carpeta de datos ya no se queda en «Preparando»**: si la mudanza terminaba antes de que llegara la respuesta de haberla empezado, la pantalla volvía a «empezó» y no mostraba el resultado.
+
+## Portadas que no se cortan · en revisión
+
+`fix/78-sgdb-respuesta-vacia`
+
+### Arreglos
+- **La descarga de portadas ya no se corta por una respuesta vacía**: si SteamGridDB (o cualquier otra fuente) responde sin contenido, la tarea lo reintenta más tarde en vez de quedar en error, y esa respuesta vacía no se guarda. Lo que ya había quedado guardado así se vuelve a pedir.
+
 ## Imágenes livianas · en revisión
 
 `feat/64-imagenes-webp`

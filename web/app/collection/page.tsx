@@ -1,15 +1,15 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useFormatter, useTranslations } from "next-intl";
 import { Suspense, useState } from "react";
 import { GameTile, hours, useConsoles } from "@/components/Catalog";
 import { Empty } from "@/components/Shell";
-import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
-import type { CollectionPage } from "@/lib/types";
+import { Rows, Tiles } from "@/components/Skeleton";
+import { usePaged } from "@/lib/paged";
+import type { CollectionPage, ConsoleCount } from "@/lib/types";
 
 const FILTERS = ["all", "owned", "missing", "pc"] as const;
 const SORTS = ["saga", "name", "year"] as const;
@@ -19,6 +19,12 @@ export default function CollectionScreen() {
   return <Suspense><Collection /></Suspense>;
 }
 
+/** El número de cada consola sigue al filtro elegido (F2.18). */
+function countFor(c: ConsoleCount, filter: (typeof FILTERS)[number]) {
+  const games = Number(c.games), owned = Number(c.owned);
+  return { all: games, owned, missing: games - owned, pc: Number(c.withPc) }[filter];
+}
+
 /** Colección (§4): por consola, con PC como una más. En PC, la tienda y las horas, y lo que aún no está en el catálogo. */
 function Collection() {
   const t = useTranslations("catalog");
@@ -26,21 +32,18 @@ function Collection() {
   const describe = useDescribeError();
   const router = useRouter();
   const consoles = useConsoles();
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("owned"); // lo tuyo primero (F2.18)
   const [sort, setSort] = useState<(typeof SORTS)[number]>("saga");
   const [view, setView] = useState<"grid" | "list">("grid");
   // Sin consola en la URL, la primera que tenga juegos.
   const selected = useSearchParams().get("console") ?? consoles.data?.find((c) => Number(c.games) > 0)?.id ?? consoles.data?.[0]?.id;
   const current = consoles.data?.find((c) => c.id === selected);
-  const page = useQuery({
-    queryKey: ["collection", selected, filter, sort],
-    queryFn: () => request<CollectionPage>(`/api/collection/${selected}?${new URLSearchParams({ filter, sort })}`),
-    enabled: !!selected,
-    placeholderData: (previous) => previous,
-  });
+  // Por tramos al bajar (#177): PC tiene 20.000 juegos. Lo de Steam sin IGDB llega con el primero.
+  const page = usePaged(["collection", selected, filter, sort], (offset) => `/api/collection/${selected}?${new URLSearchParams({ filter, sort, offset: String(offset) })}`,
+    (p: CollectionPage) => ({ items: p.games, total: Number(p.total) }), !!selected);
 
-  const games = page.data?.games ?? [];
-  const unlinked = page.data?.unlinked ?? [];
+  const games = page.items;
+  const unlinked = page.data?.pages[0].unlinked ?? [];
   const isPc = selected === "pc";
 
   return (
@@ -49,7 +52,7 @@ function Collection() {
         {consoles.data?.map((c) => (
           <button key={c.id} type="button" className="ot-nav-item" aria-current={c.id === selected ? "page" : undefined} onClick={() => router.replace(`/collection/?console=${c.id}`)}>
             <span>{c.name}</span>
-            <span className="small muted tabular">{c.games}</span>
+            <span className="small muted tabular">{countFor(c, filter)}</span>
           </button>
         ))}
       </nav>
@@ -81,7 +84,10 @@ function Collection() {
         )}
 
         {view === "grid" ? (
-          <div className="grid-cards">{games.map((g) => <GameTile key={g.id} game={g} />)}</div>
+          <div className="grid-cards">
+            {games.map((g) => <GameTile key={g.id} game={g} />)}
+            {(!page.data || page.hasNextPage) && <Tiles kind="game" count={page.data ? 6 : 12} />}
+          </div>
         ) : games.length > 0 && (
           <div className="panel table-wrap" style={{ padding: 0 }}>
             <table className="t">
@@ -96,10 +102,12 @@ function Collection() {
                     {isPc && <td className="tabular">{hours(g.playtime)}</td>}
                   </tr>
                 ))}
+                {page.hasNextPage && <Rows cols={isPc ? 5 : 4} count={4} />}
               </tbody>
             </table>
           </div>
         )}
+        <div ref={page.end} aria-hidden="true" />
 
         {unlinked.length > 0 && (
           <section className="sec">

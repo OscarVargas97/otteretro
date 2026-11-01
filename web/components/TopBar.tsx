@@ -10,11 +10,11 @@ import { useDescribeError } from "@/lib/i18n";
 import type { SearchResults } from "@/lib/types";
 import { UpdateTask, useUpdate } from "./Update";
 import { MoveTask, useMove } from "./DataFolder";
-import { TaskRows, upsertTask, useTasks } from "./Tasks";
+import { ClearTasks, TaskRows, upsertTask, useTasks } from "./Tasks";
 import { Empty, useAppState } from "./Shell";
 
 /** Título de la pantalla, búsqueda global (Ctrl+K) y panel de tareas en segundo plano. */
-export function TopBar({ title }: { title: string }) {
+export function TopBar({ title, hideTitle = false }: { title: string; hideTitle?: boolean }) {
   const t = useTranslations("topBar");
   const [searching, setSearching] = useState(false);
   const [tasksOpen, setTasksOpen] = useState(false);
@@ -48,7 +48,7 @@ export function TopBar({ title }: { title: string }) {
 
   return (
     <header className="top">
-      <h1>{title}</h1>
+      <h1 className={hideTitle ? "sr-only" : undefined}>{title}</h1>
       <button className="search" type="button" onClick={() => setSearching(true)}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
           <circle cx="11" cy="11" r="7" />
@@ -74,6 +74,7 @@ export function TopBar({ title }: { title: string }) {
           <UpdateTask />
           <MoveTask />
           <TaskRows />
+          <ClearTasks />
           {!hasTasks && <Empty title={t("noTasksTitle")} text={t("noTasksText")} />}
           <p className="small muted tasks-panel-footer">{connected ? t("connected") : t("reconnecting")}</p>
         </div>

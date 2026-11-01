@@ -1,9 +1,11 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { normalizePath } from "./Shell";
+import { request } from "@/lib/client";
+import { normalizePath, useAppState } from "./Shell";
 
 // Clave en nav.* de cada entrada.
 const MAIN = [
@@ -20,9 +22,14 @@ const SECONDARY = [
   { href: "/settings/", key: "settings" },
 ] as const;
 
-/** Barra lateral (componente NavItem del sistema de diseño). Los contadores llegan con cada módulo. */
+/** Barra lateral (componente NavItem del sistema de diseño). Los contadores llegan con cada módulo; Revisar lleva el suyo (D3). */
 export function Sidebar() {
   const t = useTranslations("nav");
+  // Sin carpeta de datos la API responde 409: sin contador.
+  // El menú se dibuja antes de saber si hay carpeta de datos (#105); sin ella no hay qué contar.
+  const configured = !!useAppState().data?.configured;
+  const review = useQuery({ queryKey: ["review", "count"], queryFn: () => request<number>("/api/review/count"), refetchInterval: 60_000, retry: false, enabled: configured });
+  const counts: Partial<Record<string, number>> = { review: Number(review.data ?? 0) };
   const current = normalizePath(usePathname());
   const isActive = (href: string) => {
     const target = normalizePath(href);
@@ -31,6 +38,7 @@ export function Sidebar() {
   const item = (e: (typeof MAIN)[number] | (typeof SECONDARY)[number]) => (
     <Link key={e.href} className="ot-nav-item" href={e.href} aria-current={isActive(e.href)}>
       {t(e.key)}
+      {!!counts[e.key] && <span className="ot-count" aria-label={t("pending", { count: counts[e.key]! })}>{counts[e.key]}</span>}
     </Link>
   );
 

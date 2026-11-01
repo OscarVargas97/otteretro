@@ -26,6 +26,8 @@ sealed class Fixture : IAsyncDisposable
         Queue = new TaskQueue(session, events, new FolderMoveService(session, events), box) { Poll = TimeSpan.FromMilliseconds(20) };
     }
 
+    public Credentials Credentials => new(Db, config.MachineId, box);
+
     /// <summary>Encola, corre la cola hasta que la tarea termina y devuelve cómo terminó.</summary>
     public async Task<TaskInfo> Run(long id)
     {

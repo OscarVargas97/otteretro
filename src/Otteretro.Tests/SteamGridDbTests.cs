@@ -137,6 +137,26 @@ public class SteamGridDbTests
         Assert.Null(SteamGridDb.Find(f.Db, 2, "cover"));
     }
 
+    /// <summary>#78: un juego que entra mientras se bajan portadas queda para otra pasada que empieza después del último de la lista.</summary>
+    [Fact]
+    public async Task GamesLoadedMeanwhileGetAnotherPassFromWhereItEnded()
+    {
+        await using var f = new Fixture(("steamgriddb.apiKey", "clave"));
+        using (var c = f.Db.Open())
+            c.Execute("INSERT INTO game (id, name_es, original_name) VALUES (2, 'Zelda Classic', 'Zelda Classic')");
+        OnDownload = url =>
+        {
+            using var c = f.Db.Open();
+            c.Execute("INSERT OR IGNORE INTO game (id, name_es, original_name) VALUES (5, 'Nada', 'Nada')");
+        };
+        var first = SteamGridDb.Enqueue(f.Db);
+        Assert.Equal("done", (await f.Run(first)).Status);
+        using var after = f.Db.Open(); // la cola puede haberla empezado ya: se mira cualquiera que no sea la primera
+        var next = after.QuerySingle<string>("SELECT data FROM task WHERE kind = 'sgdb.images' AND id <> @first", new { first });
+        // Empieza en 2 (o ya avanzó si la cola la corrió): nunca desde 0, que volvería a consultar todo.
+        Assert.True(System.Text.Json.JsonSerializer.Deserialize<SteamGridDb.Job>(next, System.Text.Json.JsonSerializerOptions.Web)!.After >= 2);
+    }
+
     /// <summary>Listo cuando de F1.7: las portadas 2:3 quedan en la caché y la API las sirve.</summary>
     [Fact]
     public async Task CoversGoToTheCacheAndTheApiServesThem()

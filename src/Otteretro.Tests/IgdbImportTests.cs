@@ -86,6 +86,12 @@ public class IgdbImportTests
     const string Dlc = """{ "id": 9999, "name": "BotW: The Champions' Ballad", "game_type": 1, "platforms": [130], "franchises": [ZELDA] }""";
     const string Edition = """{ "id": 8888, "name": "BotW Edición especial", "game_type": 0, "version_parent": 7346, "platforms": [130] }""";
 
+    const string Dreamcast = """[{ "id": 23, "name": "Dreamcast", "abbreviation": "DC", "slug": "dc", "platform_family": { "id": 5, "name": "Sega" } }]""";
+    const string SonicAdventure = """
+        { "id": 3192, "name": "Sonic Adventure", "first_release_date": 914112000, "game_type": 0, "platforms": [23],
+          "release_dates": [ { "platform": 23, "date": 914112000 } ] }
+        """;
+
     static string Games(params string[] games) => "[" + string.Join(",", games).Replace("ZELDA", Zelda) + "]";
 
     /// <summary>Responde como Twitch e IGDB según la URL y la consulta, y cuenta las llamadas.</summary>
@@ -103,7 +109,10 @@ public class IgdbImportTests
                 Igdb.TokenUrl => """{ "access_token": "token", "expires_in": 3600 }""",
                 _ when url.EndsWith("/franchises") => body.Contains("zelda", StringComparison.OrdinalIgnoreCase) ? $"[{Zelda}]" : "[]",
                 _ when url.EndsWith("/collections") => "[]",
+                _ when url.EndsWith("/platforms") => Dreamcast,
                 _ when url.EndsWith("/games/count") => """{ "count": 6 }""",
+                _ when body.Contains("platforms = (23)") => Games(SonicAdventure),
+                _ when body.Contains("updated_at >") => body.Contains("platforms = (37,137)") ? Games(OcarinaOfTime3D) : "[]",
                 _ when body.Contains("sort total_rating_count desc") => PopularPage(body),
                 _ when body.Contains("franchises = (596)") => Games(OcarinaOfTime, BreathOfTheWild, HyruleWarriors, PcGame, Dlc, Edition,
                     Smash, Cancelled, Switch2Edition, LinkToThePastGba, LinkToThePast, HyruleWarriorsLegends, AmiiboTap, Tingle),
@@ -199,6 +208,52 @@ public class IgdbImportTests
         Assert.Equal(IgdbImport.PopularLimit, c.ExecuteScalar<int>("SELECT count(*) FROM version WHERE platform = 'pc'"));
         Assert.Equal(100000 + IgdbImport.PopularLimit - 1, c.ExecuteScalar<long>("SELECT max(igdb_id) FROM game"));
         Assert.Contains($"\"offset\":{IgdbImport.PopularLimit}", c.ExecuteScalar<string>("SELECT data FROM task"));
+    }
+
+    /// <summary>
+    /// F2.13: una consola de IGDB se habilita y carga sus juegos; F2.14: la actualización trae solo lo cambiado desde la
+    /// última vez, de las consolas habilitadas, y se encola sola pasados los días.
+    /// </summary>
+    [Fact]
+    public async Task ConsolesAreAddedFromIgdbAndTheCatalogStaysUpToDate()
+    {
+        await using var f = new Fixture(IgdbKeys);
+        var igdb = new Igdb(new ApiClient(f.Db, IgdbImport.Handler), f.Credentials, IgdbImport.Handler);
+        var dreamcast = Assert.Single(await Consoles.Available(f.Db, igdb, CancellationToken.None));
+        Assert.Equal(("Sega", (string?)null), (dreamcast.Company, dreamcast.ConsoleId));
+
+        Assert.Equal("dc", await Consoles.Enable(f.Db, igdb, 23, CancellationToken.None));
+        long load;
+        using (var c = f.Db.Open()) load = c.ExecuteScalar<long>("SELECT id FROM task WHERE kind = 'igdb.platform'");
+        Assert.Equal(0, Consoles.Page(f.Db).Consoles.Single(k => k.Id == "dc").Loading); // en la cola: «Cargando 0 %» (#109)
+        var loaded = await f.Run(load);
+        Assert.True(loaded.Status == "done", System.Text.Json.JsonSerializer.Serialize(loaded.Detail));
+        var page = Consoles.Page(f.Db);
+        var dc = page.Consoles.Single(k => k.Id == "dc");
+        Assert.Equal((1, true), (dc.Games, dc.Enabled));
+        Assert.NotNull(dc.RefreshedAt);
+        Assert.Null(dc.Loading);
+
+        using (var c = f.Db.Open()) c.Execute("UPDATE console SET refreshed_at = '2026-10-01T00:00:00Z'");
+        var refresh = await f.Run(IgdbImport.EnqueueRefresh(f.Db));
+        Assert.Equal("done", refresh.Status);
+        using (var c = f.Db.Open())
+        {
+            Assert.Equal(1, c.ExecuteScalar<int>("SELECT count(*) FROM game WHERE igdb_id = 1030")); // el cambiado de 3DS
+            Assert.Equal(0, c.ExecuteScalar<int>("SELECT count(*) FROM console WHERE enabled = 1 AND id NOT IN ('pc', 'pcvr') AND refreshed_at = '2026-10-01T00:00:00Z'"));
+        }
+        Assert.Contains(TaskQueue.ReadLog(f.Db, refresh.Id), l => l.Message.Code == "tasks.log.refresh");
+
+        Assert.Null(IgdbImport.RefreshIfDue(f.Db, DateTime.UtcNow)); // recién actualizado
+        var due = IgdbImport.RefreshIfDue(f.Db, DateTime.UtcNow.AddDays(8));
+        Assert.NotNull(due);
+        Assert.Equal(due, IgdbImport.RefreshIfDue(f.Db, DateTime.UtcNow.AddDays(8))); // no encola otra
+
+        Assert.True(Consoles.SetEnabled(f.Db, "dc", false));
+        using (var c = f.Db.Open()) Assert.DoesNotContain(23L, IgdbImport.Platforms(c).Keys);
+        Assert.Equal("catalog.badRefreshDays", Consoles.SaveRefreshDays(f.Db, 0)?.Code);
+        Assert.Null(Consoles.SaveRefreshDays(f.Db, 14));
+        Assert.Equal(14, Consoles.Page(f.Db).RefreshDays);
     }
 
     [Theory]

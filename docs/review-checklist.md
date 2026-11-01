@@ -9,7 +9,7 @@ Errores propios de este stack que `otter:pr-reviewer` revisa además de su check
 - **Operaciones largas, una a la vez**: si un doble clic o dos pestañas pueden lanzar la misma operación dos veces, tiene que haber un cerrojo (la revisión de F0 encontró dos mudanzas simultáneas que podían borrar origen y destino).
 - **Escrituras atómicas**: `config.json` y cualquier archivo que la app reescribe se escriben a un temporal y se reemplazan; un corte no puede dejarlo a medias.
 - **Rutas**: rutas de red, discos que no están, mayúsculas en Windows y separadores; en Linux todo puede parecer el mismo disco.
-- **Lo que se guarda con el id de una fila se borra con ella** (archivos en la caché, como las imágenes de `cache/imagenes/{juego}-…`): SQLite reusa los ids, y otra fila heredaría lo del borrado (la revisión de F1 lo encontró con las portadas).
+- **Lo que se guarda con el id de una fila se borra con ella** (archivos en la caché, como las imágenes de `catalogo/imagenes/{juego}-…`): SQLite reusa los ids, y otra fila heredaría lo del borrado (la revisión de F1 lo encontró con las portadas).
 
 ## Backend (C# .NET 10, ASP.NET Core, SQLite con Dapper)
 
@@ -22,6 +22,15 @@ Errores propios de este stack que `otter:pr-reviewer` revisa además de su check
 - **API y tipos**: si cambió un endpoint, se regeneraron los tipos del front (`npm run tipos`) y se actualizó `docs/mapa/README.md` en el mismo PR.
 - **Claude**: solo con `claude -p`; nunca la API de Anthropic. La salida de Claude se valida contra un esquema antes de guardarla.
 - **Lo propio de cada sistema operativo** detrás de su clase; nada de rutas de Windows sueltas en código que también corre en Linux.
+
+## Fluidez primero (#173, #174)
+
+Vale para todo cambio, de front o de back:
+
+- **Presupuesto**: el marco de cada pantalla aparece en menos de 100 ms desde el clic; sus datos, en menos de 300 ms; nada se mueve al llegar; ninguna consulta pasa de 200 ms con un catálogo del tamaño del real.
+- **Pruebas**: `FluidityTests` (cada consulta de la API) y `e2e/fluidez.spec.ts` (cada pantalla) cubren lo nuevo. Un endpoint o una pantalla nueva se suma a su lista; las listas de lo que se pasa (`OverBudget`, `OVER_BUDGET`) solo se achican.
+- **Cómo**: esqueletos con la forma real (nunca «Cargando…»); lo ya visto al instante y adelantado al pasar por un enlace; cada bloque y cada selector carga por su cuenta; listas largas en tramos (como Sagas), no enteras; consultas con índices o datos precalculados; los cambios se ven al tocar y se guardan por detrás.
+- **Nada caro por pedido**: recorrer carpetas (portadas, tamaño de la carpeta de datos) o agregar todo el catálogo en cada llamada se precalcula o se guarda en memoria.
 
 ## Front (Next.js estático, React, TanStack Query)
 

@@ -22,6 +22,8 @@ public static class FieldValues
     public static readonly Dictionary<string, string[]> Priority = new()
     {
         ["default"] = ["igdb", "wikidata", "rawg", "hltb"],
+        // El nombre de una saga que corrigió Claude (F2.7) gana al de IGDB; lo manual, siempre.
+        ["name"] = ["claude", "igdb", "wikidata", "rawg", "hltb"],
     };
 
     public const string Manual = "manual";

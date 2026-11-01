@@ -1,10 +1,11 @@
 "use client";
 
-import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { NextIntlClientProvider, useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { request } from "@/lib/client";
+import { prefetchLink } from "@/lib/queries";
 import { useDescribeError } from "@/lib/i18n";
 import type { AppState } from "@/lib/types";
 import { CATALOGS, isLocale, systemLocale } from "@/messages";
@@ -31,7 +32,8 @@ const TITLES = {
 /** Quita la barra final que añade trailingSlash, salvo en la raíz. */
 export const normalizePath = (path: string) => (path.length > 1 ? path.replace(/\/$/, "") : path);
 
-const queryClient = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false } } });
+// Lo ya visto se muestra al instante (#105): fresco por 10 s y guardado media hora; pasado eso se refresca por detrás.
+const queryClient = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false, staleTime: 10_000, gcTime: 30 * 60_000 } } });
 
 export const useAppState = () => useQuery({ queryKey: ["state"], queryFn: () => request<AppState>("/api/state") });
 
@@ -41,6 +43,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <Translations>
         <Content>{children}</Content>
         <Gamepad />
+        <Prefetch />
       </Translations>
     </QueryClientProvider>
   );
@@ -67,6 +70,8 @@ function Content({ children }: { children: ReactNode }) {
   const router = useRouter();
   const state = useAppState();
   const inWizard = path === "/welcome";
+  // En el navegador ya, sin esperar a la API: la página estática no sabe el idioma y no puede llevar el marco (#105).
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
 
   // Sin carpeta de datos, todo lleva al asistente de primer arranque.
   useEffect(() => {
@@ -74,20 +79,40 @@ function Content({ children }: { children: ReactNode }) {
   }, [state.data, inWizard, router]);
 
   if (state.isError) return <p className="content">{t("app.unreachable", { detail: describe(state.error) })}</p>;
-  if (!state.data) return null;
-  if (inWizard) return <>{children}</>;
+  if (inWizard) return state.data ? <>{children}</> : null;
+  if (!mounted) return null;
 
   const title = TITLES[path as keyof typeof TITLES];
   return (
     <div className="app">
       <Sidebar />
       <main className="app-main">
-        <TopBar title={title ? t(`nav.${title}`) : "Otteretro"} />
+        {/* En Saga y Juego el título es el del héroe: la barra no lo repite (#99). */}
+        <TopBar title={title ? t(`nav.${title}`) : "Otteretro"} hideTitle={path === "/saga" || path === "/game"} />
         <UpdateNotice />
-        {children}
+        {/* El marco va primero (#105); la pantalla, cuando se sabe que hay carpeta de datos (sin ella sus consultas fallan). */}
+        {state.data?.configured && children}
       </main>
     </div>
   );
+}
+
+/** Al pasar el ratón o el foco (también el del mando) por un enlace, pide sus datos antes del clic (#105). */
+function Prefetch() {
+  const client = useQueryClient();
+  useEffect(() => {
+    const onHover = (e: Event) => {
+      const link = (e.target as Element | null)?.closest?.("a[href]");
+      if (link) prefetchLink(client, link.getAttribute("href")!);
+    };
+    document.addEventListener("pointerover", onHover);
+    document.addEventListener("focusin", onHover);
+    return () => {
+      document.removeEventListener("pointerover", onHover);
+      document.removeEventListener("focusin", onHover);
+    };
+  }, [client]);
+  return null;
 }
 
 /** Estado vacío con la nutria y, si la hay, la acción que lo resuelve. */

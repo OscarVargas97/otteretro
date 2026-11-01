@@ -11,7 +11,7 @@ using SkiaSharp;
 namespace Otteretro.Catalog;
 
 /// <summary>
-/// Portadas 2:3, héroes y logos de SteamGridDB (F1.7) en `cache/imagenes/{juego}-{tipo}.{ext}`.
+/// Portadas 2:3, héroes y logos de SteamGridDB (F1.7) en `catalogo/imagenes/{juego}-{tipo}.{ext}` (van con el catálogo, #167).
 /// La tarea `sgdb.images` recorre los juegos sin portada, con punto de control; la encola cada carga de IGDB.
 /// Si SteamGridDB no tiene una portada segura del juego, se usa la carátula oficial de IGDB (#61).
 /// Se guardan en WebP y al tamaño que muestra la app (#64); `sgdb.webp` convierte las que se bajaron antes.
@@ -52,7 +52,8 @@ public static class SteamGridDb
     record Image(string Url);
     record Response<T>(bool Success, T? Data);
 
-    public static long Enqueue(Database db) => TaskQueue.Enqueue(db, "sgdb.images", JsonSerializer.Serialize(new Job(), JsonSerializerOptions.Web));
+    public static long Enqueue(Database db, long after = 0) =>
+        TaskQueue.Enqueue(db, "sgdb.images", JsonSerializer.Serialize(new Job(after), JsonSerializerOptions.Web));
 
     /// <summary>Encola la conversión a WebP si quedan imágenes en otro formato y no hay una esperando.</summary>
     public static void EnqueueConvert(Database db)
@@ -67,7 +68,7 @@ public static class SteamGridDb
         ? Directory.GetFiles(Folder(db)).Where(f => Path.GetExtension(f) != ".webp" && !Path.GetFileName(f).StartsWith('.')).Order().ToArray()
         : [];
 
-    public static string Folder(Database db) => Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(db.FilePath)!)!, "cache", "imagenes");
+    public static string Folder(Database db) => Path.Combine(Path.GetDirectoryName(db.CatalogPath)!, "imagenes"); // van con el catálogo (#167)
 
     /// <summary>Borra las imágenes de un juego que ya no existe.</summary>
     public static void Forget(Database db, long gameId)
@@ -101,26 +102,36 @@ public static class SteamGridDb
                 SELECT g.id, COALESCE(g.original_name, g.name_es), (SELECT max(steam_app_id) FROM version v WHERE v.game_id = g.id), g.year, g.igdb_id
                 FROM game g WHERE g.id > @After ORDER BY g.id
                 """, job).ToList();
+        var last = games.Count > 0 ? games[^1].Id : job.After;
         games = games.Where(g => Find(run.Db, g.Id, "cover") is null).ToList();
 
         for (var i = 0; i < games.Count; i++)
         {
             var (id, name, steam, year, igdbId) = games[i];
+            var got = new List<(string Kind, int Bytes)>();
             var sgdbId = await GameId(api, key, name, year, steam, ct);
             if (sgdbId is not null)
                 foreach (var kind in Kinds)
                     if (Find(run.Db, id, kind) is null && await First(api, key, string.Format(Queries[kind], sgdbId), ct) is { } url)
-                        await Download(http, url, folder, id, kind, ct);
+                        got.Add((kind, await Download(http, url, folder, id, kind, ct)));
             // ponytail: una consulta a IGDB por juego sin portada; de a 500 si la carga completa se hace lenta.
             if (Find(run.Db, id, "cover") is null && igdb is not null && igdbId is not null
                 && (await igdb.Query<IgdbCover>("covers", $"fields image_id; where game = {igdbId}; limit 1;", ct)).FirstOrDefault()?.ImageId is { } image)
-                await Download(http, IgdbImageUrl + image + ".jpg", folder, id, "cover", ct);
+                got.Add(("cover", await Download(http, IgdbImageUrl + image + ".jpg", folder, id, "cover", ct)));
+            run.Log(got.Count == 0 ? ApiError.Of("tasks.log.noImages", ("game", name))
+                : ApiError.Of("tasks.log.images", ("game", name), ("kinds", string.Join(", ", got.Select(g => g.Kind))), ("kb", (got.Sum(g => g.Bytes) / 1024).ToString())));
             // La carga corre a la par: si el juego se fusionó y se borró mientras bajaba, su imagen no queda para el próximo id (#59).
             using (var c = run.Db.Open())
                 if (c.ExecuteScalar<long?>("SELECT id FROM game WHERE id = @id", new { id }) is null) Forget(run.Db, id);
             run.Report((i + 1) * 100 / games.Count, ApiError.Of("tasks.sgdb.images", ("done", (i + 1).ToString()), ("total", games.Count.ToString())),
                 JsonSerializer.Serialize(new Job(id), JsonSerializerOptions.Web));
         }
+
+        // Lo que cargó IGDB mientras esta corría (#78): otra pasada solo desde el último juego de la lista.
+        using (var c = run.Db.Open())
+            if (c.ExecuteScalar<long>("SELECT count(*) FROM game WHERE id > @last", new { last }) > 0
+                && c.ExecuteScalar<long>("SELECT count(*) FROM task WHERE kind = 'sgdb.images' AND status = 'queued'") == 0)
+                Enqueue(run.Db, last);
     }
 
     /// <summary>
@@ -159,11 +170,13 @@ public static class SteamGridDb
     }
 
     /// <summary>Baja la imagen y la guarda en WebP reducida; si no se puede leer como imagen, tal como vino (#64).</summary>
-    static async Task Download(HttpClient http, string url, string folder, long id, string kind, CancellationToken ct)
+    /// <returns>Lo que pesa en disco.</returns>
+    static async Task<int> Download(HttpClient http, string url, string folder, long id, string kind, CancellationToken ct)
     {
         var bytes = await http.GetByteArrayAsync(url, ct);
         var webp = ToWebp(bytes, kind);
         Write(Path.Combine(folder, $"{id}-{kind}{(webp is null ? Path.GetExtension(new Uri(url).AbsolutePath) : ".webp")}"), webp ?? bytes);
+        return (webp ?? bytes).Length;
     }
 
     /// <summary>Escribe a un temporal y lo renombra al final: un corte no deja una imagen rota.</summary>

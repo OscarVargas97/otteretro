@@ -235,7 +235,7 @@ Estados (§0.5): **vacío** (la nutria, «Escanear una carpeta» y «Explorar sa
 | **Respaldo** | Repositorio, último respaldo de cada tipo, uso de LFS sobre 10 GiB (#70), conflictos guardados aparte (#77). Acciones: respaldar ahora, restaurar |
 | **Cómo jugar** | Orden de la regla automática y sus valores editables (§8.3) |
 | **Ingesta** | Orden de regiones 1G1R (español primero, S2), formatos preferidos por consola (§9.5) |
-| **Claude** | Tope de tareas por ejecución, estado de la cola, **registro de uso** (tarea, duración, resultado, §11.4) y sugerencias de automatizar con botón **Crear issue** (§11.5) |
+| **Claude** | Horario en segundo plano y tope de día con «Ejecutar ahora» (#154, #157; sin tope de tareas, #158), estado de la cola, **registro de uso** (tarea, duración, resultado, §11.4) y sugerencias de automatizar con botón **Crear issue** (§11.5) |
 | **Comprobaciones** | Intervalo de refresco de tiendas, precios y versiones con la app abierta (#75) |
 | **Equipo** | Nombre de este PC y lo que se guarda por equipo (§7.6) |
 | **Acerca de** | Versión, buscar actualización (Velopack) y notas de la versión |

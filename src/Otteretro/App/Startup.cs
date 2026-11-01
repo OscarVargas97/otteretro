@@ -15,9 +15,12 @@ public static class Startup
         var folder = config.DataFolder ?? throw new InvalidOperationException("No hay carpeta de datos.");
         FileLog.Folder = DataFolder.LogsPath(folder);
         FileLog.Prune();
-        var db = new Database(DataFolder.DatabasePath(folder));
+        DataFolder.Upgrade(folder);
+        var db = DataFolder.Open(folder);
         var applied = Migrations.Apply(db);
         Migrations.RegisterMachine(db, config.MachineId);
+        Catalog.IgdbImport.EnqueuePopularity(db);
+        FolderMove.RememberedSize(folder); // empieza a medirla, para que Ajustes no espere
         FileLog.Write(LogLevel.Information, "Startup", $"Otteretro {Version}; carpeta de datos {folder}; {applied} migraciones nuevas.");
         return db;
     }

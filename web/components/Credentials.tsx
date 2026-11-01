@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { request } from "@/lib/client";
+import { Panels } from "./Skeleton";
 import { useDescribeError, useDynamicT } from "@/lib/i18n";
 import type { CredentialRequest, CredentialStatus } from "@/lib/types";
 
@@ -78,12 +79,12 @@ function CredentialRow({ c }: { c: CredentialStatus }) {
   );
 }
 
-/** Estado de un servicio: «Lista», «Falta 1 de 2» o «Falta». */
+/** Estado de un servicio (#111): «Guardada» en verde; «Falta» o «Falta 1 de 2» en naranja. */
 function ServiceStatus({ fields }: { fields: CredentialStatus[] }) {
   const t = useTranslations("credentials");
   const missing = fields.filter((f) => !f.saved).length;
-  if (missing === 0) return <span className="ot-badge ot-badge-have">{t("ready")}</span>;
-  return <span className="ot-badge">{missing === fields.length && fields.length === 1 ? t("missing") : t("partial", { missing, total: fields.length })}</span>;
+  if (missing === 0) return <span className="ot-badge ot-badge-have">{t("saved")}</span>;
+  return <span className="ot-badge ot-badge-review">{missing === fields.length && fields.length === 1 ? t("missing") : t("partial", { missing, total: fields.length })}</span>;
 }
 
 /** Diálogo de un servicio: sus campos y dónde se consigue la clave. Esc (o B con mando) lo cierra. */
@@ -118,22 +119,25 @@ function ServiceDialog({ service, fields, onClose }: { service: string; fields: 
   );
 }
 
-function ServiceCard({ service, fields, onOpen }: { service: string; fields: CredentialStatus[]; onOpen: () => void }) {
+/** Una fila por servicio (#111): nombre, para qué sirve, el estado y «Configurar». */
+function ServiceLine({ service, fields, onOpen, phase }: { service: string; fields: CredentialStatus[]; onOpen: () => void; phase?: number }) {
   const t = useTranslations("credentials");
   const dt = useDynamicT();
+  const name = dt(`credentials.service.${service}`);
   return (
-    <div className="cred-card">
-      <div className="version-row">
-        <h3 className="cred-name">{dt(`credentials.service.${service}`)}</h3>
-        <ServiceStatus fields={fields} />
+    <div className="cred-line">
+      <div className="cred-text">
+        <b>{name}</b>
+        <span className="small muted">{dt(`credentials.purpose.${service}`)}</span>
       </div>
-      <p className="small muted cred-purpose">{dt(`credentials.purpose.${service}`)}</p>
-      <button className="ot-btn" type="button" onClick={onOpen} aria-label={`${t("configure")}: ${dt(`credentials.service.${service}`)}`}>{t("configure")}</button>
+      {phase != null && <span className="ot-badge">{t("phase", { phase })}</span>}
+      <ServiceStatus fields={fields} />
+      <button className="ot-btn" type="button" onClick={onOpen} aria-label={`${t("configure")}: ${name}`}>{t("configure")}</button>
     </div>
   );
 }
 
-/** Ajustes › Cuentas y claves (§5.6, #57): una tarjeta por servicio; lo de fases posteriores, plegado. */
+/** Ajustes › Cuentas y claves (§5.6, #57, #111): una fila por servicio; lo de fases posteriores, en una línea gris al final. */
 export function CredentialsSettings() {
   const t = useTranslations("credentials");
   const dt = useDynamicT();
@@ -142,7 +146,7 @@ export function CredentialsSettings() {
   const [openService, setOpenService] = useState<string | null>(null);
 
   if (list.isError) return <div className="panel"><p className="error small" style={{ margin: 0 }}>{describe(list.error)}</p></div>;
-  if (list.isPending) return <div className="panel"><p className="small muted" style={{ margin: 0 }}>{t("loading")}</p></div>;
+  if (list.isPending) return <div className="panel" aria-busy="true"><Panels count={3} /></div>;
   const all = list.data ?? [];
   const services = [...new Set(all.map((c) => c.service))];
   const fieldsOf = (s: string) => all.filter((c) => c.service === s);
@@ -151,29 +155,17 @@ export function CredentialsSettings() {
   const later = services.filter((s) => phaseOf(s) > CURRENT_PHASE).sort((a, b) => phaseOf(a) - phaseOf(b));
 
   return (
-    <div className="cred-settings">
-      <h3 className="small muted cred-group">{t("now")}</h3>
-      <div className="cred-grid">
-        {now.map((s) => <ServiceCard key={s} service={s} fields={fieldsOf(s)} onOpen={() => setOpenService(s)} />)}
-      </div>
-      {later.length > 0 && (
-        <details className="fold">
-          <summary>{t("later", { count: later.length })} <span className="small muted">{later.map((s) => dt(`credentials.service.${s}`)).join(" · ")}</span></summary>
-          <div className="fold-body">
-            <p className="small muted" style={{ margin: 0 }}>{t("laterHint")}</p>
-            {later.map((s) => (
-              <div key={s} className="version-row">
-                <span><b>{dt(`credentials.service.${s}`)}</b> <span className="small muted">· {dt(`credentials.purpose.${s}`)}</span></span>
-                <span className="cred-actions">
-                  <span className="ot-badge">{t("phase", { phase: phaseOf(s) })}</span>
-                  <ServiceStatus fields={fieldsOf(s)} />
-                  <button className="ot-btn ot-btn-ghost" type="button" onClick={() => setOpenService(s)} aria-label={`${t("configure")}: ${dt(`credentials.service.${s}`)}`}>{t("configure")}</button>
-                </span>
-              </div>
-            ))}
-          </div>
-        </details>
-      )}
+    <div className="settings-blocks">
+      <section className="panel" style={{ gap: 0 }}>
+        {now.map((s) => <ServiceLine key={s} service={s} fields={fieldsOf(s)} onOpen={() => setOpenService(s)} />)}
+        {later.length > 0 && (
+          <details className="fold-line">
+            <summary className="small muted">{t("later", { count: later.length })} · {later.map((s) => dt(`credentials.service.${s}`)).join(" · ")}</summary>
+            <p className="small muted" style={{ margin: "0 0 8px" }}>{t("laterHint")}</p>
+            {later.map((s) => <ServiceLine key={s} service={s} fields={fieldsOf(s)} phase={phaseOf(s)} onOpen={() => setOpenService(s)} />)}
+          </details>
+        )}
+      </section>
       <p className="small muted" style={{ margin: 0 }}>{t("bitwarden")}</p>
       {openService && <ServiceDialog service={openService} fields={fieldsOf(openService)} onClose={() => setOpenService(null)} />}
     </div>
