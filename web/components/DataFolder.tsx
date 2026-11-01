@@ -47,7 +47,8 @@ export function DataFolderSettings() {
   const describe = useDescribeError();
   const stepName = useStepName();
   const cache = useQueryClient();
-  const info = useQuery({ queryKey: ["folder"], queryFn: () => request<FolderInfo>("/api/data-folder") }).data;
+  // Mientras se mide por primera vez (Used null), se vuelve a pedir cada 2 s (#106).
+  const info = useQuery({ queryKey: ["folder"], queryFn: () => request<FolderInfo>("/api/data-folder"), refetchInterval: (q) => q.state.data?.used == null ? 2000 : false }).data;
   const drives = useQuery({ queryKey: ["drives"], queryFn: () => request<Drive[]>("/api/drives") }).data;
   const m = useMove();
   const [mode, setMode] = useState<"move" | "use" | null>(null);
@@ -89,7 +90,7 @@ export function DataFolderSettings() {
       <div className="version-row">
         <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
           <span>{info?.path}</span>
-          {info && <span className="small muted">{t("usage", { used: gb(info.used, locale), free: gb(info.freeOnDrive, locale) })}</span>}
+          {info && <span className="small muted">{info.used == null ? t("usageMeasuring", { free: gb(info.freeOnDrive, locale) }) : t("usage", { used: gb(info.used, locale), free: gb(info.freeOnDrive, locale) })}</span>}
         </div>
         {!m?.running && !mode && (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

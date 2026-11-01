@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Dapper;
 using Microsoft.Data.Sqlite;
 using Otteretro.Data;
@@ -20,7 +21,14 @@ public record SagaDetail(SagaCard Saga, List<GameCard> Games);
 public record ConsoleCount(string Id, string Name, string? Company, int Games, int Owned, int WithPc);
 
 /// <param name="Unlinked">Lo que tienes en una tienda y todavía no está en el catálogo (solo en PC): aparece igual.</param>
-public record CollectionPage(List<GameCard> Games, List<StoreEntry> Unlinked);
+/// <param name="Total">Cuántos juegos hay con ese filtro; <paramref name="Games"/> trae solo el tramo pedido (#177).</param>
+public record CollectionPage(List<GameCard> Games, List<StoreEntry> Unlinked, int Total);
+
+/// <summary>Un tramo de Sagas, ya filtradas y ordenadas (#177).</summary>
+public record SagaPage(List<SagaCard> Items, int Total);
+
+/// <summary>Un tramo de los juegos de una saga (#177).</summary>
+public record GamePage(List<GameCard> Items, int Total);
 public record StoreEntry(string Store, string? Name, long? Playtime, string? LastPlayed);
 public record VersionRow(long Id, string Platform, string Kind, int? Year, List<StoreEntry> Stores);
 
@@ -57,9 +65,7 @@ public static class CatalogQueries
     sealed class SagaAgg
     {
         public long SagaId { get; init; }
-        public long Games { get; init; }
         public long Owned { get; init; }
-        public string? Platforms { get; init; }
         public long Playtime { get; init; }
         public string? LastPlayed { get; init; }
     }
@@ -90,17 +96,39 @@ public static class CatalogQueries
     static string[] Ordered(Dictionary<string, int> order, string? csv) =>
         string.IsNullOrEmpty(csv) ? [] : csv.Split(',').OrderBy(p => order.GetValueOrDefault(p, int.MaxValue)).ToArray();
 
-    internal static HashSet<long> Covers(Database db) =>
-        Directory.Exists(SteamGridDb.Folder(db))
-            ? Directory.EnumerateFiles(SteamGridDb.Folder(db), "*-cover.*")
-                .Select(f => long.TryParse(Path.GetFileName(f).Split('-')[0], out var id) ? id : 0).ToHashSet()
-            : [];
+    /// <summary>
+    /// Los juegos con portada. Recorrer la carpeta (25.000 archivos) costaba ~100 ms por pedido (#106): se guarda y se vuelve a
+    /// leer solo cuando cambia la fecha de la carpeta, que cambia al agregar o borrar un archivo.
+    /// </summary>
+    internal static HashSet<long> Covers(Database db)
+    {
+        var folder = SteamGridDb.Folder(db);
+        if (!Directory.Exists(folder)) return [];
+        var stamp = Directory.GetLastWriteTimeUtc(folder);
+        if (coverCache is { } hit && hit.Folder == folder && hit.Stamp == stamp) return hit.Ids;
+        var ids = Directory.EnumerateFiles(folder, "*-cover.*")
+            .Select(f => long.TryParse(Path.GetFileName(f).Split('-')[0], out var id) ? id : 0).ToHashSet();
+        coverCache = (folder, stamp, ids);
+        return ids;
+    }
 
+    static (string Folder, DateTime Stamp, HashSet<long> Ids)? coverCache;
+
+    /// <summary>Lo que muestra un tramo de las listas de juegos (Colección, una saga, la búsqueda).</summary>
+    public const int PageSize = 60;
+
+    /// <param name="where">Filtro, orden y tramo (LIMIT) sobre `game g` y `saga s`.</param>
     static List<GameCard> Games(Database db, SqliteConnection c, string where, object? args)
     {
+        // Primero los ids del tramo y después sus datos (#106): las subconsultas de GameSelect se calculaban para todos los
+        // juegos que cumplen el filtro (20.000 en PC), no solo para los que se muestran.
+        var ids = c.Query<long>($"SELECT g.id FROM game g LEFT JOIN saga s ON s.id = g.saga_id {where}", args).ToList();
+        if (ids.Count == 0) return [];
         var covers = Covers(db);
         var order = ConsoleOrder(c);
-        return c.Query<GameRow>($"{GameSelect} {where}", args)
+        var rows = c.Query<GameRow>($"{GameSelect} WHERE g.id IN (SELECT value FROM json_each(@ids))", new { ids = JsonSerializer.Serialize(ids) })
+            .ToDictionary(r => r.Id);
+        return ids.Select(id => rows[id])
             .Select(r => new GameCard(r.Id, r.Name, (int?)r.Year, Ordered(order, r.Platforms), r.Owned != 0, r.Status, r.Playtime,
                 covers.Contains(r.Id), r.SagaId, r.SagaName, r.Stores?.Split(',') ?? []))
             .ToList();
@@ -109,44 +137,48 @@ public static class CatalogQueries
     /// <param name="filter">favorite, following, iconic, exclusive, owned, missing o pc.</param>
     /// <param name="sort">name, recognized, played o activity.</param>
     /// <param name="only">Solo esa saga (la ficha de una saga, F2.19): no arma las demás.</param>
-    public static List<SagaCard> Sagas(Database db, string? filter = null, string? platform = null, string? company = null, string? sort = null, long? only = null)
+    public static List<SagaCard> Sagas(Database db, string? filter = null, string? platform = null, string? company = null, string? sort = null,
+        long? only = null, long[]? ids = null)
     {
         using var c = db.Open();
-        var one = only switch { null => "", 0 => "g.saga_id IS NULL", _ => "g.saga_id = @only" }; // sin coalesce: así usa el índice
-        var aggs = c.Query<SagaAgg>($"""
-            SELECT coalesce(g.saga_id, 0) AS SagaId, count(DISTINCT g.id) AS Games,
-                   count(DISTINCT CASE WHEN o.id IS NOT NULL THEN g.id END) AS Owned,
-                   group_concat(DISTINCT v.platform) AS Platforms,
-                   coalesce(sum(o.playtime), 0) AS Playtime, max(o.last_played) AS LastPlayed
-            FROM game g LEFT JOIN version v ON v.game_id = g.id LEFT JOIN source o ON o.version_id = v.id
-            {Where(one)}
+        // Sin coalesce en el WHERE: así usa el índice.
+        var one = (only, ids) switch { (0, _) => "g.saga_id IS NULL", (not null, _) => "g.saga_id = @only", (_, not null) => "g.saga_id IN @ids", _ => "" };
+        var args = new { only, ids, platform };
+        // Por partes (#106): un solo JOIN de juegos × versiones × lo tuyo, agrupado, tardaba 150 ms con el catálogo real; así, ~70.
+        var games = c.Query<(long SagaId, long Games, long Popularity)>(
+            $"SELECT coalesce(g.saga_id, 0), count(*), coalesce(sum(g.popularity), 0) FROM game g {Where(one)} GROUP BY coalesce(g.saga_id, 0)", args)
+            .ToDictionary(x => x.SagaId);
+        var platformsOf = c.Query<(long SagaId, string Platform)>(
+            $"SELECT DISTINCT coalesce(g.saga_id, 0), v.platform FROM version v JOIN game g ON g.id = v.game_id {Where(one)}", args)
+            .GroupBy(x => x.SagaId).ToDictionary(x => x.Key, x => string.Join(',', x.Select(p => p.Platform)));
+        var mine = c.Query<SagaAgg>($"""
+            SELECT coalesce(g.saga_id, 0) AS SagaId, count(DISTINCT g.id) AS Owned, coalesce(sum(o.playtime), 0) AS Playtime, max(o.last_played) AS LastPlayed
+            FROM source o JOIN version v ON v.id = o.version_id JOIN game g ON g.id = v.game_id {Where(one)}
             GROUP BY coalesce(g.saga_id, 0)
-            """, new { only }).ToDictionary(a => a.SagaId);
-        // La popularidad, aparte: con las versiones en el JOIN se sumaría una vez por versión.
-        var onPlatform = string.IsNullOrEmpty(platform) ? "" : "EXISTS (SELECT 1 FROM version v WHERE v.game_id = g.id AND v.platform = @platform)";
-        var popularity = c.Query<(long SagaId, long Popularity)>($"""
-            SELECT coalesce(g.saga_id, 0), coalesce(sum(g.popularity), 0) FROM game g {Where(one, onPlatform)}
-            GROUP BY coalesce(g.saga_id, 0)
-            """, new { only, platform }).ToDictionary(p => p.SagaId, p => p.Popularity);
-        // La portada de una saga: la del primer juego (por año) que la tenga.
-        var covers = Covers(db);
-        var coverOf = c.Query<(long SagaId, long Id)>($"SELECT coalesce(saga_id, 0), id FROM game g {Where(one)} ORDER BY year IS NULL, year, id", new { only })
-            .Where(g => covers.Contains(g.Id)).GroupBy(g => g.SagaId).ToDictionary(g => g.Key, g => g.First().Id);
+            """, args).ToDictionary(a => a.SagaId);
+        // Con una consola elegida, la popularidad cuenta solo sus juegos (#166).
+        var popularity = string.IsNullOrEmpty(platform)
+            ? games.ToDictionary(x => x.Key, x => x.Value.Popularity)
+            : c.Query<(long SagaId, long Popularity)>($"""
+                SELECT coalesce(g.saga_id, 0), coalesce(sum(g.popularity), 0) FROM game g
+                {Where(one, "EXISTS (SELECT 1 FROM version v WHERE v.game_id = g.id AND v.platform = @platform)")}
+                GROUP BY coalesce(g.saga_id, 0)
+                """, args).ToDictionary(p => p.SagaId, p => p.Popularity);
 
         var rows = c.Query<SagaRow>($"""
             SELECT s.id, s.name, coalesce(u.favorite, 0) AS Favorite, coalesce(u.following, 0) AS Following, s.iconic
-            FROM saga s LEFT JOIN saga_user u ON u.saga_id = s.id {(only is null ? "" : "WHERE s.id = @only")}
-            """, new { only }).ToList();
-        if (aggs.ContainsKey(0)) rows.Add(new SagaRow());
+            FROM saga s LEFT JOIN saga_user u ON u.saga_id = s.id {(only is not null ? "WHERE s.id = @only" : ids is not null ? "WHERE s.id IN @ids" : "")}
+            """, args).ToList();
+        if (games.ContainsKey(0)) rows.Add(new SagaRow());
         var companies = c.Query<(string Id, string? Company)>("SELECT id, company FROM console").ToDictionary(x => x.Id, x => x.Company);
         var order = ConsoleOrder(c);
 
         var cards = rows.Select(s =>
         {
-            var a = aggs.GetValueOrDefault(s.Id) ?? new SagaAgg { SagaId = s.Id };
-            var platforms = Ordered(order, a.Platforms);
-            return new SagaCard(s.Id, s.Name, s.Favorite != 0, s.Following != 0, s.Iconic != 0, platforms, (int)a.Games, (int)a.Owned,
-                coverOf.TryGetValue(s.Id, out var cover) ? cover : null, a.Playtime, a.LastPlayed,
+            var a = mine.GetValueOrDefault(s.Id) ?? new SagaAgg { SagaId = s.Id };
+            var platforms = Ordered(order, platformsOf.GetValueOrDefault(s.Id));
+            return new SagaCard(s.Id, s.Name, s.Favorite != 0, s.Following != 0, s.Iconic != 0, platforms, (int)games.GetValueOrDefault(s.Id).Games, (int)a.Owned,
+                null, a.Playtime, a.LastPlayed,
                 s.Id == 0 ? null : ExclusiveOf(platforms, companies), popularity.GetValueOrDefault(s.Id));
         });
         cards = filter switch
@@ -163,7 +195,7 @@ public static class CatalogQueries
         if (!string.IsNullOrEmpty(platform)) cards = cards.Where(s => s.Platforms.Contains(platform));
         if (!string.IsNullOrEmpty(company)) cards = cards.Where(s => s.Platforms.Any(p => companies.GetValueOrDefault(p) == company));
         var byName = cards.OrderBy(s => s.Id == 0).ThenBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase);
-        return (sort switch
+        var sorted = (sort switch
         {
             // Primero lo icónico que aprobaste, después lo más calificado en IGDB (#166).
             "recognized" => cards.OrderBy(s => s.Id == 0).ThenByDescending(s => s.Iconic).ThenByDescending(s => s.Popularity)
@@ -172,6 +204,30 @@ public static class CatalogQueries
             "activity" => cards.OrderBy(s => s.Id == 0).ThenByDescending(s => s.LastPlayed ?? "").ThenBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase),
             _ => byName,
         }).ToList();
+        return only is not null || ids is not null ? WithCovers(db, c, sorted) : sorted;
+    }
+
+    /// <summary>Un tramo de Sagas (#177): se filtran y ordenan todas, pero solo el tramo lleva portada y viaja a la pantalla.</summary>
+    public static SagaPage SagasPage(Database db, string? filter, string? platform, string? company, string? sort, int offset, int limit)
+    {
+        var all = Sagas(db, filter, platform, company, sort);
+        using var c = db.Open();
+        return new SagaPage(WithCovers(db, c, all.Skip(offset).Take(limit).ToList()), all.Count);
+    }
+
+    /// <summary>La portada de cada saga: la del primer juego (por año) que la tenga. Solo de las que se muestran.</summary>
+    static List<SagaCard> WithCovers(Database db, SqliteConnection c, List<SagaCard> cards)
+    {
+        if (cards.Count == 0) return cards;
+        var covers = Covers(db);
+        var ids = JsonSerializer.Serialize(cards.Select(s => s.Id));
+        var coverOf = c.Query<(long SagaId, long Id, long? Year)>("""
+            SELECT coalesce(g.saga_id, 0), g.id, g.year FROM game g
+            WHERE g.saga_id IN (SELECT value FROM json_each(@ids)) OR (g.saga_id IS NULL AND 0 IN (SELECT value FROM json_each(@ids)))
+            """, new { ids })
+            .Where(g => covers.Contains(g.Id)).GroupBy(g => g.SagaId)
+            .ToDictionary(g => g.Key, g => g.MinBy(x => (x.Year is null, x.Year ?? 0, x.Id)).Id);
+        return cards.Select(s => s with { CoverGameId = coverOf.TryGetValue(s.Id, out var cover) ? cover : null }).ToList();
     }
 
     static string Where(params string[] conditions) =>
@@ -189,9 +245,20 @@ public static class CatalogQueries
         var card = Sagas(db, only: id).FirstOrDefault();
         if (card is null) return null;
         using var c = db.Open();
-        var games = Games(db, c, id == 0 ? "WHERE g.saga_id IS NULL ORDER BY g.year IS NULL, g.year, g.name_es" : "WHERE g.saga_id = @id ORDER BY g.year IS NULL, g.year, g.name_es", new { id });
-        return new SagaDetail(card, games);
+        return new SagaDetail(card, SagaGames(db, c, id, 0, PageSize));
     }
+
+    /// <summary>Un tramo de los juegos de una saga, por año (#177): «Emulación» tiene 30.000.</summary>
+    public static GamePage SagaGames(Database db, long id, int offset, int limit)
+    {
+        using var c = db.Open();
+        var total = c.ExecuteScalar<int>(id == 0 ? "SELECT count(*) FROM game WHERE saga_id IS NULL" : "SELECT count(*) FROM game WHERE saga_id = @id", new { id });
+        return new GamePage(SagaGames(db, c, id, offset, limit), total);
+    }
+
+    static List<GameCard> SagaGames(Database db, SqliteConnection c, long id, int offset, int limit) =>
+        Games(db, c, $"{(id == 0 ? "WHERE g.saga_id IS NULL" : "WHERE g.saga_id = @id")} ORDER BY g.year IS NULL, g.year, g.name_es LIMIT @limit OFFSET @offset",
+            new { id, offset, limit });
 
     public static bool SetSagaFlags(Database db, long id, bool? favorite, bool? following)
     {
@@ -218,7 +285,7 @@ public static class CatalogQueries
 
     /// <param name="filter">owned, missing o pc (tiene versión de PC).</param>
     /// <param name="sort">saga, name o year.</param>
-    public static CollectionPage Collection(Database db, string platform, string? filter = null, string? sort = null)
+    public static CollectionPage Collection(Database db, string platform, string? filter = null, string? sort = null, int offset = 0, int limit = PageSize)
     {
         using var c = db.Open();
         var where = """
@@ -231,17 +298,19 @@ public static class CatalogQueries
             "pc" => " AND EXISTS (SELECT 1 FROM version v WHERE v.game_id = g.id AND v.platform = 'pc')",
             _ => "",
         };
+        var total = c.ExecuteScalar<int>($"SELECT count(*) FROM game g {where}", new { platform });
         where += sort switch
         {
             "name" => " ORDER BY g.name_es",
             "year" => " ORDER BY g.year IS NULL, g.year, g.name_es",
             _ => " ORDER BY s.name IS NULL, s.name, g.year IS NULL, g.year, g.name_es",
         };
-        var games = Games(db, c, where, new { platform });
-        var unlinked = platform == "pc" && filter != "missing"
+        var games = Games(db, c, where + " LIMIT @limit OFFSET @offset", new { platform, limit, offset });
+        // Lo de Steam que IGDB no tiene va una sola vez, con el primer tramo.
+        var unlinked = platform == "pc" && filter != "missing" && offset == 0
             ? c.Query<StoreEntry>("SELECT store, name, playtime, last_played AS LastPlayed FROM source WHERE kind = 'store' AND version_id IS NULL ORDER BY name").ToList()
             : [];
-        return new CollectionPage(games, unlinked);
+        return new CollectionPage(games, unlinked, total);
     }
 
     public static GameDetail? Game(Database db, long id)
@@ -295,8 +364,10 @@ public static class CatalogQueries
     public static SearchResults Search(Database db, string q)
     {
         var like = $"%{q.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_")}%";
-        var sagas = Sagas(db).Where(s => s.Id != 0 && s.Name.Contains(q, StringComparison.CurrentCultureIgnoreCase)).Take(8).ToList();
         using var c = db.Open();
+        // Solo las sagas que coinciden (#106): armar todas para filtrar después costaba lo mismo que la pantalla Sagas.
+        var ids = c.Query<long>(@"SELECT id FROM saga WHERE name LIKE @like ESCAPE '\'", new { like }).ToArray();
+        var sagas = ids.Length == 0 ? [] : Sagas(db, ids: ids).Where(s => s.Name.Contains(q, StringComparison.CurrentCultureIgnoreCase)).Take(8).ToList();
         var games = Games(db, c, """
             WHERE g.name_es LIKE @like ESCAPE '\' OR g.original_name LIKE @like ESCAPE '\'
             ORDER BY g.name_es LIKE @start ESCAPE '\' DESC, g.year IS NULL, g.year LIMIT 20

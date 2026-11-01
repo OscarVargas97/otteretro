@@ -1,18 +1,16 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { SagaTile, useConsoles } from "@/components/Catalog";
 import { Empty } from "@/components/Shell";
-import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
-import type { SagaCard } from "@/lib/types";
+import { usePaged } from "@/lib/paged";
+import type { SagaPage } from "@/lib/types";
 
 const FILTERS = ["all", "favorite", "following", "iconic", "exclusive", "owned", "pc"] as const;
 const COMPANIES = ["Nintendo", "Sony", "Microsoft"];
 const SORTS = ["recognized", "name", "played", "activity"] as const;
-const STEP = 60; // tarjetas que se agregan cada vez (#96)
 
 /**
  * Sagas (§3.1): cuadrícula con filtros y orden. «Emulación» va siempre al final. El filtro y la plataforma (empresa o consola)
@@ -30,27 +28,15 @@ export default function Sagas() {
   const [kind, value] = where.split(":");
   if (kind === "company") params.set("company", value);
   if (kind === "console") params.set("platform", value);
-  const sagas = useQuery({ queryKey: ["sagas", filter, where, sort], queryFn: () => request<SagaCard[]>(`/api/sagas?${params}`), placeholderData: (previous) => previous });
-
-  // Scroll infinito (#96): la lista llega entera, pero se dibujan de a 60 y se agregan más varias pantallas antes del final.
+  // Scroll infinito por tramos (#96, #177): el servidor filtra y ordena, y manda de a 60.
+  const sagas = usePaged(["sagas", filter, where, sort], (offset) => `/api/sagas?${params}&offset=${offset}`, (p: SagaPage) => ({ items: p.items, total: Number(p.total) }));
   const view = `${filter}|${where}|${sort}`;
-  const [shown, setShown] = useState({ view, count: STEP });
-  if (shown.view !== view) setShown({ view, count: STEP }); // otro filtro u orden: desde el principio
-  useEffect(() => { window.scrollTo({ top: 0 }); }, [view]);
-  const total = sagas.data?.length ?? 0;
-  const end = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const node = end.current;
-    if (!node || shown.count >= total) return;
-    const watch = new IntersectionObserver(([e]) => { if (e.isIntersecting) setShown((s) => ({ ...s, count: s.count + STEP })); }, { rootMargin: "0px 0px 2500px 0px" });
-    watch.observe(node);
-    return () => watch.disconnect();
-  }, [shown.count, total]);
+  useEffect(() => { window.scrollTo({ top: 0 }); }, [view]); // otro filtro u orden: desde el principio
 
   const chip = (id: string, label: string) => (
     <button key={id} className="chip" type="button" aria-pressed={filter === id} onClick={() => setFilter(id)}>{label}</button>
   );
-  const nothingLoaded = filter === "all" && where === "" && sagas.data?.length === 0;
+  const nothingLoaded = filter === "all" && where === "" && !!sagas.data && sagas.total === 0;
 
   return (
     <div className="content">
@@ -74,11 +60,11 @@ export default function Sagas() {
       )}
       {sagas.isError && <p className="error small" role="alert">{describe(sagas.error)}</p>}
       {nothingLoaded && <Empty title={t("emptyTitle")} text={t("emptyText")} />}
-      {!nothingLoaded && sagas.data?.length === 0 && <p className="muted">{t("noMatch")}</p>}
+      {!nothingLoaded && sagas.data && sagas.total === 0 && <p className="muted">{t("noMatch")}</p>}
       <div className="grid-cards">
-        {sagas.data?.slice(0, shown.count).map((s) => <SagaTile key={s.id} saga={s} />)}
+        {sagas.items.map((s) => <SagaTile key={s.id} saga={s} />)}
       </div>
-      <div ref={end} aria-hidden="true" />
+      <div ref={sagas.end} aria-hidden="true" />
     </div>
   );
 }

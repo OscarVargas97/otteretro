@@ -1,3 +1,4 @@
+using Dapper;
 using System.Globalization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Otteretro.App;
@@ -22,11 +23,15 @@ public static class CatalogEndpoints
 
     public static void Map(RouteGroupBuilder api)
     {
-        api.MapGet("/sagas", Results<Ok<List<SagaCard>>, Conflict<ApiError>> (AppSession s, string? filter, string? platform, string? company, string? sort) =>
-            Db(s) is { } db ? TypedResults.Ok(CatalogQueries.Sagas(db, filter, platform, company, sort)) : NoData());
+        api.MapGet("/sagas", Results<Ok<SagaPage>, Conflict<ApiError>> (AppSession s, string? filter, string? platform, string? company, string? sort,
+            int offset = 0, int limit = CatalogQueries.PageSize) =>
+            Db(s) is { } db ? TypedResults.Ok(CatalogQueries.SagasPage(db, filter, platform, company, sort, Math.Max(0, offset), Math.Clamp(limit, 1, 500))) : NoData());
 
         api.MapGet("/sagas/{id:long}", Results<Ok<SagaDetail>, NotFound, Conflict<ApiError>> (long id, AppSession s) =>
             Db(s) is not { } db ? NoData() : CatalogQueries.Saga(db, id) is { } saga ? TypedResults.Ok(saga) : TypedResults.NotFound());
+
+        api.MapGet("/sagas/{id:long}/games", Results<Ok<GamePage>, Conflict<ApiError>> (long id, AppSession s, int offset = 0, int limit = CatalogQueries.PageSize) =>
+            Db(s) is { } db ? TypedResults.Ok(CatalogQueries.SagaGames(db, id, Math.Max(0, offset), Math.Clamp(limit, 1, 500))) : NoData());
 
         api.MapPut("/sagas/{id:long}", Results<Ok<SagaDetail>, NotFound, Conflict<ApiError>> (long id, SagaFlagsRequest request, AppSession s) =>
         {
@@ -60,10 +65,12 @@ public static class CatalogEndpoints
         api.MapPost("/catalog/refresh", Results<Ok<long>, Conflict<ApiError>> (AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(IgdbImport.EnqueueRefresh(db)) : NoData());
 
-        api.MapGet("/collection/{platform}", Results<Ok<CollectionPage>, NotFound, Conflict<ApiError>> (string platform, AppSession s, string? filter, string? sort) =>
+        api.MapGet("/collection/{platform}", Results<Ok<CollectionPage>, NotFound, Conflict<ApiError>> (string platform, AppSession s, string? filter, string? sort, int offset = 0, int limit = CatalogQueries.PageSize) =>
         {
             if (Db(s) is not { } db) return NoData();
-            return CatalogQueries.Consoles(db).Any(c => c.Id == platform) ? TypedResults.Ok(CatalogQueries.Collection(db, platform, filter, sort)) : TypedResults.NotFound();
+            using (var c = db.Open())
+                if (c.ExecuteScalar<long>("SELECT count(*) FROM console WHERE id = @platform", new { platform }) == 0) return TypedResults.NotFound();
+            return TypedResults.Ok(CatalogQueries.Collection(db, platform, filter, sort, Math.Max(0, offset), Math.Clamp(limit, 1, 500)));
         });
 
         api.MapGet("/games/{id:long}", Results<Ok<GameDetail>, NotFound, Conflict<ApiError>> (long id, AppSession s) =>

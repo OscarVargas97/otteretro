@@ -232,6 +232,27 @@ public static class FolderMove
         }
     }
 
+    static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (long Size, DateTime At)> sizes = new();
+    static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Task> measuring = new();
+
+    /// <summary>
+    /// Lo que ocupa la carpeta según la última medición, o null si todavía no hay ninguna (#106, #177). Recorrerla tarda un
+    /// segundo con 25.000 portadas: se mide por detrás, al arrancar y cuando la medición tiene más de un minuto.
+    /// </summary>
+    public static long? RememberedSize(string folder)
+    {
+        (long Size, DateTime At)? known = sizes.TryGetValue(folder, out var s) ? s : null;
+        if (known is null || DateTime.UtcNow - known.Value.At > TimeSpan.FromMinutes(1))
+            measuring.GetOrAdd(folder, f => Task.Run(() =>
+            {
+                try { sizes[f] = (Size(f), DateTime.UtcNow); }
+                catch (IOException) { } // un archivo que se borró mientras se medía: se vuelve a medir en el próximo pedido
+                catch (UnauthorizedAccessException) { }
+                finally { measuring.TryRemove(f, out _); }
+            }));
+        return known?.Size;
+    }
+
     public static long Size(string folder) =>
         Directory.Exists(folder)
             ? Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories).Sum(f => new FileInfo(f).Length)

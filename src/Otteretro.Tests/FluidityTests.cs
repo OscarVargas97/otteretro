@@ -17,14 +17,8 @@ public class FluidityTests(ITestOutputHelper output) : IAsyncLifetime
 {
     const int BudgetMs = 200;
 
-    /// <summary>Las que hoy se pasan (medidas el 2026-10-31); las arregla #106 y salen de aquí. Ninguna nueva puede sumarse.</summary>
-    static readonly HashSet<string> OverBudget =
-    [
-        "/api/sagas", "/api/sagas?sort=recognized", "/api/sagas?filter=owned", "/api/sagas?filter=exclusive&company=Nintendo",
-        "/api/sagas?platform=switch", "/api/consoles", "/api/sagas/0",
-        "/api/collection/pc", "/api/collection/pc?filter=owned", "/api/collection/switch?filter=missing&sort=name",
-        "/api/search?q=juego%2012", "/api/data-folder", "/api/consoles/settings",
-    ];
+    /// <summary>Las que se pasan del presupuesto. #106 las dejó todas dentro; ninguna nueva puede sumarse.</summary>
+    static readonly HashSet<string> OverBudget = [];
 
     readonly Fixture f = new();
     WebApplication app = null!;
@@ -44,12 +38,12 @@ public class FluidityTests(ITestOutputHelper output) : IAsyncLifetime
                 SELECT i, CASE WHEN i <= 400 THEN 1 WHEN i <= 20000 THEN 2 + i % 5799 END,
                        'Juego ' || i, 'Game ' || i, 1980 + i % 45, i, i % 997 FROM n;
 
-                -- Dos o tres versiones por juego, repartidas en las consolas.
+                -- Dos o tres versiones por juego. Como en el catálogo real, los juegos de una saga comparten consolas (~4 consolas por saga).
                 CREATE TEMP TABLE p AS SELECT id, row_number() OVER (ORDER BY rowid) - 1 AS k FROM console;
                 INSERT INTO version (game_id, platform, kind, year, igdb_id)
-                SELECT g.id, p.id, 'original', g.year, g.id FROM game g JOIN p ON p.k = g.id % (SELECT count(*) FROM p);
+                SELECT g.id, p.id, 'original', g.year, g.id FROM game g JOIN p ON p.k = coalesce(g.saga_id, g.id) % (SELECT count(*) FROM p);
                 INSERT INTO version (game_id, platform, kind, year, igdb_id)
-                SELECT g.id, p.id, 'remaster', g.year + 5, g.id FROM game g JOIN p ON p.k = (g.id * 7 + 3) % (SELECT count(*) FROM p)
+                SELECT g.id, p.id, 'remaster', g.year + 5, g.id FROM game g JOIN p ON p.k = (coalesce(g.saga_id, g.id) * 7 + 3) % (SELECT count(*) FROM p)
                 WHERE NOT EXISTS (SELECT 1 FROM version v WHERE v.game_id = g.id AND v.platform = p.id);
                 INSERT INTO version (game_id, platform, kind, year, igdb_id)
                 SELECT g.id, 'pc', 'original', g.year, g.id FROM game g
@@ -91,7 +85,7 @@ public class FluidityTests(ITestOutputHelper output) : IAsyncLifetime
         "/api/state", "/api/notices", "/api/home/next", "/api/review", "/api/review/count", "/api/tasks",
         "/api/sagas", "/api/sagas?sort=recognized", "/api/sagas?filter=owned", "/api/sagas?filter=exclusive&company=Nintendo",
         "/api/sagas?platform=switch", "/api/consoles",
-        "/api/sagas/1", "/api/sagas/1/routes", "/api/sagas/0",
+        "/api/sagas/1", "/api/sagas/1/routes", "/api/sagas/0", "/api/sagas/0/games?offset=600",
         "/api/games/1", "/api/games/1/compare",
         "/api/collection/pc", "/api/collection/pc?filter=owned", "/api/collection/switch?filter=missing&sort=name",
         "/api/search?q=juego%2012",

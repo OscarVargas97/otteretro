@@ -631,6 +631,8 @@ export interface paths {
                     platform?: string;
                     company?: string;
                     sort?: string;
+                    offset?: number | string;
+                    limit?: number | string;
                 };
                 header?: never;
                 path?: never;
@@ -644,7 +646,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["SagaCard"][];
+                        "application/json": components["schemas"]["SagaPage"];
                     };
                 };
                 /** @description Conflict */
@@ -753,6 +755,55 @@ export interface paths {
                 };
             };
         };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sagas/{id}/games": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    offset?: number | string;
+                    limit?: number | string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GamePage"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -1085,6 +1136,8 @@ export interface paths {
                 query?: {
                     filter?: string;
                     sort?: string;
+                    offset?: number | string;
+                    limit?: number | string;
                 };
                 header?: never;
                 path: {
@@ -2596,6 +2649,8 @@ export interface components {
         CollectionPage: {
             games: components["schemas"]["GameCard"][];
             unlinked: components["schemas"]["StoreEntry"][];
+            /** Format: int32 */
+            total: number | string;
         };
         ConsoleCount: {
             id: string;
@@ -2673,7 +2728,7 @@ export interface components {
         FolderInfo: {
             path: null | string;
             /** Format: int64 */
-            used: number | string;
+            used: null | number | string;
             /** Format: int64 */
             freeOnDrive: number | string;
         };
@@ -2715,6 +2770,11 @@ export interface components {
             /** Format: int64 */
             playtime: number | string;
             lastPlayed: null | string;
+        };
+        GamePage: {
+            items: components["schemas"]["GameCard"][];
+            /** Format: int32 */
+            total: number | string;
         };
         LanguageRequest: {
             language: string;
@@ -2869,6 +2929,11 @@ export interface components {
         SagaFlagsRequest: {
             favorite: null | boolean;
             following: null | boolean;
+        };
+        SagaPage: {
+            items: components["schemas"]["SagaCard"][];
+            /** Format: int32 */
+            total: number | string;
         };
         SearchResults: {
             sagas: components["schemas"]["SagaCard"][];

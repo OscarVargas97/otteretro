@@ -1,14 +1,13 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useFormatter, useTranslations } from "next-intl";
 import { Suspense, useState } from "react";
 import { GameTile, hours, useConsoles } from "@/components/Catalog";
 import { Empty } from "@/components/Shell";
-import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
+import { usePaged } from "@/lib/paged";
 import type { CollectionPage, ConsoleCount } from "@/lib/types";
 
 const FILTERS = ["all", "owned", "missing", "pc"] as const;
@@ -38,15 +37,12 @@ function Collection() {
   // Sin consola en la URL, la primera que tenga juegos.
   const selected = useSearchParams().get("console") ?? consoles.data?.find((c) => Number(c.games) > 0)?.id ?? consoles.data?.[0]?.id;
   const current = consoles.data?.find((c) => c.id === selected);
-  const page = useQuery({
-    queryKey: ["collection", selected, filter, sort],
-    queryFn: () => request<CollectionPage>(`/api/collection/${selected}?${new URLSearchParams({ filter, sort })}`),
-    enabled: !!selected,
-    placeholderData: (previous) => previous,
-  });
+  // Por tramos al bajar (#177): PC tiene 20.000 juegos. Lo de Steam sin IGDB llega con el primero.
+  const page = usePaged(["collection", selected, filter, sort], (offset) => `/api/collection/${selected}?${new URLSearchParams({ filter, sort, offset: String(offset) })}`,
+    (p: CollectionPage) => ({ items: p.games, total: Number(p.total) }), !!selected);
 
-  const games = page.data?.games ?? [];
-  const unlinked = page.data?.unlinked ?? [];
+  const games = page.items;
+  const unlinked = page.data?.pages[0].unlinked ?? [];
   const isPc = selected === "pc";
 
   return (
@@ -106,6 +102,7 @@ function Collection() {
             </table>
           </div>
         )}
+        <div ref={page.end} aria-hidden="true" />
 
         {unlinked.length > 0 && (
           <section className="sec">

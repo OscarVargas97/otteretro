@@ -8,7 +8,8 @@ import { Cover, Platforms, useConsoleName, useConsoles, useIdParam } from "@/com
 import { Empty } from "@/components/Shell";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
-import type { RoutesPage, SagaDetail } from "@/lib/types";
+import { usePaged } from "@/lib/paged";
+import type { GamePage, RoutesPage, SagaDetail } from "@/lib/types";
 
 // El detalle de una saga se abre como /saga/?id=… (0 = Emulación).
 export default function SagaPage() {
@@ -23,6 +24,8 @@ function Saga() {
   const cache = useQueryClient();
   const consoles = useConsoles().data;
   const saga = useQuery({ queryKey: ["saga", id], queryFn: () => request<SagaDetail>(`/api/sagas/${id}`), enabled: id !== null });
+  // La tabla sigue por tramos al bajar (#177): «Emulación» tiene miles de juegos; la ficha trae los primeros 60.
+  const more = usePaged(["saga", id, "games"], (offset) => `/api/sagas/${id}/games?offset=${offset}`, (p: GamePage) => ({ items: p.items, total: Number(p.total) }), id !== null);
   const flags = useMutation({
     mutationFn: (body: { favorite?: boolean; following?: boolean }) => request<SagaDetail>(`/api/sagas/${id}`, { method: "PUT", body: JSON.stringify(body) }),
     onSuccess: (data) => {
@@ -64,12 +67,12 @@ function Saga() {
       <div className="content">
         {!emulation && <Routes sagaId={String(s.id)} />}
         <section className="sec">
-          <div className="sec-h"><h2>{t("saga.allGames")}</h2><span className="small muted">{t("games", { count: games.length })}</span></div>
+          <div className="sec-h"><h2>{t("saga.allGames")}</h2><span className="small muted">{t("games", { count: Number(s.games) })}</span></div>
           <div className="panel table-wrap" style={{ padding: 0 }}>
             <table className="t">
               <thead><tr><th>{t("saga.game")}</th><th>{t("saga.year")}</th><th>{t("saga.platforms")}</th><th>{t("saga.state")}</th></tr></thead>
               <tbody>
-                {games.map((g) => (
+                {(more.data ? more.items : games).map((g) => (
                   <tr key={g.id} className={g.platforms.length === 0 ? "is-unplayable" : undefined}>
                     <td><Link href={`/game/?id=${g.id}`}>{g.name}</Link></td>
                     <td>{g.year ?? "—"}</td>
@@ -84,6 +87,7 @@ function Saga() {
                 ))}
               </tbody>
             </table>
+            <div ref={more.end} aria-hidden="true" />
           </div>
         </section>
       </div>

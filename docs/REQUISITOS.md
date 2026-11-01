@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-10-31, con la #169 a la #176 (revisión de UI de toda la app y fluidez primero, encuesta 15), la #165 a la #168 (exclusivas, más reconocidas, catálogo separado de tus datos), la #162, la #163 y la #164 (consolas que habilitas tú, catálogo al día cada semana y reevaluar icónicas), la #161 (corregir lo que cambió Claude), la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
+> **Última actualización:** 2026-10-31, con la #169 a la #177 (revisión de UI de toda la app y fluidez primero, encuesta 15), la #165 a la #168 (exclusivas, más reconocidas, catálogo separado de tus datos), la #162, la #163 y la #164 (consolas que habilitas tú, catálogo al día cada semana y reevaluar icónicas), la #161 (corregir lo que cambió Claude), la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
 
 ## Cómo se mantiene
 
@@ -447,6 +447,7 @@ Así, cada tarea que Claude resolvía pasa a un script y la app depende cada vez
 
 ### 12.7 Fluidez primero (#173, #174)
 **Regla para todo lo que se haga:** el marco de cada pantalla aparece en menos de 100 ms y ninguna consulta pasa de 200 ms con los datos reales; una prueba lo mide y está en la revisión de cada PR. Se logra con esqueletos de la forma real, datos ya vistos al instante y adelantados al pasar por un enlace, bloques y selectores que cargan por su cuenta, consultas con índices o precalculadas, cambios que se ven al tocar y el marco de la app antes que los datos.
+- **En concreto (#177):** consultas simples con índices, sin copias guardadas de respuestas de la base (nunca datos viejos); lo que lee el disco (portadas, tamaño de la carpeta) se recuerda; toda lista larga es scroll infinito pedido por tramos de 60 al servidor (Colección, saga «Emulación», Sagas, Buscar, Aprendizajes).
 
 ## 13. Pendientes
 

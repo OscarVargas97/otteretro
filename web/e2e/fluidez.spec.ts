@@ -8,11 +8,8 @@ const FRAME_MS = 100;
 const DATA_MS = 300;
 const SHIFT = 0.01;
 
-/** Las que hoy se pasan (2026-10-31), por medida; las arreglan #105 y #106 y salen de aquí. Ninguna nueva puede sumarse. */
-const OVER_BUDGET = new Set<string>([
-  "datos: Sagas", "datos: Ajustes › Consolas",
-  "desplazamiento: Una saga", "desplazamiento: Un juego",
-]);
+/** Las que hoy se pasan, por medida; la arregla #105 y sale de aquí. Ninguna nueva puede sumarse. */
+const OVER_BUDGET = new Set<string>(["desplazamiento: Un juego"]);
 
 test.describe.configure({ mode: "serial" });
 let page: Page;
@@ -32,7 +29,7 @@ test.beforeAll(async ({ browser }) => {
            'Juego grande ' || i, 'Big game ' || i, 1980 + i % 45, 1000000 + i, i % 997 FROM n;
     CREATE TEMP TABLE p AS SELECT id, row_number() OVER (ORDER BY rowid) - 1 AS k FROM console;
     INSERT INTO version (game_id, platform, kind, year, igdb_id)
-    SELECT g.id, p.id, 'original', g.year, g.id FROM game g JOIN p ON p.k = g.id % (SELECT count(*) FROM p) WHERE g.id > 1000000;
+    SELECT g.id, p.id, 'original', g.year, g.id FROM game g JOIN p ON p.k = coalesce(g.saga_id, g.id) % (SELECT count(*) FROM p) WHERE g.id > 1000000;
     INSERT INTO version (game_id, platform, kind, year, igdb_id)
     SELECT g.id, 'pc', 'original', g.year, g.id FROM game g
     WHERE g.id > 1000000 AND g.id % 3 = 0 AND NOT EXISTS (SELECT 1 FROM version v WHERE v.game_id = g.id AND v.platform = 'pc');

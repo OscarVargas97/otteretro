@@ -147,6 +147,7 @@
   },
   "dataFolder": {
     "usage": "Ocupa {used} · {free} libres en ese disco",
+    "usageMeasuring": "Midiendo lo que ocupa · {free} libres en ese disco",
     "moveButton": "Mover a otra carpeta…",
     "useButton": "Usar otra carpeta…",
     "contents": "Base de datos, Herramientas, caché de imágenes y registro de errores.",

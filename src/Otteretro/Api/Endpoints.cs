@@ -20,7 +20,8 @@ public record ApiError(string Code, Dictionary<string, string>? Params = null)
 }
 /// <summary>Un disco para la carpeta de datos: la carpeta que propone y si es la sugerida.</summary>
 public record Drive(string Name, long Free, long Total, string Folder, bool Suggested);
-public record FolderInfo(string? Path, long Used, long FreeOnDrive);
+/// <param name="Used">Null mientras se mide por primera vez.</param>
+public record FolderInfo(string? Path, long? Used, long FreeOnDrive);
 
 /// <summary>Endpoints base de F0. Cada módulo añadirá los suyos.</summary>
 public static class Endpoints
@@ -47,7 +48,7 @@ public static class Endpoints
         {
             var folder = s.Config.DataFolder;
             var root = folder is null ? null : Mounts.Of(folder);
-            return new FolderInfo(folder, folder is null ? 0 : FolderMove.Size(folder),
+            return new FolderInfo(folder, folder is null ? 0 : FolderMove.RememberedSize(folder),
                 root is not null && Directory.Exists(root) ? new DriveInfo(root).AvailableFreeSpace : 0);
         });
 

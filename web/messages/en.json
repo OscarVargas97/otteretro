@@ -147,6 +147,7 @@
   },
   "dataFolder": {
     "usage": "Uses {used} · {free} free on that drive",
+    "usageMeasuring": "Measuring its size · {free} free on that drive",
     "moveButton": "Move to another folder…",
     "useButton": "Use another folder…",
     "contents": "Database, Tools, image cache and error log.",
