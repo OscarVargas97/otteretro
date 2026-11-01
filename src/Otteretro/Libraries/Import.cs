@@ -97,7 +97,6 @@ public static partial class Import
         using (var c = db.Open()) consoles = c.Query<(string, string)>("SELECT id, name FROM console").ToList();
         var catalog = Scan.Catalog(db);
         var aliases = Scan.Aliases(db);
-        var keys = SwitchTitle.HeaderKey(Scan.SystemFolders(db, Disk.List(db)));
 
         var entryDisk = job.EntryDisk is null ? null : Disk.Get(db, job.EntryDisk);
         if (job.EntryDisk is not null && entryDisk is not { Connected: true }) throw new TaskException(ApiError.Of("library.notConnected"));
@@ -115,7 +114,7 @@ public static partial class Import
                 if (!File.Exists(Path.Combine(entryDisk.Path, relative))) c.Execute("DELETE FROM source WHERE id = @id", new { id });
         }
 
-        var pass = new Pass(run, db, job, entryDisk, consoles, catalog, aliases, keys,
+        var pass = new Pass(run, db, job, entryDisk, consoles, catalog, aliases,
             (run.Credentials.Read("archives.passwords") ?? "").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
         await Place(pass, files.Where(f => !Archives.IsArchive(f)).ToList(), job.Path, null, ct);
         foreach (var main in files.Where(Archives.IsMain).ToList()) await Unpack(pass, main, ct);
@@ -129,7 +128,7 @@ public static partial class Import
 
     /// <summary>Lo que se comparte en una importación.</summary>
     sealed record Pass(TaskRun Run, Database Db, Job Job, DiskInfo? EntryDisk, List<(string Id, string Name)> Consoles,
-        Dictionary<string, Dictionary<string, HashSet<long>>> Catalog, Dictionary<string, Dictionary<string, HashSet<long>>> Aliases, byte[]? Keys, string[] Passwords)
+        Dictionary<string, Dictionary<string, HashSet<long>>> Catalog, Dictionary<string, Dictionary<string, HashSet<long>>> Aliases, string[] Passwords)
     {
         public Dictionary<string, (long? Version, string Folder)> Bases { get; } = [];
         public HashSet<string> Taken { get; } = new(StringComparer.OrdinalIgnoreCase);
@@ -210,7 +209,7 @@ public static partial class Import
         var (run, db) = (p.Run, p.Db);
         var extra = archive?.Folders ?? [];
         var items = files.Where(f => Scan.GameExtensions.Contains(Path.GetExtension(f)) && !Archives.IsArchive(f))
-            .Select(f => Classify(f, Folders(Path.GetDirectoryName(f)!, root).Concat(extra), p.Consoles, p.Keys))
+            .Select(f => Classify(f, Folders(Path.GetDirectoryName(f)!, root).Concat(extra), p.Consoles))
             // Primero lo que lleva otros archivos, y el BASE antes que sus UPD y DLC, que van a su carpeta.
             .OrderBy(i => Path.GetExtension(i.Path).ToLowerInvariant() switch { ".m3u" => 0, ".cue" => 1, _ => 2 })
             .ThenBy(i => i.Component switch { "BASE" => 0, null => 1, _ => 2 })
@@ -319,7 +318,7 @@ public static partial class Import
         File.Delete(from);
     }
 
-    static Item Classify(string file, IEnumerable<string> folders, List<(string Id, string Name)> consoles, byte[]? keys)
+    static Item Classify(string file, IEnumerable<string> folders, List<(string Id, string Name)> consoles)
     {
         var ext = Path.GetExtension(file);
         // Una carpeta del camino que se llama como una consola manda, también la que se eligió («…\GameCube»).
@@ -331,7 +330,7 @@ public static partial class Import
         console ??= serial?[0] switch { 'G' or 'D' => "gc", 'R' or 'S' => "wii", _ => null };
         if (console != "switch") return new(file, console, serial, null);
         var name = Path.GetFileNameWithoutExtension(file);
-        var titleId = Scan.TitleIdInName().Match(name) is { Success: true } m ? m.Groups[1].Value.ToUpperInvariant() : SwitchTitle.Read(file, keys);
+        var titleId = Scan.TitleIdInName().Match(name) is { Success: true } m ? m.Groups[1].Value.ToUpperInvariant() : null;
         return new(file, console, titleId, titleId is null ? null : Scan.ComponentOf(titleId));
     }
 

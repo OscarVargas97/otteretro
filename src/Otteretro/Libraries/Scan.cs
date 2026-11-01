@@ -42,8 +42,6 @@ public static partial class Scan
     {
         var folders = Disk.ConsoleFolders(run.Db);
         var libraries = Disk.List(run.Db).ToDictionary(l => l.Id);
-        byte[]? keys = null;
-        var keysRead = false;
         var catalog = Catalog(run.Db);
         var aliases = Aliases(run.Db);
         int files = 0, matched = 0;
@@ -67,11 +65,6 @@ public static partial class Scan
                     if (console == "switch")
                     {
                         titleId = TitleIdInName().Match(name) is { Success: true } m ? m.Groups[1].Value.ToUpperInvariant() : null;
-                        if (titleId is null)
-                        {
-                            if (!keysRead) (keys, keysRead) = (SwitchTitle.HeaderKey(SystemFolders(run.Db, libraries.Values)), true);
-                            titleId = SwitchTitle.Read(file, keys);
-                        }
                         component = titleId is null ? null : ComponentOf(titleId);
                     }
                     else titleId = Serial(file);
@@ -275,11 +268,6 @@ public static partial class Scan
     /// <summary>La marca de GameCube (0x1C) o Wii (0x18) en la cabecera del disco.</summary>
     static bool IsNintendoDisc(byte[] head) =>
         head.AsSpan(0x1C, 4).SequenceEqual(new byte[] { 0xC2, 0x33, 0x9F, 0x3D }) || head.AsSpan(0x18, 4).SequenceEqual(new byte[] { 0x5D, 0x1C, 0x9E, 0xA3 });
-
-    /// <summary>Dónde buscar `prod.keys`: Sistema de cada disco o ubicación de sistema conectada, y la de Herramientas de antes.</summary>
-    internal static IEnumerable<string> SystemFolders(Database db, IEnumerable<DiskInfo> libraries) =>
-        libraries.Where(l => l.Connected).Select(l => Disk.FolderOf(l, "system")).OfType<string>()
-            .Append(Path.Combine(DiskTasks.ToolsOf(db), "Sistema"));
 
     [GeneratedRegex(@"\[(0100[0-9A-Fa-f]{12})\]")]
     internal static partial Regex TitleIdInName();

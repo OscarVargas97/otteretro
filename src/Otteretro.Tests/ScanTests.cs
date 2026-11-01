@@ -180,6 +180,19 @@ public class ScanTests
         finally { App.Trash.Fake = null; }
     }
 
+    /// <summary>#240: sin TitleID en el nombre no se abre el archivo: queda para reconocerlo por nombre, Claude o Revisar.</summary>
+    [Fact]
+    public async Task WithoutATitleIdInTheNameTheFileIsNotOpened()
+    {
+        await using var f = new Fixture();
+        Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
+        Directory.CreateDirectory(f.Tmp[@"e\Otteretro\Juegos\Switch"]);
+        File.WriteAllText(f.Tmp[@"e\Otteretro\Juegos\Switch\juego.nsp"], "no es un NSP");
+        Assert.Equal("done", (await f.Run(Scan.Enqueue(f.Db))).Status);
+        using var c = f.Db.Open();
+        Assert.Equal(((string?)null, (string?)null), c.QuerySingle<(string?, string?)>("SELECT title_id, component FROM source"));
+    }
+
     /// <summary>#182: cada carpeta de `Juegos\PC` con un .exe es un juego de PC, con su ejecutable principal, que se puede cambiar.</summary>
     [Fact]
     public async Task LoosePcGamesCountAsOwned()
@@ -213,36 +226,6 @@ public class ScanTests
         Assert.Equal("hollow_knight.exe", c2.ExecuteScalar<string>("SELECT executable FROM source WHERE relative_path LIKE '%Hollow%'"));
     }
 
-    /// <summary>IEEE 1619, vector 1 (keys en cero, sector 0): el descifrado XTS da ceros.</summary>
-    [Fact]
-    public void XtsMatchesTheStandardVector()
-    {
-        var data = Convert.FromHexString("917cf69ebd68b2ec9b9fe9a3eadda692cd43d2f59598ed858c02c2652fbf922e");
-        SwitchTitle.XtsDecrypt(new byte[32], data);
-        Assert.All(data, b => Assert.Equal(0, b));
-    }
-
-    /// <summary>#213: sin TitleID en el nombre, sale del ticket o, con tus prod.keys, de la cabecera del NCA.</summary>
-    [Fact]
-    public async Task ReadsTheTitleIdInsideTheFile()
-    {
-        await using var f = new Fixture();
-        var key = Enumerable.Range(1, 32).Select(i => (byte)i).ToArray();
-        var withTicket = f.Tmp["ticket.nsp"];
-        File.WriteAllBytes(withTicket, Pfs0(("0100F2C0115B60000000000000000000.tik", new byte[0x2C0])));
-        Assert.Equal("0100F2C0115B6000", SwitchTitle.Read(withTicket, null));
-
-        Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
-        Write(f.Tmp[@"e\Otteretro\Sistema\Switch\Keys\prod.keys"], Encoding.ASCII.GetBytes($"master_key_00 = {new string('0', 32)}\nheader_key = {Convert.ToHexString(key)}\n"));
-        File.WriteAllBytes(Directory.CreateDirectory(f.Tmp[@"e\Otteretro\Juegos\Switch\Sin nombre"]).FullName + @"\juego.nsp",
-            Pfs0(("datos.nca", new byte[0x500]), ("abcd.cnmt.nca", NcaHeader(key, 0x01007EF00011E800))));
-        Assert.Null(SwitchTitle.Read(f.Tmp[@"e\Otteretro\Juegos\Switch\Sin nombre\juego.nsp"], null));
-
-        Assert.Equal("done", (await f.Run(Scan.Enqueue(f.Db))).Status);
-        using var c = f.Db.Open();
-        Assert.Equal(("01007EF00011E800", "UPD"), c.QuerySingle<(string, string)>("SELECT title_id, component FROM source"));
-    }
-
     static void Write(string path, byte[]? content = null)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -257,59 +240,4 @@ public class ScanTests
         return head;
     }
 
-    static byte[] Pfs0(params (string Name, byte[] Data)[] files)
-    {
-        var names = new MemoryStream();
-        var table = new MemoryStream();
-        long offset = 0;
-        foreach (var (name, data) in files)
-        {
-            var entry = new byte[0x18];
-            BinaryPrimitives.WriteInt64LittleEndian(entry, offset);
-            BinaryPrimitives.WriteInt64LittleEndian(entry.AsSpan(8), data.Length);
-            BinaryPrimitives.WriteInt32LittleEndian(entry.AsSpan(16), (int)names.Length);
-            table.Write(entry);
-            names.Write(Encoding.UTF8.GetBytes(name + "\0"));
-            offset += data.Length;
-        }
-        var head = new byte[0x10];
-        Encoding.ASCII.GetBytes("PFS0").CopyTo(head, 0);
-        BinaryPrimitives.WriteInt32LittleEndian(head.AsSpan(4), files.Length);
-        BinaryPrimitives.WriteInt32LittleEndian(head.AsSpan(8), (int)names.Length);
-        return [.. head, .. table.ToArray(), .. names.ToArray(), .. files.SelectMany(x => x.Data)];
-    }
-
-    /// <summary>Una cabecera de NCA cifrada como la de Nintendo: «NCA3» en 0x200 y el TitleID en 0x210.</summary>
-    static byte[] NcaHeader(byte[] key, ulong titleId)
-    {
-        var header = new byte[0xC00];
-        Encoding.ASCII.GetBytes("NCA3").CopyTo(header, 0x200);
-        BinaryPrimitives.WriteUInt64LittleEndian(header.AsSpan(0x210), titleId);
-        using var dataKey = Aes.Create();
-        dataKey.Key = key[..16];
-        using var tweakKey = Aes.Create();
-        tweakKey.Key = key[16..];
-        for (var sector = 0; sector < header.Length / 0x200; sector++)
-        {
-            var tweak = new byte[16];
-            BinaryPrimitives.WriteUInt64BigEndian(tweak.AsSpan(8), (ulong)sector);
-            tweakKey.EncryptEcb(tweak, tweak, PaddingMode.None);
-            for (var at = sector * 0x200; at < (sector + 1) * 0x200; at += 16)
-            {
-                var block = new byte[16];
-                for (var i = 0; i < 16; i++) block[i] = (byte)(header[at + i] ^ tweak[i]);
-                dataKey.EncryptEcb(block, block, PaddingMode.None);
-                for (var i = 0; i < 16; i++) header[at + i] = (byte)(block[i] ^ tweak[i]);
-                var carry = 0;
-                for (var i = 0; i < 16; i++)
-                {
-                    var next = tweak[i] >> 7;
-                    tweak[i] = (byte)((tweak[i] << 1) | carry);
-                    carry = next;
-                }
-                if (carry != 0) tweak[0] ^= 0x87;
-            }
-        }
-        return header;
-    }
 }
