@@ -3,11 +3,20 @@ using Otteretro.Data;
 
 namespace Otteretro.App;
 
-/// <summary>La carpeta de datos que elige el usuario: lo propio (`data`), el catálogo con sus imágenes (`catalogo`, #167), Herramientas y logs (P1, S7).</summary>
+/// <summary>
+/// La carpeta de datos: lo propio (`data`), el catálogo con sus imágenes (`catalogo`, #167) y logs (P1, S7). Es la raíz
+/// `Otteretro` del disco ★ (#208): convive con Juegos, Emuladores, Ports, Complementos y Sistema, que no son suyos.
+/// </summary>
 public static class DataFolder
 {
     // Los nombres de las subcarpetas son datos del usuario: no se traducen.
-    public static readonly string[] Subfolders = ["data", Path.Combine("catalogo", "imagenes"), "Herramientas", "logs"];
+    public static readonly string[] Subfolders = ["data", Path.Combine("catalogo", "imagenes"), "logs"];
+
+    /// <summary>
+    /// Lo que es de la carpeta de datos y se muda con ella (#208): nada más. `Herramientas` y `cache` son de versiones
+    /// anteriores (#204, #167) y se llevan si quedaron.
+    /// </summary>
+    public static readonly string[] Entries = ["data", "catalogo", "logs", "Herramientas", "cache"];
 
     /// <summary>Crea la carpeta y sus subcarpetas. Devuelve el error o null si quedó lista.</summary>
     public static ApiError? Prepare(string? path)

@@ -14,6 +14,7 @@ public class FolderMoveTests
         var db = DataFolder.Open(source);
         Migrations.Apply(db);
         Migrations.RegisterMachine(db, "pc-prueba");
+        Directory.CreateDirectory(Path.Combine(source, "Herramientas"));
         File.WriteAllBytes(Path.Combine(source, "Herramientas", "emulador.bin"), Enumerable.Range(0, 100_000).Select(i => (byte)i).ToArray());
         return source;
     }
@@ -50,8 +51,10 @@ public class FolderMoveTests
 
         FolderMove.CopyAndVerify(source, destination, _ => { });
 
-        Assert.False(Directory.Exists(source));
+        Assert.False(DataFolder.IsReady(source));
         Assert.True(DataFolder.IsReady(destination));
+        Assert.Null(FolderMove.DeleteSource(source)); // quedó vacía: se borra
+        Assert.False(Directory.Exists(source));
     }
 
     [Fact]
@@ -117,14 +120,39 @@ public class FolderMoveTests
         using var tmp = new TempDir();
         var source = CreateFolder(tmp);
         var busy = tmp["ocupada"];
-        Directory.CreateDirectory(busy);
+        Directory.CreateDirectory(Path.Combine(busy, "data"));
         File.WriteAllText(Path.Combine(busy, "algo.txt"), "x");
 
         Assert.NotNull(FolderMove.Validate(source, source));                              // la misma
         Assert.NotNull(FolderMove.Validate(source, source + Path.DirectorySeparatorChar)); // la misma, con barra final
         Assert.NotNull(FolderMove.Validate(source, Path.Combine(source, "dentro")));      // dentro de la actual
-        Assert.NotNull(FolderMove.Validate(source, busy));                                // con contenido
+        Assert.NotNull(FolderMove.Validate(source, busy));                                // con otros datos
         Assert.NotNull(FolderMove.Validate(source, "relativa"));                          // incompleta
         Assert.NotNull(FolderMove.Validate(source, Path.Combine(busy, "algo.txt")));      // un archivo
+    }
+
+    /// <summary>#208: la carpeta de datos es la raíz del disco ★. Moverla lleva solo los datos; los juegos se quedan.</summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void MovesOnlyTheDataAndNeverTheGames(bool copy)
+    {
+        using var tmp = new TempDir();
+        var source = CreateFolder(tmp);
+        File.WriteAllText(Path.Combine(Directory.CreateDirectory(Path.Combine(source, @"Juegos\Switch")).FullName, "zelda.nsp"), "juego");
+        var other = tmp["otro-disco"];
+        File.WriteAllText(Path.Combine(Directory.CreateDirectory(Path.Combine(other, @"Juegos\GBA")).FullName, "metroid.gba"), "otro");
+        Assert.Null(FolderMove.Validate(source, other));
+
+        FolderMove.CopyAndVerify(source, other, _ => { }, forceCopy: copy);
+        Assert.Null(FolderMove.DeleteSource(source));
+
+        Assert.True(DataFolder.IsReady(other));
+        Assert.True(File.Exists(Path.Combine(other, @"Herramientas\emulador.bin")));
+        Assert.True(File.Exists(Path.Combine(source, @"Juegos\Switch\zelda.nsp")));
+        Assert.False(Directory.Exists(Path.Combine(source, "data")));
+        Assert.False(Directory.Exists(Path.Combine(other, @"Juegos\Switch")));
+        Assert.True(File.Exists(Path.Combine(other, @"Juegos\GBA\metroid.gba")));
+        Assert.Equal(0, FolderMove.Size(source));
     }
 }

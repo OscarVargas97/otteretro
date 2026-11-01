@@ -167,6 +167,24 @@ public static class Library
         if (DefaultDisk(db) is null) SetDefault(db, id);
     }
 
+    /// <summary>
+    /// La carpeta de datos es la raíz del disco ★ (#208): si no está registrada como disco, se registra sola, y el ★ siempre
+    /// es el de los datos. Así Almacenamiento nunca aparece vacío. Devuelve el error si no se pudo (se cruza con otra).
+    /// </summary>
+    public static ApiError? EnsureDataDisk(Database db, string dataFolder)
+    {
+        var disk = List(db).FirstOrDefault(l => l.Type == "disk" && Same(l.Path, dataFolder));
+        if (disk is null)
+        {
+            var drive = IsNetwork(dataFolder) ? Path.GetPathRoot(dataFolder)! : App.Mounts.Of(dataFolder);
+            var name = Path.TrimEndingDirectorySeparator(drive) is { Length: > 0 } n ? n : drive;
+            var (id, _, error) = Adopt(db, dataFolder, name, "disk");
+            if (error is not null) return error;
+            disk = Get(db, id!)!;
+        }
+        return disk.Default ? null : SetDefault(db, disk.Id);
+    }
+
     public static ApiError? SetDefault(Database db, string id)
     {
         if (Get(db, id) is not { } disk) return ApiError.Of("library.notFound");

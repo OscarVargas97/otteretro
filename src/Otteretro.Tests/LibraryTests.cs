@@ -483,4 +483,22 @@ public class LibraryTests
         Assert.Equal("library.conflict", LibraryTasks.EnqueueMoveItems(f.Db, from, to, [@"Juegos\GBA\metroid.gba"]).Error?.Code);
         Assert.Equal("library.outside", LibraryTasks.EnqueueMoveItems(f.Db, from, to, [@"..\x"]).Error?.Code);
     }
+
+    /// <summary>#208: la carpeta de datos se registra sola como disco y es siempre el ★.</summary>
+    [Fact]
+    public async Task TheDataFolderIsTheDefaultDisk()
+    {
+        await using var f = new Fixture();
+        var data = f.Session.Config.DataFolder!;
+        var (other, _, _) = Library.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"f\Otteretro"]).FullName, "F:", "disk");
+        Assert.Equal(other, Library.DefaultDisk(f.Db)!.Id);
+
+        Assert.Null(Library.EnsureDataDisk(f.Db, data));
+        Assert.Null(Library.EnsureDataDisk(f.Db, data)); // no la registra dos veces
+
+        var disk = Library.DefaultDisk(f.Db)!;
+        Assert.True(Library.Same(data, disk.Path));
+        Assert.Equal(2, Library.List(f.Db).Count);
+        Assert.True(Directory.Exists(Path.Combine(data, "Juegos")));
+    }
 }

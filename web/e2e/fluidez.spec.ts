@@ -90,11 +90,12 @@ test("con un catálogo grande, cada pantalla aparece al instante y no salta", as
     ["Inicio", '.sidebar a[href="/"]', content, ".content .sec"],
     ["Herramientas", '.sidebar a[href="/tools/"]', content, ".content .ot-empty, .content .version-row"],
     ["Ajustes", '.sidebar a[href="/settings/"]', content, "#settings-panel .version-row"],
-    ["Ajustes › Almacenamiento", "#tab-storage", panel, "#settings-panel .missing, #settings-panel .panel h2"],
     ["Ajustes › Cuentas y claves", "#tab-credentials", panel, "#settings-panel .cred-line"],
     ["Ajustes › Consolas", "#tab-consoles", panel, '#settings-panel input[type="checkbox"]'],
     ["Ajustes › Claude", "#tab-claude", panel, '#settings-panel input[type="time"]'],
     ["Ajustes › General", "#tab-general", panel, "#settings-panel .version-row"],
+    // Almacenamiento es la primera pestaña (#208): se mide al volver a ella.
+    ["Ajustes › Almacenamiento", "#tab-storage", panel, "#settings-panel .panel h2"],
   ];
   const lines = [`Abrir la app (menú lateral): ${opening} ms`];
   const slow: string[] = [];

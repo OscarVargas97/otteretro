@@ -220,16 +220,14 @@
   },
   "dataFolder": {
     "open": "Abrir carpeta",
-    "difference": "«Mover» lleva todo a otra carpeta y borra la actual cuando termina de copiar y comprobar. «Usar otra carpeta» empieza a usar una que ya existe (por ejemplo, la de otro PC) sin tocar la actual.",
     "dismiss": "Cerrar aviso",
-    "usage": "Ocupa {used} · {free} libres en ese disco",
-    "usageMeasuring": "Midiendo lo que ocupa · {free} libres en ese disco",
-    "moveButton": "Mover…",
+    "usage": "Ocupan {used}",
+    "usageMeasuring": "Midiendo lo que ocupan",
+    "moveButton": "Llevar a otro disco…",
     "useButton": "Usar otra carpeta",
-    "contents": "Base de datos, Herramientas, caché de imágenes y registro de errores.",
-    "moveHelp": "Se copiará todo a la carpeta nueva, se comprobará cada archivo y solo entonces se borrará la actual. En el mismo disco se mueve al instante. La carpeta nueva tiene que estar vacía o no existir.",
+    "contents": "base de datos, catálogo con sus imágenes y registro",
+    "moveHelp": "Se copian solo los datos de la app (base, catálogo y registro) a la carpeta Otteretro de ese disco, se comprueba cada archivo y recién entonces se borran de acá. Tus juegos y herramientas se quedan donde están. Ese disco pasa a ser el ★.",
     "useHelp": "La app empezará a usar esa carpeta (por ejemplo, una que traes de otro PC). La actual no se mueve ni se borra. Si la carpeta elegida está vacía, empezarás de cero.",
-    "driveChip": "{path} · {free} libres",
     "folderLabel": "Carpeta",
     "placeholder": "Por ejemplo E:\\Otteretro",
     "cancel": "Cancelar",
@@ -242,7 +240,9 @@
     "error": "Error",
     "taskTitle": "Mover la carpeta de datos",
     "taskDone": "Listo",
-    "taskNowIn": "Ahora está en {destination}"
+    "taskNowIn": "Ahora está en {destination}",
+    "title": "Datos de la app",
+    "toDisk": "Disco de destino"
   },
   "move": {
     "step": {
@@ -875,15 +875,12 @@
         "title": "Sistema"
       }
     },
-    "disks": "Discos",
     "addDisk": "+ Agregar disco",
     "addDiskHelp": "Elige un disco: Otteretro crea en él la carpeta Otteretro con Juegos, Emuladores, Ports, Complementos y Sistema. Una por disco.",
     "noDisks": "Aún no hay discos. Agrega uno para guardar juegos y herramientas.",
     "noDrives": "Todos los discos ya están agregados.",
     "add": "Agregar",
-    "default": "Predeterminado",
-    "defaultHelp": "El predeterminado ★: ahí va lo nuevo y lo de Herramientas.",
-    "makeDefault": "Hacer predeterminado ★",
+    "defaultHelp": "El disco ★ es donde están los datos de la app: ahí va lo nuevo y lo de Herramientas. Cambia si llevas los datos a otro disco.",
     "usage": "Uso del disco por tipo",
     "otherUse": "Otros archivos",
     "freeSpace": "Libre",
@@ -896,7 +893,9 @@
       "tools": "Herramientas, en la carpeta de datos",
       "toDefault": "disco predeterminado ★",
       "run": "Pasar al estándar"
-    }
+    },
+    "disk": "Disco",
+    "dataUse": "Datos de la app"
   },
   "tools": {
     "emptyTitle": "Aún no hay emuladores ni ports",

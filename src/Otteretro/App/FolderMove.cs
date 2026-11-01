@@ -107,7 +107,8 @@ public static class FolderMove
             return ApiError.Of("move.insideCurrent");
         if (File.Exists(d))
             return ApiError.Of("path.isFile");
-        if (Directory.Exists(d) && Directory.EnumerateFileSystemEntries(d).Any())
+        // El destino puede ser la raíz de otro disco, con sus juegos (#208): solo no puede tener datos de Otteretro.
+        if (DataFolder.Entries.Any(e => Path.Exists(Path.Combine(d, e))))
             return ApiError.Of("move.destinationNotEmpty");
         if (!Mounts.Same(s, d))
         {
@@ -135,23 +136,23 @@ public static class FolderMove
     {
         CloseDatabase(source);
 
+        var entries = Entries(source).ToList();
         if (!forceCopy && Mounts.Same(source, destination))
         {
             report(new("moving", 0, 1));
-            if (Directory.Exists(destination)) Directory.Delete(destination); // está vacía (lo garantiza Validate)
-            Directory.CreateDirectory(Path.GetDirectoryName(Normalize(destination))!);
-            Directory.Move(source, destination);
+            Directory.CreateDirectory(destination);
+            foreach (var entry in entries) Directory.Move(entry, Path.Combine(destination, Path.GetFileName(entry)));
             report(new("moving", 1, 1));
             return;
         }
 
-        var files = Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories)
+        var files = entries.SelectMany(e => Directory.EnumerateFiles(e, "*", SearchOption.AllDirectories))
             .Select(f => (relative: Path.GetRelativePath(source, f), size: new FileInfo(f).Length))
             .ToList();
         var total = files.Sum(f => f.size);
         try
         {
-            foreach (var folder in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories))
+            foreach (var folder in entries.SelectMany(e => Directory.EnumerateDirectories(e, "*", SearchOption.AllDirectories).Prepend(e)))
                 Directory.CreateDirectory(Path.Combine(destination, Path.GetRelativePath(source, folder)));
 
             long done = 0;
@@ -186,26 +187,34 @@ public static class FolderMove
     public static void Undo(string source, string destination)
     {
         if (!Directory.Exists(destination)) return;
-        if (!Directory.Exists(source))
+        foreach (var name in DataFolder.Entries)
         {
-            Directory.Move(destination, source);
-            return;
+            var (from, to) = (Path.Combine(source, name), Path.Combine(destination, name));
+            if (!Directory.Exists(to)) continue;
+            if (!Directory.Exists(from))
+            {
+                Directory.CreateDirectory(source);
+                Directory.Move(to, from); // se había movido (mismo disco)
+                continue;
+            }
+            foreach (var f in Directory.EnumerateFiles(from, "*", SearchOption.AllDirectories))
+            {
+                var copy = Path.Combine(destination, Path.GetRelativePath(source, f));
+                if (!File.Exists(copy)) continue;
+                File.SetAttributes(copy, FileAttributes.Normal);
+                File.Delete(copy);
+            }
+            foreach (var c in Directory.EnumerateDirectories(from, "*", SearchOption.AllDirectories).Prepend(from)
+                         .Select(c => Path.Combine(destination, Path.GetRelativePath(source, c))).OrderByDescending(c => c.Length))
+                if (Directory.Exists(c) && !Directory.EnumerateFileSystemEntries(c).Any())
+                    Directory.Delete(c);
         }
-        foreach (var f in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
-        {
-            var copy = Path.Combine(destination, Path.GetRelativePath(source, f));
-            if (!File.Exists(copy)) continue;
-            File.SetAttributes(copy, FileAttributes.Normal);
-            File.Delete(copy);
-        }
-        var folders = Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories)
-            .Select(c => Path.Combine(destination, Path.GetRelativePath(source, c)))
-            .Append(destination)
-            .OrderByDescending(c => c.Length);
-        foreach (var c in folders)
-            if (Directory.Exists(c) && !Directory.EnumerateFileSystemEntries(c).Any())
-                Directory.Delete(c);
+        if (!Directory.EnumerateFileSystemEntries(destination).Any()) Directory.Delete(destination);
     }
+
+    /// <summary>Lo de la carpeta de datos que existe en <paramref name="folder"/> (#208).</summary>
+    static IEnumerable<string> Entries(string folder) =>
+        DataFolder.Entries.Select(e => Path.Combine(folder, e)).Where(Directory.Exists);
 
     /// <summary>Obliga a Windows a escribir el archivo en el disco: sin esto, la verificación puede leer la caché y se borraría el origen antes de tiempo.</summary>
     internal static void FlushToDisk(string path)
@@ -223,7 +232,9 @@ public static class FolderMove
         if (!Directory.Exists(source)) return null;
         try
         {
-            Directory.Delete(source, true);
+            // Solo lo de los datos: los juegos y herramientas del disco se quedan (#208). La carpeta, si quedó vacía.
+            foreach (var entry in Entries(source)) Directory.Delete(entry, true);
+            if (!Directory.EnumerateFileSystemEntries(source).Any()) Directory.Delete(source);
             return null;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
@@ -253,10 +264,9 @@ public static class FolderMove
         return known?.Size;
     }
 
+    /// <summary>Lo que ocupan los datos de la carpeta (#208), sin los juegos ni las herramientas del disco.</summary>
     public static long Size(string folder) =>
-        Directory.Exists(folder)
-            ? Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories).Sum(f => new FileInfo(f).Length)
-            : 0;
+        Entries(folder).SelectMany(e => Directory.EnumerateFiles(e, "*", SearchOption.AllDirectories)).Sum(f => new FileInfo(f).Length);
 
     /// <summary>Vuelca el WAL a la base y suelta las conexiones, para copiar o mover el archivo sin que esté en uso.</summary>
     static void CloseDatabase(string folder)
