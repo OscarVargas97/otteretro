@@ -1503,6 +1503,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sources/{id}/executable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ExecutableRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/games/{id}": {
         parameters: {
             query?: never;
@@ -4466,6 +4530,9 @@ export interface components {
             /** Format: int64 */
             igdbId: number | string;
         };
+        ExecutableRequest: {
+            path: string;
+        };
         FieldRequest: {
             value: null | string;
         };
@@ -4484,6 +4551,8 @@ export interface components {
             /** Format: int64 */
             size: null | number | string;
             verified: boolean;
+            executable?: null | string;
+            executables?: null | string[];
         };
         FileReview: {
             /** Format: int64 */

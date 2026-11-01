@@ -142,7 +142,8 @@ public static partial class Dats
         int verified = 0, missing = 0;
         foreach (var f in files)
         {
-            if (!libraries.TryGetValue(f.LibraryId, out var root)) continue;
+            // Sin DAT no hay contra qué comparar (Switch, PC…): no se gasta tiempo en el hash.
+            if (!Files.ContainsKey(f.Console) || !libraries.TryGetValue(f.LibraryId, out var root)) continue;
             using (var c = run.Db.Open())
                 if (Files.ContainsKey(f.Console) && c.ExecuteScalar<long>("SELECT count(*) FROM dat_entry WHERE console = @Console", f) == 0)
                     await Download(run.Db, f.Console, ct);

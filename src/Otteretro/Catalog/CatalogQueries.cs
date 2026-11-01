@@ -35,7 +35,8 @@ public record StoreEntry(string Store, string? Name, long? Playtime, string? Las
 /// <param name="Path">Ruta completa (en su última ubicación conocida).</param>
 /// <param name="Component">BASE, UPD o DLC (Switch); null en lo demás.</param>
 /// <param name="Verified">Su SHA-1 coincide con el DAT (#179).</param>
-public record FileEntry(long Id, string Path, string? Component, long? Size, bool Verified);
+/// <param name="Executable">PC (#182): el ejecutable principal, relativo a la carpeta; <paramref name="Executables"/>, los que hay para elegir.</param>
+public record FileEntry(long Id, string Path, string? Component, long? Size, bool Verified, string? Executable = null, List<string>? Executables = null);
 public record VersionRow(long Id, string Platform, string Kind, int? Year, List<StoreEntry> Stores, List<FileEntry> Files);
 
 /// <param name="Winner">Es el valor que se muestra (lo manual siempre gana).</param>
@@ -337,8 +338,8 @@ public static class CatalogQueries
             SELECT o.version_id, o.store, o.name, o.playtime, o.last_played FROM source o JOIN version v ON v.id = o.version_id
             WHERE v.game_id = @id AND o.kind = 'store'
             """, new { id }).ToList();
-        var files = c.Query<(long Id, long VersionId, string Root, string Relative, string? Component, long? Size, bool Verified)>("""
-            SELECT o.id, o.version_id, l.path, o.relative_path, o.component, o.size, o.verified FROM source o
+        var files = c.Query<(long Id, long VersionId, string Root, string Relative, string? Component, long? Size, bool Verified, string? Executable)>("""
+            SELECT o.id, o.version_id, l.path, o.relative_path, o.component, o.size, o.verified, o.executable FROM source o
             JOIN version v ON v.id = o.version_id JOIN library l ON l.id = o.library_id
             WHERE v.game_id = @id AND o.kind = 'file' ORDER BY o.relative_path
             """, new { id }).ToList();
@@ -347,7 +348,8 @@ public static class CatalogQueries
             .OrderBy(v => order.IndexOf(v.Platform)).ThenBy(v => v.Year)
             .Select(v => new VersionRow(v.Id, v.Platform, v.Kind, (int?)v.Year,
                 stores.Where(s => s.VersionId == v.Id).Select(s => new StoreEntry(s.Store, s.Name, s.Playtime, s.LastPlayed)).ToList(),
-                files.Where(f => f.VersionId == v.Id).Select(f => new FileEntry(f.Id, Path.Combine(f.Root, f.Relative), f.Component, f.Size, f.Verified)).ToList()))
+                files.Where(f => f.VersionId == v.Id).Select(f => new FileEntry(f.Id, Path.Combine(f.Root, f.Relative), f.Component, f.Size, f.Verified,
+                    f.Executable, f.Executable is null ? null : Libraries.Scan.Executables(Path.Combine(f.Root, f.Relative)))).ToList()))
             .ToList();
 
         var fields = c.Query<(string Field, string? Value, string Source, bool Manual)>(

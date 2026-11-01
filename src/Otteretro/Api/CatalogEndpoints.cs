@@ -13,6 +13,9 @@ public record FieldRequest(string? Value);
 /// <summary>Una consola o un juego (#179).</summary>
 public record VerifyRequest(string? Console, long? GameId);
 
+/// <summary>El ejecutable de un juego de PC suelto, relativo a su carpeta (#182).</summary>
+public record ExecutableRequest(string Path);
+
 /// <summary>Pantallas del catálogo (F1.9): sagas, colección, ficha, seguimiento, búsqueda y avisos de Inicio.</summary>
 public static class CatalogEndpoints
 {
@@ -91,6 +94,19 @@ public static class CatalogEndpoints
             Db(s) is not { } db ? NoData()
             : request.Console is null == request.GameId is null ? TypedResults.BadRequest(ApiError.Of("dat.verifyWhat"))
             : TypedResults.Ok(Libraries.Dats.EnqueueVerify(db, request.Console, request.GameId)));
+
+        // Cambiar el ejecutable de un juego de PC suelto (#182): uno de los .exe de su carpeta.
+        api.MapPut("/sources/{id:long}/executable", Results<Ok, BadRequest<ApiError>, NotFound, Conflict<ApiError>> (long id, ExecutableRequest request, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            using var c = db.Open();
+            var folder = c.QuerySingleOrDefault<(string Root, string Relative)>(
+                "SELECT l.path, o.relative_path FROM source o JOIN library l ON l.id = o.library_id WHERE o.id = @id AND o.executable IS NOT NULL", new { id });
+            if (folder.Root is null) return TypedResults.NotFound();
+            if (!Libraries.Scan.Executables(Path.Combine(folder.Root, folder.Relative)).Contains(request.Path)) return TypedResults.BadRequest(ApiError.Of("source.badExecutable"));
+            c.Execute("UPDATE source SET executable = @Path WHERE id = @id", new { id, request.Path });
+            return TypedResults.Ok();
+        });
 
         api.MapGet("/games/{id:long}", Results<Ok<GameDetail>, NotFound, Conflict<ApiError>> (long id, AppSession s) =>
             Db(s) is not { } db ? NoData() : CatalogQueries.Game(db, id) is { } game ? TypedResults.Ok(game) : TypedResults.NotFound());

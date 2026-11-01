@@ -481,6 +481,9 @@
       "notFound": "That file is no longer in Review.",
       "pickGame": "Pick the game.",
       "noVersion": "That game has no version on the file's console."
+    },
+    "source": {
+      "badExecutable": "That executable is not in the game's folder."
     }
   },
   "credentials": {
@@ -778,7 +781,8 @@
       "verified": "Verified",
       "notVerified": "Not verified",
       "verify": "Verify",
-      "verifyQueued": "Verifying: follow it in the tasks panel."
+      "verifyQueued": "Verifying: follow it in the tasks panel.",
+      "executable": "Executable"
     },
     "search": {
       "sagas": "Series",

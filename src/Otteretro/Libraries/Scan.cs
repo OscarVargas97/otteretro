@@ -34,11 +34,13 @@ public static partial class Scan
         return TaskQueue.Enqueue(db, Kind);
     }
 
-    record Found(string LibraryId, string Relative, string Console, long Size, string? Component, string? TitleId, string Name, string? Folder);
+    /// <param name="Executable">PC: el ejecutable principal, relativo a la carpeta del juego (#182).</param>
+    record Found(string LibraryId, string Relative, string Console, long Size, string? Component, string? TitleId, string Name, string? Folder,
+        string? Executable = null);
 
     public static Task Run(TaskRun run, CancellationToken ct)
     {
-        var folders = Library.ConsoleFolders(run.Db).Where(f => f.Console != "pc").ToList();
+        var folders = Library.ConsoleFolders(run.Db);
         var libraries = Library.List(run.Db).ToDictionary(l => l.Id);
         byte[]? keys = null;
         var keysRead = false;
@@ -51,7 +53,9 @@ public static partial class Scan
             var (console, libraryId, relative) = folders[i];
             var root = libraries[libraryId].Path;
             run.Report(i * 100 / Math.Max(1, folders.Count), ApiError.Of("scan.folder", ("path", Path.Combine(root, relative))));
-            var found = new List<Found>();
+            // PC (#182): cada carpeta de `Juegos\PC` es un juego, con su ejecutable.
+            var found = console == "pc" ? PcGames(libraryId, root, relative, ct) : [];
+            if (console != "pc")
             foreach (var file in Directory.EnumerateFiles(Path.Combine(root, relative), "*", new EnumerationOptions { RecurseSubdirectories = true }))
             {
                 ct.ThrowIfCancellationRequested();
@@ -87,6 +91,10 @@ public static partial class Scan
                 ?? (DatName(c, f, hashes.TryGetValue(f.Relative, out var h) && h.Size == f.Size ? h.Sha1 : null) is { } dat ? Match(versions, dat) : null));
             var byBase = found.Where(f => f.Component is not null && byName[f] is not null)
                 .GroupBy(f => BaseOf(f.TitleId!)).ToDictionary(g => g.Key, g => byName[g.First()]);
+            // El ejecutable que elegiste se queda mientras exista.
+            var chosen = c.Query<(string Path, string Exe)>(
+                    "SELECT relative_path, executable FROM source WHERE kind = 'file' AND library_id = @libraryId AND executable IS NOT NULL", new { libraryId })
+                .ToDictionary(r => r.Path, r => r.Exe, StringComparer.OrdinalIgnoreCase);
             using var t = c.BeginTransaction();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var f in found)
@@ -97,14 +105,18 @@ public static partial class Scan
                 seen.Add(f.Relative);
                 // Una versión ya puesta (por la persona o por Claude) no se pisa.
                 c.Execute("""
-                    INSERT INTO source (kind, library_id, relative_path, console, size, component, title_id, version_id)
-                    VALUES ('file', @LibraryId, @Relative, @Console, @Size, @Component, @TitleId, @version)
+                    INSERT INTO source (kind, library_id, relative_path, console, size, component, title_id, version_id, executable)
+                    VALUES ('file', @LibraryId, @Relative, @Console, @Size, @Component, @TitleId, @version, @executable)
                     ON CONFLICT (library_id, relative_path) WHERE kind = 'file' DO UPDATE SET
                         console = excluded.console, size = excluded.size, component = excluded.component, title_id = excluded.title_id,
                         sha1 = CASE WHEN source.size = excluded.size THEN source.sha1 END,
                         verified = CASE WHEN source.size = excluded.size THEN source.verified ELSE 0 END,
-                        version_id = coalesce(source.version_id, excluded.version_id)
-                    """, new { f.LibraryId, f.Relative, f.Console, f.Size, f.Component, f.TitleId, version }, t);
+                        version_id = coalesce(source.version_id, excluded.version_id), executable = excluded.executable
+                    """, new
+                {
+                    f.LibraryId, f.Relative, f.Console, f.Size, f.Component, f.TitleId, version,
+                    executable = chosen.TryGetValue(f.Relative, out var exe) && File.Exists(Path.Combine(root, f.Relative, exe)) ? exe : f.Executable,
+                }, t);
             }
             // Lo que ya no está en la carpeta sale de la base (el archivo no se toca: no existe).
             var prefix = relative + Path.DirectorySeparatorChar;
@@ -118,6 +130,36 @@ public static partial class Scan
         if (Claude.Identify.AfterScan) Claude.Identify.EnqueueIfNeeded(run.Db); // lo que quedó sin identificar va a Claude (#180)
         return Task.CompletedTask;
     }
+
+    /// <summary>Los juegos de PC sueltos: cada carpeta con al menos un .exe, con su tamaño y su ejecutable principal.</summary>
+    static List<Found> PcGames(string libraryId, string root, string relative, CancellationToken ct)
+    {
+        var list = new List<Found>();
+        foreach (var folder in Directory.EnumerateDirectories(Path.Combine(root, relative)))
+        {
+            ct.ThrowIfCancellationRequested();
+            var files = Directory.EnumerateFiles(folder, "*", new EnumerationOptions { RecurseSubdirectories = true }).Select(f => new FileInfo(f)).ToList();
+            if (MainExecutable(folder, files) is not { } exe) continue;
+            var name = Path.GetFileName(folder);
+            list.Add(new(libraryId, Path.GetRelativePath(root, folder), "pc", files.Sum(f => f.Length), null, null, name, null, exe));
+        }
+        return list;
+    }
+
+    /// <summary>El .exe más grande fuera de instaladores, desinstaladores y redistribuibles; null si no hay ninguno.</summary>
+    public static string? MainExecutable(string folder, IEnumerable<FileInfo> files) =>
+        files.Where(f => f.Extension.Equals(".exe", StringComparison.OrdinalIgnoreCase) && !NotTheGame().IsMatch(Path.GetRelativePath(folder, f.FullName)))
+            .OrderByDescending(f => f.Length).Select(f => Path.GetRelativePath(folder, f.FullName)).FirstOrDefault();
+
+    /// <summary>Los ejecutables de una carpeta de juego de PC, para elegir otro (#182).</summary>
+    public static List<string> Executables(string folder) =>
+        Directory.Exists(folder)
+            ? Directory.EnumerateFiles(folder, "*.exe", new EnumerationOptions { RecurseSubdirectories = true, MatchCasing = MatchCasing.CaseInsensitive })
+                .Select(f => Path.GetRelativePath(folder, f)).Order().Take(200).ToList()
+            : [];
+
+    [GeneratedRegex(@"setup|unins|install|redist|vcredist|dxsetup|directx|dotnet|crash|prereq|_commonredist|easyanticheat|battleye|update|patch|config", RegexOptions.IgnoreCase)]
+    private static partial Regex NotTheGame();
 
     /// <summary>Las versiones de cada consola por nombre normalizado (español y original). Un nombre con varias versiones queda dudoso.</summary>
     static Dictionary<string, Dictionary<string, HashSet<long>>> Catalog(Database db)

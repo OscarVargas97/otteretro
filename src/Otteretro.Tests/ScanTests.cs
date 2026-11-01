@@ -115,6 +115,37 @@ public class ScanTests
         Assert.Equal("pokemon edicion amarilla", Scan.Normalize("Pokémon: Edición Amarilla"));
     }
 
+    /// <summary>#182: cada carpeta de `Juegos\PC` con un .exe es un juego de PC, con su ejecutable principal, que se puede cambiar.</summary>
+    [Fact]
+    public async Task LoosePcGamesCountAsOwned()
+    {
+        await using var f = new Fixture();
+        Library.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
+        using (var c = f.Db.Open())
+            c.Execute("INSERT INTO game (id, name_es) VALUES (30, 'Hollow Knight'); INSERT INTO version (id, game_id, platform) VALUES (31, 30, 'pc');");
+        var pc = f.Tmp[@"e\Otteretro\Juegos\PC"];
+        Write(Path.Combine(pc, @"Hollow Knight\hollow_knight.exe"), new byte[3000]);
+        Write(Path.Combine(pc, @"Hollow Knight\UnityCrashHandler64.exe"), new byte[5000]); // más grande, pero no es el juego
+        Write(Path.Combine(pc, @"Hollow Knight\_CommonRedist\vc_redist.x64.exe"), new byte[9000]);
+        Write(Path.Combine(pc, @"Hollow Knight\tools\mapa.exe"), new byte[100]);
+        Write(Path.Combine(pc, @"Notas\léeme.txt")); // sin .exe: no es un juego
+
+        Assert.Equal("done", (await f.Run(Scan.Enqueue(f.Db))).Status);
+        using var c2 = f.Db.Open();
+        var row = c2.QuerySingle<(string Path, long? Version, string Exe, long Size)>("SELECT relative_path, version_id, executable, size FROM source");
+        Assert.Equal((@"Juegos\PC\Hollow Knight", (long?)31, "hollow_knight.exe", 17100L), row);
+        var file = Otteretro.Catalog.CatalogQueries.Game(f.Db, 30)!.Versions.Single().Files.Single();
+        Assert.Equal(4, file.Executables!.Count);
+
+        // Lo que elegiste se queda al volver a escanear, mientras exista.
+        c2.Execute(@"UPDATE source SET executable = 'tools\mapa.exe'");
+        Assert.Equal("done", (await f.Run(Scan.Enqueue(f.Db))).Status);
+        Assert.Equal(@"tools\mapa.exe", c2.ExecuteScalar<string>("SELECT executable FROM source"));
+        File.Delete(Path.Combine(pc, @"Hollow Knight\tools\mapa.exe"));
+        Assert.Equal("done", (await f.Run(Scan.Enqueue(f.Db))).Status);
+        Assert.Equal("hollow_knight.exe", c2.ExecuteScalar<string>("SELECT executable FROM source"));
+    }
+
     /// <summary>IEEE 1619, vector 1 (keys en cero, sector 0): el descifrado XTS da ceros.</summary>
     [Fact]
     public void XtsMatchesTheStandardVector()

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { Suspense, useEffect, useState } from "react";
 import { size } from "@/lib/format";
-import { Cover, hours, Platforms, useConsoleName, useIdParam } from "@/components/Catalog";
+import { Cover, hours, Platforms, useConsoleName, useConsoles, useIdParam } from "@/components/Catalog";
 import { useHeroArt } from "@/components/HeroArt";
 import { Empty } from "@/components/Shell";
 import { request } from "@/lib/client";
@@ -337,7 +337,15 @@ function Files({ gameId, files }: { gameId: number; files: (GameDetail["versions
   const locale = useLocale();
   const describe = useDescribeError();
   const consoleName = useConsoleName();
+  const consoles = useConsoles().data;
   const cache = useQueryClient();
+  // Solo si algún archivo es de una consola con DAT (#179): en PC o Switch no hay contra qué comparar.
+  const verifiable = files.some((f) => consoles?.find((c) => c.id === f.platform)?.hasDat);
+  // El ejecutable de un juego de PC suelto (#182).
+  const executable = useMutation({
+    mutationFn: ({ id, path }: { id: number; path: string }) => request<void>(`/api/sources/${id}/executable`, { method: "PUT", body: JSON.stringify({ path }) }),
+    onSuccess: () => cache.invalidateQueries({ queryKey: ["game", String(gameId)] }),
+  });
   const verify = useMutation({
     mutationFn: () => request<number>("/api/collection/verify", { method: "POST", body: JSON.stringify({ gameId }) }),
     onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
@@ -346,20 +354,29 @@ function Files({ gameId, files }: { gameId: number; files: (GameDetail["versions
     <section className="sec column">
       <div className="sec-h">
         <h2>{t("game.where")}</h2>
-        <button className="ot-btn ot-btn-sm" type="button" disabled={verify.isPending || verify.isSuccess} onClick={() => verify.mutate()}>{t("game.verify")}</button>
+        {verifiable && <button className="ot-btn ot-btn-sm" type="button" disabled={verify.isPending || verify.isSuccess} onClick={() => verify.mutate()}>{t("game.verify")}</button>}
       </div>
       {verify.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("game.verifyQueued")}</p>}
       {verify.isError && <p className="error small" role="alert">{describe(verify.error)}</p>}
+      {executable.isError && <p className="error small" role="alert">{describe(executable.error)}</p>}
       <div className="panel table-wrap" style={{ padding: 0 }}>
         <table className="t">
           <thead><tr><th>{t("game.file")}</th><th>{t("game.version")}</th><th>{t("game.size")}</th><th>{t("game.verified")}</th></tr></thead>
           <tbody>
             {files.map((f) => (
               <tr key={f.id}>
-                <td><span className="folder-path">{f.path}</span>{f.component && <span className="ot-badge" style={{ marginLeft: 6 }}>{f.component}</span>}</td>
+                <td>
+                  <span className="folder-path">{f.path}</span>{f.component && <span className="ot-badge" style={{ marginLeft: 6 }}>{f.component}</span>}
+                  {f.executable && (f.executables && f.executables.length > 1
+                    ? <select className="ot-btn ot-btn-sm" style={{ display: "block", marginTop: 4 }} aria-label={t("game.executable")} value={f.executable}
+                        disabled={executable.isPending} onChange={(e) => executable.mutate({ id: Number(f.id), path: e.target.value })}>
+                        {f.executables.map((x) => <option key={x} value={x}>{x}</option>)}
+                      </select>
+                    : <span className="small muted" style={{ display: "block" }}>{t("game.executable")}: {f.executable}</span>)}
+                </td>
                 <td>{consoleName(f.platform)}</td>
                 <td className="tabular">{f.size != null ? size(f.size, locale) : "—"}</td>
-                <td>{f.verified ? <span className="ot-badge ot-badge-have">{t("game.verified")}</span> : <span className="ot-badge">{t("game.notVerified")}</span>}</td>
+                <td>{f.verified ? <span className="ot-badge ot-badge-have">{t("game.verified")}</span> : <span className="ot-badge">{f.executable ? "—" : t("game.notVerified")}</span>}</td>
               </tr>
             ))}
           </tbody>

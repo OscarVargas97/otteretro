@@ -481,6 +481,9 @@
       "notFound": "Ese archivo ya no está en Revisar.",
       "pickGame": "Elige el juego.",
       "noVersion": "Ese juego no tiene versión en la consola del archivo."
+    },
+    "source": {
+      "badExecutable": "Ese ejecutable no está en la carpeta del juego."
     }
   },
   "credentials": {
@@ -778,7 +781,8 @@
       "verified": "Verificado",
       "notVerified": "Sin verificar",
       "verify": "Verificar",
-      "verifyQueued": "Verificando: míralo en el panel de tareas."
+      "verifyQueued": "Verificando: míralo en el panel de tareas.",
+      "executable": "Ejecutable"
     },
     "search": {
       "sagas": "Sagas",
