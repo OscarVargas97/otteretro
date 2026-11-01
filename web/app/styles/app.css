@@ -122,3 +122,4 @@ details.fold[open] summary { border-bottom: 1px solid var(--line); }
 .console-row:last-child { border-bottom: 0; }
 .console-name { display: flex; align-items: center; gap: var(--space-2); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .console-games { margin-left: auto; text-align: right; min-width: 96px; }
+table.t .num { text-align: right; white-space: nowrap; }

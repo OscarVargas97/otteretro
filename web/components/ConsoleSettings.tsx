@@ -85,7 +85,7 @@ export function ConsoleSettings() {
           <input id="refresh-days" type="number" min={1} max={365} style={{ width: 72 }} value={days ?? Number(p.refreshDays)}
             onChange={(e) => setDays(Number(e.target.value))} onBlur={commitDays} />
           <span>{t("days")}</span>
-          {last && <span className="small muted">· {t("lastAgo", { ago: format.relativeTime(last) })}</span>}
+          {last && <span className="small muted">· {t("lastAgo", { ago: format.relativeTime(last, new Date()) })}</span>}
           {next && <span className="small muted">· {t("nextOn", { when: format.dateTime(next, soon ? { weekday: "long" } : { day: "numeric", month: "short" }) })}</span>}
           <button className="ot-btn" type="button" style={{ marginLeft: "auto" }} disabled={refresh.isPending} onClick={() => refresh.mutate()}>{t("refreshNow")}</button>
         </form>

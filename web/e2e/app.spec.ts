@@ -453,6 +453,12 @@ test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha
   usageDb.close();
   await page.goto(`${base()}/settings/?s=claude`);
   await expect(page.getByRole("button", { name: es.settings.claude.runNow })).toBeVisible();
+  // #110: tres bloques, el horario en una frase de una sola línea y el registro con su costo.
+  for (const h of [es.settings.claude.schedule, es.settings.claude.now, es.settings.claude.use])
+    await expect(page.locator("#settings-panel").getByRole("heading", { level: 2, name: h })).toBeVisible();
+  const scheduleRow = page.locator(".sentence").filter({ has: page.getByLabel(es.settings.claude.from) });
+  expect((await scheduleRow.boundingBox())!.height).toBeLessThan(48);
+  await expect(page.getByRole("columnheader", { name: es.settings.claude.cost })).toBeVisible();
   const usageTable = page.locator("table").filter({ hasText: "uso-12" });
   await expect(usageTable.locator("tbody tr")).toHaveCount(10);
   await page.getByRole("button", { name: es.settings.claude.next }).click();
