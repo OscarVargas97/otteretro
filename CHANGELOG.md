@@ -2,9 +2,27 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
-## 0.3.0 · en desarrollo
+## 0.3.0 · Pulido de UI · en desarrollo
 
-`dev` (abierta por `feat/114-releases`) · lo que entra para la próxima release; sale como prerelease en el canal Pruebas.
+`fase/f2.5-pulido` · lo que entra para la próxima release; sale como prerelease en el canal Pruebas.
+
+### Cambios
+- **La barra de arriba queda fija** al bajar, y en una saga o un juego muestra el camino («Sagas › saga › juego») para volver con un clic.
+- **Un solo aviso de claves**: dice todos los servicios que no tienen clave y lleva a Cuentas y claves.
+- **Las portadas que aún no bajan** se ven con el color de su consola, no grises.
+- **Descubrir, Descargas, Herramientas y Steam** se ven atenuadas en el menú con la fase en que llegan, y no se abren.
+- **Cada pantalla vacía** dice qué hacer y lleva ahí con un botón.
+- Los botones que son enlaces ya no van subrayados.
+- **Inicio**: «Siguiente en tus rutas» es una tarjeta por ruta con la saga, la ruta, cuánto llevas y «Ver ficha»; el bloque Revisar aparece solo si hay algo por aprobar.
+- **Sagas**: los filtros quedan fijos al bajar y dicen cuántas sagas hay; cada tarjeta muestra si es favorita, icónica o exclusiva de una empresa, y una barra con cuántos juegos tienes («3 de 14»).
+- **Saga**: la ruta se elige con pestañas junto al título, con el avance al lado; los pasos van unidos por una línea, con su número sobre la portada y lo jugado a color. En la tabla, las consolas van abreviadas (hasta 4 y «+N»), y «Pedir a Claude que la recalcule» pasó al menú «⋯» del encabezado.
+- **Juego**: el seguimiento es más compacto (el estado en un control de una línea; fechas, nota y tiempo en una fila; las notas plegadas). Versiones y comparativa son una sola tabla, con cada puntaje como barra de 5 y el mejor de cada criterio resaltado. En «Datos y fuentes», un lápiz junto a cada valor para corregirlo.
+- **Colección**: la lista de consolas muestra solo las que tienen algo según el filtro, agrupadas por empresa, y Cuadrícula/Lista es un control con íconos.
+- **Revisar**: una ruta por aprobar se ve con las portadas de sus juegos numeradas y la razón de cada paso.
+- **Panel de tareas**: cada tarea con su barra de progreso, el estado como insignia de color y una ✕ para quitar una terminada.
+- **Bienvenida** con la nutria y los 7 pasos, con la fase en que llega cada uno.
+- **Menú rápido del mando**: además de «Ir a Steam», Inicio, Buscar, Tareas y Ajustes.
+- **Ajustes › Claude**: arriba del registro de uso, el total de la página (llamadas, tokens y costo).
 
 ## 0.2.0 · Claude ordena el catálogo
 

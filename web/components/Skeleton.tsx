@@ -11,8 +11,9 @@ export function SagaTileSkeleton() {
     <div className="ot-saga" aria-hidden="true">
       <div className="ot-saga-art ot-skel" />
       <div className="ot-saga-body">
-        <div className="ot-saga-stats"><Text chars={14} /></div>
-        <div className="ot-saga-stats"><Text chars={9} /><Text chars={9} /></div>
+        <div className="ot-saga-badges"><Text className="ot-badge" chars={8} /></div>
+        <div className="ot-saga-stats"><Text chars={9} /><Text chars={5} /></div>
+        <div className="progress-line"><div className="ot-progress" /><Text className="small" chars={6} /></div>
         <div className="chips" style={{ gap: 4 }}><Text className="ot-console" chars={5} /><Text className="ot-console" chars={5} /></div>
       </div>
     </div>
@@ -48,6 +49,16 @@ export function Panels({ count }: { count: number }) {
   return <>{Array.from({ length: count }, (_, i) => (
     <div key={i} className="panel" aria-hidden="true" style={{ display: "grid", gap: 6 }}><b><Text chars={24} /></b><Text chars={40} /><Text chars={30} /></div>
   ))}</>;
+}
+
+/** Tarjetas horizontales de «Siguiente en tus rutas» (#170). */
+export function NextCards({ count }: { count: number }) {
+  return <div className="next-list">{Array.from({ length: count }, (_, i) => (
+    <div key={i} className="next-card" aria-hidden="true">
+      <div className="ot-cover ot-skel" />
+      <div className="next-body"><b className="ot-game-name"><Text chars={18} /></b><Text className="small" chars={24} /><div className="progress-line"><div className="ot-progress" /><Text className="small" chars={6} /></div></div>
+    </div>
+  ))}</div>;
 }
 
 /** Cabecera de Saga o Juego (con portada en Juego) y la tabla de abajo, mientras llega la ficha. */

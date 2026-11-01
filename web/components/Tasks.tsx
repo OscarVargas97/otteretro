@@ -20,23 +20,38 @@ export function upsertTask(cache: QueryClient, task: TaskInfo) {
   cache.setQueryData<TaskInfo[]>(["tasks"], (list = []) => [task, ...list.filter((t) => t.id !== task.id)].sort(byPanelOrder));
 }
 
-/** Filas del panel de tareas (TaskRow del sistema de diseño). Al hacer clic se abre su registro (F2.10). */
+// Color de la insignia de cada estado (#172).
+const BADGE: Record<string, string> = { queued: "", running: " ot-badge-info", done: " ot-badge-have", error: " ot-badge-danger" };
+
+/** Filas del panel de tareas (TaskRow del sistema de diseño, #172): barra de progreso, estado como insignia de color y ✕ para
+ *  quitar una terminada. Al hacer clic se abre su registro (F2.10). */
 export function TaskRows() {
   const t = useDynamicT();
   const describe = useDescribeError();
+  const cache = useQueryClient();
   const [open, setOpen] = useState<number | null>(null);
+  const remove = useMutation({
+    mutationFn: (id: number) => request<number>(`/api/tasks/${id}`, { method: "DELETE" }),
+    onMutate: (id) => cache.setQueryData<TaskInfo[]>(["tasks"], (list = []) => list.filter((x) => Number(x.id) !== id)),
+    onSettled: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
+  });
   return useTasks().map((task) => {
     const kind = `tasks.kind.${task.kind}`;
-    const progress = Number(task.progress);
+    const finished = task.status === "done" || task.status === "error";
+    const progress = task.status === "done" ? 100 : Number(task.progress);
     const id = Number(task.id);
+    const name = t.has(kind) ? t(kind) : task.kind;
     return (
       <div key={task.id} className={`ot-task${task.status === "error" ? " is-error" : ""}`}>
         <button type="button" className="ot-task-title" aria-expanded={open === id} onClick={() => setOpen(open === id ? null : id)}
           style={{ all: "unset", cursor: "pointer", fontWeight: "inherit" }}>
-          {t.has(kind) ? t(kind) : task.kind} <span className="small muted">#{id}</span>
+          {name} <span className="small muted">#{id}</span>
         </button>
-        <span className="ot-task-state">{t(`tasks.status.${task.status}`, { progress })}</span>
-        {task.status === "running" && <div className="ot-progress"><span style={{ width: `${progress}%` }} /></div>}
+        <span className="ot-task-end">
+          <span className={`ot-badge${BADGE[task.status] ?? ""}`}>{t(`tasks.status.${task.status}`, { progress })}</span>
+          {finished && <button type="button" className="task-remove" aria-label={t("tasks.remove", { name })} onClick={() => remove.mutate(id)}>✕</button>}
+        </span>
+        <div className={`ot-progress${task.status === "error" ? " is-error" : ""}`}><span style={{ width: `${progress}%` }} /></div>
         {task.detail && <span className="ot-task-detail">{describe(task.detail)}</span>}
         {open === id && <TaskLog id={id} stamp={`${task.status}|${task.progress}|${JSON.stringify(task.detail)}`} />}
       </div>

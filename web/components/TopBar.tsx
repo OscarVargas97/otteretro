@@ -4,17 +4,20 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useDeferredValue, useEffect, useRef, useState } from "react";
+import { Suspense, useDeferredValue, useEffect, useRef, useState } from "react";
 import { eventsUrl, request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
 import type { SearchResults } from "@/lib/types";
+import { gameQuery, sagaQuery } from "@/lib/queries";
+import { useIdParam } from "./Catalog";
 import { UpdateTask, useUpdate } from "./Update";
 import { MoveTask, useMove } from "./DataFolder";
 import { ClearTasks, TaskRows, upsertTask, useTasks } from "./Tasks";
 import { Empty, useAppState } from "./Shell";
+import { OPEN_TASKS } from "./Gamepad";
 
-/** Título de la pantalla, búsqueda global (Ctrl+K) y panel de tareas en segundo plano. */
-export function TopBar({ title, hideTitle = false }: { title: string; hideTitle?: boolean }) {
+/** Título de la pantalla (en Saga y Juego, el camino), búsqueda global (Ctrl+K) y panel de tareas en segundo plano. Fija al bajar (#169). */
+export function TopBar({ title, crumbs }: { title: string; crumbs?: "/saga" | "/game" }) {
   const t = useTranslations("topBar");
   const [searching, setSearching] = useState(false);
   const [tasksOpen, setTasksOpen] = useState(false);
@@ -30,6 +33,15 @@ export function TopBar({ title, hideTitle = false }: { title: string; hideTitle?
   const active = Number(update?.phase === "Checking" || update?.phase === "Downloading") + Number(moving)
     + tasks.filter((t) => t.status === "queued" || t.status === "running").length;
   const busy = active > 0;
+  // Su alto, para que lo fijo de cada pantalla (filtros de Sagas) quede justo debajo (#170).
+  const header = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = header.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => document.documentElement.style.setProperty("--top-h", `${el.offsetHeight}px`));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -42,13 +54,19 @@ export function TopBar({ title, hideTitle = false }: { title: string; hideTitle?
         setTasksOpen(false);
       }
     };
+    const openTasks = () => setTasksOpen(true);
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener(OPEN_TASKS, openTasks);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener(OPEN_TASKS, openTasks);
+    };
   }, []);
 
   return (
-    <header className="top">
-      <h1 className={hideTitle ? "sr-only" : undefined}>{title}</h1>
+    <header className="top" ref={header}>
+      <h1 className={crumbs ? "sr-only" : undefined}>{title}</h1>
+      {crumbs && <Suspense fallback={null}><Crumbs path={crumbs} /></Suspense>}
       <button className="search" type="button" onClick={() => setSearching(true)}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
           <circle cx="11" cy="11" r="7" />
@@ -82,6 +100,31 @@ export function TopBar({ title, hideTitle = false }: { title: string; hideTitle?
 
       {searching && <Search onClose={() => setSearching(false)} />}
     </header>
+  );
+}
+
+/** «Sagas › saga › juego» (#169). Sale de las mismas consultas que la pantalla: no pide nada aparte. */
+function Crumbs({ path }: { path: "/saga" | "/game" }) {
+  const t = useTranslations();
+  const id = useIdParam() ?? "";
+  const saga = useQuery({ ...sagaQuery(id), enabled: path === "/saga" && id !== "" });
+  const game = useQuery({ ...gameQuery(id), enabled: path === "/game" && id !== "" });
+  const sagaName = (sagaId: number | string | null | undefined, name: string | null | undefined) =>
+    Number(sagaId ?? 0) === 0 ? t("catalog.emulation") : name ?? "";
+  const items: { href?: string; label: string }[] = [{ href: "/sagas/", label: t("nav.sagas") }];
+  if (path === "/saga" && saga.data) items.push({ label: sagaName(saga.data.saga.id, saga.data.saga.name) });
+  if (path === "/game" && game.data) {
+    const g = game.data;
+    items.push({ href: `/saga/?id=${g.sagaId ?? 0}`, label: sagaName(g.sagaId, g.sagaName) }, { label: g.nameEs });
+  }
+  return (
+    <nav className="crumbs" aria-label={t("topBar.crumbs")}>
+      <ol>
+        {items.map((c, i) => (
+          <li key={i}>{c.href ? <Link href={c.href}>{c.label}</Link> : <span aria-current="page">{c.label}</span>}</li>
+        ))}
+      </ol>
+    </nav>
   );
 }
 

@@ -29,6 +29,7 @@ export default function Welcome() {
     <div className="wizard">
       <aside className="wizard-steps">
         <span className="sidebar-logo" style={{ padding: 0 }}>
+          <img src="/nutria.png" alt="" width={32} height={32} />
           <span>otteretro</span>
         </span>
         <ol>
@@ -37,7 +38,7 @@ export default function Welcome() {
             return (
               <li key={s.key} className="ot-nav-item" aria-current={i + 1 === step ? "page" : undefined} aria-disabled={phase ? "true" : undefined}>
                 <span>{i + 1}. {t(`steps.${s.key}`)}</span>
-                <span className="small">{i + 1 < step ? "✓" : phase ? t("phase", { phase }) : ""}</span>
+                {i + 1 < step ? <span className="small">✓</span> : phase ? <span className="ot-badge" title={t("phase", { phase })}>F{phase}</span> : <span />}
               </li>
             );
           })}
@@ -55,6 +56,8 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
   const t = useTranslations("welcome");
   return (
     <>
+      {/* La nutria da la bienvenida (#172). */}
+      <img className="welcome-otter" src="/nutria.png" alt="" width={96} height={96} />
       <h1>Otteretro</h1>
       <p className="muted">{t("intro")}</p>
       <LanguagePicker />

@@ -19,7 +19,8 @@
     "tools": "Tools",
     "steam": "Steam",
     "settings": "Settings",
-    "pending": "{count, plural, one {# to review} other {# to review}}"
+    "pending": "{count, plural, one {# to review} other {# to review}}",
+    "comingIn": "Coming in phase {phase}"
   },
   "topBar": {
     "search": "Search sagas and games…",
@@ -32,7 +33,8 @@
     "reconnecting": "Reconnecting…",
     "searchLabel": "Search",
     "searchPlaceholder": "Sagas, games, emulators, settings…",
-    "goToSteam": "Go to Steam"
+    "goToSteam": "Go to Steam",
+    "crumbs": "Breadcrumb"
   },
   "comingSoon": {
     "badge": "Coming in phase {phase}",
@@ -138,7 +140,8 @@
       "noAutomation": "Nothing yet: it shows up when Claude makes the same change for the same reason {count} times.",
       "automationTimes": "{count, plural, one {# time} other {# times}}",
       "createIssue": "Create issue",
-      "issueCreated": "Issue created"
+      "issueCreated": "Issue created",
+      "pageTotal": "On this page: {calls, plural, one {# call} other {# calls}} · {input} in · {output} out · {cost}"
     },
     "consoles": {
       "title": "Consoles",
@@ -468,7 +471,8 @@
     },
     "clear": "Clear finished",
     "log": "Task log",
-    "logEmpty": "This task has not logged anything yet."
+    "logEmpty": "This task has not logged anything yet.",
+    "remove": "Remove {name}"
   },
   "pad": {
     "choose": "Select",
@@ -483,7 +487,10 @@
     "space": "Space",
     "delete": "Delete",
     "done": "Done",
-    "menu": "Menu"
+    "menu": "Menu",
+    "home": "Home",
+    "tasks": "Tasks",
+    "settings": "Settings"
   },
   "catalog": {
     "owned": "I own it",
@@ -532,7 +539,8 @@
       "emptyText": "Series and their games are loaded from IGDB. Paste the account in Settings › Accounts and keys and load one with “otteretro catalogo cargar --saga zelda”.",
       "noMatch": "No series match this filter.",
       "platform": "Company or console",
-      "allPlatforms": "All consoles"
+      "allPlatforms": "All consoles",
+      "total": "{count, plural, one {# saga} other {# sagas}}"
     },
     "saga": {
       "back": "‹ Series",
@@ -554,7 +562,9 @@
       "why": "Why this order",
       "sources": "Sources",
       "recommends": "Version: {platform}",
-      "progress": "{done} of {total}"
+      "progress": "{done} of {total}",
+      "moreActions": "More actions",
+      "progressLabel": "{done} of {total} played"
     },
     "collection": {
       "consoles": "Consoles",
@@ -584,7 +594,8 @@
       "year": "Year",
       "store": "Store",
       "hours": "Hours",
-      "lastPlayed": "Last played"
+      "lastPlayed": "Last played",
+      "otherCompany": "Others"
     },
     "game": {
       "noneTitle": "Pick a game",
@@ -630,7 +641,6 @@
       "undoFix": "Back to the sources' value",
       "manualNote": "What you correct by hand wins and no load overwrites it.",
       "shown": "Shown",
-      "compare": "Version comparison",
       "best": "Recommended",
       "noCompare": "Claude hasn't compared this game's versions yet.",
       "description": "Description",
@@ -654,12 +664,20 @@
       "release": "Release",
       "story": "Story",
       "community": "Community"
-    }
+    },
+    "goToSagas": "Browse sagas",
+    "openConsoles": "Open Consoles",
+    "openCredentials": "Open Accounts and keys",
+    "iconic": "Iconic",
+    "exclusiveOf": "{company} exclusive",
+    "ofTotal": "{done} of {total}"
   },
   "notices": {
     "title": "Notices",
     "missingKey": "The {service} key is missing: its data can't be loaded without it.",
-    "openSettings": "Open Settings"
+    "openSettings": "Open Settings",
+    "missingKeys": "Keys are missing for {services}: their data can't be loaded without them.",
+    "openCredentials": "Accounts and keys"
   },
   "review": {
     "tabs": "Review sections",
@@ -720,14 +738,17 @@
     "approveEdited": "Approve as edited",
     "stepUp": "Move step {step} up",
     "stepDown": "Move step {step} down",
-    "stepRemove": "Remove step {step}"
+    "stepRemove": "Remove step {step}",
+    "openClaude": "Open Settings › Claude"
   },
   "home": {
     "next": "Next in your routes",
     "nextEmpty": "Follow a route in a saga and your next game will show up here.",
-    "step": "{saga} · {route} · {done} of {total}",
     "review": "Review",
     "reviewCount": "{count} Claude results to approve",
-    "reviewNone": "Nothing to review."
+    "nextEmptyTitle": "You're not following any route yet",
+    "viewGame": "View game",
+    "routeOf": "{saga} · {route}",
+    "progress": "{done} of {total} played"
   }
 }

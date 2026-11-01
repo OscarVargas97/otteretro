@@ -124,6 +124,9 @@ function usePad(onPress: (a: Action) => void, onFamily: (f: Family) => void) {
   }, []);
 }
 
+/** Evento con el que el menú rápido abre el panel de tareas de la barra de arriba. */
+export const OPEN_TASKS = "otteretro:open-tasks";
+
 export function Gamepad() {
   const t = useTranslations("pad");
   const router = useRouter();
@@ -205,6 +208,11 @@ export function Gamepad() {
             <button className="ot-quick-item" type="button" autoFocus onClick={() => { goToSteam.mutate(); setQuick(false); }}>
               {t("goToSteam")}
             </button>
+            {/* Inicio, Buscar, Tareas y Ajustes (#172). El juego abierto llega con F4. */}
+            <button className="ot-quick-item" type="button" onClick={() => { setQuick(false); router.push("/"); }}>{t("home")}</button>
+            <button className="ot-quick-item" type="button" onClick={() => { setQuick(false); pressKey("k", true); }}>{t("search")}</button>
+            <button className="ot-quick-item" type="button" onClick={() => { setQuick(false); window.dispatchEvent(new Event(OPEN_TASKS)); }}>{t("tasks")}</button>
+            <button className="ot-quick-item" type="button" onClick={() => { setQuick(false); router.push("/settings/"); }}>{t("settings")}</button>
             <div className="ot-quick-foot">
               <span><Glyph text={glyph.south} />{t("choose")}</span>
               <span><Glyph text={glyph.east} />{t("close")}</span>

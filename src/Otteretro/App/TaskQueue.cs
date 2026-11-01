@@ -106,12 +106,14 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
     }
 
     /// <summary>«Limpiar terminadas» (F2.11): borra las tareas hechas o con error y su registro. Devuelve cuántas.</summary>
-    public static int Clear(Database db)
+    /// <summary>Borra las tareas terminadas (o solo la `id`, si está terminada; #172) con su registro.</summary>
+    public static int Clear(Database db, long? id = null)
     {
+        const string finished = "status IN ('done', 'error') AND (@id IS NULL OR id = @id)";
         using var c = db.Open();
         using var t = c.BeginTransaction();
-        c.Execute("DELETE FROM task_log WHERE task_id IN (SELECT id FROM task WHERE status IN ('done', 'error'))", transaction: t);
-        var count = c.Execute("DELETE FROM task WHERE status IN ('done', 'error')", transaction: t);
+        c.Execute($"DELETE FROM task_log WHERE task_id IN (SELECT id FROM task WHERE {finished})", new { id }, t);
+        var count = c.Execute($"DELETE FROM task WHERE {finished}", new { id }, t);
         t.Commit();
         return count;
     }

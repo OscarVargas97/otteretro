@@ -156,6 +156,9 @@ public static class Endpoints
             CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(TaskQueue.ReadLog(db, id)) : CatalogEndpoints.NoData());
         api.MapDelete("/tasks/finished", Results<Ok<int>, Conflict<ApiError>> (AppSession s) =>
             CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(TaskQueue.Clear(db)) : CatalogEndpoints.NoData());
+        // Quitar una terminada desde su ✕ en el panel (#172); una que corre o espera no se toca.
+        api.MapDelete("/tasks/{id:long}", Results<Ok<int>, Conflict<ApiError>> (long id, AppSession s) =>
+            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(TaskQueue.Clear(db, id)) : CatalogEndpoints.NoData());
 
         // Portada, héroe o logo de un juego desde catalogo/imagenes. Va en <img src>, así que la clave llega en ?key=.
         api.MapGet("/images/{gameId:long}/{kind}", Results<PhysicalFileHttpResult, NotFound> (long gameId, string kind, AppSession s, HttpResponse response) =>

@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { SagaTile, useConsoles } from "@/components/Catalog";
+import Link from "next/link";
 import { Empty } from "@/components/Shell";
 import { useDescribeError } from "@/lib/i18n";
 import { Tiles } from "@/components/Skeleton";
@@ -20,6 +21,7 @@ const SORTS = ["recognized", "name", "played", "activity"] as const;
  */
 export default function Sagas() {
   const t = useTranslations("catalog.sagas");
+  const tc = useTranslations("catalog");
   const describe = useDescribeError();
   const consoles = useConsoles();
   const [filter, setFilter] = useState<string>("all");
@@ -38,7 +40,8 @@ export default function Sagas() {
   return (
     <div className="content">
       {!nothingLoaded && (
-        <div className="toolbar">
+        // Fija bajo la barra de arriba, con el total (#170).
+        <div className="toolbar toolbar-sticky">
           <div className="chips" role="group" aria-label={t("filters")}>
             {FILTERS.map((f) => chip(f, t(`filter.${f}`)))}
           </div>
@@ -53,10 +56,11 @@ export default function Sagas() {
               {SORTS.map((s) => <option key={s} value={s}>{t(`sort.${s}`)}</option>)}
             </select>
           </label>
+          <span className="small muted tabular toolbar-total" aria-live="polite">{sagas.data ? t("total", { count: sagas.total }) : ""}</span>
         </div>
       )}
       {sagas.isError && <p className="error small" role="alert">{describe(sagas.error)}</p>}
-      {nothingLoaded && <Empty title={t("emptyTitle")} text={t("emptyText")} />}
+      {nothingLoaded && <Empty title={t("emptyTitle")} text={t("emptyText")}><Link className="ot-btn ot-btn-primary" href="/settings/?s=credentials">{tc("openCredentials")}</Link></Empty>}
       {!nothingLoaded && sagas.data && sagas.total === 0 && <p className="muted">{t("noMatch")}</p>}
       <div className="grid-cards">
         {sagas.items.map((s) => <SagaTile key={s.id} saga={s} />)}

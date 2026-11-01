@@ -4,7 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Suspense, useState } from "react";
-import { Cover, Platforms, useConsoleName, useConsoles, useIdParam } from "@/components/Catalog";
+import { Cover, Progress, ShortPlatforms, useConsoleName, useConsoles, useIdParam } from "@/components/Catalog";
+import { Tabs } from "@/components/Tabs";
 import { useHeroArt } from "@/components/HeroArt";
 import { Empty } from "@/components/Shell";
 import { request } from "@/lib/client";
@@ -42,7 +43,7 @@ function Saga() {
     },
   });
 
-  if (id === null) return <div className="content"><Empty title={t("saga.noneTitle")} text={t("saga.noneText")} /></div>;
+  if (id === null) return <div className="content"><Empty title={t("saga.noneTitle")} text={t("saga.noneText")}><Link className="ot-btn ot-btn-primary" href="/sagas/">{t("goToSagas")}</Link></Empty></div>;
   if (saga.isError) return <div className="content"><p className="error" role="alert">{describe(saga.error)}</p><Link href="/sagas/">{t("saga.back")}</Link></div>;
   if (!saga.data || (id !== "0" && routes.isPending)) return <PageSkeleton />;
 
@@ -57,7 +58,6 @@ function Saga() {
       <section className="hero">
         {hero.art}
         <div className="hero-main">
-          <Link className="back" href="/sagas/">{t("saga.back")}</Link>
           <span className="small muted">{[...companies, span, t("games", { count: Number(s.games) }), t("ownedCount", { count: Number(s.owned) })].filter(Boolean).join(" · ")}</span>
           <h2 className="hero-title">{emulation ? t("emulation") : s.name}</h2>
           {!emulation && (
@@ -68,6 +68,7 @@ function Saga() {
               <button className="ot-btn" type="button" aria-pressed={s.following} onClick={() => flags.mutate({ following: !s.following })}>
                 {s.following ? t("saga.following") : t("saga.follow")}
               </button>
+              <MoreActions sagaId={String(s.id)} />
             </div>
           )}
           {flags.error && <p className="error small" role="alert">{describe(flags.error)}</p>}
@@ -85,7 +86,7 @@ function Saga() {
                   <tr key={g.id} className={g.platforms.length === 0 ? "is-unplayable" : undefined}>
                     <td><Link href={`/game/?id=${g.id}`}>{g.name}</Link></td>
                     <td>{g.year ?? "—"}</td>
-                    <td><span className="chips" style={{ gap: 4 }}><Platforms ids={g.platforms} /></span></td>
+                    <td><span className="chips" style={{ gap: 4, flexWrap: "nowrap" }}><ShortPlatforms ids={g.platforms} /></span></td>
                     <td>
                       <span className="chips" style={{ gap: 4 }}>
                         {g.platforms.length === 0 ? <span className="ot-badge">{t("noConsole")}</span> : g.owned ? <span className="ot-badge ot-badge-have">{t("owned")}</span> : <span className="ot-badge">{t("missing")}</span>}
@@ -105,15 +106,39 @@ function Saga() {
   );
 }
 
+/** «⋯» del encabezado (#170): por ahora, pedir a Claude que recalcule la ruta. */
+function MoreActions({ sagaId }: { sagaId: string }) {
+  const t = useTranslations("catalog");
+  const describe = useDescribeError();
+  const [open, setOpen] = useState(false);
+  const recalculate = useMutation({ mutationFn: () => request<number>(`/api/sagas/${sagaId}/recalculate`, { method: "POST" }) });
+  return (
+    <div className="tabs-more">
+      <button className="ot-btn ot-btn-icon" type="button" aria-label={t("saga.moreActions")} aria-haspopup="menu" aria-expanded={open}
+        onClick={() => setOpen(!open)} onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}>⋯</button>
+      {open && (
+        <>
+          <div className="tabs-more-scrim" onClick={() => setOpen(false)} />
+          <div className="tabs-more-menu" role="menu" onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}>
+            <button type="button" role="menuitem" className="tabs-more-item" autoFocus disabled={recalculate.isPending || recalculate.isSuccess}
+              onClick={() => { setOpen(false); recalculate.mutate(); }}>{t("saga.recalculate")}</button>
+          </div>
+        </>
+      )}
+      {recalculate.isSuccess && <span className="small muted" role="status">{t("saga.queued")}</span>}
+      {recalculate.error && <span className="error small" role="alert">{describe(recalculate.error)}</span>}
+    </div>
+  );
+}
+
 const DONE = ["finished", "completed"];
 
-/** La línea de tiempo de la ruta elegida, con su selector, el porqué con fuentes y «pedir a Claude que la recalcule» (§3.2, §6.5). */
+/** La ruta elegida (§3.2, #170): pestañas junto al título con el avance al lado, los pasos unidos por una línea y el porqué con fuentes. */
 function Routes({ sagaId }: { sagaId: string }) {
   const t = useTranslations("catalog");
   const describe = useDescribeError();
   const consoleName = useConsoleName();
   const cache = useQueryClient();
-  const [queued, setQueued] = useState(false);
   const routes = useQuery(routesQuery(sagaId));
   const choose = useMutation({
     mutationFn: (routeId: number | null) => request<RoutesPage>(`/api/sagas/${sagaId}/route`, { method: "PUT", body: JSON.stringify({ routeId }) }),
@@ -124,58 +149,56 @@ function Routes({ sagaId }: { sagaId: string }) {
       cache.invalidateQueries({ queryKey: ["home"] });
     },
   });
-  const recalculate = useMutation({ mutationFn: () => request<number>(`/api/sagas/${sagaId}/recalculate`, { method: "POST" }), onSuccess: () => setQueued(true) });
 
   if (!routes.data) return routes.isError ? <p className="error" role="alert">{describe(routes.error)}</p> : null;
   const list = routes.data.routes;
   const chosen = list.find((r) => String(r.id) === String(routes.data.chosenRoute)) ?? list.find((r) => r.kind === "community") ?? list[0];
-  const recalc = (
-    <div className="hero-actions">
-      <button className="ot-btn" type="button" disabled={recalculate.isPending || queued} onClick={() => recalculate.mutate()}>{t("saga.recalculate")}</button>
-      {queued && <span className="small muted">{t("saga.queued")}</span>}
-      {(recalculate.error || choose.error) && <span className="error small" role="alert">{describe(recalculate.error ?? choose.error)}</span>}
-    </div>
-  );
-  if (!chosen) return <section className="sec"><p className="small muted">{t("saga.noRoutes")}</p>{recalc}</section>;
+  if (!chosen) return <section className="sec"><div className="sec-h"><h2>{t("saga.route")}</h2></div><p className="small muted">{t("saga.noRoutes")}</p></section>;
 
   const done = chosen.steps.filter((s) => DONE.includes(s.status ?? "")).length;
   return (
     <section className="sec">
-      <div className="sec-h">
+      <div className="sec-h route-head">
         <h2>{t("saga.route")}</h2>
-        <div className="chips">
-          {list.map((r) => (
-            <button key={r.id} className="chip" type="button" aria-pressed={r.id === chosen.id && routes.data.chosenRoute !== null}
-              onClick={() => choose.mutate(Number(r.id))}>{t(`route.${r.kind as "release"}`)}</button>
-          ))}
+        <div className="route-tabs">
+          <Tabs tabs={list.map((r) => ({ id: String(r.id), label: t(`route.${r.kind as "release"}`) }))} current={String(chosen.id)}
+            onSelect={(rid) => choose.mutate(Number(rid))} label={t("saga.route")} panel="route-panel" />
         </div>
-        <span className="small muted">{t("saga.progress", { done, total: chosen.steps.length })}</span>
+        <div className="route-progress"><Progress done={done} total={chosen.steps.length} label={t("saga.progressLabel", { done, total: chosen.steps.length })} /></div>
       </div>
-      <ol className="timeline" style={{ display: "flex", gap: 12, overflowX: "auto", listStyle: "none", padding: 0, margin: 0 }}>
-        {chosen.steps.map((s) => (
-          <li key={s.position} style={{ minWidth: 140, maxWidth: 160 }}>
-            <Link href={`/game/?id=${s.gameId}`} style={{ textDecoration: "none", color: "var(--ink)" }}>
-              <Cover gameId={s.gameId} name={s.name} hasCover={s.hasCover} />
-              <p className="ot-game-name" title={s.name}>{Number(s.position)}. {s.name}</p>
-            </Link>
-            <span className="chips" style={{ gap: 4 }}>
-              {DONE.includes(s.status ?? "") ? <span className="ot-badge ot-badge-have">{t(`status.${s.status as "finished"}`)}</span>
-                : s.status && s.status !== "pending" ? <span className="ot-badge ot-badge-info">{t(`status.${s.status as "playing"}`)}</span> : null}
-              {s.owned ? <span className="ot-badge ot-badge-have">{t("owned")}</span> : <span className="ot-badge">{t("missing")}</span>}
-            </span>
-            {s.versionPlatform && <p className="small" style={{ margin: "4px 0 0" }}>{t("saga.recommends", { platform: consoleName(s.versionPlatform) })}</p>}
-            {s.reason && <p className="small muted" style={{ margin: "2px 0 0" }}>{s.reason}</p>}
-          </li>
-        ))}
-      </ol>
-      <div className="panel" style={{ gap: 4 }}>
-        <b>{t("saga.why")}</b>
-        <p className="small" style={{ margin: 0 }}>{chosen.rationale}</p>
-        {chosen.sources.length > 0 && (
-          <p className="small muted" style={{ margin: 0 }}>{t("saga.sources")}: {chosen.sources.map((src, i) => <span key={src.url}>{i > 0 && " · "}<a href={src.url} target="_blank" rel="noreferrer">{src.title}</a></span>)}</p>
-        )}
+      {choose.error && <span className="error small" role="alert">{describe(choose.error)}</span>}
+      <div id="route-panel" role="tabpanel" aria-labelledby={`tab-${chosen.id}`} className="sec">
+        <ol className="timeline">
+          {chosen.steps.map((s) => {
+            const played = DONE.includes(s.status ?? "");
+            return (
+              <li key={s.position} className={played ? "is-played" : undefined}>
+                <Link href={`/game/?id=${s.gameId}`} className="step-link">
+                  <span className="step-cover">
+                    <Cover gameId={s.gameId} name={s.name} hasCover={s.hasCover} platform={s.versionPlatform} />
+                    <span className="step-num" aria-hidden="true">{Number(s.position)}</span>
+                  </span>
+                  <p className="ot-game-name" title={s.name}><span className="sr-only">{Number(s.position)}. </span>{s.name}</p>
+                </Link>
+                <span className="chips" style={{ gap: 4 }}>
+                  {played ? <span className="ot-badge ot-badge-have">{t(`status.${s.status as "finished"}`)}</span>
+                    : s.status && s.status !== "pending" ? <span className="ot-badge ot-badge-info">{t(`status.${s.status as "playing"}`)}</span> : null}
+                  {s.owned ? <span className="ot-badge ot-badge-have">{t("owned")}</span> : <span className="ot-badge">{t("missing")}</span>}
+                </span>
+                {s.versionPlatform && <p className="small" style={{ margin: "4px 0 0" }}>{t("saga.recommends", { platform: consoleName(s.versionPlatform) })}</p>}
+                {s.reason && <p className="small muted" style={{ margin: "2px 0 0" }}>{s.reason}</p>}
+              </li>
+            );
+          })}
+        </ol>
+        <div className="panel" style={{ gap: 4 }}>
+          <b>{t("saga.why")}</b>
+          <p className="small" style={{ margin: 0 }}>{chosen.rationale}</p>
+          {chosen.sources.length > 0 && (
+            <p className="small muted" style={{ margin: 0 }}>{t("saga.sources")}: {chosen.sources.map((src, i) => <span key={src.url}>{i > 0 && " · "}<a href={src.url} target="_blank" rel="noreferrer">{src.title}</a></span>)}</p>
+          )}
+        </div>
       </div>
-      {recalc}
     </section>
   );
 }

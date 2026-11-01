@@ -116,7 +116,11 @@ test("elegir la carpeta de datos lleva al inicio", async () => {
   await expect(page).toHaveURL(`${base()}/`);
   await expect(page.getByRole("heading", { level: 1, name: en.nav.home })).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: en.home.next })).toBeVisible();
-  await expect(page.getByText(en.notices.missingKey.replace("{service}", en.credentials.service.igdb))).toBeVisible();
+  // #169: un solo aviso con todos los servicios sin clave y el botón a Cuentas y claves.
+  const notice = page.getByRole("note", { name: en.notices.title });
+  await expect(notice).toHaveCount(1);
+  await expect(notice).toContainText(en.credentials.service.igdb);
+  await expect(notice.getByRole("link", { name: en.notices.openCredentials })).toHaveAttribute("href", "/settings/?s=credentials");
   await expectNoRawKeys();
   await expectSearchFits();
   await expectTextFits();
@@ -133,6 +137,12 @@ test("todas las pantallas se ven en inglés", async () => {
     ["review", en.review.pendingEmptyTitle],
     ...(["discover", "downloads", "tools", "steam"] as const).map((s) => [s, en.comingSoon[s].title] as const),
   ] as const;
+  // #169: las de fases futuras se ven atenuadas con su fase y no se abren desde el menú.
+  await page.goto(`${base()}/`);
+  for (const s of ["discover", "downloads", "tools", "steam"] as const) {
+    await expect(page.locator(".sidebar").getByRole("link", { name: en.nav[s] })).toHaveCount(0);
+    await expect(page.locator(".sidebar .is-future", { hasText: en.nav[s] })).toHaveAttribute("aria-disabled", "true");
+  }
   for (const [screen, title] of screens) {
     await page.goto(`${base()}/${screen}/`);
     await expect(page.getByRole("heading", { level: 1, name: en.nav[screen] })).toBeVisible();
@@ -327,6 +337,13 @@ test("con mando se recorre la app: foco, barra de botones, buscar con el teclado
   await pad.screenshot({ path: "e2e-results/7-mando-menu-rapido.png" });
   await press(B);
   await expect(pad.getByRole("dialog", { name: es.pad.quickMenu })).toBeHidden();
+  // #172: el menú rápido también lleva a Inicio, Buscar, Tareas y Ajustes; Tareas abre su panel.
+  await press(GUIDE);
+  const quick = pad.getByRole("dialog", { name: es.pad.quickMenu });
+  for (const item of [es.pad.home, es.pad.search, es.pad.tasks, es.pad.settings]) await expect(quick.getByRole("button", { name: item })).toBeVisible();
+  await quick.getByRole("button", { name: es.pad.tasks }).click();
+  await expect(pad.getByRole("dialog", { name: es.topBar.tasksPanel })).toBeVisible();
+  await pad.keyboard.press("Escape");
 
   // Con el ratón, la interfaz vuelve a su forma normal.
   await pad.mouse.move(400, 400);
@@ -356,6 +373,10 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   await page.goto(`${base()}/sagas/`);
   const tiles = page.locator("a.ot-saga");
   await expect(tiles).toHaveCount(60);
+  // #170: el total en la barra de filtros, y la tarjeta con sus insignias y «lo que tienes».
+  await expect(page.locator(".toolbar-total")).toContainText("102");
+  const zelda = tiles.filter({ hasText: "The Legend of Zelda" });
+  await expect(zelda.locator(".ot-badge-iconic")).toHaveText(es.catalog.iconic);
   const menuTop = async () => (await page.locator(".sidebar").boundingBox())!.y;
   const before = await menuTop();
   for (let i = 0; i < 5 && (await tiles.count()) < 102; i++) await page.mouse.wheel(0, 20000);
@@ -363,6 +384,8 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   // #100: el menú lateral sigue en su lugar después de bajar.
   expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(500);
   expect(await menuTop()).toBe(before);
+  // #169: la barra superior también queda arriba.
+  expect((await page.locator(".top").boundingBox())!.y).toBe(0);
   many.exec("DELETE FROM saga WHERE id >= 1000");
   many.close();
 
@@ -391,6 +414,12 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
 
   await page.getByRole("link", { name: "Ocarina of Time" }).click();
   await expect(page.getByRole("heading", { level: 2, name: "Ocarina of Time" })).toBeVisible();
+  // #169: el camino en la barra, con un enlace por parte, y la portada sin bajar con el color de su consola.
+  const crumbs = page.getByRole("navigation", { name: es.topBar.crumbs });
+  await expect(crumbs.getByRole("link", { name: es.nav.sagas })).toHaveAttribute("href", "/sagas/");
+  await expect(crumbs.getByRole("link", { name: "The Legend of Zelda" })).toHaveAttribute("href", "/saga/?id=1");
+  await expect(crumbs.getByText("Ocarina of Time")).toHaveAttribute("aria-current", "page");
+  expect(await page.locator(".hero .ot-cover").evaluate((e) => getComputedStyle(e).backgroundImage)).toContain("linear-gradient");
   await page.getByRole("radio", { name: es.catalog.status.finished }).click();
   await expect(page.getByLabel(es.catalog.game.finished)).toBeVisible();
   await page.getByLabel(es.catalog.game.rating).selectOption("9");
@@ -416,8 +445,13 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   await expect(page.getByRole("button", { name: es.catalog.collection.filter.owned })).toHaveAttribute("aria-pressed", "true");
   const n64 = page.getByRole("navigation", { name: es.catalog.collection.consoles }).getByRole("button", { name: /Nintendo 64/ });
   await expect(n64).toContainText("0");
+  // #171: con «Lo tengo», solo las consolas con algo (y la elegida), agrupadas por empresa.
+  const consoleNav = page.getByRole("navigation", { name: es.catalog.collection.consoles });
+  await expect(consoleNav.getByRole("button", { name: /Switch/ })).toHaveCount(0);
   await page.getByRole("button", { name: es.catalog.collection.filter.all }).click();
   await expect(n64).toContainText("1");
+  await expect(consoleNav.getByRole("button", { name: /Switch/ })).toBeVisible();
+  await expect(consoleNav.locator(".console-nav-company").first()).toHaveText("Nintendo");
 
   await page.goto(`${base()}/collection/?console=pc`);
   await expect(page.getByRole("link", { name: /Half-Life/ })).toBeVisible();
@@ -455,6 +489,10 @@ test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha
 
   await page.goto(`${base()}/review/`);
   await expect(page.getByText("Así se recomienda empezar.")).toBeVisible();
+  // #171: la ruta por aprobar con sus portadas numeradas y la razón de cada paso.
+  const preview = page.locator(".timeline.is-plain").first();
+  await expect(preview.locator(".step-num").first()).toHaveText("1");
+  await expect(preview).toContainText("Ocarina of Time");
   await expectNoRawKeys();
   await expectTextFits();
   await page.screenshot({ path: "e2e-results/11-revisar-es.png", fullPage: true });
@@ -472,22 +510,39 @@ test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha
   await page.goto(`${base()}/saga/?id=1`);
   await expect(page.getByText(es.catalog.saga.why)).toBeVisible();
   await expect(page.getByText("El de 3DS se ve mejor")).toBeVisible();
-  await page.getByRole("button", { name: es.catalog.route.community }).click(); // elegirla es seguirla
-  await expect(page.getByRole("button", { name: es.catalog.route.community })).toHaveAttribute("aria-pressed", "true");
-  // Editada: Breath of the Wild quedó primero.
+  // #170: la ruta se elige con pestañas junto al título; elegirla es seguirla.
+  await page.getByRole("tab", { name: es.catalog.route.community }).click();
+  await expect(page.getByRole("tab", { name: es.catalog.route.community })).toHaveAttribute("aria-selected", "true");
+  // Editada: Breath of the Wild quedó primero. Los pasos llevan su número y lo jugado (Ocarina) va a color.
   await expect(page.locator(".timeline").first()).toContainText(/Breath of the Wild[\s\S]*Ocarina of Time/);
+  await expect(page.locator(".timeline li.is-played")).toContainText("Ocarina of Time");
+  await expect(page.locator(".timeline .step-num").first()).toHaveText("1");
+  // «Pedir a Claude que la recalcule» está en el menú «⋯» del encabezado (no se pulsa: encolaría una llamada real).
+  await page.getByRole("button", { name: es.catalog.saga.moreActions }).click();
+  await expect(page.getByRole("menuitem", { name: es.catalog.saga.recalculate })).toBeVisible();
+  await page.keyboard.press("Escape");
+  // Las consolas de la tabla, abreviadas: Ocarina está en N64 y 3DS.
+  await expect(page.getByRole("row", { name: /Ocarina of Time/ }).locator(".ot-console")).toHaveText(["N64", "3DS"]);
   await expectNoRawKeys();
   await expectTextFits();
   await page.screenshot({ path: "e2e-results/12-saga-ruta-es.png", fullPage: true });
 
   await page.goto(`${base()}/game/?id=10`);
-  await expect(page.getByRole("heading", { level: 2, name: es.catalog.game.compare })).toBeVisible();
+  // #171: versiones y comparativa en una sola tabla, con barras de 5 y el mejor de cada columna resaltado.
+  await expect(page.getByRole("heading", { level: 2, name: es.catalog.game.versions })).toBeVisible();
   await expect(page.getByText("Pantalla táctil para el inventario")).toBeVisible();
+  const ds = page.getByRole("row", { name: /Nintendo 3DS/ });
+  await expect(ds.getByRole("img", { name: "5/5" })).toHaveClass(/is-best/);
+  await expect(page.getByRole("row", { name: /Nintendo 64/ }).getByRole("img", { name: "3/5" })).not.toHaveClass(/is-best/);
   await page.screenshot({ path: "e2e-results/13-comparativa-es.png", fullPage: true });
 
   // Ocarina ya está terminado (prueba anterior): lo siguiente es Breath of the Wild.
   await page.goto(`${base()}/`);
-  await expect(page.getByRole("link", { name: /Breath of the Wild/ })).toBeVisible();
+  // #170: tarjeta horizontal con la ruta, el avance y «Ver ficha»; Revisar solo si hay algo (aquí ya se aprobó todo).
+  const card = page.locator(".next-card", { hasText: "Breath of the Wild" });
+  await expect(card.getByRole("link", { name: `${es.home.viewGame}: Breath of the Wild` })).toHaveAttribute("href", "/game/?id=11");
+  await expect(card).toContainText(es.catalog.ofTotal.replace("{done}", "1").replace("{total}", "2"));
+  await expect(page.getByRole("heading", { level: 2, name: es.home.review })).toHaveCount(0);
   await page.screenshot({ path: "e2e-results/14-inicio-es.png", fullPage: true });
 
   // F2.21: terminar Breath of the Wild completa la ruta que sigues: la nutria lo celebra.
@@ -512,6 +567,8 @@ test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha
   await expect(page.getByRole("columnheader", { name: es.settings.claude.cost })).toBeVisible();
   const usageTable = page.locator("table").filter({ hasText: "uso-12" });
   await expect(usageTable.locator("tbody tr")).toHaveCount(10);
+  // #172: el total de la página arriba del registro.
+  await expect(page.locator(".usage-total")).toContainText(/10/);
   await page.getByRole("button", { name: es.settings.claude.next }).click();
   await expect(page.getByRole("cell", { name: "uso-1", exact: true })).toBeVisible();
   await page.getByRole("button", { name: es.settings.claude.previous }).click();
@@ -537,8 +594,14 @@ test("panel de tareas: terminadas por hora de término, registro al hacer clic y
   await expect(panel.locator("button.ot-task-title")).toHaveText([/#901/, /#900/]); // la que terminó después, arriba
   await panel.getByRole("button", { name: /#901/ }).click();
   await expect(panel.getByText("Ocarina of Time: bajó cover (80 KB).")).toBeVisible();
+  // #172: estado como insignia de color, barra en cada tarea y ✕ para quitar una terminada.
+  await expect(panel.locator(".ot-task", { hasText: "#901" }).locator(".ot-badge-danger")).toHaveText(es.tasks.status.error);
+  await expect(panel.locator(".ot-task", { hasText: "#900" }).locator(".ot-badge-have")).toHaveText(es.tasks.status.done);
+  await expect(panel.locator(".ot-task", { hasText: "#900" }).locator(".ot-progress")).toBeVisible();
   await expectNoRawKeys();
   await page.screenshot({ path: "e2e-results/15-registro-tarea-es.png" });
+  await panel.locator(".ot-task", { hasText: "#900" }).getByRole("button", { name: es.tasks.remove.replace("{name}", es.tasks.kind.demo) }).click();
+  await expect(panel.locator("button.ot-task-title")).toHaveText([/#901/]);
   await panel.getByRole("button", { name: es.tasks.clear }).click();
   await expect(panel.locator("button.ot-task-title")).toHaveCount(0);
 });
