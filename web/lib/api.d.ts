@@ -2694,7 +2694,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/libraries": {
+    "/api/locations": {
         parameters: {
             query?: never;
             header?: never;
@@ -2779,7 +2779,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/libraries/adopt": {
+    "/api/locations/adopt": {
         parameters: {
             query?: never;
             header?: never;
@@ -2836,7 +2836,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/libraries/{id}/migrate": {
+    "/api/locations/{id}/migrate": {
         parameters: {
             query?: never;
             header?: never;
@@ -2889,7 +2889,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/libraries/{id}": {
+    "/api/locations/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2985,7 +2985,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/libraries/{id}/reconnect": {
+    "/api/locations/{id}/reconnect": {
         parameters: {
             query?: never;
             header?: never;
@@ -3051,7 +3051,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/libraries/{id}/move": {
+    "/api/locations/{id}/move": {
         parameters: {
             query?: never;
             header?: never;
@@ -3117,7 +3117,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/libraries/{id}/move-folder": {
+    "/api/locations/{id}/move-folder": {
         parameters: {
             query?: never;
             header?: never;
@@ -3183,7 +3183,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/libraries/detect": {
+    "/api/locations/detect": {
         parameters: {
             query?: never;
             header?: never;
@@ -3227,7 +3227,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/libraries/consoles": {
+    "/api/consoles/{id}/detail": {
         parameters: {
             query?: never;
             header?: never;
@@ -3238,7 +3238,9 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    id: string;
+                };
                 cookie?: never;
             };
             requestBody?: never;
@@ -3249,8 +3251,15 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ConsoleFolder"][];
+                        "application/json": components["schemas"]["ConsoleDetail"];
                     };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
                 /** @description Conflict */
                 409: {
@@ -3264,6 +3273,72 @@ export interface paths {
             };
         };
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/consoles/{id}/destination": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DestinationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConsoleDetail"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
@@ -3309,6 +3384,70 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tools/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MoveToolRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": number | string;
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -3759,6 +3898,16 @@ export interface components {
             /** Format: int32 */
             withPc: number | string;
         };
+        ConsoleDetail: {
+            id: string;
+            name: string;
+            destination: null | string;
+            games: components["schemas"]["ConsoleFolder"][];
+            system: components["schemas"]["ConsoleFolder"][];
+            emulators: components["schemas"]["ToolInfo"][];
+            ports: components["schemas"]["ToolInfo"][];
+            complements: components["schemas"]["ToolInfo"][];
+        };
         ConsoleFolder: {
             console: string;
             libraryId: string;
@@ -3812,6 +3961,9 @@ export interface components {
             criterion: string;
             value: null | string;
             text: null | string;
+        };
+        DestinationRequest: {
+            locationId: null | string;
         };
         Drive: {
             name: string;
@@ -3928,10 +4080,13 @@ export interface components {
             /** Format: int64 */
             total: null | number | string;
             legacy: boolean;
+            type: string;
         };
         LibraryRequest: {
             path: string;
             name?: null | string;
+            /** @default game */
+            type: string;
         };
         MenuRequest: {
             collapsed: boolean;
@@ -3951,6 +4106,10 @@ export interface components {
             destination: null | string;
             error: null | components["schemas"]["ApiError"];
             warning: null | components["schemas"]["ApiError"];
+        };
+        MoveToolRequest: {
+            path: string;
+            toLocation?: null | string;
         };
         NextGame: {
             /** Format: int64 */
@@ -4128,6 +4287,8 @@ export interface components {
             version: string;
             path: string;
             recipeId: null | string;
+            game?: null | string;
+            locationId?: null | string;
         };
         UpdateChannelInfo: {
             channel: string;

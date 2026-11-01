@@ -126,7 +126,7 @@ function LibrariesStep() {
   const describe = useDescribeError();
   const router = useRouter();
   const cache = useQueryClient();
-  const found = useQuery({ queryKey: ["libraries", "detect"], queryFn: () => request<string[]>("/api/libraries/detect") });
+  const found = useQuery({ queryKey: ["libraries", "detect"], queryFn: () => request<string[]>("/api/locations/detect") });
   const [path, setPath] = useState("");
   const finish = () => {
     const state = cache.getQueryData<AppState>(["welcome-state"]);
@@ -134,11 +134,11 @@ function LibrariesStep() {
     router.replace("/");
   };
   const adopt = useMutation({
-    mutationFn: (p: string) => request<AdoptResult>("/api/libraries/adopt", { method: "POST", body: JSON.stringify({ path: p }) }),
+    mutationFn: (p: string) => request<AdoptResult>("/api/locations/adopt", { method: "POST", body: JSON.stringify({ path: p }) }),
     onSuccess: finish,
   });
   const create = useMutation({
-    mutationFn: (p: string) => request<LibraryInfo[]>("/api/libraries", { method: "POST", body: JSON.stringify({ path: p }) }),
+    mutationFn: (p: string) => request<LibraryInfo[]>("/api/locations", { method: "POST", body: JSON.stringify({ path: p }) }),
     onSuccess: finish,
   });
   const error = adopt.error ?? create.error;

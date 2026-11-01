@@ -65,8 +65,42 @@ input:not([type="checkbox"], [type="radio"], [type="range"]), select { height: 3
 /* Con espacio, los bloques van en dos columnas (#130, precisa #108); cada uno sigue con un ancho cómodo. */
 #settings-panel { max-width: 1640px; }
 #settings-panel > .panel { max-width: 760px; }
-#settings-panel > .settings-blocks { display: block; columns: 2 480px; column-gap: var(--space-4); }
-#settings-panel > .settings-blocks > * { break-inside: avoid; margin: 0 0 var(--space-4); }
+/* Lista y detalle (#196, #197): secciones agrupadas a la izquierda y una sola columna de contenido; nunca dos columnas de bloques. */
+.side-layout { display: grid; grid-template-columns: 200px minmax(0, 760px); gap: var(--space-6); align-items: start; }
+.side-nav { position: sticky; top: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+.side-group { display: flex; flex-direction: column; gap: 2px; }
+.side-group-label { padding: 0 var(--space-3); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: 11px; }
+.side-item { text-align: left; padding: var(--space-2) var(--space-3); border: 0; border-left: 2px solid transparent; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; background: none; color: var(--ink-muted); font: inherit; font-weight: 700; cursor: pointer; }
+.side-item:hover { background: var(--surface); color: var(--ink); }
+.side-item[aria-selected="true"] { color: var(--ink); background: var(--accent-soft); border-left-color: var(--accent); }
+.side-detail { min-width: 0; }
+@media (max-width: 760px) {
+  .side-layout { grid-template-columns: minmax(0, 1fr); }
+  .side-nav { position: static; flex-direction: row; flex-wrap: wrap; }
+  .side-group { flex-direction: row; flex-wrap: wrap; }
+  .side-group-label { display: none; }
+}
+/* Detalle de una consola y de una herramienta (#192): filas con etiqueta a la izquierda. */
+.detail-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.detail-list li { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; min-height: 36px; border-bottom: 1px solid var(--line); }
+.detail-list li:last-child { border-bottom: 0; }
+.detail-list .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.missing { color: var(--ink-muted); font-style: italic; margin: 0; }
+.location-row { display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--line); }
+.location-row .grow, .version-row .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.link-button { background: none; border: 0; padding: var(--space-1) 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.link-button:hover b { text-decoration: underline; }
+.tool-detail { flex-basis: 100%; display: flex; flex-direction: column; gap: var(--space-2); padding: 0 0 var(--space-3); }
+.facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; }
+.facts dt { color: var(--ink-muted); }
+.facts dd { margin: 0; min-width: 0; }
+.console-split { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: var(--space-4); align-items: start; }
+.console-split .console-picker { max-height: 70vh; overflow-y: auto; }
+.console-row[aria-current="true"] { background: var(--accent-soft); }
+.console-split .console-row { flex-wrap: nowrap; }
+.console-split .console-games { min-width: 0; }
+.console-split .console-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 900px) { .console-split { grid-template-columns: minmax(0, 1fr); } .console-split .console-picker { max-height: 40vh; } }
 
 /* Asistente de primer arranque */
 .wizard { min-height: 100vh; display: flex; flex-wrap: wrap; background: var(--bg); color: var(--ink); }

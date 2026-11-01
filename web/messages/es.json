@@ -70,7 +70,7 @@
       "welcome": "Bienvenida",
       "dataFolder": "Carpeta de datos",
       "backup": "Respaldo",
-      "libraries": "Bibliotecas de juegos",
+      "libraries": "Ubicaciones de juegos",
       "steam": "Steam",
       "keys": "Claves",
       "initialLoad": "Carga inicial"
@@ -87,8 +87,8 @@
     "preparing": "Preparando…",
     "use": "Usar {path}",
     "nextSteps": "Respaldo, Steam y el resto de los pasos se activan con su fase.",
-    "librariesTitle": "Tus bibliotecas de juegos",
-    "librariesText": "Una biblioteca es una carpeta con juegos, en cualquier disco o en la red. Si ya tienes una con la estructura antigua, adóptala y se ordena sola.",
+    "librariesTitle": "Tus ubicaciones de juegos",
+    "librariesText": "Una ubicación de juegos es una carpeta con juegos, en cualquier disco o en la red. Si ya tienes una con la estructura antigua, adóptala y se ordena sola.",
     "librariesFound": "Encontramos carpetas con la estructura antigua:",
     "adoptThis": "Adoptar {path}",
     "createNew": "Crear una nueva",
@@ -188,14 +188,37 @@
       },
       "location": {
         "in": "Sus juegos: {library}",
-        "move": "Mover a otra biblioteca",
+        "move": "Mover a otra ubicación",
         "to": "A",
         "cancel": "Cancelar",
         "confirm": "Mover",
         "queued": "quedó en el panel de tareas"
+      },
+      "detail": {
+        "pick": "Elige una consola para ver sus juegos, emuladores, ports y sistema.",
+        "games": "Juegos",
+        "emulators": "Emuladores",
+        "ports": "Ports",
+        "system": "Sistema",
+        "complements": "Complementos",
+        "destination": "Los juegos nuevos van a",
+        "noDestination": "Sin elegir",
+        "noGames": "No hay una carpeta de esta consola en ninguna ubicación de juegos.",
+        "noEmulators": "No hay un emulador instalado para esta consola.",
+        "noPorts": "No hay ports de esta consola.",
+        "noSystem": "No hay BIOS ni keys de esta consola en una ubicación de sistema.",
+        "covers": "Cubre {game}",
+        "inDataFolder": "En Herramientas",
+        "inLocation": "En {location}",
+        "open": "Ver {name}"
       }
     },
-    "libraries": "Bibliotecas de juegos"
+    "storage": "Almacenamiento",
+    "groups": {
+      "library": "Juegos",
+      "accounts": "Cuentas",
+      "app": "Aplicación"
+    }
   },
   "dataFolder": {
     "open": "Abrir carpeta",
@@ -417,14 +440,14 @@
       "ghFailed": "gh no pudo crear el issue: {detail}"
     },
     "library": {
-      "hasMarker": "Esa carpeta ya es una biblioteca: adóptala en vez de crearla.",
+      "hasMarker": "Esa carpeta ya es una ubicación: adóptala en vez de crearla.",
       "noName": "Escribe un nombre.",
-      "notFound": "Esa biblioteca ya no está registrada.",
-      "overlaps": "Se cruza con la biblioteca «{name}»: una no puede estar dentro de otra.",
-      "notConnected": "La biblioteca está desconectada. Reconéctala primero.",
-      "otherMarker": "En esa carpeta no está esta biblioteca (su marcador es de otra o no tiene).",
+      "notFound": "Esa ubicación ya no está registrada.",
+      "overlaps": "Se cruza con la ubicación «{name}»: una no puede estar dentro de otra.",
+      "notConnected": "La ubicación está desconectada. Reconéctala primero.",
+      "otherMarker": "En esa carpeta no está esta ubicación (su marcador es de otra o no tiene).",
       "notFoundOnDrives": "No apareció en los discos. Conecta el disco o escribe la ruta donde está.",
-      "outside": "La carpeta tiene que estar dentro de la biblioteca.",
+      "outside": "La carpeta tiene que estar dentro de la ubicación.",
       "conflict": "Ya existe {path}: muévelo o renómbralo y vuelve a migrar.",
       "copying": "Copiando a {path}",
       "updating": "Poniendo al día la base y las rutas de los emuladores",
@@ -434,7 +457,10 @@
         "moved": "Movida {from} a {to}; {paths} rutas de emuladores al día.",
         "tool": "{name} quedó en {path}.",
         "notEmpty": "{path} no quedó vacía y no se borró: revisa qué tiene."
-      }
+      },
+      "badType": "Ese tipo de ubicación no existe.",
+      "notGames": "Elige una ubicación de juegos.",
+      "otherType": "Esa ubicación es de otro tipo."
     }
   },
   "credentials": {
@@ -511,8 +537,8 @@
         "extra": "Completar con Wikidata y RAWG"
       },
       "library": {
-        "move": "Mover una biblioteca o una carpeta",
-        "adopt": "Migrar una biblioteca a la estructura nueva"
+        "move": "Mover una ubicación o una carpeta",
+        "adopt": "Migrar una ubicación a la estructura nueva"
       }
     },
     "status": {
@@ -811,11 +837,11 @@
     "progress": "{done} de {total} jugados"
   },
   "libraries": {
-    "emptyTitle": "Aún no hay bibliotecas de juegos",
+    "emptyTitle": "Aún no hay ubicaciones de juegos",
     "emptyText": "Adopta la carpeta donde ya tienes tus juegos o crea una nueva en cualquier disco.",
     "adopt": "Adoptar una carpeta",
-    "create": "Crear una biblioteca",
-    "adoptHelp": "Registra una carpeta que ya tiene juegos. Si trae la estructura antigua (Consola\\Juegos) con emuladores o ports mezclados, se ordena sola: los juegos quedan en Consola\\Juego y los emuladores y ports se llevan a Herramientas, que no es una biblioteca.",
+    "create": "Crear una ubicación",
+    "adoptHelp": "Registra una carpeta que ya tiene juegos. Si trae la estructura antigua (Consola\\Juegos) con emuladores o ports mezclados, se ordena sola: los juegos quedan en Consola\\Juego y los emuladores y ports se llevan a Herramientas.",
     "createHelp": "Elige una carpeta vacía o nueva, en cualquier disco o en la red (\\\\nas\\roms). Las carpetas de cada consola se crean cuando hacen falta.",
     "path": "Carpeta",
     "pathPlaceholder": "Por ejemplo E:\\Consolas",
@@ -827,7 +853,7 @@
     "connected": "Conectada",
     "disconnected": "Desconectada",
     "legacy": "Estructura antigua",
-    "legacyHelp": "Esta biblioteca todavía tiene la estructura antigua. Migrarla deja los juegos en Consola\\Juego y lleva emuladores, ports y sus complementos a Herramientas, con sus rutas al día.",
+    "legacyHelp": "Esta ubicación todavía tiene la estructura antigua. Migrarla deja los juegos en Consola\\Juego y lleva emuladores, ports y sus complementos a Herramientas, con sus rutas al día.",
     "migrate": "Migrar a la estructura nueva",
     "migrationStarted": "La migración quedó en el panel de tareas. Puedes seguir usando la app mientras tanto.",
     "queued": "Quedó en el panel de tareas.",
@@ -839,17 +865,66 @@
     "moveHelp": "Elige una carpeta vacía o nueva. Se copia, se verifica cada archivo, se ponen al día las rutas de los emuladores y recién entonces se borra el origen. Si se corta, sigue donde quedó.",
     "remove": "Quitar",
     "removeHelp": "Se quita «{name}» de Otteretro. No se borra ningún archivo: puedes volver a adoptarla cuando quieras.",
-    "removeConfirm": "Quitar sin borrar"
+    "removeConfirm": "Quitar sin borrar",
+    "adoptOtherHelp": "Registra una carpeta que ya tiene contenido de este tipo, ordenado como en Herramientas: Consola\\Nombre\\versión.",
+    "consoles": "Consolas: {list}",
+    "dataFolder": "Herramientas, en la carpeta de datos",
+    "dataFolderHelp": "La primera ubicación de este tipo. No se quita; puedes sumar otras en cualquier disco.",
+    "type": {
+      "game": {
+        "title": "Juegos",
+        "help": "Donde viven tus juegos, una carpeta por consola. Puedes tener varias, en cualquier disco o en la red.",
+        "empty": "Aún no hay ubicaciones de juegos: adopta la carpeta donde ya los tienes o crea una nueva."
+      },
+      "emulator": {
+        "title": "Emuladores",
+        "help": "Cada emulador con sus versiones lado a lado, en Consola\\Emulador\\versión.",
+        "empty": ""
+      },
+      "port": {
+        "title": "Ports",
+        "help": "Los ports nativos de cada juego, en Consola\\Port\\versión.",
+        "empty": ""
+      },
+      "complement": {
+        "title": "Complementos",
+        "help": "Texturas, mods y packs, aparte de su emulador o port y enlazados donde los busca.",
+        "empty": ""
+      },
+      "system": {
+        "title": "Sistema",
+        "help": "BIOS, keys y firmware, una carpeta por consola.",
+        "empty": "Aún no hay ubicaciones de sistema."
+      }
+    }
   },
   "tools": {
     "emptyTitle": "Aún no hay emuladores ni ports",
-    "emptyText": "Al adoptar una biblioteca con la estructura antigua, sus emuladores y ports llegan aquí. Desde la F5 se instalan y actualizan desde esta pantalla.",
+    "emptyText": "Al adoptar una ubicación de juegos con la estructura antigua, sus emuladores y ports llegan aquí. Desde la F5 se instalan y actualizan desde esta pantalla.",
     "kind": {
       "emulator": "Emuladores",
       "port": "Ports",
-      "complement": "Complementos"
+      "complement": "Complementos",
+      "system": "Sistema"
     },
     "noRecipe": "Sin receta",
-    "noRecipeHelp": "Otteretro todavía no sabe cómo dejarlo portable ni reescribir sus rutas."
+    "noRecipeHelp": "Otteretro todavía no sabe cómo dejarlo portable ni reescribir sus rutas.",
+    "sections": "Tipos de herramientas",
+    "pick": "Elige una herramienta para ver su detalle.",
+    "none": "Nada de este tipo todavía.",
+    "version": "Versión",
+    "console": "Consola",
+    "path": "Carpeta",
+    "covers": "Cubre",
+    "location": "Ubicación",
+    "recipe": "Receta",
+    "move": "Mover a otra ubicación",
+    "to": "A",
+    "cancel": "Cancelar",
+    "confirm": "Mover",
+    "queued": "Quedó en el panel de tareas.",
+    "systemHelp": "BIOS, keys y firmware viven en las ubicaciones de sistema de Ajustes › Almacenamiento. Cada consola muestra los suyos.",
+    "openStorage": "Abrir Almacenamiento",
+    "dataFolder": "Herramientas (carpeta de datos)"
   }
 }
