@@ -795,29 +795,34 @@ test("los cambios se ven al tocar y, si el guardado falla, vuelven y avisan", as
   await page.unroute("**/api/sagas/1");
 });
 
-test("Ajustes con lista y detalle: en una ventana angosta la lista pasa arriba, sin barra (#196)", async () => {
-  // Nunca barra horizontal: la lista se acomoda en filas sobre el detalle; la elegida siempre se ve.
+test("las pestañas nunca tienen barra: en una ventana angosta, lo que no cabe va a «Más ▾»", async () => {
+  // #108: a ningún ancho hay barra ni segunda línea; la elegida siempre se ve.
   const noScroll = async () => {
-    const nav = page.locator('.content [role="tablist"]');
-    const { scroll, client } = await nav.evaluate((e) => ({ scroll: e.scrollWidth, client: e.clientWidth }));
+    const row = page.locator('.content [role="tablist"]');
+    const { scroll, client, height } = await row.evaluate((e) => ({ scroll: e.scrollWidth, client: e.clientWidth, height: e.getBoundingClientRect().height }));
     expect(scroll).toBeLessThanOrEqual(client);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    expect(height).toBeLessThan(50); // una sola línea
   };
   await page.setViewportSize({ width: 520, height: 900 });
   await page.goto(`${base()}/settings/?s=claude`);
+  const more = page.getByRole("button", { name: new RegExp(es.tabs.more) });
+  await expect(more).toBeVisible();
   await expect(page.locator("#tab-claude")).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("tab")).toHaveCount(6);
-  const nav = (await page.locator('.content [role="tablist"]').boundingBox())!;
-  const panel = (await page.locator("#settings-panel").boundingBox())!;
-  expect(panel.y).toBeGreaterThanOrEqual(nav.y + nav.height); // la lista arriba, el detalle abajo
+  await noScroll();
+  await more.click();
+  await page.getByRole("menuitem").last().click();
+  await expect(page.locator('#settings-panel')).toBeVisible();
   await noScroll();
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${base()}/settings/`);
-  const wide = (await page.locator('.content [role="tablist"]').boundingBox())!;
-  const detail = (await page.locator("#settings-panel").boundingBox())!;
-  expect(detail.x).toBeGreaterThan(wide.x + wide.width); // al lado, una sola columna de contenido
-  expect(detail.width).toBeLessThanOrEqual(761);
+  await expect(more).toHaveCount(0);
+  await expect(page.getByRole("tab")).toHaveCount(6);
   await noScroll();
+  // #200: una sola columna centrada con ancho máximo.
+  const content = (await page.locator(".content").boundingBox())!;
+  const column = (await page.locator(".centered").boundingBox())!;
+  expect(column.width).toBeLessThanOrEqual(881);
+  expect(Math.abs((column.x - content.x) - (content.x + content.width - column.x - column.width))).toBeLessThan(40);
 });
 
 test("Ajustes: consolas habilitadas, al día y reevaluar icónicas", async () => {
@@ -854,7 +859,7 @@ test("Ajustes: consolas habilitadas, al día y reevaluar icónicas", async () =>
 });
 
 test("Ajustes en una sola columna a cualquier ancho, y el menú se retrae, se recuerda y se expande", async () => {
-  // #196 (reemplaza a #130): los bloques van en una sola columna, también con 1920 px.
+  // #200 (reemplaza a #130 y #196): los bloques van en una sola columna, también con 1920 px.
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto(`${base()}/settings/?s=claude`);
   const blocks = page.locator("#settings-panel .settings-blocks > .panel");

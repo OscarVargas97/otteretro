@@ -65,21 +65,8 @@ input:not([type="checkbox"], [type="radio"], [type="range"]), select { height: 3
 /* Con espacio, los bloques van en dos columnas (#130, precisa #108); cada uno sigue con un ancho cómodo. */
 #settings-panel { max-width: 1640px; }
 #settings-panel > .panel { max-width: 760px; }
-/* Lista y detalle (#196, #197): secciones agrupadas a la izquierda y una sola columna de contenido; nunca dos columnas de bloques. */
-.side-layout { display: grid; grid-template-columns: 200px minmax(0, 760px); gap: var(--space-6); align-items: start; }
-.side-nav { position: sticky; top: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
-.side-group { display: flex; flex-direction: column; gap: 2px; }
-.side-group-label { padding: 0 var(--space-3); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: 11px; }
-.side-item { text-align: left; padding: var(--space-2) var(--space-3); border: 0; border-left: 2px solid transparent; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; background: none; color: var(--ink-muted); font: inherit; font-weight: 700; cursor: pointer; }
-.side-item:hover { background: var(--surface); color: var(--ink); }
-.side-item[aria-selected="true"] { color: var(--ink); background: var(--accent-soft); border-left-color: var(--accent); }
-.side-detail { min-width: 0; }
-@media (max-width: 760px) {
-  .side-layout { grid-template-columns: minmax(0, 1fr); }
-  .side-nav { position: static; flex-direction: row; flex-wrap: wrap; }
-  .side-group { flex-direction: row; flex-wrap: wrap; }
-  .side-group-label { display: none; }
-}
+/* Ajustes y Herramientas (#200): pestañas arriba y una sola columna centrada con ancho máximo; nunca dos columnas de bloques. */
+.centered { max-width: 880px; margin: 0 auto; width: 100%; }
 /* Detalle de una consola y de una herramienta (#192): filas con etiqueta a la izquierda. */
 .detail-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .detail-list li { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; min-height: 36px; border-bottom: 1px solid var(--line); }

@@ -213,12 +213,7 @@
         "open": "Show {name}"
       }
     },
-    "storage": "Storage",
-    "groups": {
-      "library": "Games",
-      "accounts": "Accounts",
-      "app": "App"
-    }
+    "storage": "Storage"
   },
   "dataFolder": {
     "open": "Open folder",

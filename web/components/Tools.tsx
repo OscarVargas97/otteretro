@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { librariesQuery, toolsQuery } from "@/components/Libraries";
 import { Empty } from "@/components/Shell";
-import { SideNav } from "@/components/SideNav";
+import { Tabs } from "@/components/Tabs";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
 import type { ToolInfo } from "@/lib/types";
@@ -15,17 +15,20 @@ import type { ToolInfo } from "@/lib/types";
 const KINDS = ["emulator", "port", "complement", "system"] as const;
 type Kind = (typeof KINDS)[number];
 
-/** Herramientas (§5.1, #193, #194, #197): el inventario por tipo, con lista y detalle. Instalar y actualizar llegan en la F5. */
+/** Herramientas (§5.1, #193, #194, #200): el inventario por tipo, en pestañas y una sola columna centrada. Instalar y actualizar llegan en la F5. */
 export function ToolsPage() {
   const t = useTranslations("tools");
   const router = useRouter();
   const asked = useSearchParams().get("k");
   const kind: Kind = KINDS.find((k) => k === asked) ?? "emulator";
   return (
-    <SideNav groups={[{ items: KINDS.map((k) => ({ id: k, label: t(`kind.${k}`) })) }]} current={kind} label={t("sections")}
-      panel="tools-panel" onSelect={(k) => router.push(`/tools/?k=${k}`)}>
-      {kind === "system" ? <SystemHelp /> : <ToolList kind={kind} />}
-    </SideNav>
+    <div className="centered">
+      <Tabs tabs={KINDS.map((k) => ({ id: k, label: t(`kind.${k}`) }))} current={kind} label={t("sections")} panel="tools-panel"
+        onSelect={(k) => router.push(`/tools/?k=${k}`)} />
+      <section className="sec" id="tools-panel" role="tabpanel" aria-labelledby={`tab-${kind}`}>
+        {kind === "system" ? <SystemHelp /> : <ToolList kind={kind} />}
+      </section>
+    </div>
   );
 }
 

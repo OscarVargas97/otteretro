@@ -213,12 +213,7 @@
         "open": "Ver {name}"
       }
     },
-    "storage": "Almacenamiento",
-    "groups": {
-      "library": "Juegos",
-      "accounts": "Cuentas",
-      "app": "Aplicación"
-    }
+    "storage": "Almacenamiento"
   },
   "dataFolder": {
     "open": "Abrir carpeta",

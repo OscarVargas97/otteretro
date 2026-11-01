@@ -4,7 +4,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.3.0 · Carpetas y herramientas · en desarrollo
 
-`fase/f3-carpetas`, `feat/146-pausar-cancelar-tareas` y `feat/148-almacenamiento-por-tipo` · F3 (#141): tus juegos y herramientas en la estructura definitiva antes de construir lo demás encima · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+`fase/f3-carpetas`, `feat/146-pausar-cancelar-tareas`, `feat/148-almacenamiento-por-tipo` y `fix/151-pestanas-centradas` · F3 (#141): tus juegos y herramientas en la estructura definitiva antes de construir lo demás encima · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
 
 ### Nuevo
 - **Almacenamiento por tipo**, en Ajustes › Almacenamiento (#148): juegos, emuladores, ports, complementos y sistema (BIOS, keys) tienen cada uno sus **ubicaciones**, en cualquier disco o en la red. Adopta la carpeta donde ya tienes tus juegos o crea una nueva. Cada ubicación muestra su espacio libre y si está conectada; se puede renombrar, mover y quitar (quitar nunca borra archivos). Si un disco cambia de letra o vuelve a conectarse, la ubicación se encuentra sola.
@@ -17,7 +17,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ### Cambios
 - El menú muestra las fases nuevas del plan: Steam llega en la F8, Descargas en la F10 y Descubrir en la F11.
-- **Ajustes con lista y detalle** (#148): las secciones agrupadas a la izquierda y una sola columna de contenido, sin los bloques en dos columnas; Herramientas usa el mismo diseño.
+- **Ajustes en una sola columna centrada** (#151): siguen las pestañas de arriba y el contenido va al medio, sin los bloques en dos columnas. Herramientas, igual: pestañas Emuladores, Ports, Complementos y Sistema.
 
 ## 0.2.1 · Pulido de UI · en desarrollo
 
