@@ -503,7 +503,8 @@
         "conflict": "{path}: ya hay otro archivo distinto en {to}, no se pisa.",
         "noSpace": "{path}: no hay espacio en {disk}.",
         "noDat": "No se pudo bajar el DAT de {console}: se importa sin verificar.",
-        "summary": "Importados: {moved}. Sin importar: {skipped}."
+        "summary": "Importados: {moved}. Sin importar: {skipped}.",
+        "waiting": "{path} espera en Entrada: no se reconoció con seguridad. Revísalo en Revisar."
       }
     }
   },

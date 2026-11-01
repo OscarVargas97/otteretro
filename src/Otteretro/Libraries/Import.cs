@@ -16,7 +16,8 @@ public static partial class Import
 {
     public const string Kind = "library.import";
 
-    public record Job(string Path);
+    /// <param name="EntryDisk">Es la `Entrada\` de ese disco (#221): lo reconocido va a ese mismo disco, y solo si se identificó con seguridad (#222).</param>
+    public record Job(string Path, string? EntryDisk = null);
 
     /// <summary>Las extensiones que dicen la consola. Las de disco (iso, chd, cue…) no: esas salen de su cabecera, su carpeta o su hash.</summary>
     static readonly Dictionary<string, string> ByExtension = new(StringComparer.OrdinalIgnoreCase)
@@ -64,6 +65,27 @@ public static partial class Import
         return (TaskQueue.Enqueue(db, Kind, JsonSerializer.Serialize(new Job(Disk.Normalize(path)), JsonSerializerOptions.Web)), null);
     }
 
+    /// <summary>Encola la importación de la `Entrada\` de un disco, salvo que ya haya una esperando.</summary>
+    public static long EnqueueEntry(Database db, DiskInfo disk)
+    {
+        var data = JsonSerializer.Serialize(new Job(Disk.Normalize(Path.Combine(disk.Path, Disk.EntryFolder)), disk.Id), JsonSerializerOptions.Web);
+        using (var c = db.Open())
+            if (c.ExecuteScalar<long?>("SELECT id FROM task WHERE kind = @Kind AND status = 'queued' AND data = @data LIMIT 1", new { Kind, data }) is { } waiting)
+                return waiting;
+        return TaskQueue.Enqueue(db, Kind, data);
+    }
+
+    /// <summary>Lo están escribiendo (una copia en curso): se deja para cuando termine, que avisa el vigilante.</summary>
+    static bool InUse(string file)
+    {
+        try
+        {
+            using var s = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.None);
+            return false;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return true; }
+    }
+
     record Item(string Path, string? Console, string? TitleId, string? Component);
 
     public static async Task Run(TaskRun run, CancellationToken ct)
@@ -78,6 +100,18 @@ public static partial class Import
         var keys = SwitchTitle.HeaderKey(Scan.SystemFolders(db, Disk.List(db)));
 
         var files = Directory.EnumerateFiles(job.Path, "*", new EnumerationOptions { RecurseSubdirectories = true }).ToList();
+        var entryDisk = job.EntryDisk is null ? null : Disk.Get(db, job.EntryDisk);
+        if (job.EntryDisk is not null && entryDisk is not { Connected: true }) throw new TaskException(ApiError.Of("library.notConnected"));
+        if (entryDisk is not null)
+        {
+            files = files.Where(f => !InUse(f)).ToList();
+            // Lo que estaba esperando y ya no está (lo sacaste a mano) deja de esperar.
+            using var c = db.Open();
+            var prefix = Disk.EntryFolder + Path.DirectorySeparatorChar;
+            foreach (var (id, relative) in c.Query<(long, string)>(
+                         "SELECT id, relative_path FROM source WHERE kind = 'file' AND library_id = @Id AND substr(relative_path, 1, length(@prefix)) = @prefix", new { entryDisk.Id, prefix }).ToList())
+                if (!File.Exists(Path.Combine(entryDisk.Path, relative))) c.Execute("DELETE FROM source WHERE id = @id", new { id });
+        }
         foreach (var archive in files.Where(f => Path.GetExtension(f).ToLowerInvariant() is ".zip" or ".7z" or ".rar"))
             run.Log(ApiError.Of("import.log.archive", ("path", archive)), "warn");
         var items = files.Where(f => Scan.GameExtensions.Contains(Path.GetExtension(f)) && Path.GetExtension(f).ToLowerInvariant() is not (".zip" or ".7z"))
@@ -89,7 +123,7 @@ public static partial class Import
 
         var bases = new Dictionary<string, (long? Version, string Folder)>();
         var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        int moved = 0, skipped = 0;
+        int moved = 0, skipped = 0, waiting = 0;
         for (var i = 0; i < items.Count; i++)
         {
             ct.ThrowIfCancellationRequested();
@@ -115,7 +149,17 @@ public static partial class Import
             var version = Scan.Match(learned, name) ?? Scan.Match(versions, name) ?? (folder is null ? null : Scan.Match(versions, folder))
                 ?? (datName is null ? null : Scan.Match(versions, datName)) ?? ofBase?.Version ?? VersionOfBase(db, baseId);
 
-            var disk = DiskOf(db, console);
+            // Lo que llega solo se mueve si se reconoció con seguridad (#222); lo demás espera acá, y Revisar y Claude lo ven (#180).
+            if (entryDisk is not null && version is null)
+            {
+                Register(db, entryDisk.Id, Path.GetRelativePath(entryDisk.Path, item.Path), console, item, null, sha1, false, new FileInfo(item.Path).Length);
+                run.Log(ApiError.Of("import.log.waiting", ("path", item.Path)));
+                skipped++;
+                waiting++;
+                continue;
+            }
+
+            var disk = entryDisk ?? DiskOf(db, console);
             var gameFolder = ofBase?.Folder ?? GameFolder(db, version, folder, name);
             if (baseId is not null) bases.TryAdd(baseId, (version, gameFolder));
             var relative = Path.Combine(ConsoleFolder(db, disk, console, consoles), gameFolder);
@@ -140,12 +184,17 @@ public static partial class Import
             }
             foreach (var (from, to) in targets) MoveIn(from, to);
             Register(db, disk.Id, Path.GetRelativePath(disk.Path, targets[0].To), console, item, version, sha1, datName is not null, size);
+            if (entryDisk is not null)
+                using (var c = db.Open())
+                    c.Execute("DELETE FROM source WHERE kind = 'file' AND library_id = @Id AND relative_path = @relative",
+                        new { entryDisk.Id, relative = Path.GetRelativePath(entryDisk.Path, item.Path) });
             foreach (var (from, _) in targets) RemoveEmptyFolders(Path.GetDirectoryName(from)!, job.Path);
             run.Log(ApiError.Of("import.log.moved", ("path", item.Path), ("to", targets[0].To)));
             moved++;
         }
         run.Log(ApiError.Of("import.log.summary", ("moved", moved.ToString()), ("skipped", skipped.ToString())));
-        Scan.Enqueue(db); // completa lo demás y manda a Claude lo que no se reconoció (#180)
+        // Completa lo demás y manda a Claude lo que no se reconoció (#180). Sin nada nuevo no hay nada que escanear.
+        if (moved + waiting > 0) Scan.Enqueue(db);
     }
 
     /// <summary>Copiar, forzar a disco y verificar, y recién entonces borrar. Un corte deja el origen entero: la tarea se repite sin daño.</summary>

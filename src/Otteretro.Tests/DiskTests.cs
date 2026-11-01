@@ -531,6 +531,73 @@ public class DiskTests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) => throw new HttpRequestException("sin red");
     }
 
+    /// <summary>#221, #222: lo de `Entrada\` va a su mismo disco si se reconoce; lo demás espera ahí y se ve en la base; lo que se está copiando no se toca.</summary>
+    [Fact]
+    public async Task TheEntryFolderImportsOnlyWhatItRecognizes()
+    {
+        await using var f = new Fixture();
+        Disk.Create(f.Db, f.Tmp["Otteretro"], "E:");
+        var (other, _) = Disk.Create(f.Db, f.Tmp["Otro"], "F:");
+        var entry = f.Tmp[@"Otro\Entrada"];
+        Assert.True(Directory.Exists(entry));
+        using (var c = f.Db.Open())
+            c.Execute("INSERT INTO game (id, name_es) VALUES (10, 'Metroid Fusion'); INSERT INTO version (id, game_id, platform) VALUES (20, 10, 'gba');");
+        Write(Path.Combine(entry, "Metroid Fusion.gba"));
+        Write(Path.Combine(entry, "Raro.gba"));
+        Write(Path.Combine(entry, "copiando.gba"));
+        var info = Disk.Get(f.Db, other!)!;
+        Dats.Handler = new FailingHandler();
+        try
+        {
+            using (new FileStream(Path.Combine(entry, "copiando.gba"), FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                await Done(f, Import.EnqueueEntry(f.Db, info));
+
+            // Va a su mismo disco, no al ★.
+            Assert.True(File.Exists(f.Tmp[@"Otro\Juegos\Game Boy Advance\Metroid Fusion\Metroid Fusion.gba"]));
+            Assert.True(File.Exists(Path.Combine(entry, "Raro.gba")));
+            Assert.True(File.Exists(Path.Combine(entry, "copiando.gba")));
+            using (var c = f.Db.Open())
+                Assert.Equal((long?)null, c.QuerySingle<long?>("SELECT version_id FROM source WHERE relative_path LIKE '%Raro%'"));
+
+            // Cuando el catálogo ya lo reconoce, se mueve y deja de esperar.
+            using (var c = f.Db.Open())
+                c.Execute("INSERT INTO game (id, name_es) VALUES (11, 'Raro'); INSERT INTO version (id, game_id, platform) VALUES (21, 11, 'gba');");
+            await Done(f, Import.EnqueueEntry(f.Db, info));
+        }
+        finally { Dats.Handler = null; }
+        Assert.True(File.Exists(f.Tmp[@"Otro\Juegos\Game Boy Advance\Raro\Raro.gba"]));
+        using (var c = f.Db.Open())
+        {
+            Assert.Equal(0, c.ExecuteScalar<long>("SELECT count(*) FROM source WHERE relative_path LIKE 'Entrada%' AND relative_path LIKE '%Raro%'"));
+            Assert.Equal(21, c.ExecuteScalar<long>("SELECT version_id FROM source WHERE relative_path LIKE '%Raro%'"));
+        }
+    }
+
+    /// <summary>#221: dejar algo en `Entrada\` con la app abierta encola su importación, sin pulsar nada.</summary>
+    [Fact]
+    public async Task TheWatcherImportsWhatArrivesInTheEntryFolder()
+    {
+        await using var f = new Fixture();
+        Disk.Create(f.Db, f.Tmp["Otteretro"], "E:");
+        var quiet = GamesWatcher.Quiet;
+        GamesWatcher.Quiet = TimeSpan.FromMilliseconds(200);
+        try
+        {
+            using var watcher = new GamesWatcher();
+            Assert.Null(watcher.Tick(f.Db));
+            Write(f.Tmp[@"Otteretro\Entrada\juego.gba"]);
+            long? task = null;
+            for (var i = 0; i < 50 && task is null; i++)
+            {
+                await Task.Delay(100);
+                task = watcher.Tick(f.Db);
+            }
+            using var c = f.Db.Open();
+            Assert.Equal(Import.Kind, c.ExecuteScalar<string>("SELECT kind FROM task WHERE id = @task", new { task }));
+        }
+        finally { GamesWatcher.Quiet = quiet; }
+    }
+
     /// <summary>#193: mover entre discos copia a un temporal y verifica; si ya está igual (se cortó antes de borrar) termina, y uno distinto nunca se pisa.</summary>
     [Fact]
     public async Task MoveInKeepsTheSourceUntilTheCopyIsVerified()

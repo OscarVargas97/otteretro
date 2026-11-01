@@ -503,7 +503,8 @@
         "conflict": "{path}: a different file already exists at {to}, it is not overwritten.",
         "noSpace": "{path}: not enough space on {disk}.",
         "noDat": "Could not download the DAT for {console}: importing without verifying.",
-        "summary": "Imported: {moved}. Not imported: {skipped}."
+        "summary": "Imported: {moved}. Not imported: {skipped}.",
+        "waiting": "{path} is waiting in Entrada: it was not recognized for sure. Check it in Review."
       }
     }
   },

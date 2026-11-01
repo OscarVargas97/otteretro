@@ -57,6 +57,9 @@ public static class Disk
     public static DiskInfo? DefaultDisk(Database db) => List(db).FirstOrDefault(l => l.Default && l.Type == "disk");
     public const int MarkerFormat = 1;
 
+    /// <summary>La carpeta de cada disco cuyo contenido se importa solo (#221). No es un tipo de cosa: lo que hay ahí todavía no está en su lugar.</summary>
+    public const string EntryFolder = "Entrada";
+
     /// <summary>Carpetas de la estructura antigua dentro de cada consola (§5.5).</summary>
     public static readonly string[] LegacyFolders = ["Juegos", "Emuladores", "Ports"];
 
@@ -167,7 +170,7 @@ public static class Disk
     /// <summary>Un disco nuevo (#201): sus cinco carpetas, y si es el primero, el predeterminado (#203).</summary>
     static void Prepare(Database db, string id, string path)
     {
-        foreach (var folder in DiskFolders.Values) Directory.CreateDirectory(Path.Combine(path, folder));
+        foreach (var folder in DiskFolders.Values.Append(EntryFolder)) Directory.CreateDirectory(Path.Combine(path, folder));
         if (DefaultDisk(db) is null) SetDefault(db, id);
     }
 
