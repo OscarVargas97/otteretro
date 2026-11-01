@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:51479/"
+      "url": "http://127.0.0.1:56221/"
     }
   ],
   "paths": {
@@ -5456,7 +5456,8 @@
           "status",
           "progress",
           "detail",
-          "createdAt"
+          "createdAt",
+          "items"
         ],
         "type": "object",
         "properties": {
@@ -5513,6 +5514,37 @@
           },
           "createdAt": {
             "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DownloadItem"
+            }
+          }
+        }
+      },
+      "DownloadItem": {
+        "required": [
+          "url",
+          "name",
+          "size"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
           }
         }
       },

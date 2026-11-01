@@ -153,7 +153,12 @@ function Queue() {
   const format = useFormatter();
   const describe = useDescribeError();
   const cache = useQueryClient();
-  const list = useQuery({ queryKey: ["downloads"], queryFn: () => request<DownloadInfo[]>("/api/downloads") });
+  // El avance de cada enlace sale de esta lista: se refresca mientras algo está bajando.
+  const list = useQuery({
+    queryKey: ["downloads"],
+    queryFn: () => request<DownloadInfo[]>("/api/downloads"),
+    refetchInterval: (q) => q.state.data?.some((d) => d.status === "running" || d.status === "queued") ? 3000 : false,
+  });
   const live = useTasks();
   const refresh = () => {
     cache.invalidateQueries({ queryKey: ["downloads"] });
@@ -188,6 +193,26 @@ function Queue() {
             {running && <progress max={100} value={progress} aria-label={d.name} style={{ width: "100%" }} />}
             {speed && <span className="small muted">{detail?.params?.file} · {t("speed", { speed: size(speed) })} · {size(detail?.params?.done)} / {size(detail?.params?.total)} MB</span>}
             {status === "error" && detail && <p className="error small" role="alert" style={{ margin: 0 }}>{describe({ ...detail })}</p>}
+            {/* Cada enlace y cómo va (#202). `details` recuerda solo si está abierto mientras la lista se refresca. */}
+            <details className="download-items small">
+              <summary>{t("itemsSummary", { count: Number(d.links) })}</summary>
+              {d.items.map((item, i) => {
+                const index = Number(d.done);
+                const state = i < index ? "done" : i === index ? status : "pending";
+                const bytes = state === "running" && speed ? { done: Number(detail?.params?.done), total: Number(detail?.params?.total) } : null;
+                return (
+                  <div key={item.url} className="download-item">
+                    <span title={item.url}>{item.name}</span>
+                    <span className="hero-actions" style={{ alignItems: "center" }}>
+                      {bytes ? <span className="muted tabular">{size(String(bytes.done))} / {size(String(bytes.total))} MB</span>
+                        : item.size != null && <span className="muted tabular">{size(String(item.size))} MB</span>}
+                      <span className={state === "done" ? "ot-badge ot-badge-have" : state === "error" ? "ot-badge ot-badge-danger" : "ot-badge"}>{state === "pending" ? t("itemPending") : t(`status.${state as "running"}`)}</span>
+                    </span>
+                    {bytes && <progress max={bytes.total} value={bytes.done} aria-label={item.name} />}
+                  </div>
+                );
+              })}
+            </details>
             <div className="hero-actions">
               {running && <button className="ot-btn ot-btn-sm" type="button" onClick={() => act.mutate({ id: Number(d.id), action: "pause" })}>{t("pause")}</button>}
               {status === "paused" && <button className="ot-btn ot-btn-sm" type="button" onClick={() => act.mutate({ id: Number(d.id), action: "resume" })}>{t("resume")}</button>}

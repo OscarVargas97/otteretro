@@ -55,8 +55,11 @@ public record LinkCheck(string Url, string Name, long? Size, string? Site, strin
 
 public record PackagePreview(string Name, List<LinkCheck> Links, long Size);
 
+/// <summary>Un enlace de una descarga, en orden: los primeros `Done` ya bajaron y el siguiente es el que está en curso.</summary>
+public record DownloadItem(string Url, string Name, long? Size);
+
 /// <param name="Links">Cuántos enlaces trae.</param>
-public record DownloadInfo(long Id, string Name, string Disk, int Links, int Done, string Status, int Progress, ApiError? Detail, string CreatedAt);
+public record DownloadInfo(long Id, string Name, string Disk, int Links, int Done, string Status, int Progress, ApiError? Detail, string CreatedAt, List<DownloadItem> Items);
 
 /// <summary>
 /// Descargas (§9.2, #202): cada paquete es una tarea de la cola, así que se pausa, se reanuda y se cancela como cualquiera. Baja a una carpeta
@@ -91,6 +94,8 @@ public static partial class Downloads
     {
         using var c = db.Open();
         var disks = Disk.List(db).ToDictionary(d => d.Id, d => d.Name);
+        // El capturador ya sabe cómo se llama y cuánto pesa cada enlace; uno que no pasó por él se nombra por su dirección.
+        var known = c.Query<(string Url, string Name, long? Size)>("SELECT url, name, size FROM download_link").ToDictionary(l => l.Url);
         return c.Query<Row>("""
                 SELECT id, data, status, progress, detail, created_at AS CreatedAt FROM task WHERE kind = @Kind
                 ORDER BY CASE status WHEN 'running' THEN 0 WHEN 'queued' THEN 1 WHEN 'paused' THEN 2 ELSE 3 END, id DESC LIMIT 200
@@ -99,7 +104,8 @@ public static partial class Downloads
             {
                 var job = JsonSerializer.Deserialize<DownloadJob>(r.Data!, JsonSerializerOptions.Web)!;
                 var detail = string.IsNullOrEmpty(r.Detail) ? null : JsonSerializer.Deserialize<ApiError>(r.Detail, JsonSerializerOptions.Web);
-                return new DownloadInfo(r.Id, job.Name, disks.GetValueOrDefault(job.DiskId, job.DiskId), job.Links.Count, job.Done, r.Status, (int)r.Progress, detail, r.CreatedAt);
+                return new DownloadInfo(r.Id, job.Name, disks.GetValueOrDefault(job.DiskId, job.DiskId), job.Links.Count, job.Done, r.Status, (int)r.Progress, detail, r.CreatedAt,
+                    job.Links.Select(l => known.TryGetValue(l, out var link) ? new DownloadItem(l, link.Name, link.Size) : new DownloadItem(l, FileNameOf(new Uri(l)), null)).ToList());
             }).ToList();
     }
 

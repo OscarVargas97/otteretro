@@ -1167,6 +1167,8 @@
     "removeLink": "Remove {name}",
     "gameLinks": "Your links",
     "gameLinksPrivate": "Private: they stay only in your data",
-    "downloadAgain": "Download again"
+    "downloadAgain": "Download again",
+    "itemsSummary": "{count, plural, one {Show # link} other {Show # links}}",
+    "itemPending": "Pending"
   }
 }

@@ -1167,6 +1167,8 @@
     "removeLink": "Quitar {name}",
     "gameLinks": "Tus enlaces",
     "gameLinksPrivate": "Privados: quedan solo en tus datos",
-    "downloadAgain": "Volver a bajar"
+    "downloadAgain": "Volver a bajar",
+    "itemsSummary": "{count, plural, one {Ver # enlace} other {Ver # enlaces}}",
+    "itemPending": "Pendiente"
   }
 }

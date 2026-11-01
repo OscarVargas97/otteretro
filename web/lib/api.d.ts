@@ -5377,6 +5377,13 @@ export interface components {
             progress: number | string;
             detail: null | components["schemas"]["ApiError"];
             createdAt: string;
+            items: components["schemas"]["DownloadItem"][];
+        };
+        DownloadItem: {
+            url: string;
+            name: string;
+            /** Format: int64 */
+            size: null | number | string;
         };
         DownloadRequest: {
             name: string;

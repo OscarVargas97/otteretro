@@ -299,11 +299,23 @@ test("Descargas: el capturador guarda lo pegado, sobrevive a cambiar de pantalla
   ] }));
   await page.getByRole("button", { name: en.downloads.check, exact: true }).click();
   await expect(page.getByText("Resource not found #644")).toBeVisible();
-  if (process.env.OTTERETRO_SHOT) await page.locator(".panel").first().screenshot({ path: process.env.OTTERETRO_SHOT });
   await page.unroute("**/api/downloads/links/check");
   await expectNoRawKeys();
+  // Cada descarga se despliega en sus enlaces, y dice cómo va cada uno.
+  await page.route("**/api/downloads", (route) => route.fulfill({ json: [{ id: 999, name: "DKB ROM", disk: "D:", links: 3, done: 1, status: "paused", progress: 40, detail: null, createdAt: "2026-11-01T00:00:00Z",
+    items: [{ url: "https://1fichier.com/?parte1", name: "DKB ROM.part1.rar", size: 5242880 }, { url: "https://1fichier.com/?parte2", name: "DKB ROM.part2.rar", size: null }, { url: "https://1fichier.com/?parte3", name: "DKB ROM.part3.rar", size: null }] }] }));
+  await page.goto(`${base()}/downloads/?tab=queue`);
+  await expect(page.getByText("DKB ROM.part1.rar")).toBeHidden();
+  await page.getByText("Show 3 links").click();
+  const items = page.locator(".download-item");
+  await expect(items).toHaveCount(3);
+  await expect(items.nth(0).getByText(en.downloads.status.done)).toBeVisible();
+  await expect(items.nth(1).getByText(en.downloads.status.paused)).toBeVisible();
+  await expect(items.nth(2).getByText(en.downloads.itemPending)).toBeVisible();
+  if (process.env.OTTERETRO_SHOT) await page.locator(".panel").first().screenshot({ path: process.env.OTTERETRO_SHOT });
+  await page.unroute("**/api/downloads");
   // Quitar los deja fuera para siempre.
-  await page.reload();
+  await page.goto(`${base()}/downloads/?tab=links`);
   for (const name of ["abc123", "juego.part1.rar", "juego.part2.rar"])
     await page.getByRole("button", { name: en.downloads.removeLink.replace("{name}", name) }).click();
   await expect(page.getByText(en.downloads.captureEmpty)).toBeVisible();

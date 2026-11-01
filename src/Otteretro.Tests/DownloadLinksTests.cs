@@ -63,6 +63,21 @@ public class DownloadLinksTests
         Assert.Equal(2, DownloadLinks.OfGame(f.Db, 10).Count);
     }
 
+    /// <summary>Cada descarga se despliega en sus enlaces, en orden y con el nombre que ya se conocía.</summary>
+    [Fact]
+    public async Task ADownloadListsEachOfItsLinks()
+    {
+        await using var f = new Fixture();
+        var (disk, _) = Disk.Create(f.Db, f.Tmp["Otteretro"], "E:");
+        DownloadLinks.Add(f.Db, "https://sitio.test/juego.part1.rar https://sitio.test/juego.part2.rar");
+        Assert.Null(DownloadLinks.Queue(f.Db, ["juego"], disk, 2));
+        Downloads.Enqueue(f.Db, "Otro", disk, ["https://sitio.test/suelto.zip"]);
+
+        var list = Downloads.List(f.Db);
+        Assert.Equal(["juego.part1.rar", "juego.part2.rar"], list.Single(d => d.Name == "juego").Items.Select(i => i.Name));
+        Assert.Equal("suelto.zip", Assert.Single(list.Single(d => d.Name == "Otro").Items).Name);
+    }
+
     /// <summary>Cualquier camino que identifique el archivo (importación, Revisar, Claude) lleva los enlaces a la ficha.</summary>
     [Fact]
     public async Task WhenTheFileOfADownloadIsIdentifiedItsLinksReachTheGame()
