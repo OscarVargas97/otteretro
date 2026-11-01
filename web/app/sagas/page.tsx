@@ -5,7 +5,9 @@ import { useEffect, useState } from "react";
 import { SagaTile, useConsoles } from "@/components/Catalog";
 import { Empty } from "@/components/Shell";
 import { useDescribeError } from "@/lib/i18n";
+import { Tiles } from "@/components/Skeleton";
 import { usePaged } from "@/lib/paged";
+import { sagasUrl } from "@/lib/queries";
 import type { SagaPage } from "@/lib/types";
 
 const FILTERS = ["all", "favorite", "following", "iconic", "exclusive", "owned", "pc"] as const;
@@ -23,13 +25,8 @@ export default function Sagas() {
   const [filter, setFilter] = useState<string>("all");
   const [where, setWhere] = useState(""); // "", "company:Nintendo" o "console:nes"
   const [sort, setSort] = useState<(typeof SORTS)[number]>("recognized");
-  const params = new URLSearchParams({ sort });
-  if (filter !== "all") params.set("filter", filter);
-  const [kind, value] = where.split(":");
-  if (kind === "company") params.set("company", value);
-  if (kind === "console") params.set("platform", value);
   // Scroll infinito por tramos (#96, #177): el servidor filtra y ordena, y manda de a 60.
-  const sagas = usePaged(["sagas", filter, where, sort], (offset) => `/api/sagas?${params}&offset=${offset}`, (p: SagaPage) => ({ items: p.items, total: Number(p.total) }));
+  const sagas = usePaged(["sagas", filter, where, sort], (offset) => sagasUrl(filter, where, sort, offset), (p: SagaPage) => ({ items: p.items, total: Number(p.total) }));
   const view = `${filter}|${where}|${sort}`;
   useEffect(() => { window.scrollTo({ top: 0 }); }, [view]); // otro filtro u orden: desde el principio
 
@@ -63,6 +60,7 @@ export default function Sagas() {
       {!nothingLoaded && sagas.data && sagas.total === 0 && <p className="muted">{t("noMatch")}</p>}
       <div className="grid-cards">
         {sagas.items.map((s) => <SagaTile key={s.id} saga={s} />)}
+        {(!sagas.data || sagas.hasNextPage) && <Tiles kind="saga" count={sagas.data ? 4 : 12} />}
       </div>
       <div ref={sagas.end} aria-hidden="true" />
     </div>

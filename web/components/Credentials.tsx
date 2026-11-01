@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { request } from "@/lib/client";
+import { Panels } from "./Skeleton";
 import { useDescribeError, useDynamicT } from "@/lib/i18n";
 import type { CredentialRequest, CredentialStatus } from "@/lib/types";
 
@@ -142,7 +143,7 @@ export function CredentialsSettings() {
   const [openService, setOpenService] = useState<string | null>(null);
 
   if (list.isError) return <div className="panel"><p className="error small" style={{ margin: 0 }}>{describe(list.error)}</p></div>;
-  if (list.isPending) return <div className="panel"><p className="small muted" style={{ margin: 0 }}>{t("loading")}</p></div>;
+  if (list.isPending) return <div className="cred-grid" aria-busy="true"><Panels count={3} /></div>;
   const all = list.data ?? [];
   const services = [...new Set(all.map((c) => c.service))];
   const fieldsOf = (s: string) => all.filter((c) => c.service === s);

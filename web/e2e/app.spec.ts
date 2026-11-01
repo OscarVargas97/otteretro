@@ -314,7 +314,7 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   const many = await openDb();
   many.exec(`WITH RECURSIVE n(i) AS (SELECT 1000 UNION ALL SELECT i + 1 FROM n WHERE i < 1099) INSERT INTO saga (id, name) SELECT i, 'Saga de prueba ' || i FROM n`);
   await page.goto(`${base()}/sagas/`);
-  const tiles = page.locator(".ot-saga");
+  const tiles = page.locator("a.ot-saga");
   await expect(tiles).toHaveCount(60);
   const menuTop = async () => (await page.locator(".sidebar").boundingBox())!.y;
   const before = await menuTop();

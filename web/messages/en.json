@@ -374,7 +374,6 @@
       "password": "Password",
       "email": "Email"
     },
-    "loading": "Loading accounts…",
     "now": "In use now",
     "later": "Later ({count})",
     "laterHint": "Not needed yet: each one is asked for when its phase arrives.",
@@ -447,7 +446,6 @@
     "menu": "Menu"
   },
   "catalog": {
-    "loading": "Loading…",
     "owned": "I own it",
     "missing": "Missing",
     "noConsole": "No console in Otteretro",
@@ -624,7 +622,6 @@
     "openSettings": "Open Settings"
   },
   "review": {
-    "loading": "Loading…",
     "tab": {
       "pending": "To approve ({count})",
       "learnings": "Learnings ({count})"

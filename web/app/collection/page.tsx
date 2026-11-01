@@ -7,6 +7,7 @@ import { Suspense, useState } from "react";
 import { GameTile, hours, useConsoles } from "@/components/Catalog";
 import { Empty } from "@/components/Shell";
 import { useDescribeError } from "@/lib/i18n";
+import { Rows, Tiles } from "@/components/Skeleton";
 import { usePaged } from "@/lib/paged";
 import type { CollectionPage, ConsoleCount } from "@/lib/types";
 
@@ -83,7 +84,10 @@ function Collection() {
         )}
 
         {view === "grid" ? (
-          <div className="grid-cards">{games.map((g) => <GameTile key={g.id} game={g} />)}</div>
+          <div className="grid-cards">
+            {games.map((g) => <GameTile key={g.id} game={g} />)}
+            {(!page.data || page.hasNextPage) && <Tiles kind="game" count={page.data ? 6 : 12} />}
+          </div>
         ) : games.length > 0 && (
           <div className="panel table-wrap" style={{ padding: 0 }}>
             <table className="t">
@@ -98,6 +102,7 @@ function Collection() {
                     {isPc && <td className="tabular">{hours(g.playtime)}</td>}
                   </tr>
                 ))}
+                {page.hasNextPage && <Rows cols={isPc ? 5 : 4} count={4} />}
               </tbody>
             </table>
           </div>

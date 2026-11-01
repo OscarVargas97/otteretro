@@ -374,7 +374,6 @@
       "password": "Contraseña",
       "email": "Correo"
     },
-    "loading": "Cargando las cuentas…",
     "now": "En uso ahora",
     "later": "Más adelante ({count})",
     "laterHint": "Todavía no hacen falta: cada una se pide cuando llega su fase.",
@@ -447,7 +446,6 @@
     "menu": "Menú"
   },
   "catalog": {
-    "loading": "Cargando…",
     "owned": "Lo tengo",
     "missing": "Me falta",
     "noConsole": "Sin consola en Otteretro",
@@ -624,7 +622,6 @@
     "openSettings": "Abrir Ajustes"
   },
   "review": {
-    "loading": "Cargando…",
     "tab": {
       "pending": "Por aprobar ({count})",
       "learnings": "Aprendizajes ({count})"

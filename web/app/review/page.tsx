@@ -7,7 +7,9 @@ import { useState } from "react";
 import { Empty } from "@/components/Shell";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
+import { Panels } from "@/components/Skeleton";
 import { usePaged } from "@/lib/paged";
+import { reviewQuery } from "@/lib/queries";
 import type { LearningItem, LearningPage, ReviewItem, ReviewPage } from "@/lib/types";
 
 type Tab = "pending" | "learnings";
@@ -27,7 +29,7 @@ export default function Review() {
   const describe = useDescribeError();
   const cache = useQueryClient();
   const [tab, setTab] = useState<Tab>("pending");
-  const page = useQuery({ queryKey: ["review"], queryFn: () => request<ReviewPage>("/api/review") });
+  const page = useQuery(reviewQuery);
   const act = useMutation({
     mutationFn: ({ path, body }: { path: string; body?: unknown }) =>
       request<ReviewPage>(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) }),
@@ -41,7 +43,7 @@ export default function Review() {
   });
 
   if (page.isError) return <div className="content"><p className="error" role="alert">{describe(page.error)}</p></div>;
-  if (!page.data) return <div className="content"><p className="muted">{t("loading")}</p></div>;
+  if (!page.data) return <div className="content" aria-busy="true"><Panels count={3} /></div>;
   const { pending, activeLearnings } = page.data;
 
   return (
@@ -182,6 +184,7 @@ function Learnings({ busy, undo, onCorrected }: { busy: boolean; undo: (id: numb
           {items.map((l) => <Learning key={l.id} l={l} busy={busy} undo={undo} onCorrected={onCorrected} />)}
         </section>
       ))}
+      {(!page.data || page.hasNextPage) && <Panels count={page.data ? 2 : 4} />}
       <div ref={page.end} aria-hidden="true" />
     </>
   );

@@ -8,7 +8,9 @@ import { Cover, Platforms, useConsoleName, useConsoles, useIdParam } from "@/com
 import { Empty } from "@/components/Shell";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
+import { PageSkeleton, Rows } from "@/components/Skeleton";
 import { usePaged } from "@/lib/paged";
+import { routesQuery, sagaQuery } from "@/lib/queries";
 import type { GamePage, RoutesPage, SagaDetail } from "@/lib/types";
 
 // El detalle de una saga se abre como /saga/?id=… (0 = Emulación).
@@ -23,7 +25,9 @@ function Saga() {
   const id = useIdParam();
   const cache = useQueryClient();
   const consoles = useConsoles().data;
-  const saga = useQuery({ queryKey: ["saga", id], queryFn: () => request<SagaDetail>(`/api/sagas/${id}`), enabled: id !== null });
+  const saga = useQuery({ ...sagaQuery(id ?? ""), enabled: id !== null });
+  // Las rutas van a la par con la ficha y se muestran juntas: si llegaran después, empujarían la tabla (#105). «Emulación» no tiene.
+  const routes = useQuery({ ...routesQuery(id ?? ""), enabled: id !== null && id !== "0" });
   // La tabla sigue por tramos al bajar (#177): «Emulación» tiene miles de juegos; la ficha trae los primeros 60.
   const more = usePaged(["saga", id, "games"], (offset) => `/api/sagas/${id}/games?offset=${offset}`, (p: GamePage) => ({ items: p.items, total: Number(p.total) }), id !== null);
   const flags = useMutation({
@@ -36,7 +40,7 @@ function Saga() {
 
   if (id === null) return <div className="content"><Empty title={t("saga.noneTitle")} text={t("saga.noneText")} /></div>;
   if (saga.isError) return <div className="content"><p className="error" role="alert">{describe(saga.error)}</p><Link href="/sagas/">{t("saga.back")}</Link></div>;
-  if (!saga.data) return <div className="content"><p className="muted">{t("loading")}</p></div>;
+  if (!saga.data || (id !== "0" && routes.isPending)) return <PageSkeleton />;
 
   const { saga: s, games } = saga.data;
   const emulation = Number(s.id) === 0;
@@ -85,6 +89,7 @@ function Saga() {
                     </td>
                   </tr>
                 ))}
+                {(more.data ? more.hasNextPage : Number(s.games) > games.length) && <Rows cols={4} count={4} />}
               </tbody>
             </table>
             <div ref={more.end} aria-hidden="true" />
@@ -104,7 +109,7 @@ function Routes({ sagaId }: { sagaId: string }) {
   const consoleName = useConsoleName();
   const cache = useQueryClient();
   const [queued, setQueued] = useState(false);
-  const routes = useQuery({ queryKey: ["saga", sagaId, "routes"], queryFn: () => request<RoutesPage>(`/api/sagas/${sagaId}/routes`) });
+  const routes = useQuery(routesQuery(sagaId));
   const choose = useMutation({
     mutationFn: (routeId: number | null) => request<RoutesPage>(`/api/sagas/${sagaId}/route`, { method: "PUT", body: JSON.stringify({ routeId }) }),
     onSuccess: (data) => {

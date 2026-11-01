@@ -5,11 +5,12 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { imageUrl, request } from "@/lib/client";
+import { imageUrl } from "@/lib/client";
+import { consolesQuery } from "@/lib/queries";
 import type { ConsoleCount, GameCard, SagaCard } from "@/lib/types";
 
 /** Las 24 consolas con su nombre y cuántos juegos hay de cada una. */
-export const useConsoles = () => useQuery({ queryKey: ["consoles"], queryFn: () => request<ConsoleCount[]>("/api/consoles") });
+export const useConsoles = () => useQuery(consolesQuery);
 
 /** Nombre de una consola a partir de su id («n64» → «Nintendo 64»). */
 export function useConsoleName() {

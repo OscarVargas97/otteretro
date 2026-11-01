@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { request } from "@/lib/client";
-import { normalizePath } from "./Shell";
+import { normalizePath, useAppState } from "./Shell";
 
 // Clave en nav.* de cada entrada.
 const MAIN = [
@@ -26,7 +26,9 @@ const SECONDARY = [
 export function Sidebar() {
   const t = useTranslations("nav");
   // Sin carpeta de datos la API responde 409: sin contador.
-  const review = useQuery({ queryKey: ["review", "count"], queryFn: () => request<number>("/api/review/count"), refetchInterval: 60_000, retry: false });
+  // El menú se dibuja antes de saber si hay carpeta de datos (#105); sin ella no hay qué contar.
+  const configured = !!useAppState().data?.configured;
+  const review = useQuery({ queryKey: ["review", "count"], queryFn: () => request<number>("/api/review/count"), refetchInterval: 60_000, retry: false, enabled: configured });
   const counts: Partial<Record<string, number>> = { review: Number(review.data ?? 0) };
   const current = normalizePath(usePathname());
   const isActive = (href: string) => {

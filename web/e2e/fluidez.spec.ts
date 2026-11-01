@@ -8,8 +8,8 @@ const FRAME_MS = 100;
 const DATA_MS = 300;
 const SHIFT = 0.01;
 
-/** Las que hoy se pasan, por medida; la arregla #105 y sale de aquí. Ninguna nueva puede sumarse. */
-const OVER_BUDGET = new Set<string>(["desplazamiento: Un juego"]);
+/** Las que se pasan del presupuesto. #105 dejó todas dentro; ninguna nueva puede sumarse. */
+const OVER_BUDGET = new Set<string>([]);
 
 test.describe.configure({ mode: "serial" });
 let page: Page;
@@ -82,8 +82,8 @@ test("con un catálogo grande, cada pantalla aparece al instante y no salta", as
   const content = ".content";
   const panel = "#settings-panel > :last-child";
   const steps: [string, string, string, string][] = [
-    ["Sagas", '.sidebar a[href="/sagas/"]', content, ".ot-saga"],
-    ["Una saga", ".ot-saga", content, 'table a[href^="/game/"]'],
+    ["Sagas", '.sidebar a[href="/sagas/"]', content, "a.ot-saga"],
+    ["Una saga", "a.ot-saga", content, 'table a[href^="/game/"]'],
     ["Un juego", 'table a[href^="/game/"]', content, ".version-row"],
     ["Colección", '.sidebar a[href="/collection/"]', content, ".collection-consoles button"],
     ["Revisar", '.sidebar a[href="/review/"]', content, '.content [role="tablist"]'],

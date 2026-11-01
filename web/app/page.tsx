@@ -4,9 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Cover } from "@/components/Catalog";
-import { request } from "@/lib/client";
+import { Panels, Tiles } from "@/components/Skeleton";
 import { useDynamicT } from "@/lib/i18n";
-import type { ApiError, NextGame, ReviewPage } from "@/lib/types";
+import { nextQuery, noticesQuery, reviewQuery } from "@/lib/queries";
 
 /** Inicio (§2): los avisos, el siguiente juego de cada ruta que sigues y lo que espera en Revisar. */
 export default function Home() {
@@ -14,10 +14,13 @@ export default function Home() {
   const tn = useTranslations("notices");
   const tc = useTranslations("catalog");
   const dt = useDynamicT();
-  const notices = useQuery({ queryKey: ["notices"], queryFn: () => request<ApiError[]>("/api/notices") });
-  const next = useQuery({ queryKey: ["home", "next"], queryFn: () => request<NextGame[]>("/api/home/next") });
-  const review = useQuery({ queryKey: ["review"], queryFn: () => request<ReviewPage>("/api/review") });
+  const notices = useQuery(noticesQuery);
+  const next = useQuery(nextQuery);
+  const review = useQuery(reviewQuery);
   const pending = review.data?.pending.length ?? 0;
+  // Todo junto (#105): los avisos van arriba y, si llegaran después, empujarían el resto.
+  if (notices.isPending || next.isPending || review.isPending)
+    return <div className="content" aria-busy="true"><Panels count={1} /><div className="grid-cards"><Tiles kind="game" count={4} /></div></div>;
 
   return (
     <>

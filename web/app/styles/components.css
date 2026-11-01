@@ -152,3 +152,9 @@ body { margin: 0; font-family: var(--font-sans); font-size: 16px; line-height: 2
 .ot-key.is-on { background: var(--accent-soft); border-color: var(--accent); }
 .ot-osk-foot { display: flex; justify-content: flex-end; gap: var(--space-4); font-size: 14px; font-weight: 700; }
 .ot-osk-foot span { display: inline-flex; align-items: center; gap: var(--space-1); }
+
+/* Esqueleto (#105): mismo tamaño que lo que llega; brillo suave salvo con movimiento reducido. */
+.ot-skel { display: inline-block; color: transparent !important; border-color: transparent !important; border-radius: var(--radius-sm); background: linear-gradient(90deg, var(--surface-raised) 25%, var(--surface) 50%, var(--surface-raised) 75%); background-size: 200% 100%; animation: ot-skel 1.4s linear infinite; user-select: none; }
+div.ot-skel { display: block; }
+@keyframes ot-skel { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .ot-skel { animation: none; } }

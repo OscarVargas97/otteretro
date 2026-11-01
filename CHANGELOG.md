@@ -31,6 +31,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **No paga dos veces**: lo que Claude ya revisó no se vuelve a pedir mientras sus datos no cambien.
 
 ### Cambios
+- **Nada dice «Cargando…» ni salta**: el menú y la barra aparecen apenas abre la app; mientras llegan los datos, cada pantalla muestra su forma (tarjetas, filas, cabecera) y todo aparece junto, sin empujar lo de abajo. Lo que ya viste vuelve al instante, y al pasar el ratón o el mando por una saga, un juego o una pestaña, sus datos se piden antes del clic.
 - **Sagas, una saga, Colección y Revisar › Aprendizajes cargan al instante, aunque el catálogo sea enorme**: llegan los primeros 60 y el resto aparece al bajar, sin espera. Las consultas ahora usan índices, y lo que pide recorrer el disco (las portadas, cuánto ocupa la carpeta de datos) se mide una vez y se recuerda; mientras se mide, Ajustes dice «Midiendo lo que ocupa».
 - **Letras más claras y coherentes**: una sola escala de tamaños en toda la app, «← Sagas» y «← saga» se leen como botón, las consolas en letra normal (no en pixel y mayúsculas), las tablas sin subrayados, un solo título en Saga y Juego, «No tienes ninguno» y «Tiempo jugado: —» en una línea.
 - **Barras de scroll delgadas y oscuras**, y la página ya no cambia de ancho cuando la barra aparece o desaparece (por ejemplo, al cambiar de pestaña en Ajustes).
