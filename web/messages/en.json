@@ -512,7 +512,8 @@
         "archiveDone": "{path}: imported and deleted.",
         "extra": "{path}: it is a hack, beta or demo; it is not imported automatically.",
         "duplicate": "{path}: you already have that game; skipped.",
-        "replaced": "{path}: replaces yours, which was not verified and went to the recycle bin."
+        "replaced": "{path}: replaces yours, which was not verified and went to the recycle bin.",
+        "screenscraper": "ScreenScraper did not answer, rejected your accounts or your quota ran out: this task continues without it."
       },
       "extracting": "Extracting {path}",
       "badRegions": "That region order is not valid."
@@ -562,7 +563,9 @@
       "user": "Username",
       "password": "Password",
       "email": "Email",
-      "passwords": "Passwords, one per line"
+      "passwords": "Passwords, one per line",
+      "devId": "Developer ID",
+      "devPassword": "Developer password"
     },
     "later": "Later ({count})",
     "laterHint": "Not needed yet: each one is asked for when its phase arrives.",

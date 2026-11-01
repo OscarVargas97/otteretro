@@ -137,6 +137,7 @@ public static partial class Dats
                 ORDER BY o.id
                 """, job).ToList();
         var libraries = Disk.List(run.Db).Where(l => l.Connected).ToDictionary(l => l.Id, l => l.Path);
+        var scraper = new ScreenScraper(run);
         var total = Math.Max(1, files.Sum(f => f.Size));
         long done = 0;
         int verified = 0, missing = 0;
@@ -176,6 +177,10 @@ public static partial class Dats
             using var db = run.Db.Open();
             var match = db.QueryFirstOrDefault<string?>("SELECT name FROM dat_entry WHERE console = @Console AND sha1 = @sha1", new { f.Console, sha1 });
             var version = f.VersionId ?? (match is null ? null : Scan.MatchName(run.Db, f.Console, match));
+            // Sin juego y fuera del DAT, se le pregunta a ScreenScraper (§9.6). Identifica, pero no cuenta como verificado.
+            if (version is null)
+                foreach (var known in await scraper.NamesOf(f.Console, path, sha1, ct))
+                    if ((version = Scan.MatchName(run.Db, f.Console, known)) is not null) break;
             db.Execute("UPDATE source SET sha1 = @sha1, verified = @ok, version_id = @version WHERE id = @Id",
                 new { f.Id, sha1, ok = match is not null, version });
             if (match is not null) verified++;

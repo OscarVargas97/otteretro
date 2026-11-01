@@ -103,6 +103,7 @@ Todo bajo `/api`, solo en `127.0.0.1` y con la clave de la sesión (cabecera `X-
 |---|---|---|
 | `%LocalAppData%\Otteretro\config.json` (en Linux, `~/.config/otteretro/config.json`) | Carpeta de datos, origen de actualizaciones, id del equipo e idioma (`language`; sin él, el del sistema). Escritura atómica. Las claves de F0 siguen en español (`carpetaDatos`, `origenActualizaciones`, `equipoId`) para leer los de antes | `App/AppConfig.cs` |
 | `data/otteretro.db` · `machine` | Equipos donde se usa la app | `Data/Migrations.cs` al arrancar |
+| `Libraries/ScreenScraper.cs` | Identificación externa (#198, `api.screenscraper.fr/api2/jeuInfos.php`): la usan la importación y la verificación para lo que no coincide con los DAT. Pide `screenscraper.user`, `.password`, `.devId` y `.devPassword` |  |
 | `data/otteretro.db` · `credential` | Claves cifradas de cada equipo (`id` = servicio.campo) | `App/Credentials.cs` |
 | `data/otteretro.db` · `saga_user` | Lo tuyo de cada saga: favorita, si la sigues y la ruta elegida (#167; antes columnas de `saga`) | `Catalog/CatalogQueries.cs` (`SetSagaFlags`), `Claude/ClaudeReview.cs` (`Choose`, al aprobar rutas) |
 | `catalogo/catalogo.db` | El catálogo, sin nada tuyo, para poder distribuirlo: `console`, `console_platform`, `saga`, `game`, `version`, `version_criterion`, `field_value`, `route`, `route_step`, `learning`, `saga_rule`, `claude_fingerprint` (filas abajo). `game.popularity`: calificaciones en IGDB (`total_rating_count`, F2.17) | La carga de IGDB; `igdb.popularity` completa lo cargado antes |

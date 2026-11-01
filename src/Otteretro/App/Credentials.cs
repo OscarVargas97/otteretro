@@ -31,6 +31,8 @@ public sealed class Credentials(Database db, string machineId, SecretBox box)
         new("igdb", "clientSecret", "https://dev.twitch.tv/console/apps", 1),
         new("screenscraper", "user", "https://www.screenscraper.fr/", 4),
         new("screenscraper", "password", "https://www.screenscraper.fr/", 4),
+        new("screenscraper", "devId", "https://www.screenscraper.fr/", 4),
+        new("screenscraper", "devPassword", "https://www.screenscraper.fr/", 4),
         new("archives", "passwords", "", 4),
         new("onefichier", "apiKey", "https://1fichier.com/console/params.pl", 4),
         new("mega", "email", "https://mega.io/", 4),

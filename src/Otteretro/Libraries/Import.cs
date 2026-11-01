@@ -143,6 +143,7 @@ public static partial class Import
     sealed record Pass(TaskRun Run, Database Db, Job Job, DiskInfo? EntryDisk, List<(string Id, string Name)> Consoles,
         Dictionary<string, Dictionary<string, HashSet<long>>> Catalog, Dictionary<string, Dictionary<string, HashSet<long>>> Aliases, string[] Passwords)
     {
+        public ScreenScraper Scraper { get; } = new(Run);
         public Dictionary<string, (long? Version, string Folder)> Bases { get; } = [];
         public HashSet<string> Taken { get; } = new(StringComparer.OrdinalIgnoreCase);
         public int Moved { get; set; }
@@ -255,6 +256,11 @@ public static partial class Import
             (long? Version, string Folder)? ofBase = baseId is not null && p.Bases.TryGetValue(baseId, out var b) ? b : null;
             var version = Scan.Match(learned, name) ?? Scan.Match(versions, name) ?? (folder is null ? null : Scan.Match(learned, folder) ?? Scan.Match(versions, folder))
                 ?? (datName is null ? null : Scan.Match(versions, datName)) ?? ofBase?.Version ?? VersionOfBase(db, baseId);
+
+            // Lo que no coincide con nada se le pregunta a ScreenScraper, antes que a Claude (§9.6).
+            if (version is null && item.Component is null)
+                foreach (var known in await p.Scraper.NamesOf(console, item.Path, sha1, ct))
+                    if ((version = Scan.Match(versions, known)) is not null) break;
 
             // Lo que llega solo se mueve si se reconoció con seguridad (#222); lo demás espera acá, y Revisar y Claude lo ven (#180).
             if (p.EntryDisk is { } entry && version is null)

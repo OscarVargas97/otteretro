@@ -512,7 +512,8 @@
         "archiveDone": "{path}: importado y borrado.",
         "extra": "{path}: es un hack, beta o demo; no se importa solo.",
         "duplicate": "{path}: ya tienes ese juego; se salta.",
-        "replaced": "{path}: reemplaza al tuyo, que no estaba verificado y fue a la papelera."
+        "replaced": "{path}: reemplaza al tuyo, que no estaba verificado y fue a la papelera.",
+        "screenscraper": "ScreenScraper no respondió, rechazó tus cuentas o se acabó tu cuota: esta tarea sigue sin él."
       },
       "extracting": "Descomprimiendo {path}",
       "badRegions": "Ese orden de regiones no es válido."
@@ -562,7 +563,9 @@
       "user": "Usuario",
       "password": "Contraseña",
       "email": "Correo",
-      "passwords": "Contraseñas, una por línea"
+      "passwords": "Contraseñas, una por línea",
+      "devId": "ID de desarrollador",
+      "devPassword": "Contraseña de desarrollador"
     },
     "later": "Más adelante ({count})",
     "laterHint": "Todavía no hacen falta: cada una se pide cuando llega su fase.",
