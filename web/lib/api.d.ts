@@ -3024,6 +3024,8 @@ export interface components {
         SagaDetail: {
             saga: components["schemas"]["SagaCard"];
             games: components["schemas"]["GameCard"][];
+            /** Format: int64 */
+            heroGameId: null | number | string;
         };
         SagaFlagsRequest: {
             favorite: null | boolean;

@@ -2,6 +2,8 @@
 // Las pruebas van en orden y comparten la misma pestaña: cada una sigue donde quedó la anterior.
 import { expect, test, type Page } from "@playwright/test";
 import { join } from "node:path";
+import { mkdirSync, writeFileSync } from "node:fs";
+import zlib from "node:zlib";
 import en from "../messages/en.json";
 import es from "../messages/es.json";
 
@@ -56,6 +58,23 @@ async function expectTextFits() {
       .map((e) => e.textContent?.trim()),
   );
   expect(overflowing, "textos que no caben").toEqual([]);
+}
+
+/** Un PNG de un solo color, para probar las imágenes sin depender de SteamGridDB. */
+function solidPng(width: number, height: number, [r, g, b]: [number, number, number]) {
+  const chunk = (type: string, data: Buffer) => {
+    const body = Buffer.concat([Buffer.from(type), data]);
+    const out = Buffer.alloc(body.length + 8);
+    out.writeUInt32BE(data.length, 0);
+    body.copy(out, 4);
+    out.writeUInt32BE(zlib.crc32(body), body.length + 4);
+    return out;
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0); header.writeUInt32BE(height, 4); header[8] = 8; header[9] = 2;
+  const row = Buffer.concat([Buffer.from([0]), Buffer.from(Array.from({ length: width }, () => [r, g, b]).flat())]);
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", header),
+    chunk("IDAT", zlib.deflateSync(Buffer.concat(Array.from({ length: height }, () => row)))), chunk("IEND", Buffer.alloc(0))]);
 }
 
 /** La base de la app con el catálogo adjunto, como la abre la app (#92): las tablas se nombran sin prefijo. */
@@ -341,9 +360,20 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   await expect(favorite).toHaveAttribute("aria-pressed", "true");
   await page.reload();
   await expect(page.getByRole("button", { name: es.catalog.saga.favorite })).toHaveAttribute("aria-pressed", "true");
+  // #112: sin héroe, el fondo de siempre; con el héroe del juego más reciente (Breath of the Wild), la imagen y su acento.
+  await expect(page.locator(".hero-art")).toHaveCount(0);
+  mkdirSync(join(dataDir("moved"), "catalogo", "imagenes"), { recursive: true });
+  writeFileSync(join(dataDir("moved"), "catalogo", "imagenes", "11-hero.png"), solidPng(96, 31, [40, 90, 200]));
+  await page.reload();
+  await expect(page.locator(".hero-art img.shown")).toBeVisible();
+  await expect.poll(() => page.locator(".accented").evaluate((e) => getComputedStyle(e).getPropertyValue("--accent"))).toMatch(/^hsl\(22\d/);
   await expectNoRawKeys();
   await expectTextFits();
   await page.screenshot({ path: "e2e-results/8-saga-es.png", fullPage: true });
+  await page.goto(`${base()}/saga/?id=2`);
+  await expect(page.getByRole("heading", { level: 2, name: "Half-Life" })).toBeVisible();
+  await expect(page.locator(".hero-art")).toHaveCount(0);
+  await page.goBack();
 
   await page.getByRole("link", { name: "Ocarina of Time" }).click();
   await expect(page.getByRole("heading", { level: 2, name: "Ocarina of Time" })).toBeVisible();

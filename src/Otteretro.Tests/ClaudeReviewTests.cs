@@ -80,12 +80,28 @@ public class ClaudeReviewTests : IAsyncDisposable
         Assert.Equal(community.Id, page.ChosenRoute); // sin ruta elegida, se sigue la de la comunidad
         Assert.Equal(("3ds", (string?)null), (community.Steps[0].VersionPlatform, community.Steps[1].VersionPlatform)); // la 999 no existe
         Assert.Equal(1, Scalar<long>("SELECT iconic FROM saga WHERE id = 1"));
+        Assert.Equal(10, Scalar<long>("SELECT group_concat(id) FROM game WHERE iconic")); // sus juegos icónicos también (#112)
         var compare = ClaudeReview.Compare(f.Db, 10);
         Assert.True(compare.Single(v => v.VersionId == 101).Best);
         Assert.Equal("5", compare.Single(v => v.VersionId == 100).Criteria.Single(k => k.Criterion == "original").Value);
         Assert.Equal("remake", Scalar<string>("SELECT kind FROM version WHERE id = 101"));
         Assert.Equal("Link despierta.", Scalar<string>("SELECT value FROM field_value WHERE entity_id = 10 AND field = 'summary_es'"));
         Assert.Equal(0, Scalar<long>("SELECT count(*) FROM field_value WHERE entity_id = 11 AND field = 'summary_es'"));
+    }
+
+    /// <summary>#178: la imagen de la saga sale del icónico más reciente con héroe; sin icónicos, del más reciente con héroe.</summary>
+    [Fact]
+    public void SagaHeroComesFromTheLatestIconicGame()
+    {
+        Assert.Null(Catalog.CatalogQueries.Saga(f.Db, 1)!.HeroGameId); // sin héroes, el fondo de siempre
+        var folder = Catalog.SteamGridDb.Folder(f.Db);
+        Directory.CreateDirectory(folder);
+        foreach (var id in new[] { 10, 11 }) File.WriteAllText(Path.Combine(folder, $"{id}-hero.webp"), "héroe");
+        Directory.SetLastWriteTimeUtc(folder, DateTime.UtcNow.AddSeconds(1)); // lo recordado se vuelve a leer
+        Assert.Equal(11, Catalog.CatalogQueries.Saga(f.Db, 1)!.HeroGameId); // el más reciente
+
+        Assert.True(ClaudeReview.Approve(f.Db, Item(A.Iconic, "saga", 1, new A.SagaIconic(1, true, [10], "Cambió el 3D", []))));
+        Assert.Equal(10, Catalog.CatalogQueries.Saga(f.Db, 1)!.HeroGameId); // el icónico, aunque sea más viejo
     }
 
     [Fact]

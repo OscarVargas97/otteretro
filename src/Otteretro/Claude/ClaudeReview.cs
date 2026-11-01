@@ -175,7 +175,11 @@ public static class ClaudeReview
                 }
                 break;
             case SagaAnalysis.Iconic:
-                c.Execute("UPDATE saga SET iconic = @iconic WHERE id = @EntityId", new { iconic = result.GetProperty("iconic").GetBoolean(), r.EntityId }, t);
+                var iconic = result.Deserialize<SagaAnalysis.SagaIconic>(Web)!;
+                c.Execute("UPDATE saga SET iconic = @Iconic WHERE id = @EntityId", new { iconic.Iconic, r.EntityId }, t);
+                // Sus juegos icónicos (#112): de ellos sale la imagen de la saga. Solo los de esta saga.
+                c.Execute("UPDATE game SET iconic = (@Iconic AND id IN (SELECT value FROM json_each(@ids))) WHERE saga_id = @EntityId",
+                    new { iconic.Iconic, ids = JsonSerializer.Serialize(iconic.GameIds), r.EntityId }, t);
                 break;
             case SagaAnalysis.BestVersion:
                 var best = result.Deserialize<SagaAnalysis.GameBest>(Web)!;

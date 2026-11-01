@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
 import { Suspense, useEffect, useState } from "react";
 import { Cover, hours, Platforms, useConsoleName, useIdParam } from "@/components/Catalog";
+import { useHeroArt } from "@/components/HeroArt";
 import { Empty } from "@/components/Shell";
 import { request } from "@/lib/client";
 import { PageSkeleton } from "@/components/Skeleton";
@@ -31,6 +32,7 @@ function Game() {
   const game = useQuery({ ...gameQuery(id ?? ""), enabled: id !== null });
   // La comparativa va a la par con la ficha y se muestran juntas: si llegara después, empujaría lo de abajo (#105).
   const compare = useQuery({ ...compareQuery(id ?? ""), enabled: id !== null });
+  const hero = useHeroArt(game.data?.hasHero ? Number(game.data.id) : null);
 
   if (id === null) return <div className="content"><Empty title={t("game.noneTitle")} text={t("game.noneText")} /></div>;
   if (game.isError) return <div className="content"><p className="error" role="alert">{describe(game.error)}</p></div>;
@@ -44,8 +46,9 @@ function Game() {
   const owned = stores.length > 0;
 
   return (
-    <>
+    <div className="accented" style={hero.style}>
       <section className="hero">
+        {hero.art}
         <Cover gameId={Number(g.id)} name={g.nameEs} hasCover={g.hasCover} style={{ width: 150, flex: "none" }} />
         <div className="hero-main">
           {g.sagaId ? <Link className="back" href={`/saga/?id=${g.sagaId}`}>← {g.sagaName}</Link> : <Link className="back" href="/saga/?id=0">← {t("emulation")}</Link>}
@@ -112,7 +115,7 @@ function Game() {
 
         <Sources game={g} />
       </div>
-    </>
+    </div>
   );
 }
 

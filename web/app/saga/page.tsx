@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Suspense, useState } from "react";
 import { Cover, Platforms, useConsoleName, useConsoles, useIdParam } from "@/components/Catalog";
+import { useHeroArt } from "@/components/HeroArt";
 import { Empty } from "@/components/Shell";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
@@ -30,6 +31,7 @@ function Saga() {
   // Las rutas van a la par con la ficha y se muestran juntas: si llegaran después, empujarían la tabla (#105). «Emulación» no tiene.
   const routes = useQuery({ ...routesQuery(id ?? ""), enabled: id !== null && id !== "0" });
   // La tabla sigue por tramos al bajar (#177): «Emulación» tiene miles de juegos; la ficha trae los primeros 60.
+  const hero = useHeroArt(saga.data?.heroGameId == null ? null : Number(saga.data.heroGameId));
   const more = usePaged(["saga", id, "games"], (offset) => `/api/sagas/${id}/games?offset=${offset}`, (p: GamePage) => ({ items: p.items, total: Number(p.total) }), id !== null);
   const flags = useMutation({
     mutationFn: (body: { favorite?: boolean; following?: boolean }) => request<SagaDetail>(`/api/sagas/${id}`, { method: "PUT", body: JSON.stringify(body) }),
@@ -51,8 +53,9 @@ function Saga() {
   const span = years.length ? (Math.min(...years) === Math.max(...years) ? `${years[0]}` : `${Math.min(...years)}–${Math.max(...years)}`) : null;
 
   return (
-    <>
+    <div className="accented" style={hero.style}>
       <section className="hero">
+        {hero.art}
         <div className="hero-main">
           <Link className="back" href="/sagas/">{t("saga.back")}</Link>
           <span className="small muted">{[...companies, span, t("games", { count: Number(s.games) }), t("ownedCount", { count: Number(s.owned) })].filter(Boolean).join(" · ")}</span>
@@ -98,7 +101,7 @@ function Saga() {
           </div>
         </section>
       </div>
-    </>
+    </div>
   );
 }
 

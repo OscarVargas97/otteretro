@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:52854/"
+      "url": "http://127.0.0.1:56710/"
     }
   ],
   "paths": {
@@ -4002,7 +4002,8 @@
       "SagaDetail": {
         "required": [
           "saga",
-          "games"
+          "games",
+          "heroGameId"
         ],
         "type": "object",
         "properties": {
@@ -4014,6 +4015,15 @@
             "items": {
               "$ref": "#/components/schemas/GameCard"
             }
+          },
+          "heroGameId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
           }
         }
       },

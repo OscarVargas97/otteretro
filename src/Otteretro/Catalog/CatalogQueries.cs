@@ -16,7 +16,8 @@ public record SagaCard(long Id, string Name, bool Favorite, bool Following, bool
 public record GameCard(long Id, string Name, int? Year, string[] Platforms, bool Owned, string? Status, long Playtime, bool HasCover,
     long? SagaId, string? SagaName, string[] Stores);
 
-public record SagaDetail(SagaCard Saga, List<GameCard> Games);
+/// <param name="HeroGameId">De qué juego sale la imagen de la cabecera (#178): el icónico más reciente con héroe; si no hay, el más reciente con héroe.</param>
+public record SagaDetail(SagaCard Saga, List<GameCard> Games, long? HeroGameId);
 /// <param name="WithPc">Juegos de la consola que también tienen versión de PC (el filtro «Versión PC» de Colección).</param>
 public record ConsoleCount(string Id, string Name, string? Company, int Games, int Owned, int WithPc);
 
@@ -100,19 +101,23 @@ public static class CatalogQueries
     /// Los juegos con portada. Recorrer la carpeta (25.000 archivos) costaba ~100 ms por pedido (#106): se guarda y se vuelve a
     /// leer solo cuando cambia la fecha de la carpeta, que cambia al agregar o borrar un archivo.
     /// </summary>
-    internal static HashSet<long> Covers(Database db)
+    internal static HashSet<long> Covers(Database db) => Images(db, "cover");
+
+    /// <summary>Los juegos con una imagen de ese tipo (cover, hero o logo), recordados como <see cref="Covers"/>.</summary>
+    internal static HashSet<long> Images(Database db, string kind)
     {
         var folder = SteamGridDb.Folder(db);
         if (!Directory.Exists(folder)) return [];
         var stamp = Directory.GetLastWriteTimeUtc(folder);
-        if (coverCache is { } hit && hit.Folder == folder && hit.Stamp == stamp) return hit.Ids;
-        var ids = Directory.EnumerateFiles(folder, "*-cover.*")
+        lock (imageCache)
+            if (imageCache.TryGetValue(kind, out var hit) && hit.Folder == folder && hit.Stamp == stamp) return hit.Ids;
+        var ids = Directory.EnumerateFiles(folder, $"*-{kind}.*")
             .Select(f => long.TryParse(Path.GetFileName(f).Split('-')[0], out var id) ? id : 0).ToHashSet();
-        coverCache = (folder, stamp, ids);
+        lock (imageCache) imageCache[kind] = (folder, stamp, ids);
         return ids;
     }
 
-    static (string Folder, DateTime Stamp, HashSet<long> Ids)? coverCache;
+    static readonly Dictionary<string, (string Folder, DateTime Stamp, HashSet<long> Ids)> imageCache = [];
 
     /// <summary>Lo que muestra un tramo de las listas de juegos (Colección, una saga, la búsqueda).</summary>
     public const int PageSize = 60;
@@ -245,7 +250,10 @@ public static class CatalogQueries
         var card = Sagas(db, only: id).FirstOrDefault();
         if (card is null) return null;
         using var c = db.Open();
-        return new SagaDetail(card, SagaGames(db, c, id, 0, PageSize));
+        var heroes = Images(db, "hero");
+        var hero = id == 0 ? null : c.Query<long>("SELECT id FROM game WHERE saga_id = @id ORDER BY iconic DESC, year IS NULL, year DESC, id DESC", new { id })
+            .Cast<long?>().FirstOrDefault(g => heroes.Contains(g!.Value));
+        return new SagaDetail(card, SagaGames(db, c, id, 0, PageSize), hero);
     }
 
     /// <summary>Un tramo de los juegos de una saga, por año (#177): «Emulación» tiene 30.000.</summary>
