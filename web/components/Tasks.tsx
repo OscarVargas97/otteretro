@@ -24,6 +24,11 @@ export function upsertTask(cache: QueryClient, task: TaskInfo) {
     cache.invalidateQueries({ queryKey: ["tools"] });
     cache.invalidateQueries({ queryKey: ["consoles", "detail"] });
   }
+  // Un escaneo terminado cambia lo que tienes (#178).
+  if (task.kind === "library.scan" && task.status === "done") {
+    cache.invalidateQueries({ queryKey: ["collection"] });
+    cache.invalidateQueries({ queryKey: ["consoles"] });
+  }
 }
 
 // Color de la insignia de cada estado (#172).

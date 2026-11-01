@@ -458,6 +458,12 @@
       "notDisk": "Eso no es un disco.",
       "toDisk": "Pasando {name} a su disco",
       "toolsToDisk": "Llevando Herramientas al disco predeterminado"
+    },
+    "scan": {
+      "folder": "Escaneando {path}",
+      "log": {
+        "summary": "{files} archivos: {matched} reconocidos y {pending} por identificar."
+      }
     }
   },
   "credentials": {
@@ -535,7 +541,8 @@
       },
       "library": {
         "move": "Mover una ubicación o una carpeta",
-        "adopt": "Migrar una ubicación a la estructura nueva"
+        "adopt": "Migrar una ubicación a la estructura nueva",
+        "scan": "Escanear tus discos"
       },
       "disk": {
         "migrate": "Pasar al estándar de discos"
@@ -680,7 +687,10 @@
       "store": "Tienda",
       "hours": "Horas",
       "lastPlayed": "Última vez",
-      "otherCompany": "Otras"
+      "otherCompany": "Otras",
+      "scan": "Escanear",
+      "scanHelp": "Busca tus juegos en Juegos de cada disco y marca lo que tienes.",
+      "scanQueued": "Escaneando: míralo en el panel de tareas."
     },
     "game": {
       "noneTitle": "Elige un juego",

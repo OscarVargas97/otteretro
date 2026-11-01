@@ -72,6 +72,7 @@ public static class LibraryEndpoints
             if (error is not null) return TypedResults.BadRequest(error);
             // Una carpeta de antes (como E:\Consolas) pasa enseguida a la carpeta fija de su disco (#202).
             long? task = request.Type != "disk" ? LibraryTasks.EnqueueMigrate(db) : null;
+            if (task is null) Scan.Enqueue(db); // un disco agregado se escanea solo (#212); lo de antes, al terminar de migrar
             return TypedResults.Ok(new AdoptResult(id!, task, Library.List(db)));
         });
 
@@ -86,7 +87,9 @@ public static class LibraryEndpoints
                 return TypedResults.BadRequest(ApiError.Of("folder.createFailed", ("detail", e.Message)));
             }
             var (_, _, error) = Library.Adopt(db, request.Path, request.Name, "disk");
-            return error is null ? TypedResults.Ok(Library.List(db)) : TypedResults.BadRequest(error);
+            if (error is not null) return TypedResults.BadRequest(error);
+            Scan.Enqueue(db); // al agregar un disco (#212)
+            return TypedResults.Ok(Library.List(db));
         });
 
         // Lo que falta pasar al estándar (#159) y la tarea que lo hace.

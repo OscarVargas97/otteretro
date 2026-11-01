@@ -4,7 +4,10 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.4.0 · Colección · en desarrollo
 
-`fase/f4-coleccion` · F4 (#176): tus archivos de juegos reconocidos, verificados y marcados como «lo tengo» · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+`fase/f4-coleccion` y `feat/178-escaneo` · F4 (#176): tus archivos de juegos reconocidos, verificados y marcados como «lo tengo» · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+
+### Nuevo
+- **Escanear** en Colección (#178): busca tus juegos en `Juegos\<Consola>` de cada disco y marca como «lo tengo» los que reconoce por su nombre. En Switch separa BASE, actualizaciones y DLC por su TitleID (del nombre del archivo o, si no lo trae y tienes tus `prod.keys` en Sistema, de adentro del archivo), y cada actualización y DLC va con su juego. En GameCube y Wii guarda el serial del disco. Se lanza solo al agregar un disco y al terminar una mudanza. Nunca mueve ni borra archivos; lo que no reconoce queda para identificarlo después.
 
 ### Cambios
 - La versión pasa a 0.4: empieza la fase Colección.

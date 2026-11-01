@@ -458,6 +458,12 @@
       "notDisk": "That is not a drive.",
       "toDisk": "Moving {name} to its drive",
       "toolsToDisk": "Moving Herramientas to the default drive"
+    },
+    "scan": {
+      "folder": "Scanning {path}",
+      "log": {
+        "summary": "{files} files: {matched} recognized and {pending} to identify."
+      }
     }
   },
   "credentials": {
@@ -535,7 +541,8 @@
       },
       "library": {
         "move": "Move a location or a folder",
-        "adopt": "Migrate a location to the new layout"
+        "adopt": "Migrate a location to the new layout",
+        "scan": "Scan your drives"
       },
       "disk": {
         "migrate": "Move to the standard drive layout"
@@ -680,7 +687,10 @@
       "store": "Store",
       "hours": "Hours",
       "lastPlayed": "Last played",
-      "otherCompany": "Others"
+      "otherCompany": "Others",
+      "scan": "Scan",
+      "scanHelp": "Looks for your games in Juegos on each drive and marks what you own.",
+      "scanQueued": "Scanning: follow it in the tasks panel."
     },
     "game": {
       "noneTitle": "Pick a game",

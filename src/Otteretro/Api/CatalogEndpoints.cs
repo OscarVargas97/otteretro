@@ -79,6 +79,10 @@ public static class CatalogEndpoints
             return TypedResults.Ok(CatalogQueries.Collection(db, platform, filter, sort, Math.Max(0, offset), Math.Clamp(limit, 1, 500)));
         });
 
+        // «Escanear» en Colección (#178): la tarea que reconoce los archivos de cada disco.
+        api.MapPost("/collection/scan", Results<Ok<long>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(Libraries.Scan.Enqueue(db)) : NoData());
+
         api.MapGet("/games/{id:long}", Results<Ok<GameDetail>, NotFound, Conflict<ApiError>> (long id, AppSession s) =>
             Db(s) is not { } db ? NoData() : CatalogQueries.Game(db, id) is { } game ? TypedResults.Ok(game) : TypedResults.NotFound());
 
