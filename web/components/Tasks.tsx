@@ -22,6 +22,7 @@ export function upsertTask(cache: QueryClient, task: TaskInfo) {
   if (task.kind.startsWith("library.") && task.status !== "running" && task.status !== "queued" && task.status !== "paused") {
     cache.invalidateQueries({ queryKey: ["libraries"] });
     cache.invalidateQueries({ queryKey: ["tools"] });
+    cache.invalidateQueries({ queryKey: ["consoles", "detail"] });
   }
 }
 

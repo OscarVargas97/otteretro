@@ -17,6 +17,8 @@ public record RecipeDownload(string Version, string System, string Url, string H
 public record Recipe(string Id, string Name, string Kind, string Folder, string Detect)
 {
     public string? Parent { get; init; }
+    /// <summary>Port: el juego que cubre (#193).</summary>
+    public string? Game { get; init; }
     public RecipeVersion? Version { get; init; }
     public List<PortableStep> Portable { get; init; } = [];
     public string? Link { get; init; }
@@ -33,7 +35,12 @@ public record Recipe(string Id, string Name, string Kind, string Folder, string 
 
 /// <param name="Kind">emulator, port o complement.</param>
 /// <param name="Folder">Consola, o el emulador o port de un complemento.</param>
-public record ToolInfo(string Kind, string Folder, string Name, string Version, string Path, string? RecipeId);
+/// <param name="Game">Port: el juego que cubre, según su receta (#193).</param>
+/// <param name="LocationId">La ubicación donde está; sin ella, en `Herramientas` de la carpeta de datos (#198).</param>
+public record ToolInfo(string Kind, string Folder, string Name, string Version, string Path, string? RecipeId, string? Game = null, string? LocationId = null);
+
+/// <summary>Una carpeta donde hay instalaciones de un tipo: `<Consola o padre>\<Nombre>\<versión>` adentro (#198).</summary>
+public record ToolRoot(string Kind, string Path, string? LocationId = null);
 
 /// <summary>Las recetas que vienen con la app y lo que se hace con ellas: versión, modo portable, rutas internas y enlaces.</summary>
 public static class Recipes
@@ -94,20 +101,26 @@ public static class Recipes
     public static string Target(string tools, Recipe recipe, string version) =>
         Path.Combine(tools, recipe.Group, recipe.Folder, recipe.Name, version);
 
+    /// <summary>Emuladores, Ports y Complementos de `Herramientas` (§5.1): la primera ubicación de cada tipo (#198).</summary>
+    public static List<ToolRoot> DefaultRoots(string tools) =>
+        [new("emulator", Path.Combine(tools, "Emuladores")), new("port", Path.Combine(tools, "Ports")), new("complement", Path.Combine(tools, "Complementos"))];
+
     /// <summary>Lo instalado en Herramientas: tres niveles bajo Emuladores, Ports y Complementos.</summary>
-    public static List<ToolInfo> Installed(string tools)
+    public static List<ToolInfo> Installed(string tools) => Installed(DefaultRoots(tools));
+
+    /// <summary>Lo instalado en esas carpetas: tres niveles bajo cada una (#198).</summary>
+    public static List<ToolInfo> Installed(IEnumerable<ToolRoot> roots)
     {
         var list = new List<ToolInfo>();
-        foreach (var (group, kind) in new[] { ("Emuladores", "emulator"), ("Ports", "port"), ("Complementos", "complement") })
+        foreach (var (kind, root, locationId) in roots)
         {
-            var root = Path.Combine(tools, group);
             if (!Directory.Exists(root)) continue;
             foreach (var folder in Directory.EnumerateDirectories(root))
                 foreach (var name in Directory.EnumerateDirectories(folder))
                     foreach (var version in Directory.EnumerateDirectories(name))
                     {
                         var recipe = All.FirstOrDefault(r => r.Kind == kind && r.Name == Path.GetFileName(name) && r.Folder == Path.GetFileName(folder));
-                        list.Add(new(kind, Path.GetFileName(folder), Path.GetFileName(name), Path.GetFileName(version), version, recipe?.Id));
+                        list.Add(new(kind, Path.GetFileName(folder), Path.GetFileName(name), Path.GetFileName(version), version, recipe?.Id, recipe?.Game, locationId));
                     }
         }
         return list.OrderBy(t => t.Kind).ThenBy(t => t.Folder).ThenBy(t => t.Name).ThenBy(t => t.Version).ToList();

@@ -4,18 +4,20 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.3.0 · Carpetas y herramientas · en desarrollo
 
-`fase/f3-carpetas` y `feat/146-pausar-cancelar-tareas` · F3 (#141): tus juegos y herramientas en la estructura definitiva antes de construir lo demás encima · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+`fase/f3-carpetas`, `feat/146-pausar-cancelar-tareas` y `feat/148-almacenamiento-por-tipo` · F3 (#141): tus juegos y herramientas en la estructura definitiva antes de construir lo demás encima · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
 
 ### Nuevo
-- **Bibliotecas de juegos**, en Ajustes › Bibliotecas de juegos: adopta la carpeta donde ya tienes tus juegos o crea una nueva en cualquier disco o en la red. Cada una muestra su espacio libre y si está conectada; se puede renombrar, mover y quitar (quitar nunca borra archivos). Si un disco cambia de letra o vuelve a conectarse, la biblioteca se encuentra sola.
+- **Almacenamiento por tipo**, en Ajustes › Almacenamiento (#148): juegos, emuladores, ports, complementos y sistema (BIOS, keys) tienen cada uno sus **ubicaciones**, en cualquier disco o en la red. Adopta la carpeta donde ya tienes tus juegos o crea una nueva. Cada ubicación muestra su espacio libre y si está conectada; se puede renombrar, mover y quitar (quitar nunca borra archivos). Si un disco cambia de letra o vuelve a conectarse, la ubicación se encuentra sola.
+- **La consola como centro**, en Ajustes › Consolas (#148): al elegir una ves juntos sus juegos (en qué ubicación), sus emuladores, sus ports con el juego que cubren, sus complementos y su sistema, y lo que le falta. Ahí eliges a qué ubicación van sus juegos nuevos.
 - **Adoptar `E:\Consolas` la ordena sola**: los juegos quedan en `Consola\Juego`, Dolphin, Ryujinx SS4K y Dusklight pasan a Herramientas con su versión, y las texturas y packs, a Complementos. Sus rutas internas se ponen al día, así que siguen encontrando tus juegos y partidas.
-- **Mover una biblioteca o una consola** a otro disco (la consola, desde Ajustes › Consolas, que dice en qué biblioteca están sus juegos): se copia, se verifica cada archivo y recién entonces se borra el origen. Si se corta, sigue donde quedó. Las rutas de los emuladores se actualizan solas.
-- **Herramientas** ya se abre: muestra cada emulador, port y complemento instalado con su versión.
+- **Mover una ubicación, una consola o un emulador** a otro disco (la consola, desde su detalle en Ajustes › Consolas; un emulador, port o complemento, desde Herramientas a otra ubicación de su tipo): se copia, se verifica cada archivo y recién entonces se borra el origen. Si se corta, sigue donde quedó. Las rutas de los emuladores y los enlaces de texturas y partidas se actualizan solos.
+- **Herramientas** ya se abre: pestañas Emuladores, Ports, Complementos y Sistema, con cada instalación, su versión, su consola y, en los ports, el juego que cubren.
 - **Paso 4 de la bienvenida**: encuentra la carpeta con la estructura antigua y ofrece adoptarla.
 - **Pausar, reanudar y cancelar tareas** desde el panel de tareas (#146): una tarea pausada, como la carga con Claude, se queda quieta con lo que ya hizo hasta que la reanudas, y el horario de Claude no lanza otra encima. Cancelar pide confirmar y conserva lo hecho; una mudanza cancelada no toca el origen.
 
 ### Cambios
 - El menú muestra las fases nuevas del plan: Steam llega en la F8, Descargas en la F10 y Descubrir en la F11.
+- **Ajustes con lista y detalle** (#148): las secciones agrupadas a la izquierda y una sola columna de contenido, sin los bloques en dos columnas; Herramientas usa el mismo diseño.
 
 ## 0.2.1 · Pulido de UI · en desarrollo
 

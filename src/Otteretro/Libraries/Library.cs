@@ -6,25 +6,37 @@ using Otteretro.Data;
 
 namespace Otteretro.Libraries;
 
-/// <summary>El marcador `otteretro-biblioteca.json` de la raíz de cada biblioteca (§5.2). Sus claves las ve la persona: van en español.</summary>
+/// <summary>
+/// El marcador `otteretro-ubicacion.json` de la raíz de cada ubicación (§5.2, #199). Sus claves las ve la persona: van en
+/// español. <c>contenido</c> es el tipo de cosa que guarda (#198); sin él, juegos.
+/// </summary>
 public record LibraryMarker(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("nombre")] string Name,
     [property: JsonPropertyName("tipo")] string Kind,
     [property: JsonPropertyName("creada")] string CreatedAt,
-    [property: JsonPropertyName("formato")] int Format);
+    [property: JsonPropertyName("formato")] int Format,
+    [property: JsonPropertyName("contenido")] string? Type = null);
 
 /// <param name="Connected">Está en su última ruta y su marcador tiene el mismo id.</param>
 /// <param name="Legacy">Todavía tiene la estructura antigua (`<Consola>\Juegos|Emuladores|Ports`): adoptarla la migra.</param>
-/// <summary>La carpeta de una consola en una biblioteca (#190).</summary>
+/// <param name="Type">game, emulator, port, complement o system (#198).</param>
+public record LibraryInfo(string Id, string Name, string Kind, string Path, bool Connected, long? Free, long? Total, bool Legacy, string Type);
+
+/// <summary>La carpeta de una consola en una ubicación (#190).</summary>
 public record ConsoleFolder(string Console, string LibraryId, string Relative);
 
-public record LibraryInfo(string Id, string Name, string Kind, string Path, bool Connected, long? Free, long? Total, bool Legacy);
-
-/// <summary>Bibliotecas de juegos (§5): marcador, registro, crear, adoptar, renombrar, quitar sin borrar y reconectar.</summary>
+/// <summary>
+/// Ubicaciones (§5, #198, #199): carpetas registradas con marcador para un tipo de cosa (juegos, emuladores, ports,
+/// complementos o sistema). Crear, adoptar, renombrar, quitar sin borrar y reconectar. En el código y la base siguen
+/// llamándose «library».
+/// </summary>
 public static class Library
 {
-    public const string MarkerFile = "otteretro-biblioteca.json";
+    public const string MarkerFile = "otteretro-ubicacion.json";
+    /// <summary>El nombre de antes (#191): se sigue leyendo y se reemplaza al escribir.</summary>
+    public const string OldMarkerFile = "otteretro-biblioteca.json";
+    public static readonly string[] Types = ["game", "emulator", "port", "complement", "system"];
     public const int MarkerFormat = 1;
 
     /// <summary>Carpetas de la estructura antigua dentro de cada consola (§5.5).</summary>
@@ -34,8 +46,10 @@ public static class Library
 
     public static LibraryMarker? ReadMarker(string folder)
     {
-        try { return JsonSerializer.Deserialize<LibraryMarker>(File.ReadAllText(Path.Combine(folder, MarkerFile))); }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException) { return null; }
+        foreach (var file in new[] { MarkerFile, OldMarkerFile })
+            try { return JsonSerializer.Deserialize<LibraryMarker>(File.ReadAllText(Path.Combine(folder, file))); }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException) { }
+        return null;
     }
 
     /// <summary>Escribe el marcador a un temporal y lo reemplaza: un corte no lo deja a medias.</summary>
@@ -44,6 +58,7 @@ public static class Library
         var path = Path.Combine(folder, MarkerFile);
         File.WriteAllText(path + ".tmp", JsonSerializer.Serialize(marker, Json));
         File.Move(path + ".tmp", path, overwrite: true);
+        File.Delete(Path.Combine(folder, OldMarkerFile));
     }
 
     /// <summary>Una carpeta de red (\\nas\roms o //nas/roms); en Linux un montaje NFS parece local y se registra como local.</summary>
@@ -53,18 +68,18 @@ public static class Library
         Directory.Exists(folder) && Directory.EnumerateDirectories(folder).Any(c =>
             !Path.GetFileName(c).StartsWith('_') && LegacyFolders.Any(l => Directory.Exists(Path.Combine(c, l))));
 
-    record Row(string Id, string Name, string Kind, string Path);
+    record Row(string Id, string Name, string Kind, string Path, string Type);
 
     public static List<LibraryInfo> List(Database db)
     {
         using var c = db.Open();
-        return c.Query<Row>("SELECT id, name, kind, path FROM library ORDER BY name").Select(Info).ToList();
+        return c.Query<Row>("SELECT id, name, kind, path, type FROM library ORDER BY name").Select(Info).ToList();
     }
 
     public static LibraryInfo? Get(Database db, string id)
     {
         using var c = db.Open();
-        return c.QuerySingleOrDefault<Row>("SELECT id, name, kind, path FROM library WHERE id = @id", new { id }) is { } r ? Info(r) : null;
+        return c.QuerySingleOrDefault<Row>("SELECT id, name, kind, path, type FROM library WHERE id = @id", new { id }) is { } r ? Info(r) : null;
     }
 
     static LibraryInfo Info(Row r)
@@ -78,18 +93,19 @@ public static class Library
                 (free, total) = (drive.AvailableFreeSpace, drive.TotalSize);
             }
             catch (Exception e) when (e is ArgumentException or IOException or UnauthorizedAccessException) { }
-        return new(r.Id, r.Name, r.Kind, r.Path, connected, free, total, connected && IsLegacy(r.Path));
+        return new(r.Id, r.Name, r.Kind, r.Path, connected, free, total, connected && r.Type == "game" && IsLegacy(r.Path), r.Type);
     }
 
-    /// <summary>Crea una biblioteca nueva en <paramref name="path"/> (la crea si no existe). Devuelve su id o el error.</summary>
-    public static (string? Id, ApiError? Error) Create(Database db, string path, string? name)
+    /// <summary>Crea una ubicación nueva de <paramref name="type"/> en <paramref name="path"/> (la crea si no existe). Devuelve su id o el error.</summary>
+    public static (string? Id, ApiError? Error) Create(Database db, string path, string? name, string type = "game")
     {
+        if (!Types.Contains(type)) return (null, ApiError.Of("library.badType"));
         if (Check(db, path) is { } error) return (null, error);
         if (ReadMarker(path) is not null) return (null, ApiError.Of("library.hasMarker"));
         try
         {
             Directory.CreateDirectory(path);
-            return (Register(db, path, NewMarker(path, name)), null);
+            return (Register(db, path, NewMarker(path, name, type)), null);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
@@ -101,8 +117,9 @@ public static class Library
     /// Adopta una carpeta que ya existe: si tiene marcador, se registra con ese id; si no, se le escribe uno. Con la estructura
     /// antigua devuelve <c>Legacy = true</c> y quien llama encola la migración (§5.5).
     /// </summary>
-    public static (string? Id, bool Legacy, ApiError? Error) Adopt(Database db, string path, string? name = null)
+    public static (string? Id, bool Legacy, ApiError? Error) Adopt(Database db, string path, string? name = null, string type = "game")
     {
+        if (!Types.Contains(type)) return (null, false, ApiError.Of("library.badType"));
         if (!Directory.Exists(path)) return (null, false, ApiError.Of("path.notFound"));
         var marker = ReadMarker(path);
         if (marker is not null && Get(db, marker.Id) is { } known)
@@ -110,10 +127,12 @@ public static class Library
             // Ya registrada: es una reconexión a la ruta nueva.
             using var c = db.Open();
             c.Execute("UPDATE library SET path = @path WHERE id = @Id", new { path = Normalize(path), known.Id });
-            return (known.Id, IsLegacy(path), null);
+            return (known.Id, known.Type == "game" && IsLegacy(path), null);
         }
         if (Check(db, path) is { } error) return (null, false, error);
-        try { return (Register(db, path, marker ?? NewMarker(path, name)), IsLegacy(path), null); }
+        // Un marcador sin tipo (de antes de #198) toma el que se eligió al adoptar.
+        marker = marker is null ? NewMarker(path, name, type) : marker with { Type = marker.Type ?? type };
+        try { return (Register(db, path, marker), marker.Type == "game" && IsLegacy(path), null); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
             return (null, false, ApiError.Of("folder.createFailed", ("detail", e.Message)));
@@ -130,20 +149,32 @@ public static class Library
     }
 
     /// <summary>
-    /// Dónde están los juegos de cada consola (#190): las carpetas de primer nivel de cada biblioteca conectada que se llaman
-    /// como la consola (su nombre o su id, sin distinguir mayúsculas). Una consola puede estar en varias bibliotecas.
+    /// Dónde están las cosas de cada consola (#190, #192): las carpetas de primer nivel de cada ubicación conectada de
+    /// <paramref name="type"/> que se llaman como la consola (su nombre o su id, sin distinguir mayúsculas). Una consola
+    /// puede estar en varias ubicaciones.
     /// </summary>
-    public static List<ConsoleFolder> ConsoleFolders(Database db)
+    public static List<ConsoleFolder> ConsoleFolders(Database db, string type = "game")
     {
         using var c = db.Open();
         var consoles = c.Query<(string Id, string Name)>("SELECT id, name FROM console").ToList();
         var found = new List<ConsoleFolder>();
-        foreach (var library in List(db).Where(l => l.Connected))
+        foreach (var library in List(db).Where(l => l.Connected && l.Type == type))
             foreach (var folder in Directory.EnumerateDirectories(library.Path).Select(Path.GetFileName))
                 if (consoles.FirstOrDefault(k => string.Equals(k.Name, folder, StringComparison.OrdinalIgnoreCase)
                         || string.Equals(k.Id, folder, StringComparison.OrdinalIgnoreCase)) is { Id: not null } console)
                     found.Add(new ConsoleFolder(console.Id, library.Id, folder!));
         return found;
+    }
+
+    /// <summary>
+    /// Dónde buscar lo instalado (#198): `Herramientas\Emuladores|Ports|Complementos` de la carpeta de datos, que es la
+    /// primera ubicación de cada tipo, y después cada ubicación conectada de emuladores, ports o complementos.
+    /// </summary>
+    public static List<ToolRoot> ToolRoots(Database db)
+    {
+        var roots = Recipes.DefaultRoots(LibraryTasks.ToolsOf(db));
+        roots.AddRange(List(db).Where(l => l.Connected && l.Type is "emulator" or "port" or "complement").Select(l => new ToolRoot(l.Type, l.Path, l.Id)));
+        return roots;
     }
 
     /// <summary>Saca la biblioteca del registro. Nunca borra archivos, ni el marcador.</summary>
@@ -204,16 +235,16 @@ public static class Library
         return null;
     }
 
-    static LibraryMarker NewMarker(string path, string? name) => new(Guid.NewGuid().ToString("N"),
+    static LibraryMarker NewMarker(string path, string? name, string type) => new(Guid.NewGuid().ToString("N"),
         string.IsNullOrWhiteSpace(name) ? Path.GetFileName(Normalize(path)) is { Length: > 0 } n ? n : Normalize(path) : name.Trim(),
-        IsNetwork(path) ? "network" : "local", DateTime.UtcNow.ToString("O"), MarkerFormat);
+        IsNetwork(path) ? "network" : "local", DateTime.UtcNow.ToString("O"), MarkerFormat, type);
 
     static string Register(Database db, string path, LibraryMarker marker)
     {
         WriteMarker(path, marker);
         using var c = db.Open();
-        c.Execute("INSERT INTO library (id, name, kind, path, created_at) VALUES (@Id, @Name, @kind, @path, @CreatedAt)",
-            new { marker.Id, marker.Name, kind = IsNetwork(path) ? "network" : "local", path = Normalize(path), marker.CreatedAt });
+        c.Execute("INSERT INTO library (id, name, kind, path, created_at, type) VALUES (@Id, @Name, @kind, @path, @CreatedAt, @type)",
+            new { marker.Id, marker.Name, kind = IsNetwork(path) ? "network" : "local", path = Normalize(path), marker.CreatedAt, type = marker.Type ?? "game" });
         return marker.Id;
     }
 

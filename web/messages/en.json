@@ -70,7 +70,7 @@
       "welcome": "Welcome",
       "dataFolder": "Data folder",
       "backup": "Backup",
-      "libraries": "Game libraries",
+      "libraries": "Game locations",
       "steam": "Steam",
       "keys": "Keys",
       "initialLoad": "Initial load"
@@ -87,8 +87,8 @@
     "preparing": "Preparing…",
     "use": "Use {path}",
     "nextSteps": "Backup, Steam and the remaining steps turn on with their phase.",
-    "librariesTitle": "Your game libraries",
-    "librariesText": "A library is a folder with games, on any drive or on the network. If you already have one with the old layout, adopt it and it sorts itself.",
+    "librariesTitle": "Your game locations",
+    "librariesText": "A game location is a folder with games, on any drive or on the network. If you already have one with the old layout, adopt it and it sorts itself.",
     "librariesFound": "We found folders with the old layout:",
     "adoptThis": "Adopt {path}",
     "createNew": "Create a new one",
@@ -188,14 +188,37 @@
       },
       "location": {
         "in": "Its games: {library}",
-        "move": "Move to another library",
+        "move": "Move to another location",
         "to": "To",
         "cancel": "Cancel",
         "confirm": "Move",
         "queued": "it is in the tasks panel"
+      },
+      "detail": {
+        "pick": "Pick a console to see its games, emulators, ports and system files.",
+        "games": "Games",
+        "emulators": "Emulators",
+        "ports": "Ports",
+        "system": "System",
+        "complements": "Add-ons",
+        "destination": "New games go to",
+        "noDestination": "Not chosen",
+        "noGames": "No game location has a folder for this console.",
+        "noEmulators": "No emulator is installed for this console.",
+        "noPorts": "No ports for this console.",
+        "noSystem": "No BIOS or keys for this console in a system location.",
+        "covers": "Covers {game}",
+        "inDataFolder": "In Herramientas",
+        "inLocation": "In {location}",
+        "open": "Show {name}"
       }
     },
-    "libraries": "Game libraries"
+    "storage": "Storage",
+    "groups": {
+      "library": "Games",
+      "accounts": "Accounts",
+      "app": "App"
+    }
   },
   "dataFolder": {
     "open": "Open folder",
@@ -417,14 +440,14 @@
       "ghFailed": "gh could not create the issue: {detail}"
     },
     "library": {
-      "hasMarker": "That folder is already a library: adopt it instead of creating it.",
+      "hasMarker": "That folder is already a location: adopt it instead of creating it.",
       "noName": "Type a name.",
-      "notFound": "That library is no longer registered.",
-      "overlaps": "It overlaps the library “{name}”: one cannot be inside another.",
-      "notConnected": "The library is disconnected. Reconnect it first.",
-      "otherMarker": "This library is not in that folder (its marker belongs to another one, or it has none).",
+      "notFound": "That location is no longer registered.",
+      "overlaps": "It overlaps the location “{name}”: one cannot be inside another.",
+      "notConnected": "The location is disconnected. Reconnect it first.",
+      "otherMarker": "This location is not in that folder (its marker belongs to another one, or it has none).",
       "notFoundOnDrives": "It was not found on your drives. Connect the drive or type where it is.",
-      "outside": "The folder has to be inside the library.",
+      "outside": "The folder has to be inside the location.",
       "conflict": "{path} already exists: move or rename it and migrate again.",
       "copying": "Copying to {path}",
       "updating": "Updating the database and emulator paths",
@@ -434,7 +457,10 @@
         "moved": "Moved {from} to {to}; {paths} emulator paths updated.",
         "tool": "{name} is now in {path}.",
         "notEmpty": "{path} was not empty and was not deleted: check what is in it."
-      }
+      },
+      "badType": "That location type does not exist.",
+      "notGames": "Pick a game location.",
+      "otherType": "That location is of another type."
     }
   },
   "credentials": {
@@ -511,8 +537,8 @@
         "extra": "Complete with Wikidata and RAWG"
       },
       "library": {
-        "move": "Move a library or a folder",
-        "adopt": "Migrate a library to the new layout"
+        "move": "Move a location or a folder",
+        "adopt": "Migrate a location to the new layout"
       }
     },
     "status": {
@@ -811,12 +837,12 @@
     "progress": "{done} of {total} played"
   },
   "libraries": {
-    "emptyTitle": "No game libraries yet",
+    "emptyTitle": "No game locations yet",
     "emptyText": "Adopt the folder where your games already are, or create a new one on any drive.",
     "adopt": "Adopt a folder",
-    "create": "Create a library",
-    "adoptHelp": "Registers a folder that already has games. If it has the old layout (Console\\Juegos) with emulators or ports mixed in, it sorts itself: games end up in Console\\Game and emulators and ports move to Herramientas, which is not a library.",
-    "createHelp": "Choose an empty or new folder, on any drive or on the network (\\\\nas\\roms). Each console's folder is created when needed.",
+    "create": "Create a location",
+    "adoptHelp": "Registers a folder that already has games. If it has the old layout (Console\\Juegos) with emulators or ports mixed in, it sorts itself: games end up in Console\\Game and emulators and ports move to Herramientas.",
+    "createHelp": "Pick an empty or new folder, on any drive or on the network (\\\\nas\\roms). Each console folder is created when needed.",
     "path": "Folder",
     "pathPlaceholder": "For example E:\\Consoles",
     "name": "Name (optional)",
@@ -827,7 +853,7 @@
     "connected": "Connected",
     "disconnected": "Disconnected",
     "legacy": "Old layout",
-    "legacyHelp": "This library still has the old layout. Migrating it leaves games in Console\\Game and moves emulators, ports and their add-ons to Herramientas, with their paths updated.",
+    "legacyHelp": "This location still has the old layout. Migrating it leaves games in Console\\Game and moves emulators, ports and their add-ons to Herramientas, with their paths updated.",
     "migrate": "Migrate to the new layout",
     "migrationStarted": "The migration is in the tasks panel. You can keep using the app meanwhile.",
     "queued": "It is in the tasks panel.",
@@ -839,17 +865,66 @@
     "moveHelp": "Choose an empty or new folder. It is copied, every file is verified, emulator paths are updated and only then is the source deleted. If interrupted, it resumes where it left off.",
     "remove": "Remove",
     "removeHelp": "“{name}” is removed from Otteretro. No file is deleted: you can adopt it again any time.",
-    "removeConfirm": "Remove without deleting"
+    "removeConfirm": "Remove without deleting",
+    "adoptOtherHelp": "Registers a folder that already has content of this type, laid out as in Herramientas: Console\\Name\\version.",
+    "consoles": "Consoles: {list}",
+    "dataFolder": "Herramientas, in the data folder",
+    "dataFolderHelp": "The first location of this type. It cannot be removed; you can add others on any drive.",
+    "type": {
+      "game": {
+        "title": "Games",
+        "help": "Where your games live, one folder per console. You can have several, on any drive or on the network.",
+        "empty": "No game locations yet: adopt the folder where you already have them or create a new one."
+      },
+      "emulator": {
+        "title": "Emulators",
+        "help": "Each emulator with its versions side by side, in Console\\Emulator\\version.",
+        "empty": ""
+      },
+      "port": {
+        "title": "Ports",
+        "help": "Native ports of each game, in Console\\Port\\version.",
+        "empty": ""
+      },
+      "complement": {
+        "title": "Add-ons",
+        "help": "Textures, mods and packs, apart from their emulator or port and linked where it looks for them.",
+        "empty": ""
+      },
+      "system": {
+        "title": "System",
+        "help": "BIOS, keys and firmware, one folder per console.",
+        "empty": "No system locations yet."
+      }
+    }
   },
   "tools": {
     "emptyTitle": "No emulators or ports yet",
-    "emptyText": "When you adopt a library with the old layout, its emulators and ports land here. From F5 on they are installed and updated from this screen.",
+    "emptyText": "When you adopt a game location with the old layout, its emulators and ports land here. From F5 on they are installed and updated from this screen.",
     "kind": {
       "emulator": "Emulators",
       "port": "Ports",
-      "complement": "Add-ons"
+      "complement": "Add-ons",
+      "system": "System"
     },
     "noRecipe": "No recipe",
-    "noRecipeHelp": "Otteretro does not know yet how to make it portable or rewrite its paths."
+    "noRecipeHelp": "Otteretro does not know yet how to make it portable or rewrite its paths.",
+    "sections": "Tool types",
+    "pick": "Pick a tool to see its details.",
+    "none": "Nothing of this type yet.",
+    "version": "Version",
+    "console": "Console",
+    "path": "Folder",
+    "covers": "Covers",
+    "location": "Location",
+    "recipe": "Recipe",
+    "move": "Move to another location",
+    "to": "To",
+    "cancel": "Cancel",
+    "confirm": "Move",
+    "queued": "Added to the tasks panel.",
+    "systemHelp": "BIOS, keys and firmware live in the system locations of Settings › Storage. Each console shows its own.",
+    "openStorage": "Open Storage",
+    "dataFolder": "Herramientas (data folder)"
   }
 }

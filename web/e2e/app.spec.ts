@@ -157,63 +157,95 @@ test("todas las pantallas se ven en inglés", async () => {
   }
 });
 
-test("Ajustes › Bibliotecas: crear, ver y quitar sin borrar", async () => {
+test("Ajustes › Almacenamiento: un apartado por tipo; crear, ver y quitar sin borrar (#198)", async () => {
   const folder = dataDir("juegos");
-  await page.goto(`${base()}/settings/?s=libraries`);
-  await expect(page.getByText(en.libraries.emptyTitle)).toBeVisible();
-  await page.getByRole("button", { name: en.libraries.create }).click();
-  await page.getByLabel(en.libraries.path).fill(folder);
-  await page.getByLabel(en.libraries.name).fill("Games drive");
-  await page.locator(".form-block").getByRole("button", { name: en.libraries.create }).click();
-  await expect(page.getByText(folder)).toBeVisible();
-  await expect(page.getByText(en.libraries.connected)).toBeVisible();
+  await page.goto(`${base()}/settings/?s=storage`);
+  for (const type of ["game", "emulator", "port", "complement", "system"] as const)
+    await expect(page.getByRole("heading", { level: 2, name: en.libraries.type[type].title, exact: true })).toBeVisible();
+  // Emuladores, ports y complementos empiezan con Herramientas de la carpeta de datos.
+  await expect(page.getByText(en.libraries.dataFolder, { exact: true })).toHaveCount(3);
+  const games = page.getByRole("region", { name: en.libraries.type.game.title, exact: true });
+  await expect(games.getByText(en.libraries.type.game.empty)).toBeVisible();
+  await games.getByRole("button", { name: en.libraries.create }).click();
+  await games.getByLabel(en.libraries.path).fill(folder);
+  await games.getByLabel(en.libraries.name).fill("Games drive");
+  await games.locator(".form-block").getByRole("button", { name: en.libraries.create }).click();
+  await expect(games.getByText(folder)).toBeVisible();
+  await expect(games.getByText(en.libraries.connected)).toBeVisible();
   await expectNoRawKeys();
   await expectTextFits();
   // Quitar avisa que no borra nada; el marcador sigue en la carpeta.
-  await page.getByRole("button", { name: en.libraries.remove, exact: true }).click();
-  await expect(page.getByText(en.libraries.removeHelp.replace("{name}", "Games drive"))).toBeVisible();
-  await page.getByRole("button", { name: en.libraries.removeConfirm }).click();
-  await expect(page.getByText(en.libraries.emptyTitle)).toBeVisible();
+  await games.getByRole("button", { name: en.libraries.remove, exact: true }).click();
+  await expect(games.getByText(en.libraries.removeHelp.replace("{name}", "Games drive"))).toBeVisible();
+  await games.getByRole("button", { name: en.libraries.removeConfirm }).click();
+  await expect(games.getByText(en.libraries.type.game.empty)).toBeVisible();
   const { existsSync } = await import("node:fs");
-  expect(existsSync(join(folder, "otteretro-biblioteca.json"))).toBe(true);
+  expect(existsSync(join(folder, "otteretro-ubicacion.json"))).toBe(true);
 });
 
-test("Ajustes › Consolas: mover los juegos de una consola a otra biblioteca", async () => {
+test("Ajustes › Consolas: el detalle de una consola, su destino y mover sus juegos (#192, #195)", async () => {
   const [a, b] = [dataDir("disco-a"), dataDir("disco-b")];
   mkdirSync(join(a, "Switch", "Zelda"), { recursive: true });
   writeFileSync(join(a, "Switch", "Zelda", "juego.nsp"), "contenido");
   mkdirSync(b, { recursive: true });
-  await page.goto(`${base()}/settings/?s=libraries`);
+  await page.goto(`${base()}/settings/?s=storage`);
+  const games = page.getByRole("region", { name: en.libraries.type.game.title, exact: true });
   for (const [folder, name] of [[a, "Disco A"], [b, "Disco B"]]) {
-    await page.getByRole("button", { name: en.libraries.create }).click();
-    await page.getByLabel(en.libraries.path).fill(folder);
-    await page.getByLabel(en.libraries.name).fill(name);
-    await page.locator(".form-block").getByRole("button", { name: en.libraries.create }).click();
-    await expect(page.getByText(folder, { exact: true })).toBeVisible();
+    await games.getByRole("button", { name: en.libraries.create }).click();
+    await games.getByLabel(en.libraries.path).fill(folder);
+    await games.getByLabel(en.libraries.name).fill(name);
+    await games.locator(".form-block").getByRole("button", { name: en.libraries.create }).click();
+    await expect(games.getByText(folder, { exact: true })).toBeVisible();
   }
-  // #190: se mueve desde Ajustes › Consolas, donde cada consola dice en qué biblioteca están sus juegos.
+  // Lista a la izquierda; al elegir Switch, su detalle dice dónde están sus juegos y qué le falta.
   await page.goto(`${base()}/settings/?s=consoles`);
+  await expect(page.getByText(en.settings.consoles.detail.pick)).toBeVisible();
+  await page.getByRole("button", { name: en.settings.consoles.detail.open.replace("{name}", "Switch"), exact: true }).click();
+  await expect(page).toHaveURL(/c=switch/);
+  const detail = page.locator(".console-detail");
+  await expect(detail.getByText(en.settings.consoles.detail.noEmulators)).toBeVisible();
+  await expect(detail.getByText(en.settings.consoles.detail.noSystem)).toBeVisible();
+  await expectNoRawKeys();
+  await expectTextFits();
+  // El destino de los juegos nuevos se guarda.
+  await detail.getByLabel(en.settings.consoles.detail.destination).selectOption({ label: "Disco B" });
+  await page.reload();
+  await expect.poll(() => page.locator(".console-detail").getByLabel(en.settings.consoles.detail.destination)
+    .evaluate((s) => (s as HTMLSelectElement).selectedOptions[0].text)).toBe("Disco B");
+  // #190: mover los juegos de la consola a otra ubicación.
   const loc = page.locator(".console-location", { hasText: en.settings.consoles.location.in.replace("{library}", "Disco A") });
   await loc.getByRole("button", { name: en.settings.consoles.location.move }).click();
   await loc.getByLabel(en.settings.consoles.location.to, { exact: true }).selectOption({ label: "Disco B" });
-  await expectNoRawKeys();
   await loc.getByRole("button", { name: en.settings.consoles.location.confirm, exact: true }).click();
   await expect(loc.getByText(en.settings.consoles.location.queued)).toBeVisible();
   const { existsSync } = await import("node:fs");
   await expect.poll(() => existsSync(join(b, "Switch", "Zelda", "juego.nsp")), { timeout: 15_000 }).toBe(true);
   await expect.poll(() => existsSync(join(a, "Switch")), { timeout: 15_000 }).toBe(false);
-  // Se limpian la tarea y las bibliotecas para no dejar estado a las demás pruebas (quitar no borra archivos).
+  // Se limpian la tarea y las ubicaciones para no dejar estado a las demás pruebas (quitar no borra archivos).
   await page.getByRole("button", { name: en.topBar.tasks }).click();
   await page.getByRole("dialog", { name: en.topBar.tasksPanel }).getByRole("button", { name: en.tasks.clear }).click();
   await expect(page.getByText(en.topBar.noTasksTitle)).toBeVisible();
   await page.keyboard.press("Escape");
-  await page.goto(`${base()}/settings/?s=libraries`);
+  await page.goto(`${base()}/settings/?s=storage`);
   for (const name of ["Disco A", "Disco B"]) {
-    const r = page.locator("section.panel", { hasText: name });
+    const r = page.locator(".location-row", { hasText: name });
     await r.getByRole("button", { name: en.libraries.remove, exact: true }).click();
     await r.getByRole("button", { name: en.libraries.removeConfirm }).click();
     await expect(r).toHaveCount(0);
   }
+});
+
+test("Herramientas: pestañas por tipo y Sistema lleva a Almacenamiento (#154)", async () => {
+  await page.goto(`${base()}/tools/`);
+  for (const k of ["emulator", "port", "complement", "system"] as const) await expect(page.getByRole("tab", { name: en.tools.kind[k] })).toBeVisible();
+  await expect(page.getByRole("tab", { name: en.tools.kind.emulator })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("tab", { name: en.tools.kind.system }).click();
+  await expect(page).toHaveURL(/k=system/);
+  await expect(page.getByText(en.tools.systemHelp)).toBeVisible();
+  await expectNoRawKeys();
+  await expectTextFits();
+  await page.getByRole("link", { name: en.tools.openStorage }).click();
+  await expect(page.getByRole("tab", { name: en.settings.storage })).toHaveAttribute("aria-selected", "true");
 });
 
 test("el panel de tareas y la búsqueda están traducidos", async () => {
@@ -763,28 +795,28 @@ test("los cambios se ven al tocar y, si el guardado falla, vuelven y avisan", as
   await page.unroute("**/api/sagas/1");
 });
 
-test("las pestañas nunca tienen barra: en una ventana angosta, lo que no cabe va a «Más ▾»", async () => {
-  // #108: a ningún ancho hay barra ni segunda línea; la elegida siempre se ve.
+test("Ajustes con lista y detalle: en una ventana angosta la lista pasa arriba, sin barra (#196)", async () => {
+  // Nunca barra horizontal: la lista se acomoda en filas sobre el detalle; la elegida siempre se ve.
   const noScroll = async () => {
-    const row = page.locator('.content [role="tablist"]');
-    const { scroll, client, height } = await row.evaluate((e) => ({ scroll: e.scrollWidth, client: e.clientWidth, height: e.getBoundingClientRect().height }));
+    const nav = page.locator('.content [role="tablist"]');
+    const { scroll, client } = await nav.evaluate((e) => ({ scroll: e.scrollWidth, client: e.clientWidth }));
     expect(scroll).toBeLessThanOrEqual(client);
-    expect(height).toBeLessThan(50); // una sola línea
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   };
   await page.setViewportSize({ width: 520, height: 900 });
   await page.goto(`${base()}/settings/?s=claude`);
-  const more = page.getByRole("button", { name: new RegExp(es.tabs.more) });
-  await expect(more).toBeVisible();
   await expect(page.locator("#tab-claude")).toHaveAttribute("aria-selected", "true");
-  await noScroll();
-  await more.click();
-  await page.getByRole("menuitem").last().click();
-  await expect(page.locator('#settings-panel')).toBeVisible();
+  await expect(page.getByRole("tab")).toHaveCount(6);
+  const nav = (await page.locator('.content [role="tablist"]').boundingBox())!;
+  const panel = (await page.locator("#settings-panel").boundingBox())!;
+  expect(panel.y).toBeGreaterThanOrEqual(nav.y + nav.height); // la lista arriba, el detalle abajo
   await noScroll();
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${base()}/settings/`);
-  await expect(more).toHaveCount(0);
-  await expect(page.getByRole("tab")).toHaveCount(6);
+  const wide = (await page.locator('.content [role="tablist"]').boundingBox())!;
+  const detail = (await page.locator("#settings-panel").boundingBox())!;
+  expect(detail.x).toBeGreaterThan(wide.x + wide.width); // al lado, una sola columna de contenido
+  expect(detail.width).toBeLessThanOrEqual(761);
   await noScroll();
 });
 
@@ -821,15 +853,15 @@ test("Ajustes: consolas habilitadas, al día y reevaluar icónicas", async () =>
   await page.screenshot({ path: "e2e-results/18-claude-es.png", fullPage: true });
 });
 
-test("Ajustes en dos columnas con espacio, y el menú se retrae, se recuerda y se expande", async () => {
-  // #130: con 1920 px los bloques de Claude van en dos columnas; con ~900 px, en una.
+test("Ajustes en una sola columna a cualquier ancho, y el menú se retrae, se recuerda y se expande", async () => {
+  // #196 (reemplaza a #130): los bloques van en una sola columna, también con 1920 px.
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto(`${base()}/settings/?s=claude`);
   const blocks = page.locator("#settings-panel .settings-blocks > .panel");
   await expect(blocks).toHaveCount(3);
   const columns = async () => new Set(await Promise.all([0, 1, 2].map(async (i) => Math.round((await blocks.nth(i).boundingBox())!.x)))).size;
-  expect(await columns()).toBe(2);
-  await page.screenshot({ path: "e2e-results/19-claude-dos-columnas-es.png", fullPage: true });
+  expect(await columns()).toBe(1);
+  await page.screenshot({ path: "e2e-results/19-claude-una-columna-es.png", fullPage: true });
   await page.setViewportSize({ width: 900, height: 900 });
   expect(await columns()).toBe(1);
   await page.setViewportSize({ width: 1440, height: 900 });

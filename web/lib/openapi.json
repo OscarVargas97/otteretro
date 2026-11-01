@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:59606/"
+      "url": "http://127.0.0.1:58659/"
     }
   ],
   "paths": {
@@ -2405,7 +2405,7 @@
         }
       }
     },
-    "/api/libraries": {
+    "/api/locations": {
       "get": {
         "tags": [
           "Otteretro"
@@ -2487,7 +2487,7 @@
         }
       }
     },
-    "/api/libraries/adopt": {
+    "/api/locations/adopt": {
       "post": {
         "tags": [
           "Otteretro"
@@ -2536,7 +2536,7 @@
         }
       }
     },
-    "/api/libraries/{id}/migrate": {
+    "/api/locations/{id}/migrate": {
       "post": {
         "tags": [
           "Otteretro"
@@ -2583,7 +2583,7 @@
         }
       }
     },
-    "/api/libraries/{id}": {
+    "/api/locations/{id}": {
       "put": {
         "tags": [
           "Otteretro"
@@ -2688,7 +2688,7 @@
         }
       }
     },
-    "/api/libraries/{id}/reconnect": {
+    "/api/locations/{id}/reconnect": {
       "post": {
         "tags": [
           "Otteretro"
@@ -2753,7 +2753,7 @@
         }
       }
     },
-    "/api/libraries/{id}/move": {
+    "/api/locations/{id}/move": {
       "post": {
         "tags": [
           "Otteretro"
@@ -2820,7 +2820,7 @@
         }
       }
     },
-    "/api/libraries/{id}/move-folder": {
+    "/api/locations/{id}/move-folder": {
       "post": {
         "tags": [
           "Otteretro"
@@ -2887,7 +2887,7 @@
         }
       }
     },
-    "/api/libraries/detect": {
+    "/api/locations/detect": {
       "get": {
         "tags": [
           "Otteretro"
@@ -2919,10 +2919,20 @@
         }
       }
     },
-    "/api/libraries/consoles": {
+    "/api/consoles/{id}/detail": {
       "get": {
         "tags": [
           "Otteretro"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -2930,13 +2940,75 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ConsoleFolder"
-                  }
+                  "$ref": "#/components/schemas/ConsoleDetail"
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/consoles/{id}/destination": {
+      "put": {
+        "tags": [
+          "Otteretro"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DestinationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsoleDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "409": {
             "description": "Conflict",
@@ -2969,6 +3041,63 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tools/move": {
+      "post": {
+        "tags": [
+          "Otteretro"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveToolRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "pattern": "^-?(?:0|[1-9]\\d*)$",
+                  "type": [
+                    "integer",
+                    "string"
+                  ],
+                  "format": "int64"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "409": {
             "description": "Conflict",
@@ -3643,6 +3772,63 @@
           }
         }
       },
+      "ConsoleDetail": {
+        "required": [
+          "id",
+          "name",
+          "destination",
+          "games",
+          "system",
+          "emulators",
+          "ports",
+          "complements"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "destination": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "games": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsoleFolder"
+            }
+          },
+          "system": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsoleFolder"
+            }
+          },
+          "emulators": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ToolInfo"
+            }
+          },
+          "ports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ToolInfo"
+            }
+          },
+          "complements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ToolInfo"
+            }
+          }
+        }
+      },
       "ConsoleFolder": {
         "required": [
           "console",
@@ -3871,6 +4057,20 @@
             ]
           },
           "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "DestinationRequest": {
+        "required": [
+          "locationId"
+        ],
+        "type": "object",
+        "properties": {
+          "locationId": {
             "type": [
               "null",
               "string"
@@ -4388,7 +4588,8 @@
           "connected",
           "free",
           "total",
-          "legacy"
+          "legacy",
+          "type"
         ],
         "type": "object",
         "properties": {
@@ -4427,6 +4628,9 @@
           },
           "legacy": {
             "type": "boolean"
+          },
+          "type": {
+            "type": "string"
           }
         }
       },
@@ -4444,6 +4648,10 @@
               "null",
               "string"
             ]
+          },
+          "type": {
+            "type": "string",
+            "default": "game"
           }
         }
       },
@@ -4539,6 +4747,23 @@
               {
                 "$ref": "#/components/schemas/ApiError"
               }
+            ]
+          }
+        }
+      },
+      "MoveToolRequest": {
+        "required": [
+          "path"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "toLocation": {
+            "type": [
+              "null",
+              "string"
             ]
           }
         }
@@ -5351,6 +5576,18 @@
             "type": "string"
           },
           "recipeId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "game": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "locationId": {
             "type": [
               "null",
               "string"

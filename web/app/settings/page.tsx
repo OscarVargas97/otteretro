@@ -8,36 +8,40 @@ import { ConsoleSettings } from "@/components/ConsoleSettings";
 import { CredentialsSettings } from "@/components/Credentials";
 import { DataFolderSettings } from "@/components/DataFolder";
 import { LanguagePicker } from "@/components/LanguagePicker";
-import { LibrariesSettings } from "@/components/Libraries";
+import { StorageSettings } from "@/components/Libraries";
 import { useAppState } from "@/components/Shell";
-import { Tabs } from "@/components/Tabs";
+import { SideNav } from "@/components/SideNav";
 import { UpdateChannel, VersionAndUpdate } from "@/components/Update";
 
-/** Las pestañas de Ajustes, en orden (#97, #111). La que viene en `?s=` se abre; sin ella, la primera. */
-const SECTIONS = ["dataFolder", "libraries", "credentials", "consoles", "claude", "general"] as const;
-/** Las pestañas de antes llevan a General (#111). */
-const OLD: Record<string, Section> = { language: "general", about: "general" };
-type Section = (typeof SECTIONS)[number];
+/** Las secciones de Ajustes en grupos, en orden (#97, #111, #196). La que viene en `?s=` se abre; sin ella, Carpeta de datos. */
+const GROUPS = [
+  { id: "library", items: ["storage", "consoles"] },
+  { id: "accounts", items: ["credentials", "claude"] },
+  { id: "app", items: ["dataFolder", "general"] },
+] as const;
+type Section = (typeof GROUPS)[number]["items"][number];
+const SECTIONS: readonly Section[] = GROUPS.flatMap((g) => g.items);
+/** Las secciones de antes (#111, #199). */
+const OLD: Record<string, Section> = { language: "general", about: "general", libraries: "storage" };
 
 export default function Settings() {
-  return <Suspense><SettingsTabs /></Suspense>;
+  return <Suspense><SettingsSections /></Suspense>;
 }
 
-function SettingsTabs() {
+function SettingsSections() {
   const t = useTranslations("settings");
   const router = useRouter();
   const asked = useSearchParams().get("s");
-  const current: Section = SECTIONS.find((s) => s === asked) ?? OLD[asked ?? ""] ?? SECTIONS[0];
+  const current: Section = SECTIONS.find((s) => s === asked) ?? OLD[asked ?? ""] ?? "dataFolder";
   const title = (s: Section) => t(s === "consoles" ? "consoles.title" : s === "claude" ? "claude.title" : s);
 
   return (
     <div className="content">
-      <Tabs tabs={SECTIONS.map((s) => ({ id: s, label: title(s) }))} current={current} label={t("sections")} panel="settings-panel"
-        onSelect={(s) => router.push(`/settings/?s=${s}`)} />
-      {/* Sin segundo título (#108): la pestaña ya lo dice. */}
-      <section className="sec" id="settings-panel" role="tabpanel" aria-labelledby={`tab-${current}`}>
+      {/* Sin segundo título (#108): la sección elegida ya lo dice. */}
+      <SideNav groups={GROUPS.map((g) => ({ label: t(`groups.${g.id}`), items: g.items.map((s) => ({ id: s, label: title(s) })) }))}
+        current={current} label={t("sections")} panel="settings-panel" onSelect={(s) => router.push(`/settings/?s=${s}`)}>
         <Panel section={current} />
-      </section>
+      </SideNav>
     </div>
   );
 }
@@ -47,7 +51,7 @@ function Panel({ section }: { section: Section }) {
   const { data } = useAppState();
   switch (section) {
     case "dataFolder": return <DataFolderSettings />;
-    case "libraries": return <LibrariesSettings />;
+    case "storage": return <StorageSettings />;
     case "credentials": return <CredentialsSettings />;
     case "consoles": return <ConsoleSettings />;
     case "claude": return <ClaudeSettings />;

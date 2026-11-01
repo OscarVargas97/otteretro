@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-11-01, con la #186 a la #189 (plan reorganizado desde la F3, adoptar migra a §5.1, Dusklight con su enlace y avisos de versiones nuevas), la #184 y la #185 (Ajustes en dos columnas y menú lateral retraíble), la #183 (`0.FASE.extra`: F2.5 es 0.2.1 y el plan completo, 1.0.0), la #179 a la #182 (versión por fase, canales de actualización, `main` por defecto y la primera release 0.2.0), la #178 (la imagen de cada saga), la #169 a la #177 (revisión de UI de toda la app y fluidez primero, encuesta 15), la #165 a la #168 (exclusivas, más reconocidas, catálogo separado de tus datos), la #162, la #163 y la #164 (consolas que habilitas tú, catálogo al día cada semana y reevaluar icónicas), la #161 (corregir lo que cambió Claude), la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
+> **Última actualización:** 2026-11-01, con la #192 a la #199 (encuesta 16: la consola como centro, Almacenamiento por tipo con ubicaciones, Herramientas como inventario y Ajustes con lista y detalle), la #186 a la #189 (plan reorganizado desde la F3, adoptar migra a §5.1, Dusklight con su enlace y avisos de versiones nuevas), la #184 y la #185 (Ajustes en dos columnas y menú lateral retraíble), la #183 (`0.FASE.extra`: F2.5 es 0.2.1 y el plan completo, 1.0.0), la #179 a la #182 (versión por fase, canales de actualización, `main` por defecto y la primera release 0.2.0), la #178 (la imagen de cada saga), la #169 a la #177 (revisión de UI de toda la app y fluidez primero, encuesta 15), la #165 a la #168 (exclusivas, más reconocidas, catálogo separado de tus datos), la #162, la #163 y la #164 (consolas que habilitas tú, catálogo al día cada semana y reevaluar icónicas), la #161 (corregir lo que cambió Claude), la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
 
 ## Cómo se mantiene
 
@@ -78,7 +78,9 @@ Otteretro es una app **personal** para:
 
 **Fuera: 48 sistemas.** Game & Watch, FDS, Satellaview, Pokémon Mini y todo lo de Sega, NEC, SNK, Atari, otras marcas, arcade y computadoras retro. Detalle en [historial/v1-por-tema/consolas.md](historial/v1-por-tema/consolas.md).
 
-## 5. Bibliotecas
+## 5. Almacenamiento y ubicaciones
+
+> **Encuesta 16 (#192 a #199):** cada tipo de cosa (juegos, emuladores, ports, complementos y sistema) tiene **una o varias ubicaciones**, en cualquier disco o en la red, y se configuran en **Ajustes › Almacenamiento**, un apartado por tipo. Lo que este capítulo llama «biblioteca» es una **ubicación de juegos**; las de los demás tipos funcionan igual (marcador, espacio libre, reconexión, mover). La consola muestra dónde quedó cada cosa y en qué ubicación caen sus juegos nuevos (#195). Hasta que se implemente, vale el diagrama de abajo con una sola `Herramientas\` en la carpeta de datos.
 
 ### 5.1 Tipos ✅
 
@@ -105,8 +107,8 @@ E:\Consolas\  ·  D:\Juegos\…    ← bibliotecas de JUEGOS (las que quieras, e
 
 | Tipo | Cuántas | Dónde |
 |---|---|---|
-| **Herramientas** | **Una sola** | Dentro de la **carpeta de datos** que eliges (supuesto S7). Se puede mover desde la app, igual que una biblioteca. |
-| **Juegos** | Las que quieras | En cualquier carpeta o disco |
+| **Herramientas** | ~~Una sola~~ → **una o varias por tipo** (#198) | ~~Dentro de la carpeta de datos (S7)~~ → en las ubicaciones de Emuladores, Ports, Complementos y Sistema que elijas; la primera, en la carpeta de datos |
+| **Juegos** | Las que quieras | En cualquier carpeta o disco; cada consola elige la suya para lo nuevo (#195) |
 
 - **En red** (#136): una biblioteca puede estar en una carpeta de red (SMB/NFS), pensando en el NAS con todas las ROMs (#115). En la ficha, **«traer a este equipo»** copia el juego por la red y lo verifica por hash.
 
@@ -443,7 +445,7 @@ Así, cada tarea que Claude resolvía pasa a un script y la app depende cada vez
 - **Inicio y Sagas:** «Siguiente en tus rutas» como tarjeta con avance; Revisar solo si hay algo; filtros fijos con el total; tarjeta de saga con insignias y barra de lo que tienes.
 - **Saga y Juego:** ruta con pestañas junto al título y pasos unidos; consolas abreviadas («+N»); recalcular en «⋯»; Seguimiento compacto; Versiones y Comparativa en una tabla con barras de 5; Datos y fuentes plegado con lápiz.
 - **Colección, Revisar, Ajustes y el resto:** consolas con algo, por empresa; Cuadrícula/Lista con íconos; pestañas subrayadas en toda la app; ruta por aprobar con portadas; Ajustes › Claude en tres bloques; registro de uso con costo; panel de tareas con progreso y ✕; bienvenida con la nutria; menú rápido con más accesos.
-- **Ajustes (#175, en F2):** pestañas sin barra, las que no caben en «Más ▾»; sin segundo título; paneles angostos y botones de tamaño estándar en toda la app; Consolas por empresa con interruptor; puesta al día arriba; Claude con horario en una frase y registro compacto con costo; Cuentas y claves en lista con estado en color; Carpeta de datos más clara; Idioma y Acerca de en «General». Con espacio, los bloques de Ajustes van en dos columnas (#184).
+- **Ajustes (#175, en F2):** pestañas sin barra, las que no caben en «Más ▾»; sin segundo título; paneles angostos y botones de tamaño estándar en toda la app; Consolas por empresa con interruptor; puesta al día arriba; Claude con horario en una frase y registro compacto con costo; Cuentas y claves en lista con estado en color; Carpeta de datos más clara; Idioma y Acerca de en «General». Con espacio, los bloques de Ajustes van en dos columnas (#184; **reemplazada por la #196**: lista de secciones a la izquierda y una columna, también en Herramientas, Steam y Descargas, #197).
 - **Menú lateral retraíble (#185):** su botón o Ctrl+B lo retraen a una franja de íconos y lo expanden; se recuerda al reabrir la app.
 - **Dónde va (#176):** Ajustes y fluidez en F2; el resto en «F2.5 · Pulido de UI».
 
