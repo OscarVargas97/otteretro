@@ -120,7 +120,7 @@ function FolderStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
   );
 }
 
-/** Paso 4 (§5.5): adoptar la carpeta con la estructura antigua que se encuentre, crear una nueva o saltar. */
+/** Paso 4 (§5.5, #201, #202): elegir los discos, adoptar la carpeta con la estructura antigua que se encuentre (pasa al estándar sola) o saltar. */
 function LibrariesStep() {
   const t = useTranslations("welcome");
   const describe = useDescribeError();
@@ -128,6 +128,8 @@ function LibrariesStep() {
   const cache = useQueryClient();
   const found = useQuery({ queryKey: ["libraries", "detect"], queryFn: () => request<string[]>("/api/locations/detect") });
   const [path, setPath] = useState("");
+  const drives = useQuery({ queryKey: ["drives"], queryFn: () => request<Drive[]>("/api/drives") });
+  const [added, setAdded] = useState<string[]>([]);
   const finish = () => {
     const state = cache.getQueryData<AppState>(["welcome-state"]);
     if (state) cache.setQueryData(["state"], state);
@@ -138,8 +140,8 @@ function LibrariesStep() {
     onSuccess: finish,
   });
   const create = useMutation({
-    mutationFn: (p: string) => request<LibraryInfo[]>("/api/locations", { method: "POST", body: JSON.stringify({ path: p }) }),
-    onSuccess: finish,
+    mutationFn: (d: Drive) => request<LibraryInfo[]>("/api/disks", { method: "POST", body: JSON.stringify({ path: d.folder, name: d.name.replace(/[\\/]+$/, "") || d.name }) }),
+    onSuccess: (_, d) => setAdded((a) => [...a, d.folder]),
   });
   const error = adopt.error ?? create.error;
 
@@ -155,12 +157,19 @@ function LibrariesStep() {
           ))}
         </div>
       )}
+      <div className="panel">
+        <span className="small">{t("disksText")}</span>
+        {drives.data?.map((d) => (
+          <button key={d.name} className="ot-btn" type="button" disabled={create.isPending || added.includes(d.folder)} onClick={() => create.mutate(d)}>
+            {added.includes(d.folder) ? t("diskAdded", { path: d.folder }) : t("useDisk", { path: d.folder })}
+          </button>
+        ))}
+      </div>
       <label className="small muted" htmlFor="library">{t("otherPath")}</label>
       <input id="library" value={path} onChange={(e) => setPath(e.target.value)} />
       {error && <p className="error">{describe(error)}</p>}
       <div style={{ display: "flex", gap: 8 }}>
-        <button className="ot-btn" type="button" onClick={finish}>{t("skip")}</button>
-        <button className="ot-btn" type="button" disabled={!path || create.isPending} onClick={() => create.mutate(path)}>{t("createNew")}</button>
+        <button className="ot-btn" type="button" onClick={finish}>{added.length > 0 ? t("done") : t("skip")}</button>
         <button className="ot-btn ot-btn-primary" type="button" disabled={!path || adopt.isPending} onClick={() => adopt.mutate(path)}>{t("adoptThis", { path })}</button>
       </div>
       <p className="small muted">{t("nextSteps")}</p>

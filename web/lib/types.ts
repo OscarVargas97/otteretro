@@ -50,3 +50,5 @@ export type ToolInfo = Schemas["ToolInfo"];
 export type AdoptResult = Schemas["AdoptResult"];
 export type ConsoleFolder = Schemas["ConsoleFolder"];
 export type ConsoleDetail = Schemas["ConsoleDetail"];
+export type DiskItem = Schemas["DiskItem"];
+export type MigrationPlan = Schemas["MigrationPlan"];

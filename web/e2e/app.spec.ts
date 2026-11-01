@@ -157,46 +157,70 @@ test("todas las pantallas se ven en inglés", async () => {
   }
 });
 
-test("Ajustes › Almacenamiento: un apartado por tipo; crear, ver y quitar sin borrar (#198)", async () => {
-  const folder = dataDir("juegos");
+/** Llama a la API desde la página, que tiene la clave de la sesión. */
+const api = (method: string, path: string, body?: unknown) => page.evaluate(async ([method, path, body]) => {
+  const r = await fetch(path as string, { method: method as string, body: body ? JSON.stringify(body) : undefined,
+    headers: { "Content-Type": "application/json", "X-Otteretro-Key": sessionStorage.getItem("otteretro.key") ?? "" } });
+  return { ok: r.ok, text: await r.text() };
+}, [method, path, body] as const);
+
+/** Agrega un disco por la API, con su carpeta Otteretro dentro de la carpeta de la prueba (el botón ofrece los discos reales). */
+async function addDisk(name: string) {
+  const path = join(dataDir(name), "Otteretro");
+  const r = await api("POST", "/api/disks", { path, name });
+  expect(r.ok, r.text).toBe(true);
+  return path;
+}
+
+async function removeDisks() {
+  for (const l of JSON.parse((await api("GET", "/api/locations")).text) as { id: string }[]) await api("DELETE", `/api/locations/${l.id}`);
+}
+
+test("Ajustes › Almacenamiento como Steam: discos, uso por tipo, mover lo marcado, ★ y quitar sin borrar (#161, #205)", async () => {
+  const [a, b] = [await addDisk("Disco A"), await addDisk("Disco B")];
+  const { existsSync } = await import("node:fs");
+  // Cada disco trae sus cinco carpetas.
+  for (const f of ["Juegos", "Emuladores", "Ports", "Complementos", "Sistema"]) expect(existsSync(join(a, f))).toBe(true);
+  mkdirSync(join(a, "Juegos", "Switch", "Zelda"), { recursive: true });
+  writeFileSync(join(a, "Juegos", "Switch", "Zelda", "juego.nsp"), "contenido");
   await page.goto(`${base()}/settings/?s=storage`);
-  for (const type of ["game", "emulator", "port", "complement", "system"] as const)
-    await expect(page.getByRole("heading", { level: 2, name: en.libraries.type[type].title, exact: true })).toBeVisible();
-  // Emuladores, ports y complementos empiezan con Herramientas de la carpeta de datos.
-  await expect(page.getByText(en.libraries.dataFolder, { exact: true })).toHaveCount(3);
-  const games = page.getByRole("region", { name: en.libraries.type.game.title, exact: true });
-  await expect(games.getByText(en.libraries.type.game.empty)).toBeVisible();
-  await games.getByRole("button", { name: en.libraries.create }).click();
-  await games.getByLabel(en.libraries.path).fill(folder);
-  await games.getByLabel(en.libraries.name).fill("Games drive");
-  await games.locator(".form-block").getByRole("button", { name: en.libraries.create }).click();
-  await expect(games.getByText(folder)).toBeVisible();
-  await expect(games.getByText(en.libraries.connected)).toBeVisible();
+  // El primero es el predeterminado y se abre solo.
+  await expect(page.getByRole("button", { name: /Disco A ★/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("heading", { level: 2, name: "Disco A ★" })).toBeVisible();
+  await expect(page.getByText(en.libraries.otherUse, { exact: false })).toBeVisible();
   await expectNoRawKeys();
   await expectTextFits();
+  // Marcar Zelda y moverlo al otro disco: queda en la misma ruta dentro de él.
+  await page.getByRole("checkbox", { name: /Zelda/ }).check();
+  await page.getByLabel(en.libraries.moveTo.replace(/\{count.*\}\}/, "1 item"), { exact: true }).selectOption({ label: "Disco B" });
+  await page.locator(".panel").getByRole("button", { name: en.libraries.move, exact: true }).click();
+  await expect(page.getByText(en.libraries.queued)).toBeVisible();
+  await expect.poll(() => existsSync(join(b, "Juegos", "Switch", "Zelda", "juego.nsp")), { timeout: 15_000 }).toBe(true);
+  // B pasa a ser el predeterminado.
+  await page.getByRole("button", { name: /^Disco B/ }).click();
+  await page.getByRole("button", { name: en.libraries.makeDefault }).click();
+  await expect(page.getByRole("button", { name: /Disco B ★/ })).toBeVisible();
   // Quitar avisa que no borra nada; el marcador sigue en la carpeta.
-  await games.getByRole("button", { name: en.libraries.remove, exact: true }).click();
-  await expect(games.getByText(en.libraries.removeHelp.replace("{name}", "Games drive"))).toBeVisible();
-  await games.getByRole("button", { name: en.libraries.removeConfirm }).click();
-  await expect(games.getByText(en.libraries.type.game.empty)).toBeVisible();
-  const { existsSync } = await import("node:fs");
-  expect(existsSync(join(folder, "otteretro-ubicacion.json"))).toBe(true);
+  await page.getByRole("button", { name: en.libraries.remove, exact: true }).click();
+  await expect(page.getByText(en.libraries.removeHelp.replace("{name}", "Disco B"))).toBeVisible();
+  await page.getByRole("button", { name: en.libraries.removeConfirm }).click();
+  await expect(page.getByRole("button", { name: /^Disco B/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Disco A ★/ })).toBeVisible();
+  expect(existsSync(join(b, "otteretro-ubicacion.json"))).toBe(true);
+  // «Agregar disco» ofrece las unidades (sin tocarlas).
+  await page.getByRole("button", { name: en.libraries.addDisk }).click();
+  await expect(page.getByText(en.libraries.addDiskHelp)).toBeVisible();
+  await page.getByRole("button", { name: en.libraries.addDisk }).click();
+  await page.getByRole("button", { name: en.topBar.tasks }).click();
+  await page.getByRole("dialog", { name: en.topBar.tasksPanel }).getByRole("button", { name: en.tasks.clear }).click();
+  await page.keyboard.press("Escape");
+  await removeDisks();
 });
 
 test("Ajustes › Consolas: el detalle de una consola, su destino y mover sus juegos (#192, #195)", async () => {
-  const [a, b] = [dataDir("disco-a"), dataDir("disco-b")];
-  mkdirSync(join(a, "Switch", "Zelda"), { recursive: true });
-  writeFileSync(join(a, "Switch", "Zelda", "juego.nsp"), "contenido");
-  mkdirSync(b, { recursive: true });
-  await page.goto(`${base()}/settings/?s=storage`);
-  const games = page.getByRole("region", { name: en.libraries.type.game.title, exact: true });
-  for (const [folder, name] of [[a, "Disco A"], [b, "Disco B"]]) {
-    await games.getByRole("button", { name: en.libraries.create }).click();
-    await games.getByLabel(en.libraries.path).fill(folder);
-    await games.getByLabel(en.libraries.name).fill(name);
-    await games.locator(".form-block").getByRole("button", { name: en.libraries.create }).click();
-    await expect(games.getByText(folder, { exact: true })).toBeVisible();
-  }
+  const [a, b] = [await addDisk("Disco C"), await addDisk("Disco D")];
+  mkdirSync(join(a, "Juegos", "Switch", "Zelda"), { recursive: true });
+  writeFileSync(join(a, "Juegos", "Switch", "Zelda", "juego.nsp"), "contenido");
   // Lista a la izquierda; al elegir Switch, su detalle dice dónde están sus juegos y qué le falta.
   await page.goto(`${base()}/settings/?s=consoles`);
   await expect(page.getByText(en.settings.consoles.detail.pick)).toBeVisible();
@@ -208,31 +232,25 @@ test("Ajustes › Consolas: el detalle de una consola, su destino y mover sus ju
   await expectNoRawKeys();
   await expectTextFits();
   // El destino de los juegos nuevos se guarda.
-  await detail.getByLabel(en.settings.consoles.detail.destination).selectOption({ label: "Disco B" });
+  await detail.getByLabel(en.settings.consoles.detail.destination).selectOption({ label: "Disco D" });
   await page.reload();
   await expect.poll(() => page.locator(".console-detail").getByLabel(en.settings.consoles.detail.destination)
-    .evaluate((s) => (s as HTMLSelectElement).selectedOptions[0].text)).toBe("Disco B");
-  // #190: mover los juegos de la consola a otra ubicación.
-  const loc = page.locator(".console-location", { hasText: en.settings.consoles.location.in.replace("{library}", "Disco A") });
+    .evaluate((s) => (s as HTMLSelectElement).selectedOptions[0].text)).toBe("Disco D");
+  // #190: mover los juegos de la consola a otro disco.
+  const loc = page.locator(".console-location", { hasText: en.settings.consoles.location.in.replace("{library}", "Disco C") });
   await loc.getByRole("button", { name: en.settings.consoles.location.move }).click();
-  await loc.getByLabel(en.settings.consoles.location.to, { exact: true }).selectOption({ label: "Disco B" });
+  await loc.getByLabel(en.settings.consoles.location.to, { exact: true }).selectOption({ label: "Disco D" });
   await loc.getByRole("button", { name: en.settings.consoles.location.confirm, exact: true }).click();
   await expect(loc.getByText(en.settings.consoles.location.queued)).toBeVisible();
   const { existsSync } = await import("node:fs");
-  await expect.poll(() => existsSync(join(b, "Switch", "Zelda", "juego.nsp")), { timeout: 15_000 }).toBe(true);
-  await expect.poll(() => existsSync(join(a, "Switch")), { timeout: 15_000 }).toBe(false);
-  // Se limpian la tarea y las ubicaciones para no dejar estado a las demás pruebas (quitar no borra archivos).
+  await expect.poll(() => existsSync(join(b, "Juegos", "Switch", "Zelda", "juego.nsp")), { timeout: 15_000 }).toBe(true);
+  await expect.poll(() => existsSync(join(a, "Juegos", "Switch")), { timeout: 15_000 }).toBe(false);
+  // Se limpian la tarea y los discos para no dejar estado a las demás pruebas (quitar no borra archivos).
   await page.getByRole("button", { name: en.topBar.tasks }).click();
   await page.getByRole("dialog", { name: en.topBar.tasksPanel }).getByRole("button", { name: en.tasks.clear }).click();
   await expect(page.getByText(en.topBar.noTasksTitle)).toBeVisible();
   await page.keyboard.press("Escape");
-  await page.goto(`${base()}/settings/?s=storage`);
-  for (const name of ["Disco A", "Disco B"]) {
-    const r = page.locator(".location-row", { hasText: name });
-    await r.getByRole("button", { name: en.libraries.remove, exact: true }).click();
-    await r.getByRole("button", { name: en.libraries.removeConfirm }).click();
-    await expect(r).toHaveCount(0);
-  }
+  await removeDisks();
 });
 
 test("Herramientas: pestañas por tipo y Sistema lleva a Almacenamiento (#154)", async () => {
