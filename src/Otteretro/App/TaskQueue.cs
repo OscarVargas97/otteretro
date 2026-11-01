@@ -59,6 +59,14 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
     public static bool AutoClaude { get; set; } = Environment.GetEnvironmentVariable("OTTERETRO_E2E") is null;
 
     /// <summary>
+    /// Lo que pasa solo con la app abierta (#219, #223): al abrirla, pasar lo de antes al estándar o escanear, y vigilar `Juegos\`
+    /// de cada disco. Las pruebas lo apagan, como <see cref="AutoClaude"/>, y lo prueban por separado.
+    /// </summary>
+    public static bool OnOpen { get; set; } = true;
+
+    readonly Libraries.GamesWatcher games = new();
+
+    /// <summary>
     /// Espera antes de cada reintento de un error pasajero (#59): se corta la red, vence el tiempo, o la fuente responde 429 o 5xx.
     /// La tarea vuelve a la cola con su punto de control; pasados estos intentos sin avanzar, queda en error.
     /// </summary>
@@ -185,9 +193,10 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
                     {
                         using (var c = db.Open()) c.Execute("UPDATE task SET status = 'queued' WHERE status = 'running'");
                         recovered = db.FilePath;
-                        // Al abrir la app, lo de antes pasa solo al estándar (#219).
-                        if (Libraries.DiskTasks.MigrateOnOpen) Libraries.DiskTasks.EnqueueMigrateIfPending(db);
+                        // Al abrir la app, lo de antes pasa solo al estándar (#219), que al terminar escanea; si no, se escanea ya (#223).
+                        if (OnOpen && Libraries.DiskTasks.EnqueueMigrateIfPending(db) is null) Libraries.Scan.Enqueue(db);
                     }
+                    if (OnOpen) games.Tick(db);
                     if (AutoClaude) Claude.ClaudeBudget.AutoStart(db);
                     StartPending(db, ct);
                 }

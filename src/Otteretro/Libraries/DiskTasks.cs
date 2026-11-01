@@ -34,9 +34,6 @@ public static class DiskTasks
 
     public static long EnqueueMigrate(Database db) => TaskQueue.Enqueue(db, Migrate);
 
-    /// <summary>Corre solo al abrir la app (#219). Las pruebas lo apagan, como <c>TaskQueue.AutoClaude</c>.</summary>
-    public static bool MigrateOnOpen { get; set; } = true;
-
     /// <summary>
     /// Al abrir la app (#219): si quedan carpetas de antes o cosas en `Herramientas` de la carpeta de datos, se encola «Pasar al
     /// estándar», salvo que ya esté en la cola. Devuelve la tarea, o null si no había nada que pasar.

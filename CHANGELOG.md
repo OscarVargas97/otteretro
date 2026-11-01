@@ -12,6 +12,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **Claude identifica lo que el escaneo no reconoce** (#180): al terminar un escaneo, lo que no salió por nombre, TitleID, hash ni alias va a Claude por lotes (respetando su horario y tus límites). Lo que nombra queda asignado y en Revisar como dudoso, y su nombre se aprende como alias para el próximo escaneo; si tampoco sabe, queda en Sin identificar e Inicio te avisa. Lo que ya preguntó no se vuelve a preguntar.
 - **Revisar › Dudosas y Sin identificar** (#181): cada archivo con lo que propuso Claude. Confirmas o cambias el juego, o lo eliges con el buscador si nadie lo reconoció; tu elección queda como alias y el próximo escaneo ya lo reconoce. En Switch, lo que decides para el juego vale para sus actualizaciones y DLC. Los alias aparecen en Aprendizajes y se pueden deshacer.
 - **Juegos de PC sueltos** (#182): cada carpeta de `Juegos\PC` con un ejecutable cuenta como «lo tengo» de la versión de PC. Otteretro elige solo el ejecutable principal (el más grande, sin instaladores ni redistribuibles; si todos lo parecen, el más grande igual) y en la ficha puedes elegir otro.
+- **Colección se entera sola** (#189): al abrir la app se escanea, y mientras está abierta, si copias o borras un juego a mano en `Juegos\` de un disco, a los pocos segundos ya aparece (o desaparece) sin pulsar «Escanear».
 - La ficha de un juego muestra **dónde tienes sus archivos**, con BASE, UPD y DLC, tamaño y si están verificados.
 
 ### Cambios

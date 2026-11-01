@@ -115,6 +115,36 @@ public class ScanTests
         Assert.Equal("pokemon edicion amarilla", Scan.Normalize("Pokémon: Edición Amarilla"));
     }
 
+    /// <summary>#223: con la app abierta, copiar un juego a `Juegos\` a mano lo escanea solo, sin pulsar «Escanear».</summary>
+    [Fact]
+    public async Task CopyingAGameIsScannedWithoutPressingScan()
+    {
+        await using var f = new Fixture();
+        Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
+        using (var c = f.Db.Open())
+            c.Execute("INSERT INTO game (id, name_es) VALUES (8, 'The Legend of Zelda: Twilight Princess'); INSERT INTO version (id, game_id, platform) VALUES (18, 8, 'gc');");
+        Directory.CreateDirectory(f.Tmp[@"e\Otteretro\Juegos\GameCube"]);
+        var quiet = GamesWatcher.Quiet;
+        GamesWatcher.Quiet = TimeSpan.FromMilliseconds(200);
+        try
+        {
+            using var watcher = new GamesWatcher();
+            Assert.Null(watcher.Tick(f.Db)); // empieza a vigilar; todavía nada cambió
+            File.WriteAllText(f.Tmp[@"e\Otteretro\Juegos\GameCube\The Legend of Zelda Twilight Princess.iso"], "x");
+            long? task = null;
+            for (var i = 0; i < 50 && task is null; i++)
+            {
+                await Task.Delay(100);
+                task = watcher.Tick(f.Db);
+            }
+            Assert.NotNull(task);
+            Assert.Equal("done", (await f.Run(task!.Value)).Status);
+        }
+        finally { GamesWatcher.Quiet = quiet; }
+        using var c2 = f.Db.Open();
+        Assert.Equal(18, c2.ExecuteScalar<long>("SELECT version_id FROM source"));
+    }
+
     /// <summary>#182: cada carpeta de `Juegos\PC` con un .exe es un juego de PC, con su ejecutable principal, que se puede cambiar.</summary>
     [Fact]
     public async Task LoosePcGamesCountAsOwned()
