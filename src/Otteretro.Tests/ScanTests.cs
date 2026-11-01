@@ -129,21 +129,23 @@ public class ScanTests
         Write(Path.Combine(pc, @"Hollow Knight\_CommonRedist\vc_redist.x64.exe"), new byte[9000]);
         Write(Path.Combine(pc, @"Hollow Knight\tools\mapa.exe"), new byte[100]);
         Write(Path.Combine(pc, @"Notas\léeme.txt")); // sin .exe: no es un juego
+        Write(Path.Combine(pc, @"Dispatch\Dispatch.exe"), new byte[10]); // «patch» en el nombre, pero es el único: es el juego
 
         Assert.Equal("done", (await f.Run(Scan.Enqueue(f.Db))).Status);
         using var c2 = f.Db.Open();
-        var row = c2.QuerySingle<(string Path, long? Version, string Exe, long Size)>("SELECT relative_path, version_id, executable, size FROM source");
+        var row = c2.QuerySingle<(string Path, long? Version, string Exe, long Size)>("SELECT relative_path, version_id, executable, size FROM source WHERE relative_path LIKE '%Hollow%'");
         Assert.Equal((@"Juegos\PC\Hollow Knight", (long?)31, "hollow_knight.exe", 17100L), row);
+        Assert.Equal("Dispatch.exe", c2.ExecuteScalar<string>("SELECT executable FROM source WHERE relative_path LIKE '%Dispatch'"));
         var file = Otteretro.Catalog.CatalogQueries.Game(f.Db, 30)!.Versions.Single().Files.Single();
         Assert.Equal(4, file.Executables!.Count);
 
         // Lo que elegiste se queda al volver a escanear, mientras exista.
-        c2.Execute(@"UPDATE source SET executable = 'tools\mapa.exe'");
+        c2.Execute(@"UPDATE source SET executable = 'tools\mapa.exe' WHERE relative_path LIKE '%Hollow%'");
         Assert.Equal("done", (await f.Run(Scan.Enqueue(f.Db))).Status);
-        Assert.Equal(@"tools\mapa.exe", c2.ExecuteScalar<string>("SELECT executable FROM source"));
+        Assert.Equal(@"tools\mapa.exe", c2.ExecuteScalar<string>("SELECT executable FROM source WHERE relative_path LIKE '%Hollow%'"));
         File.Delete(Path.Combine(pc, @"Hollow Knight\tools\mapa.exe"));
         Assert.Equal("done", (await f.Run(Scan.Enqueue(f.Db))).Status);
-        Assert.Equal("hollow_knight.exe", c2.ExecuteScalar<string>("SELECT executable FROM source"));
+        Assert.Equal("hollow_knight.exe", c2.ExecuteScalar<string>("SELECT executable FROM source WHERE relative_path LIKE '%Hollow%'"));
     }
 
     /// <summary>IEEE 1619, vector 1 (keys en cero, sector 0): el descifrado XTS da ceros.</summary>

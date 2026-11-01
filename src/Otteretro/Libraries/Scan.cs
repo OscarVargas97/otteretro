@@ -56,27 +56,27 @@ public static partial class Scan
             // PC (#182): cada carpeta de `Juegos\PC` es un juego, con su ejecutable.
             var found = console == "pc" ? PcGames(libraryId, root, relative, ct) : [];
             if (console != "pc")
-            foreach (var file in Directory.EnumerateFiles(Path.Combine(root, relative), "*", new EnumerationOptions { RecurseSubdirectories = true }))
-            {
-                ct.ThrowIfCancellationRequested();
-                if (!GameExtensions.Contains(Path.GetExtension(file))) continue;
-                var name = Path.GetFileNameWithoutExtension(file);
-                var parent = Path.GetDirectoryName(file)!;
-                var folder = Library.Same(parent, Path.Combine(root, relative)) ? null : Path.GetFileName(parent);
-                string? titleId = null, component = null;
-                if (console == "switch")
+                foreach (var file in Directory.EnumerateFiles(Path.Combine(root, relative), "*", new EnumerationOptions { RecurseSubdirectories = true }))
                 {
-                    titleId = TitleIdInName().Match(name) is { Success: true } m ? m.Groups[1].Value.ToUpperInvariant() : null;
-                    if (titleId is null)
+                    ct.ThrowIfCancellationRequested();
+                    if (!GameExtensions.Contains(Path.GetExtension(file))) continue;
+                    var name = Path.GetFileNameWithoutExtension(file);
+                    var parent = Path.GetDirectoryName(file)!;
+                    var folder = Library.Same(parent, Path.Combine(root, relative)) ? null : Path.GetFileName(parent);
+                    string? titleId = null, component = null;
+                    if (console == "switch")
                     {
-                        if (!keysRead) (keys, keysRead) = (SwitchTitle.HeaderKey(SystemFolders(run.Db, libraries.Values)), true);
-                        titleId = SwitchTitle.Read(file, keys);
+                        titleId = TitleIdInName().Match(name) is { Success: true } m ? m.Groups[1].Value.ToUpperInvariant() : null;
+                        if (titleId is null)
+                        {
+                            if (!keysRead) (keys, keysRead) = (SwitchTitle.HeaderKey(SystemFolders(run.Db, libraries.Values)), true);
+                            titleId = SwitchTitle.Read(file, keys);
+                        }
+                        component = titleId is null ? null : ComponentOf(titleId);
                     }
-                    component = titleId is null ? null : ComponentOf(titleId);
+                    else titleId = Serial(file);
+                    found.Add(new(libraryId, Path.GetRelativePath(root, file), console, new FileInfo(file).Length, component, titleId, name, folder));
                 }
-                else titleId = Serial(file);
-                found.Add(new(libraryId, Path.GetRelativePath(root, file), console, new FileInfo(file).Length, component, titleId, name, folder));
-            }
 
             // Cada archivo con su versión: por nombre, o por el TitleID base (UPD y DLC van con su BASE).
             var versions = catalog.GetValueOrDefault(console) ?? [];
@@ -114,7 +114,13 @@ public static partial class Scan
                         version_id = coalesce(source.version_id, excluded.version_id), executable = excluded.executable
                     """, new
                 {
-                    f.LibraryId, f.Relative, f.Console, f.Size, f.Component, f.TitleId, version,
+                    f.LibraryId,
+                    f.Relative,
+                    f.Console,
+                    f.Size,
+                    f.Component,
+                    f.TitleId,
+                    version,
                     executable = chosen.TryGetValue(f.Relative, out var exe) && File.Exists(Path.Combine(root, f.Relative, exe)) ? exe : f.Executable,
                 }, t);
             }
@@ -146,10 +152,16 @@ public static partial class Scan
         return list;
     }
 
-    /// <summary>El .exe más grande fuera de instaladores, desinstaladores y redistribuibles; null si no hay ninguno.</summary>
-    public static string? MainExecutable(string folder, IEnumerable<FileInfo> files) =>
-        files.Where(f => f.Extension.Equals(".exe", StringComparison.OrdinalIgnoreCase) && !NotTheGame().IsMatch(Path.GetRelativePath(folder, f.FullName)))
-            .OrderByDescending(f => f.Length).Select(f => Path.GetRelativePath(folder, f.FullName)).FirstOrDefault();
+    /// <summary>
+    /// El .exe más grande fuera de instaladores, desinstaladores y redistribuibles; si todos lo parecen (un juego que se llama
+    /// «Dispatch»), el más grande igual. Null si no hay ninguno.
+    /// </summary>
+    public static string? MainExecutable(string folder, IEnumerable<FileInfo> files)
+    {
+        var exes = files.Where(f => f.Extension.Equals(".exe", StringComparison.OrdinalIgnoreCase)).OrderByDescending(f => f.Length)
+            .Select(f => Path.GetRelativePath(folder, f.FullName)).ToList();
+        return exes.FirstOrDefault(x => !NotTheGame().IsMatch(x)) ?? exes.FirstOrDefault();
+    }
 
     /// <summary>Los ejecutables de una carpeta de juego de PC, para elegir otro (#182).</summary>
     public static List<string> Executables(string folder) =>

@@ -145,9 +145,15 @@ public static partial class Dats
             // Sin DAT no hay contra qué comparar (Switch, PC…): no se gasta tiempo en el hash.
             if (!Files.ContainsKey(f.Console) || !libraries.TryGetValue(f.LibraryId, out var root)) continue;
             using (var c = run.Db.Open())
-                if (Files.ContainsKey(f.Console) && c.ExecuteScalar<long>("SELECT count(*) FROM dat_entry WHERE console = @Console", f) == 0)
+                if (c.ExecuteScalar<long>("SELECT count(*) FROM dat_entry WHERE console = @Console", f) == 0)
                     await Download(run.Db, f.Console, ct);
             var path = Path.Combine(root, f.RelativePath);
+            // Borrado o movido desde el último escaneo: se avisa y se sigue con el resto.
+            if (!File.Exists(path))
+            {
+                run.Log(ApiError.Of("dat.log.missingFile", ("path", path)), "warn");
+                continue;
+            }
             run.Report((int)(done * 100 / total), ApiError.Of("dat.hashing", ("path", path)));
             var sha1 = await Sha1(path, ct);
             done += f.Size;

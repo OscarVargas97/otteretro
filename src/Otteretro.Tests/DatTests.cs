@@ -60,6 +60,7 @@ public class DatTests
         using (var c = f.Db.Open()) // «tp.iso» no dice su nombre: sale por el serial del disco en el DAT
             Assert.Equal([18L, 18L], c.Query<long>("SELECT version_id FROM source ORDER BY relative_path"));
 
+        File.Delete(f.Tmp[@"e\Otteretro\Juegos\GameCube\copia\tp.iso"]); // borrado después del escaneo: se salta, no corta la tarea
         var task = await f.Run(Dats.EnqueueVerify(f.Db, null, 8));
         Assert.Equal("done", task.Status);
         using (var c = f.Db.Open())

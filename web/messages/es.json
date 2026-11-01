@@ -474,7 +474,8 @@
       "log": {
         "verified": "{path}: verificado ({name}).",
         "notInDat": "{path}: su hash no está en el DAT.",
-        "summary": "{verified} verificados y {missing} sin coincidencia."
+        "summary": "{verified} verificados y {missing} sin coincidencia.",
+        "missingFile": "No está {path}: se borró o se movió desde el último escaneo."
       }
     },
     "review": {
