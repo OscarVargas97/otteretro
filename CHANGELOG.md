@@ -2,6 +2,20 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
+## 0.3.0 · Carpetas y herramientas · en desarrollo
+
+`fase/f3-carpetas` · F3 (#141): tus juegos y herramientas en la estructura definitiva antes de construir lo demás encima.
+
+### Nuevo
+- **Bibliotecas**, en Ajustes › Bibliotecas: adopta la carpeta donde ya tienes tus juegos o crea una nueva en cualquier disco o en la red. Cada una muestra su espacio libre y si está conectada; se puede renombrar, mover y quitar (quitar nunca borra archivos). Si un disco cambia de letra o vuelve a conectarse, la biblioteca se encuentra sola.
+- **Adoptar `E:\Consolas` la ordena sola**: los juegos quedan en `Consola\Juego`, Dolphin, Ryujinx SS4K y Dusklight pasan a Herramientas con su versión, y las texturas y packs, a Complementos. Sus rutas internas se ponen al día, así que siguen encontrando tus juegos y partidas.
+- **Mover una biblioteca, una consola o un juego** a otro disco: se copia, se verifica cada archivo y recién entonces se borra el origen. Si se corta, sigue donde quedó. Las rutas de los emuladores se actualizan solas.
+- **Herramientas** ya se abre: muestra cada emulador, port y complemento instalado con su versión.
+- **Paso 4 de la bienvenida**: encuentra la carpeta con la estructura antigua y ofrece adoptarla.
+
+### Cambios
+- El menú muestra las fases nuevas del plan: Steam llega en la F8, Descargas en la F10 y Descubrir en la F11.
+
 ## 0.2.1 · Pulido de UI · en desarrollo
 
 `fase/f2.5-pulido`, `fix/128-prueba-f25`, `feat/130-ajustes-menu` y `feat/132-bajar-portadas` · F2.5 es un extra de F2, así que sale como 0.2.1 (antes se numeró 0.3.0) · lo que entra para la próxima release; sale como prerelease en el canal Pruebas.

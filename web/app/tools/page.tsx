@@ -1,7 +1,8 @@
 "use client";
 
-import { ComingSoon } from "@/components/Shell";
+import { ToolsList } from "@/components/Libraries";
 
+/** Herramientas (§5.1): lo instalado con su versión. Instalar y actualizar llegan en la F5. */
 export default function Tools() {
-  return <ComingSoon screen="tools" phase={4} />;
+  return <div className="content"><ToolsList /></div>;
 }

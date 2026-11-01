@@ -86,14 +86,20 @@
     "back": "Back",
     "preparing": "Preparing…",
     "use": "Use {path}",
-    "nextSteps": "The next steps (backup, libraries, Steam, keys and initial load) turn on with their phase."
+    "nextSteps": "Backup, Steam and the remaining steps turn on with their phase.",
+    "librariesTitle": "Your game libraries",
+    "librariesText": "A library is a folder with games, on any drive or on the network. If you already have one with the old layout, adopt it and it sorts itself.",
+    "librariesFound": "We found folders with the old layout:",
+    "adoptThis": "Adopt {path}",
+    "createNew": "Create a new one",
+    "skip": "Skip"
   },
   "settings": {
     "dataFolder": "Data folder",
     "about": "About",
     "general": "General",
     "language": "Language",
-    "later": "Libraries, backup and the rest of the settings arrive with their phase.",
+    "later": "Backup and the remaining settings arrive with their phase.",
     "credentials": "Accounts and keys",
     "sections": "Settings sections",
     "claude": {
@@ -180,7 +186,8 @@
         "running": "In progress",
         "noKey": "SteamGridDB key missing"
       }
-    }
+    },
+    "libraries": "Libraries"
   },
   "dataFolder": {
     "open": "Open folder",
@@ -263,7 +270,8 @@
     "unknown": "Something went wrong ({code}).",
     "path": {
       "notAbsolute": "The path must be complete, for example E:\\Otteretro.",
-      "isFile": "That path is a file, not a folder."
+      "isFile": "That path is a file, not a folder.",
+      "notFound": "That folder does not exist."
     },
     "folder": {
       "createFailed": "Could not create the folder: {detail}"
@@ -396,6 +404,26 @@
       "notFound": "That suggestion is gone.",
       "ghMissing": "gh (GitHub CLI) was not found. Install it and sign in with “gh auth login”.",
       "ghFailed": "gh could not create the issue: {detail}"
+    },
+    "library": {
+      "hasMarker": "That folder is already a library: adopt it instead of creating it.",
+      "noName": "Type a name.",
+      "notFound": "That library is no longer registered.",
+      "overlaps": "It overlaps the library “{name}”: one cannot be inside another.",
+      "notConnected": "The library is disconnected. Reconnect it first.",
+      "otherMarker": "This library is not in that folder (its marker belongs to another one, or it has none).",
+      "notFoundOnDrives": "It was not found on your drives. Connect the drive or type where it is.",
+      "outside": "The folder has to be inside the library.",
+      "conflict": "{path} already exists: move or rename it and migrate again.",
+      "copying": "Copying to {path}",
+      "updating": "Updating the database and emulator paths",
+      "portable": "Making emulators and ports portable",
+      "games": "Sorting {console} games",
+      "log": {
+        "moved": "Moved {from} to {to}; {paths} emulator paths updated.",
+        "tool": "{name} is now in {path}.",
+        "notEmpty": "{path} was not empty and was not deleted: check what is in it."
+      }
     }
   },
   "credentials": {
@@ -470,6 +498,10 @@
       },
       "catalog": {
         "extra": "Complete with Wikidata and RAWG"
+      },
+      "library": {
+        "move": "Move a library or a folder",
+        "adopt": "Migrate a library to the new layout"
       }
     },
     "status": {
@@ -759,5 +791,53 @@
     "viewGame": "View game",
     "routeOf": "{saga} · {route}",
     "progress": "{done} of {total} played"
+  },
+  "libraries": {
+    "emptyTitle": "No libraries yet",
+    "emptyText": "Adopt the folder where your games already are, or create a new one on any drive.",
+    "adopt": "Adopt a folder",
+    "create": "Create a library",
+    "adoptHelp": "Registers a folder that already has games. If it has the old layout (Console\\Juegos, Emuladores, Ports), it is migrated to the new one: games end up in Console\\Game and emulators and ports move to Herramientas.",
+    "createHelp": "Choose an empty or new folder, on any drive or on the network (\\\\nas\\roms). Each console's folder is created when needed.",
+    "path": "Folder",
+    "pathPlaceholder": "For example E:\\Consoles",
+    "name": "Name (optional)",
+    "namePlaceholder": "For example Games drive",
+    "cancel": "Cancel",
+    "free": "{free} free of {total}",
+    "network": "Network",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "legacy": "Old layout",
+    "legacyHelp": "This library still has the old layout. Migrating it leaves games in Console\\Game and moves emulators, ports and their add-ons to Herramientas, with their paths updated.",
+    "migrate": "Migrate to the new layout",
+    "migrationStarted": "The migration is in the tasks panel. You can keep using the app meanwhile.",
+    "queued": "It is in the tasks panel.",
+    "reconnect": "Reconnect",
+    "reconnectHelp": "It is searched for on your drives. If it is somewhere else, type where it is now.",
+    "rename": "Rename",
+    "renameHelp": "The new name is also saved in its marker.",
+    "move": "Move",
+    "moveHelp": "Choose an empty or new folder. It is copied, every file is verified, emulator paths are updated and only then is the source deleted. If interrupted, it resumes where it left off.",
+    "remove": "Remove",
+    "removeHelp": "“{name}” is removed from Otteretro. No file is deleted: you can adopt it again any time.",
+    "removeConfirm": "Remove without deleting",
+    "moveFolder": "Move a folder",
+    "moveFolderHelp": "A console or a game (for example Switch, or Switch\\Zelda) moves to another library or to another path in this one. It is copied, verified and only then is the source deleted; emulator paths are updated.",
+    "folder": "Folder inside the library",
+    "folderPlaceholder": "For example Switch",
+    "toLibrary": "Destination library",
+    "toRelative": "Path at the destination (optional: the same if left empty)"
+  },
+  "tools": {
+    "emptyTitle": "No emulators or ports yet",
+    "emptyText": "When you adopt a library with the old layout, its emulators and ports land here. From F5 on they are installed and updated from this screen.",
+    "kind": {
+      "emulator": "Emulators",
+      "port": "Ports",
+      "complement": "Add-ons"
+    },
+    "noRecipe": "No recipe",
+    "noRecipeHelp": "Otteretro does not know yet how to make it portable or rewrite its paths."
   }
 }

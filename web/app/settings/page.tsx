@@ -8,12 +8,13 @@ import { ConsoleSettings } from "@/components/ConsoleSettings";
 import { CredentialsSettings } from "@/components/Credentials";
 import { DataFolderSettings } from "@/components/DataFolder";
 import { LanguagePicker } from "@/components/LanguagePicker";
+import { LibrariesSettings } from "@/components/Libraries";
 import { useAppState } from "@/components/Shell";
 import { Tabs } from "@/components/Tabs";
 import { UpdateChannel, VersionAndUpdate } from "@/components/Update";
 
 /** Las pestañas de Ajustes, en orden (#97, #111). La que viene en `?s=` se abre; sin ella, la primera. */
-const SECTIONS = ["dataFolder", "credentials", "consoles", "claude", "general"] as const;
+const SECTIONS = ["dataFolder", "libraries", "credentials", "consoles", "claude", "general"] as const;
 /** Las pestañas de antes llevan a General (#111). */
 const OLD: Record<string, Section> = { language: "general", about: "general" };
 type Section = (typeof SECTIONS)[number];
@@ -46,6 +47,7 @@ function Panel({ section }: { section: Section }) {
   const { data } = useAppState();
   switch (section) {
     case "dataFolder": return <DataFolderSettings />;
+    case "libraries": return <LibrariesSettings />;
     case "credentials": return <CredentialsSettings />;
     case "consoles": return <ConsoleSettings />;
     case "claude": return <ClaudeSettings />;

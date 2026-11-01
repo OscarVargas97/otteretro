@@ -36,7 +36,7 @@ test.afterEach(() => {
 /** Ninguna clave sin traducir a la vista (next-intl muestra la ruta de la clave, por ejemplo "nav.home"). */
 async function expectNoRawKeys() {
   const text = await page.locator("body").innerText();
-  expect(text).not.toMatch(/\b(nav|topBar|comingSoon|welcome|settings|dataFolder|update|errors|move|credentials|catalog|notices|review|home)\.[a-zA-Z]+/);
+  expect(text).not.toMatch(/\b(nav|topBar|comingSoon|welcome|settings|dataFolder|update|errors|move|credentials|catalog|notices|review|home|libraries|tools)\.[a-zA-Z]+/);
 }
 
 /** El buscador mide 320 px y su texto de ejemplo cabe entero (#20): se acorta, no se corta. */
@@ -110,9 +110,13 @@ test("una ruta incompleta muestra el error del backend traducido", async () => {
   await page.screenshot({ path: "e2e-results/2-error-en.png" });
 });
 
-test("elegir la carpeta de datos lleva al inicio", async () => {
+test("elegir la carpeta de datos lleva al paso de bibliotecas y, al saltarlo, al inicio", async () => {
   await page.getByLabel(en.welcome.otherPath).fill(dataDir("data"));
   await page.getByRole("button", { name: /^Use / }).click();
+  // Paso 4 (F3): adoptar la estructura antigua, crear una biblioteca o saltar.
+  await expect(page.getByRole("heading", { name: en.welcome.librariesTitle })).toBeVisible();
+  await expectNoRawKeys();
+  await page.getByRole("button", { name: en.welcome.skip }).click();
   await expect(page).toHaveURL(`${base()}/`);
   await expect(page.getByRole("heading", { level: 1, name: en.nav.home })).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: en.home.next })).toBeVisible();
@@ -135,11 +139,12 @@ test("todas las pantallas se ven en inglés", async () => {
     ["game", en.catalog.game.noneTitle],
     ["saga", en.catalog.saga.noneTitle],
     ["review", en.review.pendingEmptyTitle],
-    ...(["discover", "downloads", "tools", "steam"] as const).map((s) => [s, en.comingSoon[s].title] as const),
+    ["tools", en.tools.emptyTitle],
+    ...(["discover", "downloads", "steam"] as const).map((s) => [s, en.comingSoon[s].title] as const),
   ] as const;
   // #169: las de fases futuras se ven atenuadas con su fase y no se abren desde el menú.
   await page.goto(`${base()}/`);
-  for (const s of ["discover", "downloads", "tools", "steam"] as const) {
+  for (const s of ["discover", "downloads", "steam"] as const) {
     await expect(page.locator(".sidebar").getByRole("link", { name: en.nav[s] })).toHaveCount(0);
     await expect(page.locator(".sidebar .is-future", { hasText: en.nav[s] })).toHaveAttribute("aria-disabled", "true");
   }
@@ -149,6 +154,63 @@ test("todas las pantallas se ven en inglés", async () => {
     await expect(page.getByText(title)).toBeVisible();
     await expectNoRawKeys();
     await expectTextFits();
+  }
+});
+
+test("Ajustes › Bibliotecas: crear, ver y quitar sin borrar", async () => {
+  const folder = dataDir("juegos");
+  await page.goto(`${base()}/settings/?s=libraries`);
+  await expect(page.getByText(en.libraries.emptyTitle)).toBeVisible();
+  await page.getByRole("button", { name: en.libraries.create }).click();
+  await page.getByLabel(en.libraries.path).fill(folder);
+  await page.getByLabel(en.libraries.name).fill("Games drive");
+  await page.locator(".form-block").getByRole("button", { name: en.libraries.create }).click();
+  await expect(page.getByText(folder)).toBeVisible();
+  await expect(page.getByText(en.libraries.connected)).toBeVisible();
+  await expectNoRawKeys();
+  await expectTextFits();
+  // Quitar avisa que no borra nada; el marcador sigue en la carpeta.
+  await page.getByRole("button", { name: en.libraries.remove, exact: true }).click();
+  await expect(page.getByText(en.libraries.removeHelp.replace("{name}", "Games drive"))).toBeVisible();
+  await page.getByRole("button", { name: en.libraries.removeConfirm }).click();
+  await expect(page.getByText(en.libraries.emptyTitle)).toBeVisible();
+  const { existsSync } = await import("node:fs");
+  expect(existsSync(join(folder, "otteretro-biblioteca.json"))).toBe(true);
+});
+
+test("Ajustes › Bibliotecas: mover una consola a otra biblioteca", async () => {
+  const [a, b] = [dataDir("disco-a"), dataDir("disco-b")];
+  mkdirSync(join(a, "Switch", "Zelda"), { recursive: true });
+  writeFileSync(join(a, "Switch", "Zelda", "juego.nsp"), "contenido");
+  mkdirSync(b, { recursive: true });
+  await page.goto(`${base()}/settings/?s=libraries`);
+  for (const [folder, name] of [[a, "Disco A"], [b, "Disco B"]]) {
+    await page.getByRole("button", { name: en.libraries.create }).click();
+    await page.getByLabel(en.libraries.path).fill(folder);
+    await page.getByLabel(en.libraries.name).fill(name);
+    await page.locator(".form-block").getByRole("button", { name: en.libraries.create }).click();
+    await expect(page.getByText(folder, { exact: true })).toBeVisible();
+  }
+  const row = page.locator("section.panel", { hasText: "Disco A" });
+  await row.getByRole("button", { name: en.libraries.moveFolder }).click();
+  await row.getByLabel(en.libraries.folder).fill("Switch");
+  await row.getByLabel(en.libraries.toLibrary).selectOption({ label: "Disco B" });
+  await expectNoRawKeys();
+  await row.locator(".form-block").getByRole("button", { name: en.libraries.moveFolder }).click();
+  await expect(row.getByText(en.libraries.queued)).toBeVisible();
+  const { existsSync } = await import("node:fs");
+  await expect.poll(() => existsSync(join(b, "Switch", "Zelda", "juego.nsp")), { timeout: 15_000 }).toBe(true);
+  await expect.poll(() => existsSync(join(a, "Switch")), { timeout: 15_000 }).toBe(false);
+  // Se limpian la tarea y las bibliotecas para no dejar estado a las demás pruebas (quitar no borra archivos).
+  await page.getByRole("button", { name: en.topBar.tasks }).click();
+  await page.getByRole("dialog", { name: en.topBar.tasksPanel }).getByRole("button", { name: en.tasks.clear }).click();
+  await expect(page.getByText(en.topBar.noTasksTitle)).toBeVisible();
+  await page.keyboard.press("Escape");
+  for (const name of ["Disco A", "Disco B"]) {
+    const r = page.locator("section.panel", { hasText: name });
+    await r.getByRole("button", { name: en.libraries.remove, exact: true }).click();
+    await r.getByRole("button", { name: en.libraries.removeConfirm }).click();
+    await expect(r).toHaveCount(0);
   }
 });
 
@@ -697,7 +759,7 @@ test("las pestañas nunca tienen barra: en una ventana angosta, lo que no cabe v
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${base()}/settings/`);
   await expect(more).toHaveCount(0);
-  await expect(page.getByRole("tab")).toHaveCount(5);
+  await expect(page.getByRole("tab")).toHaveCount(6);
   await noScroll();
 });
 

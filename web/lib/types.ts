@@ -45,3 +45,6 @@ export type ConsolesPage = Schemas["ConsolesPage"];
 export type CoversInfo = Schemas["CoversInfo"];
 export type ConsoleInfo = Schemas["ConsoleInfo"];
 export type PlatformInfo = Schemas["PlatformInfo"];
+export type LibraryInfo = Schemas["LibraryInfo"];
+export type ToolInfo = Schemas["ToolInfo"];
+export type AdoptResult = Schemas["AdoptResult"];

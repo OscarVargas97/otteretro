@@ -1,0 +1,198 @@
+using System.Text.Json;
+using Dapper;
+using Otteretro.Api;
+using Otteretro.App;
+using Otteretro.Data;
+
+namespace Otteretro.Libraries;
+
+/// <summary>
+/// Mover o migrar (§5.3, F3.4) y adoptar la estructura antigua (§5.5, F3.5), como tareas de la cola. Cada paso se puede repetir
+/// sin daño, así que una tarea cortada sigue desde el principio y salta lo que ya hizo: es reanudable sin punto de control.
+/// </summary>
+public static class LibraryTasks
+{
+    public const string Move = "library.move";
+    public const string Adopt = "library.adopt";
+
+    /// <param name="From">Carpeta de origen (absoluta).</param>
+    /// <param name="To">Carpeta de destino (absoluta, vacía o inexistente).</param>
+    /// <param name="LibraryId">Se mueve la biblioteca entera: cambia su ruta.</param>
+    /// <param name="FromLibrary">Se mueve una carpeta de una biblioteca (consola o juego): sus archivos cambian de ruta relativa.</param>
+    public record MoveJob(string From, string To, string? LibraryId = null, string? FromLibrary = null, string? FromRelative = null,
+        string? ToLibrary = null, string? ToRelative = null);
+
+    public record AdoptJob(string LibraryId);
+
+    static readonly JsonSerializerOptions Json = JsonSerializerOptions.Web;
+
+    /// <summary>Valida y encola una mudanza. Devuelve el id de la tarea o el error.</summary>
+    public static (long? Task, ApiError? Error) EnqueueMove(Database db, MoveJob job)
+    {
+        if (!Directory.Exists(job.From)) return (null, ApiError.Of("path.notFound"));
+        if (FolderMove.Validate(job.From, job.To) is { } error) return (null, error);
+        return (TaskQueue.Enqueue(db, Move, JsonSerializer.Serialize(job with { From = Library.Normalize(job.From), To = Library.Normalize(job.To) }, Json)), null);
+    }
+
+    public static long EnqueueAdopt(Database db, string libraryId) =>
+        TaskQueue.Enqueue(db, Adopt, JsonSerializer.Serialize(new AdoptJob(libraryId), Json));
+
+    /// <summary>`Herramientas` de la carpeta de datos de esta base.</summary>
+    public static string ToolsOf(Database db) => Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(db.FilePath)!)!, "Herramientas");
+
+    public static Task RunMove(TaskRun run, CancellationToken ct)
+    {
+        var job = JsonSerializer.Deserialize<MoveJob>(run.Data!, Json)!;
+        MoveFolder(job.From, job.To, (done, total) => run.Report(Percent(done, total, 0, 90), ApiError.Of("library.copying", ("path", job.To))), ct);
+        run.Report(92, ApiError.Of("library.updating"));
+        using (var c = run.Db.Open())
+        {
+            if (job.LibraryId is not null) c.Execute("UPDATE library SET path = @To WHERE id = @LibraryId", job);
+            else if (job.FromLibrary is not null)
+                MoveSources(c, job.FromLibrary, job.FromRelative!, job.ToLibrary ?? job.FromLibrary, job.ToRelative!);
+        }
+        var changed = RewriteAll(ToolsOf(run.Db), job.From, job.To);
+        run.Log(ApiError.Of("library.log.moved", ("from", job.From), ("to", job.To), ("paths", changed.ToString())));
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Lleva una biblioteca con la estructura antigua a la de §5.1: emuladores y ports a Herramientas con su receta, sus
+    /// complementos aparte (enlazados donde el emulador los busca), y los juegos de `<Consola>\Juegos\<Juego>` a `<Consola>\<Juego>`.
+    /// </summary>
+    public static Task RunAdopt(TaskRun run, CancellationToken ct)
+    {
+        var job = JsonSerializer.Deserialize<AdoptJob>(run.Data!, Json)!;
+        if (Library.Get(run.Db, job.LibraryId) is not { Connected: true } library) throw new TaskException(ApiError.Of("library.notConnected"));
+        var tools = ToolsOf(run.Db);
+        var consoles = Directory.EnumerateDirectories(library.Path).Where(c => !Path.GetFileName(c).StartsWith('_')).ToList();
+
+        // 1. Emuladores y ports a Herramientas.
+        var installs = consoles.SelectMany(c => new[] { "Emuladores", "Ports" }.Select(g => Path.Combine(c, g)))
+            .Where(Directory.Exists).SelectMany(Directory.EnumerateDirectories).ToList();
+        for (var i = 0; i < installs.Count; i++)
+        {
+            var install = installs[i];
+            var recipe = Recipes.Identify(install);
+            var version = Recipes.VersionOf(recipe, install);
+            var group = Path.GetFileName(Path.GetDirectoryName(install)!);
+            var console = Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(install)!)!);
+            var target = recipe is not null ? Recipes.Target(tools, recipe, version) : Path.Combine(tools, group, console, Path.GetFileName(install), version);
+            var (from, to) = (i * 60 / installs.Count, (i + 1) * 60 / installs.Count);
+            MoveFolder(install, target, (done, total) => run.Report(Percent(done, total, from, to), ApiError.Of("library.copying", ("path", target))), ct);
+            run.Log(ApiError.Of("library.log.tool", ("name", Path.GetFileName(install)), ("path", target)));
+        }
+
+        // 2. Complementos aparte y cada instalación portable.
+        run.Report(62, ApiError.Of("library.portable"));
+        foreach (var tool in Recipes.Installed(tools).Where(t => t.RecipeId is not null && t.Kind != "complement"))
+        {
+            var recipe = Recipes.Find(tool.RecipeId!)!;
+            foreach (var complement in Recipes.All.Where(r => r.Parent == recipe.Id))
+            {
+                var inside = Path.Combine(tool.Path, complement.Link!);
+                if (!Directory.Exists(inside) || Links.IsLink(inside)) continue;
+                var target = Recipes.Target(tools, complement, Recipes.VersionOf(complement, inside));
+                MoveFolder(inside, target, (_, _) => { }, ct);
+                Links.Point(inside, target);
+                run.Log(ApiError.Of("library.log.tool", ("name", complement.Name), ("path", target)));
+            }
+            Recipes.MakePortable(recipe, tool.Path);
+        }
+
+        // 3. Juegos: <Consola>\Juegos\<Juego> → <Consola>\<Juego>, y las rutas que apuntaban ahí.
+        for (var i = 0; i < consoles.Count; i++)
+        {
+            var console = consoles[i];
+            var games = Path.Combine(console, "Juegos");
+            run.Report(65 + i * 30 / consoles.Count, ApiError.Of("library.games", ("console", Path.GetFileName(console))));
+            if (Directory.Exists(games))
+                foreach (var entry in Directory.EnumerateFileSystemEntries(games).ToList())
+                {
+                    var target = Path.Combine(console, Path.GetFileName(entry));
+                    if (Path.Exists(target)) throw new TaskException(ApiError.Of("library.conflict", ("path", target)));
+                    if (Directory.Exists(entry)) Directory.Move(entry, target); // misma biblioteca, mismo disco: se renombra
+                    else File.Move(entry, target);
+                }
+            RewriteAll(tools, games, console);
+            using (var c = run.Db.Open())
+                MoveSources(c, library.Id, Path.Combine(Path.GetFileName(console), "Juegos"), library.Id, Path.GetFileName(console));
+        }
+
+        // 4. Las carpetas de la estructura antigua, si quedaron vacías (nunca se borra nada con archivos).
+        foreach (var old in consoles.SelectMany(c => Library.LegacyFolders.Select(l => Path.Combine(c, l))).Where(Directory.Exists))
+            if (!Directory.EnumerateFileSystemEntries(old).Any()) Directory.Delete(old);
+            else run.Log(ApiError.Of("library.log.notEmpty", ("path", old)), "warn");
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Reescribe las rutas a juegos de todo lo instalado con receta. Devuelve cuántas cambió.</summary>
+    public static int RewriteAll(string tools, string from, string to) =>
+        Recipes.Installed(tools).Where(t => t.RecipeId is not null)
+            .Sum(t => Recipes.RewriteGamePaths(Recipes.Find(t.RecipeId!)!, t.Path, from, to));
+
+    /// <summary>Los archivos registrados bajo <paramref name="fromRelative"/> pasan a <paramref name="toRelative"/> (§5.4: id de biblioteca + ruta relativa).</summary>
+    static void MoveSources(Microsoft.Data.Sqlite.SqliteConnection c, string fromLibrary, string fromRelative, string toLibrary, string toRelative)
+    {
+        foreach (var sep in new[] { "\\", "/" })
+            c.Execute("""
+                UPDATE source SET library_id = @toLibrary, relative_path = @toRelative || substr(relative_path, length(@fromRelative) + 1)
+                WHERE kind = 'file' AND library_id = @fromLibrary AND (relative_path = @fromRelative OR substr(relative_path, 1, length(@prefix)) = @prefix)
+                """, new { fromLibrary, fromRelative, toLibrary, toRelative, prefix = fromRelative + sep });
+    }
+
+    /// <summary>
+    /// Mueve una carpeta sin perder nada (§5.3). En el mismo disco la renombra. Entre discos copia lo que falta (si se cortó,
+    /// lo ya copiado con el mismo tamaño se salta), fuerza la escritura, verifica todo por hash y recién entonces borra el origen.
+    /// Los enlaces que haya adentro se rehacen en el destino apuntando a lo mismo, sin copiar lo enlazado.
+    /// </summary>
+    public static void MoveFolder(string from, string to, Action<long, long> report, CancellationToken ct, bool forceCopy = false)
+    {
+        if (!Directory.Exists(from))
+        {
+            if (Directory.Exists(to)) return; // ya se movió en una corrida anterior
+            throw new TaskException(ApiError.Of("path.notFound"));
+        }
+        Directory.CreateDirectory(Path.GetDirectoryName(to)!);
+        if (!forceCopy && Mounts.Same(from, to) && !Directory.Exists(to))
+        {
+            Directory.Move(from, to);
+            return;
+        }
+
+        var options = new EnumerationOptions { RecurseSubdirectories = true, AttributesToSkip = FileAttributes.ReparsePoint };
+        var links = new EnumerationOptions { RecurseSubdirectories = true, AttributesToSkip = 0 };
+        var files = Directory.EnumerateFiles(from, "*", options).Select(f => (relative: Path.GetRelativePath(from, f), size: new FileInfo(f).Length)).ToList();
+        var total = files.Sum(f => f.size) * 2;
+        long done = 0;
+        foreach (var (relative, size) in files)
+        {
+            ct.ThrowIfCancellationRequested();
+            var target = Path.Combine(to, relative);
+            if (!File.Exists(target) || new FileInfo(target).Length != size)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                File.Copy(Path.Combine(from, relative), target, overwrite: true);
+                FolderMove.FlushToDisk(target);
+            }
+            report(done += size, total);
+        }
+        foreach (var folder in Directory.EnumerateDirectories(from, "*", options))
+            Directory.CreateDirectory(Path.Combine(to, Path.GetRelativePath(from, folder)));
+        foreach (var link in Directory.EnumerateDirectories(from, "*", links).Where(Links.IsLink))
+            Links.Point(Path.Combine(to, Path.GetRelativePath(from, link)), new DirectoryInfo(link).LinkTarget!.Replace(@"\??\", ""));
+        foreach (var (relative, size) in files)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (!FolderMove.SameContent(Path.Combine(from, relative), Path.Combine(to, relative)))
+            {
+                File.Delete(Path.Combine(to, relative)); // la próxima corrida lo vuelve a copiar
+                throw new TaskException(ApiError.Of("move.copyMismatch", ("path", from), ("detail", relative)));
+            }
+            report(done += size, total);
+        }
+        Links.DeleteTree(from);
+    }
+
+    static int Percent(long done, long total, int from, int to) => total == 0 ? to : from + (int)((to - from) * done / total);
+}
