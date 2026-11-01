@@ -43,9 +43,9 @@ public sealed partial class MediaFireSite : IDownloadSite
         catch (FormatException) { return null; }
     }
 
-    [GeneratedRegex("""href="(https?://download\d*\.mediafire\.com/[^"]+)\"""", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"href=""(https?://download\d*\.mediafire\.com/[^""]+)""", RegexOptions.IgnoreCase)]
     private static partial Regex Direct();
 
-    [GeneratedRegex("""data-scrambled-url="([^"]+)\"""")]
+    [GeneratedRegex(@"data-scrambled-url=""([^""]+)""")]
     private static partial Regex Scrambled();
 }
