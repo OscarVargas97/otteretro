@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:61233/"
+      "url": "http://127.0.0.1:49437/"
     }
   ],
   "paths": {
@@ -205,6 +205,35 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/menu": {
+      "put": {
+        "tags": [
+          "Otteretro"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MenuRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppState"
                 }
               }
             }
@@ -2541,7 +2570,8 @@
           "dataFolder",
           "configured",
           "language",
-          "fullscreen"
+          "fullscreen",
+          "menuCollapsed"
         ],
         "type": "object",
         "properties": {
@@ -2561,6 +2591,9 @@
             "type": "string"
           },
           "fullscreen": {
+            "type": "boolean"
+          },
+          "menuCollapsed": {
             "type": "boolean"
           }
         }
@@ -3518,6 +3551,17 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "MenuRequest": {
+        "required": [
+          "collapsed"
+        ],
+        "type": "object",
+        "properties": {
+          "collapsed": {
+            "type": "boolean"
           }
         }
       },

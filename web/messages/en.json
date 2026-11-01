@@ -20,7 +20,9 @@
     "steam": "Steam",
     "settings": "Settings",
     "pending": "{count, plural, one {# to review} other {# to review}}",
-    "comingIn": "Coming in phase {phase}"
+    "comingIn": "Coming in phase {phase}",
+    "collapse": "Collapse menu",
+    "expand": "Expand menu"
   },
   "topBar": {
     "search": "Search sagas and games…",

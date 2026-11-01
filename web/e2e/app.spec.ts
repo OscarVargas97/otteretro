@@ -733,3 +733,34 @@ test("Ajustes: consolas habilitadas, al día y reevaluar icónicas", async () =>
   await expectNoRawKeys();
   await page.screenshot({ path: "e2e-results/18-claude-es.png", fullPage: true });
 });
+
+test("Ajustes en dos columnas con espacio, y el menú se retrae, se recuerda y se expande", async () => {
+  // #130: con 1920 px los bloques de Claude van en dos columnas; con ~900 px, en una.
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto(`${base()}/settings/?s=claude`);
+  const blocks = page.locator("#settings-panel .settings-blocks > .panel");
+  await expect(blocks).toHaveCount(3);
+  const columns = async () => new Set(await Promise.all([0, 1, 2].map(async (i) => Math.round((await blocks.nth(i).boundingBox())!.x)))).size;
+  expect(await columns()).toBe(2);
+  await page.screenshot({ path: "e2e-results/19-claude-dos-columnas-es.png", fullPage: true });
+  await page.setViewportSize({ width: 900, height: 900 });
+  expect(await columns()).toBe(1);
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  // #130: el menú se retrae a una franja de íconos con el nombre en el título, se recuerda al recargar y Ctrl+B lo expande.
+  const sidebar = page.locator(".sidebar");
+  const wide = (await sidebar.boundingBox())!.width;
+  await page.getByRole("button", { name: es.nav.collapse }).click();
+  await expect(sidebar).toHaveClass(/is-collapsed/);
+  expect((await sidebar.boundingBox())!.width).toBeLessThan(80);
+  await expect(sidebar.getByRole("link", { name: es.nav.sagas })).toHaveAttribute("title", es.nav.sagas);
+  await expectTextFits();
+  await page.screenshot({ path: "e2e-results/20-menu-retraido-es.png" });
+  await page.reload();
+  await expect(sidebar).toHaveClass(/is-collapsed/);
+  await page.keyboard.press("Control+b");
+  await expect(sidebar).not.toHaveClass(/is-collapsed/);
+  expect((await sidebar.boundingBox())!.width).toBe(wide);
+  await page.reload();
+  await expect(sidebar).not.toHaveClass(/is-collapsed/);
+});

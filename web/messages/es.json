@@ -20,7 +20,9 @@
     "steam": "Steam",
     "settings": "Ajustes",
     "pending": "{count, plural, one {# por revisar} other {# por revisar}}",
-    "comingIn": "Llega en la fase {phase}"
+    "comingIn": "Llega en la fase {phase}",
+    "collapse": "Retraer el menú",
+    "expand": "Expandir el menú"
   },
   "topBar": {
     "search": "Buscar sagas y juegos…",
