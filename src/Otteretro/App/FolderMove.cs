@@ -208,7 +208,7 @@ public static class FolderMove
     }
 
     /// <summary>Obliga a Windows a escribir el archivo en el disco: sin esto, la verificación puede leer la caché y se borraría el origen antes de tiempo.</summary>
-    static void FlushToDisk(string path)
+    internal static void FlushToDisk(string path)
     {
         var attributes = File.GetAttributes(path);
         if (attributes.HasFlag(FileAttributes.ReadOnly)) File.SetAttributes(path, attributes & ~FileAttributes.ReadOnly);
@@ -273,7 +273,7 @@ public static class FolderMove
         SqliteConnection.ClearAllPools();
     }
 
-    static bool SameContent(string a, string b)
+    internal static bool SameContent(string a, string b)
     {
         if (new FileInfo(a).Length != new FileInfo(b).Length) return false;
         using var fa = File.OpenRead(a);

@@ -39,7 +39,12 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         [Claude.CatalogCleanup.Kind] = Claude.CatalogCleanup.Run,
         [Claude.SagaAnalysis.Kind] = Claude.SagaAnalysis.Run,
         [Claude.InitialLoad.Kind] = Claude.InitialLoad.Run,
+        [Libraries.LibraryTasks.Move] = Libraries.LibraryTasks.RunMove,
+        [Libraries.LibraryTasks.Adopt] = Libraries.LibraryTasks.RunAdopt,
     };
+
+    /// <summary>Tipos que no corren a la vez aunque sean distintos: mover y adoptar tocan las mismas carpetas (§5.3).</summary>
+    static string LockOf(string kind) => kind.StartsWith("library.", StringComparison.Ordinal) ? "library" : kind;
 
     /// <summary>Las que duran más que esto avisan con una notificación del sistema al terminar.</summary>
     public static readonly TimeSpan LongTask = TimeSpan.FromMinutes(1);
@@ -158,7 +163,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         foreach (var t in queued)
         {
             lock (gate)
-                if (!running.Add(t.Kind)) continue;
+                if (!running.Add(LockOf(t.Kind))) continue;
             c.Execute("UPDATE task SET status = 'running', attempts = attempts + 1 WHERE id = @Id", t);
             Log(db, t.Id, ApiError.Of("tasks.log.started"));
             Publish(db, t.Id);
@@ -190,7 +195,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         }
         finally
         {
-            lock (gate) running.Remove(t.Kind);
+            lock (gate) running.Remove(LockOf(t.Kind));
         }
     }
 
