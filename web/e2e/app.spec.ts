@@ -277,6 +277,24 @@ test("Ajustes › Consolas: el detalle de una consola, su destino y mover sus ju
   await removeDisks();
 });
 
+test("Descargas: cada enlace con problema dice lo que respondió el sitio (#203, #204)", async () => {
+  const link = (url: string, name: string, state: string, detail?: object) => ({ url, name, size: null, site: "1fichier", state, detail: detail ?? null });
+  await page.route("**/api/downloads/preview", (route) => route.fulfill({ json: [
+    { name: "abc123", size: 0, links: [link("https://1fichier.com/?abc123", "abc123", "blocked", { code: "download.siteSaid", params: { site: "1fichier", message: "Resource not found #644" } })] },
+    { name: "Juego", size: 0, links: [link("https://1fichier.com/?parte1", "Juego.part1.rar", "ok"), link("https://1fichier.com/?parte2", "Juego.part2.rar", "blocked", { code: "download.needsAccount", params: { site: "1fichier" } })] },
+  ] }));
+  await page.goto(`${base()}/downloads/`);
+  await page.getByLabel(en.downloads.links).fill("https://1fichier.com/?abc123");
+  await page.getByRole("button", { name: en.downloads.check }).click();
+  await expect(page.getByText("Resource not found #644")).toBeVisible();
+  await expect(page.getByText(en.downloads.state.blocked)).toHaveCount(0);
+  // Lo que falla se nombra cuando el paquete trae varias partes.
+  await expect(page.getByText("Juego.part2.rar")).toBeVisible();
+  if (process.env.OTTERETRO_SHOT) await page.locator(".panel").first().screenshot({ path: process.env.OTTERETRO_SHOT });
+  await expectNoRawKeys();
+  await page.unroute("**/api/downloads/preview");
+});
+
 test("Herramientas: pestañas por tipo y subir un archivo de sistema con versiones (#154, #199)", async () => {
   await page.goto(`${base()}/tools/`);
   for (const k of ["emulator", "port", "complement", "system"] as const) await expect(page.getByRole("tab", { name: en.tools.kind[k] })).toBeVisible();

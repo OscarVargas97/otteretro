@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:62333/"
+      "url": "http://127.0.0.1:59457/"
     }
   ],
   "paths": {
@@ -5961,6 +5961,16 @@
           },
           "state": {
             "type": "string"
+          },
+          "detail": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ApiError"
+              }
+            ]
           }
         }
       },

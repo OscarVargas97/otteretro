@@ -12,7 +12,7 @@ namespace Otteretro.Libraries;
 /// 1fichier por su API oficial para cuentas premium (#225): con tu clave pide el enlace directo. Va despacio y con una sola conexión: la API
 /// bloquea por flood, y una cuenta se puede usar desde una sola IP a la vez.
 /// </summary>
-/// <remarks>El formato sale de la API real (responde 401 sin clave) y del cliente de rclone. Sin clave no se probó si un enlace aguanta varias conexiones.</remarks>
+/// <remarks>El formato sale de la documentación (1fichier.com/api.html) y de la API real, que responde 401 sin clave. Falta probarlo con una clave de verdad.</remarks>
 public sealed partial class OneFichierSite : IDownloadSite
 {
     const string Api = "https://api.1fichier.com/v1/download/get_token.cgi";
@@ -35,7 +35,7 @@ public sealed partial class OneFichierSite : IDownloadSite
 
         using var request = new HttpRequestMessage(HttpMethod.Post, Api)
         {
-            Content = new StringContent(JsonSerializer.Serialize(new { url = url.ToString(), single = 0 }), Encoding.UTF8, "application/json"),
+            Content = new StringContent(JsonSerializer.Serialize(new { url = Canonical(url), single = 0 }), Encoding.UTF8, "application/json"),
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", credentials.Read("onefichier.apiKey"));
         var http = Handler is null ? Shared : new HttpClient(Handler);
@@ -72,6 +72,12 @@ public sealed partial class OneFichierSite : IDownloadSite
         return direct is not null ? new(direct)
             : new(url.ToString(), Blocked: ApiError.Of("download.siteSaid", ("site", Id), ("message", message ?? ((int)status).ToString())));
     }
+
+    /// <summary>La API solo acepta `https://dominio/?id` y rechaza lo demás: los enlaces compartidos suelen traer `&amp;af=` de afiliado.</summary>
+    static string Canonical(Uri url) => LinkId().Match(url.Query) is { Success: true } m ? $"https://{url.Host}/?{m.Groups[1].Value}" : url.ToString();
+
+    [GeneratedRegex(@"^\?([a-z0-9]{5,20})(?:&|$)")]
+    private static partial Regex LinkId();
 
     [GeneratedRegex(@"Flood|#374\b|#412\b", RegexOptions.IgnoreCase)]
     private static partial Regex Flood();

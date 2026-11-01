@@ -5244,6 +5244,7 @@ export interface components {
             size: null | number | string;
             site: null | string;
             state: string;
+            detail?: null | components["schemas"]["ApiError"];
         };
         MegapackPreview: {
             items: components["schemas"]["PreviewItem"][];

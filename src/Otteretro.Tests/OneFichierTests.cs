@@ -53,6 +53,34 @@ public class OneFichierTests
         Assert.Equal(Link.ToString(), JsonDocument.Parse(fake.Sent!).RootElement.GetProperty("url").GetString());
     }
 
+    /// <summary>La API rechaza lo que no sea `https://dominio/?id`, y los enlaces compartidos suelen traer `&amp;af=`.</summary>
+    [Fact]
+    public async Task SendsOnlyTheFormTheApiAccepts()
+    {
+        await using var f = new Fixture(Key);
+        var fake = new Fake(HttpStatusCode.OK, """{ "url": "https://a-1.1fichier.com/token" }""");
+        OneFichierSite.Handler = fake;
+        try { await new OneFichierSite().Resolve(new Uri("https://1fichier.com/?abc123&af=327151"), f.Credentials, default); }
+        finally { OneFichierSite.Handler = null; }
+        Assert.Equal("https://1fichier.com/?abc123", JsonDocument.Parse(fake.Sent!).RootElement.GetProperty("url").GetString());
+    }
+
+    /// <summary>Con la clave puesta, un rechazo dice lo que respondió el sitio y no «falta tu cuenta»; y cada enlace va en su paquete.</summary>
+    [Fact]
+    public async Task ThePreviewTellsWhatTheSiteAnswered()
+    {
+        await using var f = new Fixture(Key);
+        OneFichierSite.Handler = new Fake(HttpStatusCode.Forbidden, """{ "message": "Resource not found #644", "status": "KO" }""");
+        List<PackagePreview> preview;
+        try { preview = await Downloads.Preview("https://1fichier.com/?abc123\nhttps://1fichier.com/?def456", f.Credentials, default); }
+        finally { OneFichierSite.Handler = null; }
+        Assert.Equal(["abc123", "def456"], preview.Select(p => p.Name).Order());
+        var link = preview[0].Links[0];
+        Assert.Equal("blocked", link.State);
+        Assert.Equal("download.siteSaid", link.Detail?.Code);
+        Assert.Contains("#644", link.Detail!.Params!["message"]);
+    }
+
     [Fact]
     public async Task WithoutAKeyItAsksForTheAccount()
     {

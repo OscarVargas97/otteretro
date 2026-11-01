@@ -92,18 +92,19 @@ function Downloads() {
         {open.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(open.error)}</p>}
         {check.data?.length === 0 && <p className="small muted" style={{ margin: 0 }}>{t("noLinks")}</p>}
         {check.data?.map((p) => (
-          <label key={p.name} className="version-row small">
-            <span>
+          <div key={p.name} className="download-package small">
+            <label>
               <input type="checkbox" checked={!off.has(p.name)} onChange={() => toggle(p.name)} /> {p.name}
               <span className="muted"> · {t("files", { count: p.links.length })}{Number(p.size) > 0 && ` · ${size(String(p.size))} MB`}</span>
-            </span>
+            </label>
             {p.links.filter((l) => l.state !== "ok").map((l) => (
-              <span key={l.url} className="hero-actions">
-                <span className="ot-badge ot-badge-review" title={l.url}>{t(`state.${l.state as "unavailable"}`)}</span>
-                {(l.state === "blocked" || l.state === "noConnector") && <button className="ot-btn ot-btn-sm" type="button" onClick={(e) => { e.preventDefault(); open.mutate(l.url); }}>{t("openBrowser")}</button>}
-              </span>
+              <div key={l.url} className="download-problem">
+                {p.links.length > 1 && <span title={l.url}>{l.name}</span>}
+                <span className="ot-badge ot-badge-review" title={l.url}>{l.detail ? describe({ ...l.detail }) : t(`state.${l.state as "unavailable"}`)}</span>
+                {(l.state === "blocked" || l.state === "noConnector") && <button className="ot-btn ot-btn-sm" type="button" onClick={() => open.mutate(l.url)}>{t("openBrowser")}</button>}
+              </div>
             ))}
-          </label>
+          </div>
         ))}
         {check.data && check.data.length > 0 && (
           <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" style={{ justifySelf: "start" }} disabled={add.isPending || chosen.length === 0} onClick={() => add.mutate()}>{t("startCount", { count: chosen.length })}</button>

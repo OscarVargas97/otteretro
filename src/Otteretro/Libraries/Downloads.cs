@@ -50,7 +50,8 @@ public sealed class DirectSite : IDownloadSite
 public record DownloadJob(string Name, string DiskId, List<string> Links, int Done = 0, long? GameId = null, int Connections = Downloads.DefaultConnections);
 
 /// <param name="State">ok, unavailable, blocked (necesita una cuenta o un captcha), noConnector o unknown.</param>
-public record LinkCheck(string Url, string Name, long? Size, string? Site, string State);
+/// <param name="Detail">Por qué está bloqueado: lo que falta o lo que respondió el sitio.</param>
+public record LinkCheck(string Url, string Name, long? Size, string? Site, string State, ApiError? Detail = null);
 
 public record PackagePreview(string Name, List<LinkCheck> Links, long Size);
 
@@ -242,8 +243,8 @@ public static partial class Downloads
                 return new(text, ownName ?? fallback, ownSize, site.Id, "ok");
             }
             var link = await site.Resolve(url, credentials, ct);
-            if (link.Probe is false) return new(text, link.FileName ?? fallback, link.Size, site.Id, link.Blocked is null ? "ok" : "blocked");
-            if (link.Blocked is not null) return new(text, link.FileName ?? fallback, link.Size, site.Id, "blocked");
+            if (link.Blocked is not null) return new(text, link.FileName ?? fallback, link.Size, site.Id, "blocked", link.Blocked);
+            if (link.Probe is false) return new(text, link.FileName ?? fallback, link.Size, site.Id, "ok");
             var probe = await Probe(link, ct);
             var state = Unavailable(probe.Code) ? "unavailable" : probe.IsPage && site is DirectSite ? "noConnector" : "ok";
             return new(text, link.FileName ?? probe.Name ?? fallback, link.Size ?? probe.Size, site.Id, state);
@@ -257,7 +258,10 @@ public static partial class Downloads
     static string FileNameOf(Uri url)
     {
         var name = Clean(WebUtility.UrlDecode(Path.GetFileName(url.LocalPath)));
-        return name.Length > 0 ? name : "descarga";
+        if (name.Length > 0) return name;
+        // `https://sitio/?id`: sin esto, los enlaces distintos de un sitio se juntarían en un solo paquete.
+        var id = Clean(url.Query.TrimStart('?').Split('&')[0]);
+        return id.Length > 0 && !id.Contains('=') ? id : "descarga";
     }
 
     /// <summary>Un nombre que llega de afuera no puede salirse de la carpeta.</summary>
