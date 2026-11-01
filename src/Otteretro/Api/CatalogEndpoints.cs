@@ -139,8 +139,12 @@ public static class CatalogEndpoints
         {
             if (Db(s) is not { } db) return NoData();
             var saved = new Credentials(db, s.Config.MachineId, box).List().Where(c => c.Saved).Select(c => c.Id).ToHashSet();
-            return TypedResults.Ok(NeededKeys.Where(k => !k.Ids.All(saved.Contains))
-                .Select(k => ApiError.Of("notices.missingKey", ("service", k.Service))).ToList());
+            var notices = NeededKeys.Where(k => !k.Ids.All(saved.Contains)).Select(k => ApiError.Of("notices.missingKey", ("service", k.Service))).ToList();
+            // Archivos que ni el escaneo ni Claude reconocieron (#180): se eligen en Revisar › Sin identificar.
+            using (var c = db.Open())
+                if (c.ExecuteScalar<long>("SELECT count(*) FROM review_item WHERE kind = 'unidentified' AND status = 'open'") is > 0 and var n)
+                    notices.Add(ApiError.Of("notices.unidentified", ("count", n.ToString())));
+            return TypedResults.Ok(notices);
         });
     }
 

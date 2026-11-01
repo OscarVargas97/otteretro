@@ -381,7 +381,8 @@
         "invalidOutput": "Claude answered twice with something that doesn’t have the expected shape.",
         "limit": "You reached your Claude subscription limit: it resumes on its own on {at}.",
         "schedule": "Waiting for Claude’s schedule: it starts on {at}.",
-        "windowCap": "It used {share}% of this Claude window: it resumes on its own on {at}."
+        "windowCap": "It used {share}% of this Claude window: it resumes on its own on {at}.",
+        "identify": "{done} of {total} files identified"
       },
       "log": {
         "started": "Started.",
@@ -405,7 +406,8 @@
         "refresh": "{platform}: {count} new or changed games.",
         "paused": "Paused: it continues from here when resumed.",
         "resumed": "Resumed.",
-        "canceled": "Canceled."
+        "canceled": "Canceled.",
+        "identify": "Left {doubtful} in Doubtful and {unidentified} in Unidentified."
       }
     },
     "progress": {
@@ -544,7 +546,8 @@
       "claude": {
         "cleanup": "Clean up the catalog with Claude",
         "sagas": "Routes, iconic and best version with Claude",
-        "load": "Initial load with Claude, by parts"
+        "load": "Initial load with Claude, by parts",
+        "identify": "Identify files with Claude"
       },
       "catalog": {
         "extra": "Complete with Wikidata and RAWG"
@@ -795,7 +798,9 @@
     "missingKey": "The {service} key is missing: its data can't be loaded without it.",
     "openSettings": "Open Settings",
     "missingKeys": "Keys are missing for {services}: their data can't be loaded without them.",
-    "openCredentials": "Accounts and keys"
+    "openCredentials": "Accounts and keys",
+    "unidentified": "{count, plural, one {1 unidentified file} other {# unidentified files}}: pick its game in Review.",
+    "openReview": "Open Review"
   },
   "review": {
     "tabs": "Review sections",
@@ -812,7 +817,8 @@
       "iconico": "Iconic",
       "mejor-version": "Best version",
       "clasificar-version": "Version type",
-      "traducir-descripcion": "Spanish description"
+      "traducir-descripcion": "Spanish description",
+      "identificar-juego": "Identify file"
     },
     "approve": "Approve",
     "reject": "Reject",
@@ -824,7 +830,8 @@
     "learning": {
       "move": "Move games",
       "merge": "Merge duplicate entries",
-      "rename": "Rename saga"
+      "rename": "Rename saga",
+      "alias": "File alias"
     },
     "sources": "Sources",
     "iconicYes": "Iconic saga",

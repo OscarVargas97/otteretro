@@ -39,6 +39,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         [Claude.CatalogCleanup.Kind] = Claude.CatalogCleanup.Run,
         [Claude.SagaAnalysis.Kind] = Claude.SagaAnalysis.Run,
         [Claude.InitialLoad.Kind] = Claude.InitialLoad.Run,
+        [Claude.Identify.Kind] = Claude.Identify.Run,
         [Libraries.LibraryTasks.Move] = Libraries.LibraryTasks.RunMove,
         [Libraries.LibraryTasks.Adopt] = Libraries.LibraryTasks.RunAdopt,
         [Libraries.LibraryTasks.Migrate] = Libraries.LibraryTasks.RunMigrate,

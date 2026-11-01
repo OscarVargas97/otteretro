@@ -43,6 +43,7 @@ public static partial class Scan
         byte[]? keys = null;
         var keysRead = false;
         var catalog = Catalog(run.Db);
+        var aliases = Aliases(run.Db);
         int files = 0, matched = 0;
 
         for (var i = 0; i < folders.Count; i++)
@@ -75,12 +76,14 @@ public static partial class Scan
 
             // Cada archivo con su versión: por nombre, o por el TitleID base (UPD y DLC van con su BASE).
             var versions = catalog.GetValueOrDefault(console) ?? [];
+            var learned = aliases.GetValueOrDefault(console) ?? [];
             using var c = run.Db.Open();
             var hashes = c.Query<(string Path, string Sha1, long Size)>(
                     "SELECT relative_path, sha1, size FROM source WHERE kind = 'file' AND library_id = @libraryId AND sha1 IS NOT NULL", new { libraryId })
                 .ToDictionary(r => r.Path, r => r, StringComparer.OrdinalIgnoreCase);
             // Por nombre, por el de su carpeta y, si no, por el nombre del DAT: con el hash ya calculado (#179) o con el serial.
-            var byName = found.ToDictionary(f => f, f => Match(versions, f.Name) ?? (f.Folder is null ? null : Match(versions, f.Folder))
+            // Primero los alias (lo que corregiste o resolvió Claude, #181), después el catálogo.
+            var byName = found.ToDictionary(f => f, f => Match(learned, f.Name) ?? Match(versions, f.Name) ?? (f.Folder is null ? null : Match(versions, f.Folder))
                 ?? (DatName(c, f, hashes.TryGetValue(f.Relative, out var h) && h.Size == f.Size ? h.Sha1 : null) is { } dat ? Match(versions, dat) : null));
             var byBase = found.Where(f => f.Component is not null && byName[f] is not null)
                 .GroupBy(f => BaseOf(f.TitleId!)).ToDictionary(g => g.Key, g => byName[g.First()]);
@@ -112,6 +115,7 @@ public static partial class Scan
             t.Commit();
         }
         run.Log(ApiError.Of("scan.log.summary", ("files", files.ToString()), ("matched", matched.ToString()), ("pending", (files - matched).ToString())));
+        if (Claude.Identify.AfterScan) Claude.Identify.EnqueueIfNeeded(run.Db); // lo que quedó sin identificar va a Claude (#180)
         return Task.CompletedTask;
     }
 
@@ -147,6 +151,26 @@ public static partial class Scan
             foreach (var n in new[] { es, original }.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => Normalize(x!)).Distinct())
                 (versions.TryGetValue(n, out var set) ? set : versions[n] = []).Add(id);
         return Match(versions, name);
+    }
+
+    /// <summary>El texto de un alias: el nombre del archivo normalizado.</summary>
+    public static string AliasText(string relativePath) => Normalize(Path.GetFileNameWithoutExtension(relativePath));
+
+    /// <summary>Los alias vigentes (`learning` kind alias) de cada consola: nombre normalizado → la versión de su juego en esa consola.</summary>
+    static Dictionary<string, Dictionary<string, HashSet<long>>> Aliases(Database db)
+    {
+        using var c = db.Open();
+        var result = new Dictionary<string, Dictionary<string, HashSet<long>>>();
+        foreach (var (console, text, version) in c.Query<(string, string, long)>("""
+                     SELECT json_extract(l.content, '$.console'), json_extract(l.content, '$.text'), v.id FROM learning l
+                     JOIN version v ON v.game_id = json_extract(l.content, '$.gameId') AND v.platform = json_extract(l.content, '$.console')
+                     WHERE l.kind = 'alias' AND l.undone = 0
+                     """))
+        {
+            var names = result.TryGetValue(console, out var n) ? n : result[console] = [];
+            (names.TryGetValue(text, out var set) ? set : names[text] = []).Add(version);
+        }
+        return result;
     }
 
     /// <summary>La versión si el nombre coincide con una sola; null si no hay o hay varias (eso queda para Claude, #180).</summary>

@@ -381,7 +381,8 @@
         "invalidOutput": "Claude respondió dos veces algo que no tiene la forma esperada.",
         "limit": "Llegaste al límite de tu suscripción de Claude: sigue sola el {at}.",
         "schedule": "Espera el horario de Claude: empieza el {at}.",
-        "windowCap": "Usó el {share} % de esta ventana de Claude: sigue sola el {at}."
+        "windowCap": "Usó el {share} % de esta ventana de Claude: sigue sola el {at}.",
+        "identify": "{done} de {total} archivos identificados"
       },
       "log": {
         "started": "Empezó.",
@@ -405,7 +406,8 @@
         "refresh": "{platform}: {count} juegos nuevos o cambiados.",
         "paused": "En pausa: sigue desde aquí al reanudarla.",
         "resumed": "Reanudada.",
-        "canceled": "Cancelada."
+        "canceled": "Cancelada.",
+        "identify": "Dejó {doubtful} en Dudosas y {unidentified} en Sin identificar."
       }
     },
     "progress": {
@@ -544,7 +546,8 @@
       "claude": {
         "cleanup": "Depurar el catálogo con Claude",
         "sagas": "Rutas, icónico y mejor versión con Claude",
-        "load": "Carga inicial con Claude, por partes"
+        "load": "Carga inicial con Claude, por partes",
+        "identify": "Identificar archivos con Claude"
       },
       "catalog": {
         "extra": "Completar con Wikidata y RAWG"
@@ -795,7 +798,9 @@
     "missingKey": "Falta la clave de {service}: sin ella no se cargan sus datos.",
     "openSettings": "Abrir Ajustes",
     "missingKeys": "Faltan claves de {services}: sin ellas no se cargan sus datos.",
-    "openCredentials": "Cuentas y claves"
+    "openCredentials": "Cuentas y claves",
+    "unidentified": "{count, plural, one {1 archivo sin identificar} other {# archivos sin identificar}}: elige su juego en Revisar.",
+    "openReview": "Abrir Revisar"
   },
   "review": {
     "tabs": "Secciones de Revisar",
@@ -812,7 +817,8 @@
       "iconico": "Icónico",
       "mejor-version": "Mejor versión",
       "clasificar-version": "Clase de versión",
-      "traducir-descripcion": "Descripción en español"
+      "traducir-descripcion": "Descripción en español",
+      "identificar-juego": "Identificar archivo"
     },
     "approve": "Aprobar",
     "reject": "Rechazar",
@@ -824,7 +830,8 @@
     "learning": {
       "move": "Mover juegos",
       "merge": "Unir fichas repetidas",
-      "rename": "Renombrar saga"
+      "rename": "Renombrar saga",
+      "alias": "Alias de archivo"
     },
     "sources": "Fuentes",
     "iconicYes": "Saga icónica",
