@@ -550,7 +550,8 @@
       "badAccount": "{site} rechazó tu cuenta: revísala en Ajustes › Cuentas y claves.",
       "siteSaid": "{site} respondió: {message}",
       "badConnections": "Las conexiones van de 1 a 8.",
-      "running": "Bajando {file}"
+      "running": "Bajando {file}",
+      "openInBrowser": "{site} no dio el enlace directo (cambió su página o pide un captcha): ábrelo en el navegador y deja lo que bajes en Entrada."
     }
   },
   "credentials": {
@@ -574,8 +575,7 @@
       "retroachievements": "RetroAchievements",
       "archives": "Comprimidos",
       "onefichier": "1fichier",
-      "mega": "Mega",
-      "mediafire": "MediaFire"
+      "mega": "Mega"
     },
     "field": {
       "token": "Token",
@@ -605,8 +605,7 @@
       "retroachievements": "Tus logros en juegos retro.",
       "archives": "Las contraseñas que se prueban solas al descomprimir.",
       "onefichier": "Descargar con tu cuenta premium.",
-      "mega": "Descargar con tu cuenta.",
-      "mediafire": "Descargar con tu cuenta."
+      "mega": "Descargar con tu cuenta."
     }
   },
   "tasks": {
@@ -1145,11 +1144,12 @@
     "startCount": "Descargar ({count})",
     "state": {
       "unavailable": "No disponible",
-      "blocked": "Falta una cuenta o un captcha",
+      "blocked": "Falta tu cuenta o resolver un captcha",
       "noConnector": "Sitio sin conector",
       "unknown": "No respondió"
     },
     "connections": "Conexiones",
-    "connectionsHelp": "Por archivo. Cada sitio tiene su tope, para no arriesgar tu cuenta: 1fichier usa una."
+    "connectionsHelp": "Por archivo. Cada sitio tiene su tope, para no arriesgar tu cuenta: 1fichier usa una.",
+    "openBrowser": "Abrir en el navegador"
   }
 }

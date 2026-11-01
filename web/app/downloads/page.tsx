@@ -40,7 +40,7 @@ function Downloads() {
   // El capturador (#203): solo lo que pegas o arrastras aquí; nunca lee el portapapeles.
   const check = useMutation({
     mutationFn: () => request<PackagePreview[]>("/api/downloads/preview", post({ text })),
-    onSuccess: (data) => setOff(new Set(data.filter((p) => p.links.some((l) => l.state === "unavailable" || l.state === "noConnector")).map((p) => p.name))),
+    onSuccess: (data) => setOff(new Set(data.filter((p) => p.links.some((l) => l.state === "unavailable" || l.state === "noConnector" || l.state === "blocked")).map((p) => p.name))),
   });
   const chosen = (check.data ?? []).filter((p) => !off.has(p.name));
   const add = useMutation({
@@ -51,6 +51,8 @@ function Downloads() {
     onSuccess: () => { setText(""); check.reset(); refresh(); },
     onError: refresh,
   });
+  // Un captcha o un sitio sin conector los resuelves tú en el navegador (#228); lo que bajes, déjalo en Entrada.
+  const open = useMutation({ mutationFn: (url: string) => request<void>("/api/downloads/open", post({ url })) });
   const toggle = (name: string) => setOff((old) => {
     const next = new Set(old);
     if (next.has(name)) next.delete(name); else next.add(name);
@@ -87,6 +89,7 @@ function Downloads() {
           </label>
         </div>
         {check.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(check.error)}</p>}
+        {open.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(open.error)}</p>}
         {check.data?.length === 0 && <p className="small muted" style={{ margin: 0 }}>{t("noLinks")}</p>}
         {check.data?.map((p) => (
           <label key={p.name} className="version-row small">
@@ -94,7 +97,12 @@ function Downloads() {
               <input type="checkbox" checked={!off.has(p.name)} onChange={() => toggle(p.name)} /> {p.name}
               <span className="muted"> · {t("files", { count: p.links.length })}{Number(p.size) > 0 && ` · ${size(String(p.size))} MB`}</span>
             </span>
-            {p.links.filter((l) => l.state !== "ok").map((l) => <span key={l.url} className="ot-badge ot-badge-review" title={l.url}>{t(`state.${l.state as "unavailable"}`)}</span>)}
+            {p.links.filter((l) => l.state !== "ok").map((l) => (
+              <span key={l.url} className="hero-actions">
+                <span className="ot-badge ot-badge-review" title={l.url}>{t(`state.${l.state as "unavailable"}`)}</span>
+                {(l.state === "blocked" || l.state === "noConnector") && <button className="ot-btn ot-btn-sm" type="button" onClick={(e) => { e.preventDefault(); open.mutate(l.url); }}>{t("openBrowser")}</button>}
+              </span>
+            ))}
           </label>
         ))}
         {check.data && check.data.length > 0 && (

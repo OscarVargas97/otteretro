@@ -8,6 +8,7 @@ public record AppState(string Version, string? DataFolder, bool Configured, stri
 public record FolderRequest(string Path);
 public record LanguageRequest(string Language);
 public record MenuRequest(bool Collapsed);
+public record OpenLinkRequest(string Url);
 /// <param name="Channel">stable, testing o custom (#180).</param>
 /// <param name="Origin">Con custom: carpeta, URL o repo de GitHub.</param>
 /// <param name="Origin">Con «custom», el otro origen; con «local», la carpeta de los paquetes de este equipo (#163).</param>
@@ -153,6 +154,13 @@ public static class Endpoints
         });
 
         // Abre en el navegador del sistema dónde se consigue la clave; solo URLs del catálogo.
+        // Lo que pide un captcha o no tiene conector se abre en el navegador, para resolverlo tú (#228). Solo enlaces web.
+        api.MapPost("/downloads/open", Results<Ok, BadRequest<ApiError>, Conflict<ApiError>> (OpenLinkRequest request) =>
+        {
+            if (!Uri.TryCreate(request.Url, UriKind.Absolute, out var url) || url.Scheme is not ("http" or "https")) return TypedResults.BadRequest(ApiError.Of("download.badLink"));
+            return Open(url.ToString()) ? TypedResults.Ok() : TypedResults.Conflict(ApiError.Of("link.openFailed"));
+        });
+
         api.MapPost("/credentials/{id}/open", Results<Ok, NotFound, Conflict<ApiError>> (string id) =>
         {
             if (Credentials.Kinds.FirstOrDefault(k => k.Id == id) is not { } kind) return TypedResults.NotFound();

@@ -550,7 +550,8 @@
       "badAccount": "{site} rejected your account: check it in Settings › Accounts and keys.",
       "siteSaid": "{site} answered: {message}",
       "badConnections": "Connections go from 1 to 8.",
-      "running": "Downloading {file}"
+      "running": "Downloading {file}",
+      "openInBrowser": "{site} did not give the direct link (its page changed or it asks for a captcha): open it in the browser and leave what you download in Entrada."
     }
   },
   "credentials": {
@@ -574,8 +575,7 @@
       "retroachievements": "RetroAchievements",
       "archives": "Compressed files",
       "onefichier": "1fichier",
-      "mega": "Mega",
-      "mediafire": "MediaFire"
+      "mega": "Mega"
     },
     "field": {
       "token": "Token",
@@ -605,8 +605,7 @@
       "retroachievements": "Your achievements in retro games.",
       "archives": "Passwords tried automatically when extracting.",
       "onefichier": "Download with your premium account.",
-      "mega": "Download with your account.",
-      "mediafire": "Download with your account."
+      "mega": "Download with your account."
     }
   },
   "tasks": {
@@ -1145,11 +1144,12 @@
     "startCount": "Download ({count})",
     "state": {
       "unavailable": "Not available",
-      "blocked": "Needs an account or a captcha",
+      "blocked": "Needs your account or solving a captcha",
       "noConnector": "Site without a connector",
       "unknown": "No answer"
     },
     "connections": "Connections",
-    "connectionsHelp": "Per file. Each site has its cap, so your account is not at risk: 1fichier uses one."
+    "connectionsHelp": "Per file. Each site has its cap, so your account is not at risk: 1fichier uses one.",
+    "openBrowser": "Open in browser"
   }
 }
