@@ -32,6 +32,15 @@ export function TopBar({ title, crumbs }: { title: string; crumbs?: "/saga" | "/
   const active = Number(update?.phase === "Checking" || update?.phase === "Downloading") + Number(moving)
     + tasks.filter((t) => t.status === "queued" || t.status === "running").length;
   const busy = active > 0;
+  // Su alto, para que lo fijo de cada pantalla (filtros de Sagas) quede justo debajo (#170).
+  const header = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = header.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => document.documentElement.style.setProperty("--top-h", `${el.offsetHeight}px`));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -49,7 +58,7 @@ export function TopBar({ title, crumbs }: { title: string; crumbs?: "/saga" | "/
   }, []);
 
   return (
-    <header className="top">
+    <header className="top" ref={header}>
       <h1 className={crumbs ? "sr-only" : undefined}>{title}</h1>
       {crumbs && <Suspense fallback={null}><Crumbs path={crumbs} /></Suspense>}
       <button className="search" type="button" onClick={() => setSearching(true)}>

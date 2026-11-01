@@ -534,7 +534,8 @@
       "emptyText": "Las sagas y sus juegos se cargan desde IGDB. Pega la cuenta en Ajustes › Cuentas y claves y carga una saga con «otteretro catalogo cargar --saga zelda».",
       "noMatch": "Ninguna saga cumple el filtro.",
       "platform": "Empresa o consola",
-      "allPlatforms": "Todas las consolas"
+      "allPlatforms": "Todas las consolas",
+      "total": "{count, plural, one {# saga} other {# sagas}}"
     },
     "saga": {
       "back": "← Sagas",
@@ -659,7 +660,10 @@
     },
     "goToSagas": "Ver Sagas",
     "openConsoles": "Abrir Consolas",
-    "openCredentials": "Abrir Cuentas y claves"
+    "openCredentials": "Abrir Cuentas y claves",
+    "iconic": "Icónica",
+    "exclusiveOf": "Exclusiva de {company}",
+    "ofTotal": "{done} de {total}"
   },
   "notices": {
     "title": "Avisos",
@@ -733,10 +737,11 @@
   "home": {
     "next": "Siguiente en tus rutas",
     "nextEmpty": "Sigue una ruta en una saga y aquí verás tu siguiente juego.",
-    "step": "{saga} · {route} · {done} de {total}",
     "review": "Revisar",
     "reviewCount": "{count} resultados de Claude por aprobar",
-    "reviewNone": "Nada por revisar.",
-    "nextEmptyTitle": "Todavía no sigues ninguna ruta"
+    "nextEmptyTitle": "Todavía no sigues ninguna ruta",
+    "viewGame": "Ver ficha",
+    "routeOf": "{saga} · {route}",
+    "progress": "{done} de {total} jugados"
   }
 }

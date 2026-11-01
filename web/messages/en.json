@@ -534,7 +534,8 @@
       "emptyText": "Series and their games are loaded from IGDB. Paste the account in Settings › Accounts and keys and load one with “otteretro catalogo cargar --saga zelda”.",
       "noMatch": "No series match this filter.",
       "platform": "Company or console",
-      "allPlatforms": "All consoles"
+      "allPlatforms": "All consoles",
+      "total": "{count, plural, one {# saga} other {# sagas}}"
     },
     "saga": {
       "back": "‹ Series",
@@ -659,7 +660,10 @@
     },
     "goToSagas": "Browse sagas",
     "openConsoles": "Open Consoles",
-    "openCredentials": "Open Accounts and keys"
+    "openCredentials": "Open Accounts and keys",
+    "iconic": "Iconic",
+    "exclusiveOf": "{company} exclusive",
+    "ofTotal": "{done} of {total}"
   },
   "notices": {
     "title": "Notices",
@@ -733,10 +737,11 @@
   "home": {
     "next": "Next in your routes",
     "nextEmpty": "Follow a route in a saga and your next game will show up here.",
-    "step": "{saga} · {route} · {done} of {total}",
     "review": "Review",
     "reviewCount": "{count} Claude results to approve",
-    "reviewNone": "Nothing to review.",
-    "nextEmptyTitle": "You're not following any route yet"
+    "nextEmptyTitle": "You're not following any route yet",
+    "viewGame": "View game",
+    "routeOf": "{saga} · {route}",
+    "progress": "{done} of {total} played"
   }
 }

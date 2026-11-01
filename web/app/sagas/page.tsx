@@ -40,7 +40,8 @@ export default function Sagas() {
   return (
     <div className="content">
       {!nothingLoaded && (
-        <div className="toolbar">
+        // Fija bajo la barra de arriba, con el total (#170).
+        <div className="toolbar toolbar-sticky">
           <div className="chips" role="group" aria-label={t("filters")}>
             {FILTERS.map((f) => chip(f, t(`filter.${f}`)))}
           </div>
@@ -55,6 +56,7 @@ export default function Sagas() {
               {SORTS.map((s) => <option key={s} value={s}>{t(`sort.${s}`)}</option>)}
             </select>
           </label>
+          <span className="small muted tabular toolbar-total" aria-live="polite">{sagas.data ? t("total", { count: sagas.total }) : ""}</span>
         </div>
       )}
       {sagas.isError && <p className="error small" role="alert">{describe(sagas.error)}</p>}

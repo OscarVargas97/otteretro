@@ -366,6 +366,10 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   await page.goto(`${base()}/sagas/`);
   const tiles = page.locator("a.ot-saga");
   await expect(tiles).toHaveCount(60);
+  // #170: el total en la barra de filtros, y la tarjeta con sus insignias y «lo que tienes».
+  await expect(page.locator(".toolbar-total")).toContainText("102");
+  const zelda = tiles.filter({ hasText: "The Legend of Zelda" });
+  await expect(zelda.locator(".ot-badge-iconic")).toHaveText(es.catalog.iconic);
   const menuTop = async () => (await page.locator(".sidebar").boundingBox())!.y;
   const before = await menuTop();
   for (let i = 0; i < 5 && (await tiles.count()) < 102; i++) await page.mouse.wheel(0, 20000);
@@ -505,7 +509,11 @@ test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha
 
   // Ocarina ya está terminado (prueba anterior): lo siguiente es Breath of the Wild.
   await page.goto(`${base()}/`);
-  await expect(page.getByRole("link", { name: /Breath of the Wild/ })).toBeVisible();
+  // #170: tarjeta horizontal con la ruta, el avance y «Ver ficha»; Revisar solo si hay algo (aquí ya se aprobó todo).
+  const card = page.locator(".next-card", { hasText: "Breath of the Wild" });
+  await expect(card.getByRole("link", { name: `${es.home.viewGame}: Breath of the Wild` })).toHaveAttribute("href", "/game/?id=11");
+  await expect(card).toContainText(es.catalog.ofTotal.replace("{done}", "1").replace("{total}", "2"));
+  await expect(page.getByRole("heading", { level: 2, name: es.home.review })).toHaveCount(0);
   await page.screenshot({ path: "e2e-results/14-inicio-es.png", fullPage: true });
 
   // F2.21: terminar Breath of the Wild completa la ruta que sigues: la nutria lo celebra.

@@ -71,6 +71,17 @@ export function GameTile({ game }: { game: GameCard }) {
   );
 }
 
+/** Barra de avance con «3 de 14» al lado (#170). `label` es lo que lee el lector de pantalla. */
+export function Progress({ done, total, label }: { done: number; total: number; label: string }) {
+  const t = useTranslations("catalog");
+  return (
+    <div className="progress-line" role="img" aria-label={label}>
+      <div className="ot-progress"><span style={{ width: `${total > 0 ? (100 * done) / total : 0}%` }} /></div>
+      <span className="small muted tabular" aria-hidden="true">{t("ofTotal", { done, total })}</span>
+    </div>
+  );
+}
+
 /** Tarjeta de saga (componente SagaCard). La id 0 es «Emulación», los juegos sin saga. */
 export function SagaTile({ saga }: { saga: SagaCard }) {
   const t = useTranslations("catalog");
@@ -81,14 +92,19 @@ export function SagaTile({ saga }: { saga: SagaCard }) {
     <Link className="ot-saga" href={`/saga/?id=${id}`} style={{ textDecoration: "none", color: "var(--ink)" }}>
       <div className="ot-saga-art" style={cover}><span className="saga-art-name">{name}</span></div>
       <div className="ot-saga-body">
-        <div className="ot-saga-stats">
-          <span>{id === 0 ? t("noSaga") : [saga.favorite && `★ ${t("favorite")}`, saga.following && t("following")].filter(Boolean).join(" · ") || " "}</span>
-          {Number(saga.playtime) > 0 && <span>{hours(saga.playtime)}</span>}
+        {/* Insignias (#170): ★, Icónica y Exclusiva de la empresa. La fila está siempre, así todas las tarjetas miden lo mismo. */}
+        <div className="ot-saga-badges">
+          {id === 0 && <span className="ot-badge">{t("noSaga")}</span>}
+          {saga.favorite && <span className="ot-badge ot-fav">★ {t("favorite")}</span>}
+          {saga.iconic && <span className="ot-badge ot-badge-iconic">{t("iconic")}</span>}
+          {saga.exclusive && <span className="ot-badge ot-badge-info">{t("exclusiveOf", { company: saga.exclusive })}</span>}
+          {saga.following && <span className="ot-badge">{t("following")}</span>}
         </div>
         <div className="ot-saga-stats">
           <span>{t("games", { count: Number(saga.games) })}</span>
-          <span>{t("ownedCount", { count: Number(saga.owned) })}</span>
+          {Number(saga.playtime) > 0 && <span>{hours(saga.playtime)}</span>}
         </div>
+        <Progress done={Number(saga.owned)} total={Number(saga.games)} label={t("ownedCount", { count: Number(saga.owned) })} />
         <div className="chips" style={{ gap: 4 }}><Platforms ids={saga.platforms} /></div>
       </div>
     </Link>

@@ -157,3 +157,20 @@ table.t .num { text-align: right; white-space: nowrap; }
 
 /* Los enlaces con forma de botón van sin subrayado (#169). */
 a.ot-btn, a.chip { text-decoration: none; }
+
+/* Filtros de Sagas fijos bajo la barra de arriba, con el total (#170). */
+.toolbar-sticky { position: sticky; top: var(--top-h, 61px); z-index: 20; background: var(--bg); margin: calc(-1 * var(--space-3)) 0; padding: var(--space-3) 0; }
+.toolbar-total { margin-left: auto; }
+/* Insignias y avance de la tarjeta de saga (#170). */
+.ot-saga-badges { display: flex; flex-wrap: wrap; gap: var(--space-1); min-height: 20px; }
+.ot-badge.ot-fav { color: var(--accent); background: var(--accent-soft); }
+.ot-badge-iconic { background: var(--review-soft); color: var(--review); }
+.progress-line { display: flex; align-items: center; gap: var(--space-2); }
+.progress-line .ot-progress { flex: 1; }
+/* Siguiente en tus rutas (#170): una tarjeta horizontal por ruta. */
+.next-list { display: flex; flex-direction: column; gap: var(--space-2); }
+.next-card { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3); background: var(--surface); border-radius: var(--radius-lg); }
+.next-card .ot-cover { width: 48px; flex: none; padding: 0; font-size: 0; border-radius: var(--radius-md); }
+.next-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.next-body .ot-game-name { font-size: 16px; line-height: 24px; }
+.next-body .progress-line { max-width: 320px; }

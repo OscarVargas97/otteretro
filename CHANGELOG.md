@@ -13,6 +13,8 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **Descubrir, Descargas, Herramientas y Steam** se ven atenuadas en el menú con la fase en que llegan, y no se abren.
 - **Cada pantalla vacía** dice qué hacer y lleva ahí con un botón.
 - Los botones que son enlaces ya no van subrayados.
+- **Inicio**: «Siguiente en tus rutas» es una tarjeta por ruta con la saga, la ruta, cuánto llevas y «Ver ficha»; el bloque Revisar aparece solo si hay algo por aprobar.
+- **Sagas**: los filtros quedan fijos al bajar y dicen cuántas sagas hay; cada tarjeta muestra si es favorita, icónica o exclusiva de una empresa, y una barra con cuántos juegos tienes («3 de 14»).
 
 ## 0.2.0 · Claude ordena el catálogo
 
