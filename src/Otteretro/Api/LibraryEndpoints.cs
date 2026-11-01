@@ -1,3 +1,4 @@
+using Dapper;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Otteretro.App;
 using Otteretro.Data;
@@ -5,17 +6,26 @@ using Otteretro.Libraries;
 
 namespace Otteretro.Api;
 
-public record LibraryRequest(string Path, string? Name = null);
+/// <param name="Type">game, emulator, port, complement o system (#198).</param>
+public record LibraryRequest(string Path, string? Name = null, string Type = "game");
 public record RenameRequest(string Name);
 public record ReconnectRequest(string? Path = null);
 /// <param name="Relative">Carpeta dentro de la biblioteca (una consola o un juego).</param>
 /// <param name="ToLibrary">Biblioteca de destino (sin ella, la misma).</param>
 /// <param name="ToRelative">Ruta dentro del destino (sin ella, la misma).</param>
 public record MoveFolderRequest(string Relative, string? ToLibrary = null, string? ToRelative = null);
+/// <param name="Path">La instalación (una carpeta de versión de lo instalado).</param>
+/// <param name="ToLocation">Ubicación de su tipo; sin ella, de vuelta a `Herramientas` de la carpeta de datos.</param>
+public record MoveToolRequest(string Path, string? ToLocation = null);
+public record DestinationRequest(string? LocationId);
+/// <summary>Todo lo de una consola junto (#192): juegos, sistema, emuladores, ports con su juego y complementos.</summary>
+/// <param name="Destination">La ubicación de juegos de lo nuevo (#195).</param>
+public record ConsoleDetail(string Id, string Name, string? Destination, List<ConsoleFolder> Games, List<ConsoleFolder> System,
+    List<ToolInfo> Emulators, List<ToolInfo> Ports, List<ToolInfo> Complements);
 /// <param name="Task">La migración de la estructura antigua que quedó en la cola, si hacía falta.</param>
 public record AdoptResult(string Id, long? Task, List<LibraryInfo> Libraries);
 
-/// <summary>Bibliotecas (§5, F3) y Herramientas instaladas.</summary>
+/// <summary>Ubicaciones por tipo (§5, F3, #198), Herramientas instaladas y el detalle de cada consola (#192).</summary>
 public static class LibraryEndpoints
 {
     static DateTime lastSearch;
@@ -23,7 +33,7 @@ public static class LibraryEndpoints
 
     public static void Map(RouteGroupBuilder api)
     {
-        api.MapGet("/libraries", Results<Ok<List<LibraryInfo>>, Conflict<ApiError>> (AppSession s) =>
+        api.MapGet("/locations", Results<Ok<List<LibraryInfo>>, Conflict<ApiError>> (AppSession s) =>
         {
             if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
             var list = Library.List(db);
@@ -38,25 +48,25 @@ public static class LibraryEndpoints
             return TypedResults.Ok(list);
         });
 
-        api.MapPost("/libraries", Results<Ok<List<LibraryInfo>>, BadRequest<ApiError>, Conflict<ApiError>> (LibraryRequest request, AppSession s) =>
+        api.MapPost("/locations", Results<Ok<List<LibraryInfo>>, BadRequest<ApiError>, Conflict<ApiError>> (LibraryRequest request, AppSession s) =>
         {
             if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
-            var (_, error) = Library.Create(db, request.Path, request.Name);
+            var (_, error) = Library.Create(db, request.Path, request.Name, request.Type);
             return error is null ? TypedResults.Ok(Library.List(db)) : TypedResults.BadRequest(error);
         });
 
         // Adoptar (§5.3): una carpeta con marcador, una cualquiera o una con la estructura antigua, que se migra en una tarea.
-        api.MapPost("/libraries/adopt", Results<Ok<AdoptResult>, BadRequest<ApiError>, Conflict<ApiError>> (LibraryRequest request, AppSession s) =>
+        api.MapPost("/locations/adopt", Results<Ok<AdoptResult>, BadRequest<ApiError>, Conflict<ApiError>> (LibraryRequest request, AppSession s) =>
         {
             if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
-            var (id, legacy, error) = Library.Adopt(db, request.Path, request.Name);
+            var (id, legacy, error) = Library.Adopt(db, request.Path, request.Name, request.Type);
             if (error is not null) return TypedResults.BadRequest(error);
             long? task = legacy ? LibraryTasks.EnqueueAdopt(db, id!) : null;
             return TypedResults.Ok(new AdoptResult(id!, task, Library.List(db)));
         });
 
         // Las que quedaron con la estructura antigua (adoptadas antes, o la migración se cortó con un error) se migran desde acá.
-        api.MapPost("/libraries/{id}/migrate", Results<Ok<long>, NotFound, Conflict<ApiError>> (string id, AppSession s) =>
+        api.MapPost("/locations/{id}/migrate", Results<Ok<long>, NotFound, Conflict<ApiError>> (string id, AppSession s) =>
         {
             if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
             if (Library.Get(db, id) is not { } library) return TypedResults.NotFound();
@@ -64,21 +74,21 @@ public static class LibraryEndpoints
             return TypedResults.Ok(LibraryTasks.EnqueueAdopt(db, id));
         });
 
-        api.MapPut("/libraries/{id}", Results<Ok<List<LibraryInfo>>, BadRequest<ApiError>, Conflict<ApiError>> (string id, RenameRequest request, AppSession s) =>
+        api.MapPut("/locations/{id}", Results<Ok<List<LibraryInfo>>, BadRequest<ApiError>, Conflict<ApiError>> (string id, RenameRequest request, AppSession s) =>
         {
             if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
             return Library.Rename(db, id, request.Name) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(Library.List(db));
         });
 
         // Quitar saca del registro y nunca borra archivos (§5.3).
-        api.MapDelete("/libraries/{id}", Results<Ok<List<LibraryInfo>>, NotFound, Conflict<ApiError>> (string id, AppSession s) =>
+        api.MapDelete("/locations/{id}", Results<Ok<List<LibraryInfo>>, NotFound, Conflict<ApiError>> (string id, AppSession s) =>
         {
             if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
             return Library.Remove(db, id) ? TypedResults.Ok(Library.List(db)) : TypedResults.NotFound();
         });
 
         // Reconectar: en la ruta que indicas (su marcador tiene que ser el de esta biblioteca) o buscando en los discos.
-        api.MapPost("/libraries/{id}/reconnect", Results<Ok<List<LibraryInfo>>, BadRequest<ApiError>, NotFound, Conflict<ApiError>> (string id, ReconnectRequest request, AppSession s) =>
+        api.MapPost("/locations/{id}/reconnect", Results<Ok<List<LibraryInfo>>, BadRequest<ApiError>, NotFound, Conflict<ApiError>> (string id, ReconnectRequest request, AppSession s) =>
         {
             if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
             if (Library.Get(db, id) is null) return TypedResults.NotFound();
@@ -92,7 +102,7 @@ public static class LibraryEndpoints
         });
 
         // Mover o migrar (§5.3): la biblioteca entera, o una consola o un juego (a otra biblioteca o a otra ruta), en una tarea.
-        api.MapPost("/libraries/{id}/move", Results<Ok<long>, BadRequest<ApiError>, NotFound, Conflict<ApiError>> (string id, FolderRequest request, AppSession s) =>
+        api.MapPost("/locations/{id}/move", Results<Ok<long>, BadRequest<ApiError>, NotFound, Conflict<ApiError>> (string id, FolderRequest request, AppSession s) =>
         {
             if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
             if (Library.Get(db, id) is not { } library) return TypedResults.NotFound();
@@ -101,7 +111,7 @@ public static class LibraryEndpoints
             return error is null ? TypedResults.Ok(task!.Value) : TypedResults.BadRequest(error);
         });
 
-        api.MapPost("/libraries/{id}/move-folder", Results<Ok<long>, BadRequest<ApiError>, NotFound, Conflict<ApiError>> (string id, MoveFolderRequest request, AppSession s) =>
+        api.MapPost("/locations/{id}/move-folder", Results<Ok<long>, BadRequest<ApiError>, NotFound, Conflict<ApiError>> (string id, MoveFolderRequest request, AppSession s) =>
         {
             if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
             if (Library.Get(db, id) is not { } from || (request.ToLibrary is { } t ? Library.Get(db, t) : from) is not { } to) return TypedResults.NotFound();
@@ -118,7 +128,7 @@ public static class LibraryEndpoints
         });
 
         // Paso 4 del asistente: carpetas con la estructura antigua en la raíz de los discos que todavía no son bibliotecas.
-        api.MapGet("/libraries/detect", Results<Ok<List<string>>, Conflict<ApiError>> (AppSession s) =>
+        api.MapGet("/locations/detect", Results<Ok<List<string>>, Conflict<ApiError>> (AppSession s) =>
         {
             if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
             var known = Library.List(db).Select(l => l.Path).ToList();
@@ -130,11 +140,60 @@ public static class LibraryEndpoints
             return TypedResults.Ok(found);
         });
 
-        // Ajustes › Consolas (#190): en qué biblioteca están los juegos de cada consola.
-        api.MapGet("/libraries/consoles", Results<Ok<List<ConsoleFolder>>, Conflict<ApiError>> (AppSession s) =>
-            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Library.ConsoleFolders(db)) : CatalogEndpoints.NoData());
+        // Ajustes › Consolas (#192): todo lo de una consola junto.
+        api.MapGet("/consoles/{id}/detail", Results<Ok<ConsoleDetail>, NotFound, Conflict<ApiError>> (string id, AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            return Detail(db, id) is { } detail ? TypedResults.Ok(detail) : TypedResults.NotFound();
+        });
+
+        // A qué ubicación de juegos van los juegos nuevos de la consola (#195); null la quita.
+        api.MapPut("/consoles/{id}/destination", Results<Ok<ConsoleDetail>, BadRequest<ApiError>, NotFound, Conflict<ApiError>> (string id, DestinationRequest request, AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            if (request.LocationId is { } l && Library.Get(db, l)?.Type != "game") return TypedResults.BadRequest(ApiError.Of("library.notGames"));
+            if (Detail(db, id) is null) return TypedResults.NotFound();
+            using (var c = db.Open())
+                c.Execute(request.LocationId is null ? "DELETE FROM console_destination WHERE console_id = @id"
+                    : "INSERT INTO console_destination (console_id, library_id) VALUES (@id, @LocationId) ON CONFLICT (console_id) DO UPDATE SET library_id = excluded.library_id",
+                    new { id, request.LocationId });
+            return TypedResults.Ok(Detail(db, id)!);
+        });
 
         api.MapGet("/tools", Results<Ok<List<ToolInfo>>, Conflict<ApiError>> (AppSession s) =>
-            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Recipes.Installed(LibraryTasks.ToolsOf(db))) : CatalogEndpoints.NoData());
+            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Recipes.Installed(Library.ToolRoots(db))) : CatalogEndpoints.NoData());
+
+        // Mover un emulador, port o complemento a otra ubicación de su tipo, o de vuelta a Herramientas (#198), en una tarea.
+        api.MapPost("/tools/move", Results<Ok<long>, BadRequest<ApiError>, NotFound, Conflict<ApiError>> (MoveToolRequest request, AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            if (Recipes.Installed(Library.ToolRoots(db)).FirstOrDefault(t => Library.Same(t.Path, request.Path)) is not { } tool) return TypedResults.NotFound();
+            string root;
+            if (request.ToLocation is { } to)
+            {
+                if (Library.Get(db, to) is not { } location) return TypedResults.NotFound();
+                if (location.Type != tool.Kind) return TypedResults.BadRequest(ApiError.Of("library.otherType"));
+                if (!location.Connected) return TypedResults.Conflict(ApiError.Of("library.notConnected"));
+                root = location.Path;
+            }
+            else root = Recipes.DefaultRoots(LibraryTasks.ToolsOf(db)).First(r => r.Kind == tool.Kind).Path;
+            var (task, error) = LibraryTasks.EnqueueMove(db, new(tool.Path, Path.Combine(root, tool.Folder, tool.Name, tool.Version)));
+            return error is null ? TypedResults.Ok(task!.Value) : TypedResults.BadRequest(error);
+        });
+    }
+
+    public static ConsoleDetail? Detail(Database db, string id)
+    {
+        using var c = db.Open();
+        if (c.QuerySingleOrDefault<(string Id, string Name, string? Destination)>("SELECT k.id, k.name, d.library_id FROM console k LEFT JOIN console_destination d ON d.console_id = k.id WHERE k.id = @id", new { id }) is not { Id: not null } console)
+            return null;
+        bool Mine(string folder) => string.Equals(folder, console.Name, StringComparison.OrdinalIgnoreCase) || string.Equals(folder, console.Id, StringComparison.OrdinalIgnoreCase);
+        var tools = Recipes.Installed(Library.ToolRoots(db));
+        var emulators = tools.Where(t => t.Kind == "emulator" && Mine(t.Folder)).ToList();
+        var ports = tools.Where(t => t.Kind == "port" && Mine(t.Folder)).ToList();
+        var parents = emulators.Concat(ports).Select(t => t.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return new(console.Id, console.Name, console.Destination,
+            Library.ConsoleFolders(db).Where(f => f.Console == id).ToList(), Library.ConsoleFolders(db, "system").Where(f => f.Console == id).ToList(),
+            emulators, ports, tools.Where(t => t.Kind == "complement" && parents.Contains(t.Folder)).ToList());
     }
 }

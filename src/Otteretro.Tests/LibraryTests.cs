@@ -1,4 +1,5 @@
 using Dapper;
+using Otteretro.Api;
 using Otteretro.App;
 using Otteretro.Libraries;
 
@@ -308,5 +309,79 @@ public class LibraryTests
         // Repetir la migración no rompe nada.
         var again = await f.Run(LibraryTasks.EnqueueAdopt(f.Db, Library.List(f.Db).Single().Id));
         Assert.True(again.Status == "done", System.Text.Json.JsonSerializer.Serialize(again.Detail));
+    }
+
+    /// <summary>#198: Dusklight y sus texturas se mudan a ubicaciones de su tipo en otro disco y vuelven, sin perder los enlaces.</summary>
+    [Fact]
+    public async Task ToolsMoveToALocationOfTheirTypeAndBack()
+    {
+        await using var f = new Fixture();
+        var tools = Path.Combine(f.Session.Config.DataFolder!, "Herramientas");
+        var install = Path.Combine(tools, @"Ports\GameCube\Dusklight\1.0");
+        var textures = Path.Combine(tools, @"Complementos\Dusklight\Texturas\original");
+        Write(Path.Combine(install, "dusklight.exe"));
+        Directory.CreateDirectory(Path.Combine(install, "Datos"));
+        File.WriteAllText(Path.Combine(install, @"Datos\config.json"), "{}");
+        Write(Path.Combine(textures, "link.png"));
+        Links.Point(Path.Combine(install, @"Datos\texture_replacements"), textures);
+        var appData = f.Tmp["appdata"];
+        var (ports, _) = Library.Create(f.Db, f.Tmp[@"otro\Ports"], null, "port");
+        var (complements, _) = Library.Create(f.Db, f.Tmp[@"otro\Complementos"], null, "complement");
+        Assert.Equal("library.badType", Library.Create(f.Db, f.Tmp["x"], null, "juegos").Error?.Code);
+
+        var before = Environment.GetEnvironmentVariable("APPDATA");
+        Environment.SetEnvironmentVariable("APPDATA", appData);
+        try
+        {
+            var moved = f.Tmp[@"otro\Ports\GameCube\Dusklight\1.0"];
+            await Done(f, LibraryTasks.EnqueueMove(f.Db, new(install, moved)).Task!.Value);
+            var movedTextures = f.Tmp[@"otro\Complementos\Dusklight\Texturas\original"];
+            await Done(f, LibraryTasks.EnqueueMove(f.Db, new(textures, movedTextures)).Task!.Value);
+
+            var installed = Recipes.Installed(Library.ToolRoots(f.Db));
+            Assert.Equal(ports, installed.Single(t => t.RecipeId == "dusklight").LocationId);
+            Assert.Equal("The Legend of Zelda: Twilight Princess", installed.Single(t => t.RecipeId == "dusklight").Game);
+            Assert.Equal(complements, installed.Single(t => t.RecipeId == "dusklight-texturas").LocationId);
+            // Las texturas se ven desde el port movido, y AppData apunta a la instalación nueva.
+            Assert.True(File.Exists(Path.Combine(moved, @"Datos\texture_replacements\link.png")));
+            Assert.True(Library.Same(new DirectoryInfo(Path.Combine(appData, @"TwilitRealm\Dusklight")).LinkTarget!.Replace(@"\??\", ""), Path.Combine(moved, "Datos")));
+
+            // Y de vuelta a Herramientas.
+            await Done(f, LibraryTasks.EnqueueMove(f.Db, new(moved, install)).Task!.Value);
+            Assert.True(File.Exists(Path.Combine(install, @"Datos\texture_replacements\link.png")));
+            Assert.Null(Recipes.Installed(Library.ToolRoots(f.Db)).Single(t => t.RecipeId == "dusklight").LocationId);
+        }
+        finally { Environment.SetEnvironmentVariable("APPDATA", before); }
+    }
+
+    static async Task Done(Fixture f, long task)
+    {
+        var result = await f.Run(task);
+        Assert.True(result.Status == "done", System.Text.Json.JsonSerializer.Serialize(result.Detail));
+    }
+
+    /// <summary>#192, #195: el detalle de GameCube junta la ISO, Dolphin, Dusklight con su juego, sus texturas y la BIOS.</summary>
+    [Fact]
+    public async Task ConsoleDetailBringsEverythingTogether()
+    {
+        await using var f = new Fixture();
+        var tools = Path.Combine(f.Session.Config.DataFolder!, "Herramientas");
+        var (games, _) = Library.Create(f.Db, f.Tmp["juegos"], "Juegos");
+        Library.Create(f.Db, f.Tmp["sistema"], "Sistema", "system");
+        Write(f.Tmp[@"juegos\GameCube\TP\tp.iso"]);
+        Write(f.Tmp[@"sistema\GameCube\IPL.bin"]);
+        Write(Path.Combine(tools, @"Emuladores\GameCube\Dolphin\2506\Dolphin.exe"));
+        Write(Path.Combine(tools, @"Ports\GameCube\Dusklight\1.0\dusklight.exe"));
+        Write(Path.Combine(tools, @"Complementos\Dusklight\Texturas\original\link.png"));
+        Write(Path.Combine(tools, @"Emuladores\Switch\Ryujinx SS4K\1.0\Ryujinx.exe"));
+
+        var d = LibraryEndpoints.Detail(f.Db, "gc")!;
+        Assert.Equal([(games!, "GameCube")], d.Games.Select(x => (x.LibraryId, x.Relative)));
+        Assert.Single(d.System);
+        Assert.Equal(["Dolphin"], d.Emulators.Select(x => x.Name));
+        Assert.Equal("The Legend of Zelda: Twilight Princess", Assert.Single(d.Ports).Game);
+        Assert.Equal(["Texturas"], d.Complements.Select(x => x.Name));
+        Assert.Null(d.Destination);
+        Assert.Empty(LibraryEndpoints.Detail(f.Db, "n64")!.Emulators);
     }
 }

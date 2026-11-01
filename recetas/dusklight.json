@@ -3,6 +3,7 @@
   "name": "Dusklight",
   "kind": "port",
   "folder": "GameCube",
+  "game": "The Legend of Zelda: Twilight Princess",
   "detect": "dusklight.exe",
   "version": { "from": "exe" },
   "portable": [{ "type": "junction", "path": "Datos", "link": "%APPDATA%/TwilitRealm/Dusklight", "system": "windows" }],

@@ -51,7 +51,9 @@ public static class LibraryTasks
             else if (job.FromLibrary is not null)
                 MoveSources(c, job.FromLibrary, job.FromRelative!, job.ToLibrary ?? job.FromLibrary, job.ToRelative!);
         }
-        var changed = RewriteAll(ToolsOf(run.Db), job.From, job.To);
+        var installed = Recipes.Installed(Library.ToolRoots(run.Db));
+        var changed = RewriteAll(installed, job.From, job.To);
+        Relink(installed, job.From, job.To);
         run.Log(ApiError.Of("library.log.moved", ("from", job.From), ("to", job.To), ("paths", changed.ToString())));
         return Task.CompletedTask;
     }
@@ -127,9 +129,31 @@ public static class LibraryTasks
     }
 
     /// <summary>Reescribe las rutas a juegos de todo lo instalado con receta. Devuelve cuántas cambió.</summary>
-    public static int RewriteAll(string tools, string from, string to) =>
-        Recipes.Installed(tools).Where(t => t.RecipeId is not null)
-            .Sum(t => Recipes.RewriteGamePaths(Recipes.Find(t.RecipeId!)!, t.Path, from, to));
+    public static int RewriteAll(string tools, string from, string to) => RewriteAll(Recipes.Installed(tools), from, to);
+
+    static int RewriteAll(List<ToolInfo> installed, string from, string to) =>
+        installed.Where(t => t.RecipeId is not null).Sum(t => Recipes.RewriteGamePaths(Recipes.Find(t.RecipeId!)!, t.Path, from, to));
+
+    /// <summary>
+    /// Tras mover una herramienta o una ubicación de herramientas (#198): los complementos enlazados dentro de un emulador o
+    /// port apuntan a su ruta nueva, y lo que quedó dentro del destino vuelve a hacerse portable, para que sus enlaces de
+    /// fuera (como el de AppData de Dusklight) apunten a la instalación nueva.
+    /// </summary>
+    static void Relink(List<ToolInfo> installed, string from, string to)
+    {
+        foreach (var tool in installed.Where(t => t.RecipeId is not null && t.Kind != "complement"))
+        {
+            var recipe = Recipes.Find(tool.RecipeId!)!;
+            foreach (var complement in Recipes.All.Where(r => r.Parent == recipe.Id))
+            {
+                var inside = Path.Combine(tool.Path, complement.Link!);
+                if (Links.IsLink(inside) && Recipes.Moved(new DirectoryInfo(inside).LinkTarget!.Replace(@"\??\", ""), from, to) is { } moved)
+                    Links.Point(inside, moved);
+            }
+            if ((Library.Same(tool.Path, to) || Library.Inside(tool.Path, to)) && recipe.Portable.Any(s => s.Type == "junction"))
+                Recipes.MakePortable(recipe, tool.Path);
+        }
+    }
 
     /// <summary>Los archivos registrados bajo <paramref name="fromRelative"/> pasan a <paramref name="toRelative"/> (§5.4: id de biblioteca + ruta relativa).</summary>
     static void MoveSources(Microsoft.Data.Sqlite.SqliteConnection c, string fromLibrary, string fromRelative, string toLibrary, string toRelative)
