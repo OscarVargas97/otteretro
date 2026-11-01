@@ -17,6 +17,7 @@
     <PackageReference Include="MegaApiClient" Version="1.10.5" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.13" />
+    <PackageReference Include="MonoTorrent" Version="3.0.2" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="Photino.NET" Version="4.0.16" />
     <PackageReference Include="SharpCompress" Version="0.50.7" />

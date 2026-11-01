@@ -26,6 +26,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **1fichier con tu cuenta premium** (#204): pega tu clave de API en Ajustes › Cuentas y claves y sus enlaces bajan por la API oficial, a su ritmo, con una conexión y esperando si el sitio lo pide. Las conexiones de los demás se ajustan en Descargas, por debajo del tope de cada sitio.
 - **Mega** (#205): archivos y carpetas compartidas, con la cuota gratis o con tu cuenta si la cargas. Si la descarga se corta, ese archivo vuelve a empezar.
 - **MediaFire y sitios sin premium** (#206): MediaFire baja sus enlaces públicos sin cuenta. Lo que pide un captcha, una espera que no se puede cumplir aquí o no tiene conector no se salta: Otteretro te ofrece abrirlo en el navegador para que lo resuelvas tú, y lo que bajes lo dejas en `Entrada`.
+- **Torrents y magnets** (#207): se pegan como cualquier enlace y van a la misma cola. Mientras bajan también comparten desde tu IP, que es como funciona BitTorrent; al terminar dejan de compartir.
 - La ficha de un juego muestra **dónde tienes sus archivos**, con BASE, UPD y DLC, tamaño y si están verificados.
 
 ### Cambios

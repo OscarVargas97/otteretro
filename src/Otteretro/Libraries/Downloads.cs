@@ -67,7 +67,7 @@ public static partial class Downloads
     const string Partial = ".descargando";
 
     /// <summary>Los conectores, del más específico al más general.</summary>
-    public static List<IDownloadSite> Sites { get; } = [new OneFichierSite(), new MegaSite(), new MediaFireSite(), new DirectSite()];
+    public static List<IDownloadSite> Sites { get; } = [new OneFichierSite(), new MegaSite(), new MediaFireSite(), new TorrentSite(), new DirectSite()];
 
     /// <summary>Conexiones por archivo (#226): pocas por defecto, para no arriesgar una cuenta.</summary>
     public const int DefaultConnections = 2;
