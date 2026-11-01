@@ -464,6 +464,16 @@
       "log": {
         "summary": "{files} archivos: {matched} reconocidos y {pending} por identificar."
       }
+    },
+    "dat": {
+      "downloading": "Bajando los DAT de {console}",
+      "hashing": "Calculando el hash de {path}",
+      "verifyWhat": "Elige una consola o un juego.",
+      "log": {
+        "verified": "{path}: verificado ({name}).",
+        "notInDat": "{path}: su hash no está en el DAT.",
+        "summary": "{verified} verificados y {missing} sin coincidencia."
+      }
     }
   },
   "credentials": {
@@ -542,10 +552,14 @@
       "library": {
         "move": "Mover una ubicación o una carpeta",
         "adopt": "Migrar una ubicación a la estructura nueva",
-        "scan": "Escanear tus discos"
+        "scan": "Escanear tus discos",
+        "verify": "Verificar archivos por hash"
       },
       "disk": {
         "migrate": "Pasar al estándar de discos"
+      },
+      "dat": {
+        "update": "Bajar los DAT de No-Intro y Redump"
       }
     },
     "status": {
@@ -690,7 +704,10 @@
       "otherCompany": "Otras",
       "scan": "Escanear",
       "scanHelp": "Busca tus juegos en Juegos de cada disco y marca lo que tienes.",
-      "scanQueued": "Escaneando: míralo en el panel de tareas."
+      "scanQueued": "Escaneando: míralo en el panel de tareas.",
+      "verify": "Verificar",
+      "verifyHelp": "Calcula el hash de tus archivos de esta consola y lo compara con No-Intro o Redump, sin conexión.",
+      "verifyQueued": "Verificando: míralo en el panel de tareas."
     },
     "game": {
       "noneTitle": "Elige un juego",
@@ -747,7 +764,13 @@
       },
       "cheerGame": "¡Terminaste {name}!",
       "cheerRoute": "¡Completaste la ruta de {saga}!",
-      "cheerClose": "Cerrar"
+      "cheerClose": "Cerrar",
+      "file": "Archivo",
+      "size": "Tamaño",
+      "verified": "Verificado",
+      "notVerified": "Sin verificar",
+      "verify": "Verificar",
+      "verifyQueued": "Verificando: míralo en el panel de tareas."
     },
     "search": {
       "sagas": "Sagas",

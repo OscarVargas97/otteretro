@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:50679/"
+      "url": "http://127.0.0.1:50309/"
     }
   ],
   "paths": {
@@ -1245,6 +1245,60 @@
                     "string"
                   ],
                   "format": "int64"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/collection/verify": {
+      "post": {
+        "tags": [
+          "Otteretro"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "pattern": "^-?(?:0|[1-9]\\d*)$",
+                  "type": [
+                    "integer",
+                    "string"
+                  ],
+                  "format": "int64"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -4029,7 +4083,8 @@
           "company",
           "games",
           "owned",
-          "withPc"
+          "withPc",
+          "hasDat"
         ],
         "type": "object",
         "properties": {
@@ -4068,6 +4123,9 @@
               "string"
             ],
             "format": "int32"
+          },
+          "hasDat": {
+            "type": "boolean"
           }
         }
       },
@@ -4519,6 +4577,47 @@
             "type": "boolean"
           },
           "winner": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FileEntry": {
+        "required": [
+          "id",
+          "path",
+          "component",
+          "size",
+          "verified"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "path": {
+            "type": "string"
+          },
+          "component": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "size": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "verified": {
             "type": "boolean"
           }
         }
@@ -6154,6 +6253,30 @@
           }
         }
       },
+      "VerifyRequest": {
+        "required": [
+          "console",
+          "gameId"
+        ],
+        "type": "object",
+        "properties": {
+          "console": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "gameId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          }
+        }
+      },
       "VersionCompare": {
         "required": [
           "versionId",
@@ -6205,7 +6328,8 @@
           "platform",
           "kind",
           "year",
-          "stores"
+          "stores",
+          "files"
         ],
         "type": "object",
         "properties": {
@@ -6236,6 +6360,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/StoreEntry"
+            }
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileEntry"
             }
           }
         }

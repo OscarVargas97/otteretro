@@ -2,8 +2,9 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useFormatter, useTranslations } from "next-intl";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { Suspense, useEffect, useState } from "react";
+import { size } from "@/lib/format";
 import { Cover, hours, Platforms, useConsoleName, useIdParam } from "@/components/Catalog";
 import { useHeroArt } from "@/components/HeroArt";
 import { Empty } from "@/components/Shell";
@@ -43,7 +44,8 @@ function Game() {
   // La traducción aprobada (Claude, F2.5) o, mientras no la haya, la de IGDB.
   const description = (g.fields.find((f) => f.field === "summary_es") ?? g.fields.find((f) => f.field === "summary"))?.value;
   const stores = g.versions.flatMap((v) => v.stores.map((s) => ({ ...s, platform: v.platform })));
-  const owned = stores.length > 0;
+  const files = g.versions.flatMap((v) => v.files.map((f) => ({ ...f, platform: v.platform })));
+  const owned = stores.length > 0 || files.length > 0;
 
   return (
     <div className="accented" style={hero.style}>
@@ -84,6 +86,7 @@ function Game() {
               </div>
             </section>
           )}
+          {files.length > 0 && <Files gameId={Number(g.id)} files={files} />}
         </div>
 
         {description && (
@@ -312,7 +315,7 @@ function Versions({ game, compare }: { game: GameDetail; compare: VersionCompare
               return (
                 <tr key={v.id}>
                   <td><b>{consoleName(v.platform)}</b> · {t(`kind.${v.kind as "original"}`)}{v.year ? ` · ${v.year}` : ""}{cmp?.best && <span className="ot-badge ot-badge-have" style={{ marginLeft: 6 }}>{t("game.best")}</span>}</td>
-                  <td>{v.stores.length ? <span className="ot-badge ot-badge-have">{v.stores.map((s) => t(`store.${s.store as "steam"}`)).join(" · ")}</span> : <span className="ot-badge">{t("missing")}</span>}</td>
+                  <td>{v.stores.length ? <span className="ot-badge ot-badge-have">{v.stores.map((s) => t(`store.${s.store as "steam"}`)).join(" · ")}</span> : v.files.length ? <span className="ot-badge ot-badge-have">{t("owned")}</span> : <span className="ot-badge">{t("missing")}</span>}</td>
                   {rated && CRITERIA.map((k) => {
                     const c = cmp?.criteria.find((x) => x.criterion === k);
                     const value = Number(c?.value ?? 0);
@@ -321,6 +324,44 @@ function Versions({ game, compare }: { game: GameDetail; compare: VersionCompare
                 </tr>
               );
             })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+/** Tus archivos de este juego (#178), con BASE, UPD y DLC, y «Verificar» por hash contra No-Intro o Redump (#179). */
+function Files({ gameId, files }: { gameId: number; files: (GameDetail["versions"][number]["files"][number] & { platform: string })[] }) {
+  const t = useTranslations("catalog");
+  const locale = useLocale();
+  const describe = useDescribeError();
+  const consoleName = useConsoleName();
+  const cache = useQueryClient();
+  const verify = useMutation({
+    mutationFn: () => request<number>("/api/collection/verify", { method: "POST", body: JSON.stringify({ gameId }) }),
+    onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+  return (
+    <section className="sec column">
+      <div className="sec-h">
+        <h2>{t("game.where")}</h2>
+        <button className="ot-btn ot-btn-sm" type="button" disabled={verify.isPending || verify.isSuccess} onClick={() => verify.mutate()}>{t("game.verify")}</button>
+      </div>
+      {verify.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("game.verifyQueued")}</p>}
+      {verify.isError && <p className="error small" role="alert">{describe(verify.error)}</p>}
+      <div className="panel table-wrap" style={{ padding: 0 }}>
+        <table className="t">
+          <thead><tr><th>{t("game.file")}</th><th>{t("game.version")}</th><th>{t("game.size")}</th><th>{t("game.verified")}</th></tr></thead>
+          <tbody>
+            {files.map((f) => (
+              <tr key={f.id}>
+                <td><span className="folder-path">{f.path}</span>{f.component && <span className="ot-badge" style={{ marginLeft: 6 }}>{f.component}</span>}</td>
+                <td>{consoleName(f.platform)}</td>
+                <td className="tabular">{f.size != null ? size(f.size, locale) : "—"}</td>
+                <td>{f.verified ? <span className="ot-badge ot-badge-have">{t("game.verified")}</span> : <span className="ot-badge">{t("game.notVerified")}</span>}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

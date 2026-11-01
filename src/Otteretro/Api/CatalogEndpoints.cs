@@ -10,6 +10,9 @@ namespace Otteretro.Api;
 public record SagaFlagsRequest(bool? Favorite, bool? Following);
 public record FieldRequest(string? Value);
 
+/// <summary>Una consola o un juego (#179).</summary>
+public record VerifyRequest(string? Console, long? GameId);
+
 /// <summary>Pantallas del catálogo (F1.9): sagas, colección, ficha, seguimiento, búsqueda y avisos de Inicio.</summary>
 public static class CatalogEndpoints
 {
@@ -82,6 +85,12 @@ public static class CatalogEndpoints
         // «Escanear» en Colección (#178): la tarea que reconoce los archivos de cada disco.
         api.MapPost("/collection/scan", Results<Ok<long>, Conflict<ApiError>> (AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(Libraries.Scan.Enqueue(db)) : NoData());
+
+        // «Verificar» (#179): el SHA-1 contra No-Intro o Redump, de una consola o de un juego.
+        api.MapPost("/collection/verify", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (VerifyRequest request, AppSession s) =>
+            Db(s) is not { } db ? NoData()
+            : request.Console is null == request.GameId is null ? TypedResults.BadRequest(ApiError.Of("dat.verifyWhat"))
+            : TypedResults.Ok(Libraries.Dats.EnqueueVerify(db, request.Console, request.GameId)));
 
         api.MapGet("/games/{id:long}", Results<Ok<GameDetail>, NotFound, Conflict<ApiError>> (long id, AppSession s) =>
             Db(s) is not { } db ? NoData() : CatalogQueries.Game(db, id) is { } game ? TypedResults.Ok(game) : TypedResults.NotFound());

@@ -1446,6 +1446,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/collection/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["VerifyRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": number | string;
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/games/{id}": {
         parameters: {
             query?: never;
@@ -4256,6 +4313,7 @@ export interface components {
             owned: number | string;
             /** Format: int32 */
             withPc: number | string;
+            hasDat: boolean;
         };
         ConsoleDetail: {
             id: string;
@@ -4358,6 +4416,15 @@ export interface components {
             source: string;
             manual: boolean;
             winner: boolean;
+        };
+        FileEntry: {
+            /** Format: int64 */
+            id: number | string;
+            path: string;
+            component: null | string;
+            /** Format: int64 */
+            size: null | number | string;
+            verified: boolean;
         };
         FolderInfo: {
             path: null | string;
@@ -4708,6 +4775,11 @@ export interface components {
             costUsd: number | string;
             createdAt: string;
         };
+        VerifyRequest: {
+            console: null | string;
+            /** Format: int64 */
+            gameId: null | number | string;
+        };
         VersionCompare: {
             /** Format: int64 */
             versionId: number | string;
@@ -4726,6 +4798,7 @@ export interface components {
             /** Format: int32 */
             year: null | number | string;
             stores: components["schemas"]["StoreEntry"][];
+            files: components["schemas"]["FileEntry"][];
         };
     };
     responses: never;

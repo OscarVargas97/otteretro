@@ -43,6 +43,11 @@ function Collection() {
     mutationFn: () => request<number>("/api/collection/scan", { method: "POST" }),
     onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
   });
+  // «Verificar» (#179): el hash de lo que tienes de esta consola contra No-Intro o Redump.
+  const verify = useMutation({
+    mutationFn: () => request<number>("/api/collection/verify", { method: "POST", body: JSON.stringify({ console: selected }) }),
+    onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
+  });
   // Sin consola en la URL, la primera que tenga juegos.
   const selected = useSearchParams().get("console") ?? consoles.data?.find((c) => Number(c.games) > 0)?.id ?? consoles.data?.[0]?.id;
   const current = consoles.data?.find((c) => c.id === selected);
@@ -81,6 +86,9 @@ function Collection() {
           </div>
           <div className="toolbar-end">
             <button className="ot-btn" type="button" title={t("collection.scanHelp")} disabled={scan.isPending} onClick={() => scan.mutate()}>{t("collection.scan")}</button>
+            {current?.hasDat && Number(current.owned) > 0 && (
+              <button className="ot-btn" type="button" title={t("collection.verifyHelp")} disabled={verify.isPending} onClick={() => verify.mutate()}>{t("collection.verify")}</button>
+            )}
             <select className="ot-btn" aria-label={t("collection.sortLabel")} value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
               {SORTS.map((s) => <option key={s} value={s}>{t(`collection.sort.${s}`)}</option>)}
             </select>
@@ -102,6 +110,8 @@ function Collection() {
         )}
         {scan.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("collection.scanQueued")}</p>}
         {scan.isError && <p className="error small" role="alert">{describe(scan.error)}</p>}
+        {verify.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("collection.verifyQueued")}</p>}
+        {verify.isError && <p className="error small" role="alert">{describe(verify.error)}</p>}
         {page.isError && <p className="error small" role="alert">{describe(page.error)}</p>}
         {page.data && games.length === 0 && unlinked.length === 0 && (
           <Empty title={t("collection.emptyTitle")} text={t("collection.emptyText", { console: selected ?? "" })}><Link className="ot-btn" href="/settings/?s=consoles">{t("openConsoles")}</Link></Empty>

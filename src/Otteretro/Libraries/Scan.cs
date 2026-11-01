@@ -75,10 +75,15 @@ public static partial class Scan
 
             // Cada archivo con su versión: por nombre, o por el TitleID base (UPD y DLC van con su BASE).
             var versions = catalog.GetValueOrDefault(console) ?? [];
-            var byName = found.ToDictionary(f => f, f => Match(versions, f.Name) ?? (f.Folder is null ? null : Match(versions, f.Folder)));
+            using var c = run.Db.Open();
+            var hashes = c.Query<(string Path, string Sha1, long Size)>(
+                    "SELECT relative_path, sha1, size FROM source WHERE kind = 'file' AND library_id = @libraryId AND sha1 IS NOT NULL", new { libraryId })
+                .ToDictionary(r => r.Path, r => r, StringComparer.OrdinalIgnoreCase);
+            // Por nombre, por el de su carpeta y, si no, por el nombre del DAT: con el hash ya calculado (#179) o con el serial.
+            var byName = found.ToDictionary(f => f, f => Match(versions, f.Name) ?? (f.Folder is null ? null : Match(versions, f.Folder))
+                ?? (DatName(c, f, hashes.TryGetValue(f.Relative, out var h) && h.Size == f.Size ? h.Sha1 : null) is { } dat ? Match(versions, dat) : null));
             var byBase = found.Where(f => f.Component is not null && byName[f] is not null)
                 .GroupBy(f => BaseOf(f.TitleId!)).ToDictionary(g => g.Key, g => byName[g.First()]);
-            using var c = run.Db.Open();
             using var t = c.BeginTransaction();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var f in found)
@@ -93,6 +98,8 @@ public static partial class Scan
                     VALUES ('file', @LibraryId, @Relative, @Console, @Size, @Component, @TitleId, @version)
                     ON CONFLICT (library_id, relative_path) WHERE kind = 'file' DO UPDATE SET
                         console = excluded.console, size = excluded.size, component = excluded.component, title_id = excluded.title_id,
+                        sha1 = CASE WHEN source.size = excluded.size THEN source.sha1 END,
+                        verified = CASE WHEN source.size = excluded.size THEN source.verified ELSE 0 END,
                         version_id = coalesce(source.version_id, excluded.version_id)
                     """, new { f.LibraryId, f.Relative, f.Console, f.Size, f.Component, f.TitleId, version }, t);
             }
@@ -123,6 +130,25 @@ public static partial class Scan
         return result;
     }
 
+    /// <summary>El nombre que le da el DAT de su consola, por su SHA-1 o por el serial del disco («GZ2P01» está en «DL-DOL-GZ2P-EUR»).</summary>
+    static string? DatName(Microsoft.Data.Sqlite.SqliteConnection c, Found f, string? sha1) =>
+        sha1 is not null && c.QueryFirstOrDefault<string?>("SELECT name FROM dat_entry WHERE console = @Console AND sha1 = @sha1", new { f.Console, sha1 }) is { } byHash ? byHash
+        : f.Component is null && f.TitleId is { Length: 6 } serial
+            ? c.QueryFirstOrDefault<string?>("SELECT name FROM dat_entry WHERE console = @Console AND serial LIKE @like", new { f.Console, like = $"%-{serial[..4]}-%" })
+            : null;
+
+    /// <summary>La versión de <paramref name="console"/> cuyo juego se llama así, si hay una sola (para lo verificado por hash, #179).</summary>
+    public static long? MatchName(Database db, string console, string name)
+    {
+        var versions = new Dictionary<string, HashSet<long>>();
+        using var c = db.Open();
+        foreach (var (id, es, original) in c.Query<(long, string, string?)>(
+                     "SELECT v.id, g.name_es, g.original_name FROM version v JOIN game g ON g.id = v.game_id WHERE v.platform = @console", new { console }))
+            foreach (var n in new[] { es, original }.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => Normalize(x!)).Distinct())
+                (versions.TryGetValue(n, out var set) ? set : versions[n] = []).Add(id);
+        return Match(versions, name);
+    }
+
     /// <summary>La versión si el nombre coincide con una sola; null si no hay o hay varias (eso queda para Claude, #180).</summary>
     static long? Match(Dictionary<string, HashSet<long>> versions, string name) =>
         versions.TryGetValue(Normalize(name), out var set) && set.Count == 1 ? set.First() : null;
@@ -132,7 +158,7 @@ public static partial class Scan
     /// </summary>
     public static string Normalize(string name)
     {
-        name = Tags().Replace(name, " ").Replace("'", "").Replace("’", "");
+        name = Article().Replace(Tags().Replace(name, " ").Trim(), "$2 $1$3").Replace("'", "").Replace("’", "");
         var plain = new StringBuilder();
         foreach (var ch in name.Normalize(NormalizationForm.FormD))
             if (CharUnicodeInfo.GetUnicodeCategory(ch) != UnicodeCategory.NonSpacingMark)
@@ -179,6 +205,10 @@ public static partial class Scan
 
     [GeneratedRegex(@"\[(0100[0-9A-Fa-f]{12})\]")]
     private static partial Regex TitleIdInName();
+
+    /// <summary>Como lo escriben No-Intro y Redump: «Legend of Zelda, The - Twilight Princess».</summary>
+    [GeneratedRegex(@"^(.+?), (The|A|An)\b(.*)$", RegexOptions.IgnoreCase)]
+    private static partial Regex Article();
 
     [GeneratedRegex(@"\([^)]*\)|\[[^\]]*\]")]
     private static partial Regex Tags();

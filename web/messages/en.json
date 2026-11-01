@@ -464,6 +464,16 @@
       "log": {
         "summary": "{files} files: {matched} recognized and {pending} to identify."
       }
+    },
+    "dat": {
+      "downloading": "Downloading the DATs for {console}",
+      "hashing": "Hashing {path}",
+      "verifyWhat": "Pick a console or a game.",
+      "log": {
+        "verified": "{path}: verified ({name}).",
+        "notInDat": "{path}: its hash is not in the DAT.",
+        "summary": "{verified} verified and {missing} with no match."
+      }
     }
   },
   "credentials": {
@@ -542,10 +552,14 @@
       "library": {
         "move": "Move a location or a folder",
         "adopt": "Migrate a location to the new layout",
-        "scan": "Scan your drives"
+        "scan": "Scan your drives",
+        "verify": "Verify files by hash"
       },
       "disk": {
         "migrate": "Move to the standard drive layout"
+      },
+      "dat": {
+        "update": "Download the No-Intro and Redump DATs"
       }
     },
     "status": {
@@ -690,7 +704,10 @@
       "otherCompany": "Others",
       "scan": "Scan",
       "scanHelp": "Looks for your games in Juegos on each drive and marks what you own.",
-      "scanQueued": "Scanning: follow it in the tasks panel."
+      "scanQueued": "Scanning: follow it in the tasks panel.",
+      "verify": "Verify",
+      "verifyHelp": "Hashes your files for this console and checks them against No-Intro or Redump, offline.",
+      "verifyQueued": "Verifying: follow it in the tasks panel."
     },
     "game": {
       "noneTitle": "Pick a game",
@@ -747,7 +764,13 @@
       },
       "cheerGame": "You finished {name}!",
       "cheerRoute": "You completed the {saga} route!",
-      "cheerClose": "Close"
+      "cheerClose": "Close",
+      "file": "File",
+      "size": "Size",
+      "verified": "Verified",
+      "notVerified": "Not verified",
+      "verify": "Verify",
+      "verifyQueued": "Verifying: follow it in the tasks panel."
     },
     "search": {
       "sagas": "Series",
