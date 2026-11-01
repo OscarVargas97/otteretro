@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-11-01, con la #184 y la #185 (Ajustes en dos columnas y menú lateral retraíble), la #183 (`0.FASE.extra`: F2.5 es 0.2.1 y el plan completo, 1.0.0), la #179 a la #182 (versión por fase, canales de actualización, `main` por defecto y la primera release 0.2.0), la #178 (la imagen de cada saga), la #169 a la #177 (revisión de UI de toda la app y fluidez primero, encuesta 15), la #165 a la #168 (exclusivas, más reconocidas, catálogo separado de tus datos), la #162, la #163 y la #164 (consolas que habilitas tú, catálogo al día cada semana y reevaluar icónicas), la #161 (corregir lo que cambió Claude), la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
+> **Última actualización:** 2026-11-01, con la #186 a la #189 (plan reorganizado desde la F3, adoptar migra a §5.1, Dusklight con su enlace y avisos de versiones nuevas), la #184 y la #185 (Ajustes en dos columnas y menú lateral retraíble), la #183 (`0.FASE.extra`: F2.5 es 0.2.1 y el plan completo, 1.0.0), la #179 a la #182 (versión por fase, canales de actualización, `main` por defecto y la primera release 0.2.0), la #178 (la imagen de cada saga), la #169 a la #177 (revisión de UI de toda la app y fluidez primero, encuesta 15), la #165 a la #168 (exclusivas, más reconocidas, catálogo separado de tus datos), la #162, la #163 y la #164 (consolas que habilitas tú, catálogo al día cada semana y reevaluar icónicas), la #161 (corregir lo que cambió Claude), la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
 
 ## Cómo se mantiene
 
@@ -118,7 +118,7 @@ E:\Consolas\  ·  D:\Juegos\…    ← bibliotecas de JUEGOS (las que quieras, e
 | Operación | Qué hace |
 |---|---|
 | Crear | Elige una carpeta, escribe el marcador y registra la biblioteca. Las carpetas de cada consola se crean cuando hacen falta. |
-| Adoptar | Registra una carpeta con marcador, o una con la estructura antigua. En ese caso crea el marcador y mueve sus emuladores y ports a `Herramientas\`. |
+| Adoptar | Registra una carpeta con marcador, o una con la estructura antigua. En ese caso crea el marcador y la **migra a §5.1** (#187): juegos a `<Consola>\<Juego>`, emuladores y ports a `Herramientas\` con su receta y sus complementos aparte, con las rutas internas al día. |
 | Renombrar / Quitar | Quitar saca la biblioteca del registro. **Nunca borra archivos.** |
 | Reconectar | Si una biblioteca no está en su última ruta, la marca como desconectada y la busca en las raíces de los discos y puntos de montaje (2 niveles), o te deja indicar la ruta. |
 | Mover o migrar | Funciona con una biblioteca, una consola, un juego o un emulador o port. Copia, verifica el hash, actualiza la base de datos, **reescribe las rutas internas** y por último borra el origen. |
@@ -129,7 +129,7 @@ E:\Consolas\  ·  D:\Juegos\…    ← bibliotecas de JUEGOS (las que quieras, e
 - Los juegos de una biblioteca desconectada aparecen como "no disponibles" y no se exportan.
 
 ### 5.5 Migración de lo actual ✅
-- `E:\Consolas` se adopta como primera biblioteca de juegos. Sus emuladores (Dolphin, Ryujinx SS4K), su port (Dusklight) y los packs de texturas pasan a `<carpeta de datos>\Herramientas\`.
+- `E:\Consolas` se adopta como primera biblioteca de juegos y se migra a §5.1 (#187): sus juegos quedan en `<Consola>\<Juego>`; sus emuladores (Dolphin, Ryujinx SS4K) y su port (Dusklight) pasan a `<carpeta de datos>\Herramientas\`, y los packs de texturas a `Herramientas\Complementos\`, enlazados donde los busca cada uno. Dusklight sigue con su enlace de AppData, apuntado a la carpeta nueva (#188).
 - `_Herramientas\Catalogo` se integra al repositorio (§11.6).
 - Carpetas sobrantes: `E:\Roms`, `E:\Emuladores` y `D:\Roms` están aprobadas para borrar, pero lo tienes que hacer tú, porque Claude Code bloquea los borrados en la raíz de un disco.
 
@@ -280,7 +280,7 @@ Todo va en `<carpeta de datos>\Herramientas\` (§5.1). Los **complementos** (pac
 - Puedes cambiar la elección a mano en cada juego, y los valores que usa la regla son editables.
 
 ### 8.4 Actualización ✅
-- La actualización la lanzas tú. La app **avisa** qué emuladores, ports y complementos tienen versión nueva, y tú eliges qué instalar.
+- La actualización la lanzas tú. La app **avisa** dentro de ella (Herramientas, barra lateral e Inicio › Novedades) qué emuladores, ports y complementos tienen versión nueva, y tú eliges qué instalar (#189).
 - La versión nueva se instala **al lado** de la anterior. **La vieja nunca se reemplaza** y puedes volver a ella.
 - **Migración:** antes de actualizar se hace una copia de seguridad puntual. Después se copian las partidas y la configuración según la receta. Cómo guarda sus partidas cada port se investiga al escribir su receta.
 
