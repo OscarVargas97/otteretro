@@ -36,7 +36,8 @@ public static class CatalogUpdate
     public record VersionChange(string Kind, string Change, long Id, string? Name, string? From);
     public record VersionsPage(string Repo, string? Current, List<VersionInfo> Versions);
     record HistoryEntry(string Version, string Kind, string Change, long Id, string? Name = null, string? From = null);
-    record History(List<string> Versions, List<HistoryEntry> Entries);
+    /// <param name="Images">Cuántos juegos cambiaron de imagen en cada versión (otteretro-catalogo#44).</param>
+    record History(List<string> Versions, List<HistoryEntry> Entries, Dictionary<string, int>? Images = null);
     const int ChangesShown = 100;
 
     static string Releases(string repo) => $"https://api.github.com/repos/{repo}/releases?per_page=30";
@@ -102,6 +103,14 @@ public static class CatalogUpdate
 
     record Job(string? Tag);
 
+    /// <summary>Cuántos hay de cada cambio, con las imágenes como «image»: una versión que solo trae imágenes no dice «sin cambios».</summary>
+    static Dictionary<string, int> Counts(List<HistoryEntry> entries, int images)
+    {
+        var counts = entries.GroupBy(e => e.Change).ToDictionary(g => g.Key, g => g.Count());
+        if (images > 0) counts["image"] = images;
+        return counts;
+    }
+
     /// <summary>Bajar una versión para verla (#222); sin <paramref name="tag"/>, la última. Salvo que ya haya una búsqueda esperando.</summary>
     public static long Enqueue(Database db, string? tag = null)
     {
@@ -132,7 +141,7 @@ public static class CatalogUpdate
             var release = releases.FirstOrDefault(r => r.TagName == tag);
             var entries = byVersion.GetValueOrDefault(tag) ?? [];
             return new VersionInfo(tag, release?.PublishedAt, release?.Assets.Any(a => a.Name == DataAsset) == true, tag == current,
-                entries.GroupBy(e => e.Change).ToDictionary(g => g.Key, g => g.Count()),
+                Counts(entries, history?.Images?.GetValueOrDefault(tag) ?? 0),
                 entries.Take(ChangesShown).Select(e => new VersionChange(e.Kind, e.Change, e.Id, e.Name, e.From)).ToList());
         }).ToList());
     }

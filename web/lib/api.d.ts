@@ -4764,9 +4764,18 @@ export interface components {
         CatalogSourceRequest: {
             repo: null | string;
         };
+        CatalogTotals: {
+            /** Format: int32 */
+            sagas: number | string;
+            /** Format: int32 */
+            games: number | string;
+            /** Format: int32 */
+            covers: number | string;
+        };
         CatalogVersion: {
             current: null | string;
             pending: null | components["schemas"]["CatalogChanges"];
+            totals?: null | components["schemas"]["CatalogTotals"];
         };
         ChooseRouteRequest: {
             /** Format: int64 */

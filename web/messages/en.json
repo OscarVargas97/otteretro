@@ -198,7 +198,8 @@
       },
       "show": "Show {name}"
     },
-    "storage": "Storage"
+    "storage": "Storage",
+    "catalogTab": "Catalog"
   },
   "dataFolder": {
     "dismiss": "Dismiss",
@@ -293,7 +294,8 @@
         "removed": "{count, plural, one {# removed} other {# removed}}",
         "renamed": "{count, plural, one {# renamed} other {# renamed}}",
         "changed": "{count, plural, one {# moves saga} other {# move saga}}",
-        "added": "{count, plural, one {# new} other {# new}}"
+        "added": "{count, plural, one {# new} other {# new}}",
+        "image": "{count, plural, one {# game with new images} other {# games with new images}}"
       },
       "ownComparison": "The catalog didn't publish the changes since your version (a fork, or a version it doesn't know): what you see comes from Otteretro's comparison.",
       "mismatch": "{count, plural, one {# change doesn't match} other {# changes don't match}} what the catalog published",
@@ -311,12 +313,20 @@
       "yours": "{count, plural, one {touches # of your items} other {touches # of your items}}",
       "accept": "Accept and apply",
       "reject": "Reject",
-      "versions": "Catalog versions",
+      "versions": "Available versions",
       "yoursBadge": "Yours",
-      "goTo": "See this version",
-      "goBack": "Go back to this version",
+      "goTo": "Use this one",
+      "goBack": "Go back to this one",
       "notAvailable": "No longer downloadable",
-      "noHistory": "No published change details"
+      "noHistory": "No published change details",
+      "inUse": "Catalog in use",
+      "unknownVersion": "Unidentified version",
+      "official": "official",
+      "forkOf": "fork {repo}",
+      "totals": "{sagas, number} sagas · {games, number} games · {covers, number} with a cover",
+      "upToDate": "It is the latest published version.",
+      "newer": "A newer version is available: {version}.",
+      "loadingVersions": "Looking for published versions…"
     }
   },
   "errors": {
