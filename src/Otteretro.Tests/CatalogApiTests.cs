@@ -50,6 +50,29 @@ public class CatalogApiTests : IAsyncLifetime
 
     Task<T?> Get<T>(string url) => http.GetFromJsonAsync<T>(url);
 
+    /// <summary>
+    /// #225: Sagas se arma una vez y queda guardado (también en `cache/sagas.json`); no vuelve a leer el catálogo mientras nada tuyo cambie.
+    /// Lo que haces tú se ve al instante; lo que cambia el escaneo se rehace aparte y llega en el pedido siguiente.
+    /// </summary>
+    [Fact]
+    public async Task SagasAreBuiltOnceAndRenewedWhenSomethingOfYoursChanges()
+    {
+        Assert.Equal(3, (await Get<SagaPage>("/api/sagas"))!.Items.Count);
+        Assert.True(File.Exists(Path.Combine(Path.GetDirectoryName(f.Db.FilePath)!, "cache", "sagas.json")));
+        using (var c = f.Db.Open()) c.Execute("UPDATE catalog.saga SET name = 'Otro nombre' WHERE id = 2"); // el catálogo solo cambia al aceptar una versión
+        Assert.Equal("Half-Life", (await Get<SagaPage>("/api/sagas"))!.Items[0].Name); // sale de lo guardado
+
+        Assert.Equal(HttpStatusCode.OK, (await http.PutAsJsonAsync("/api/sagas/1", new SagaFlagsRequest(null, true))).StatusCode);
+        var sagas = (await Get<SagaPage>("/api/sagas"))!.Items;
+        Assert.True(sagas.Single(s => s.Id == 1).Following); // lo tuyo, al instante
+        Assert.Contains(sagas, s => s.Name == "Otro nombre");
+
+        // Un juego que encuentra el escaneo: se rehace aparte.
+        using (var c = f.Db.Open()) c.Execute("INSERT INTO source (kind, library_id, relative_path, console, version_id) VALUES ('file', NULL, 'oot.z64', 'n64', 100)");
+        for (var i = 0; i < 50 && (await Get<SagaPage>("/api/sagas"))!.Items.Single(s => s.Id == 1).Owned == 0; i++) await Task.Delay(100);
+        Assert.Equal(1, (await Get<SagaPage>("/api/sagas"))!.Items.Single(s => s.Id == 1).Owned);
+    }
+
     /// <summary>#224: desactivar una consola la saca de Sagas, juegos de una saga, búsqueda y Colección; activarla la devuelve. No borra nada.</summary>
     [Fact]
     public async Task AHiddenConsoleIsLeftOutOfWhatIsShown()

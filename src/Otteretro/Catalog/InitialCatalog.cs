@@ -42,6 +42,7 @@ public static class InitialCatalog
                 // Las consolas ya vienen de las migraciones.
                 if (columns.Length > 0) c.Execute($"INSERT OR IGNORE INTO catalog.{table} ({columns}) SELECT {columns} FROM initial.{table}", transaction: t);
             }
+            c.Execute("UPDATE cache_generation SET value = value + 1", transaction: t); // Sagas guardado ya no vale (#225)
             t.Commit();
         }
         finally

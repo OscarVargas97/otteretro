@@ -4,7 +4,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.4.0 · Colección · en desarrollo
 
-`docs/220-catalogo-versiones-manual`, `feat/215-imagenes-por-referencia`, `feat/217-catalogo-fork`, `feat/212-catalogo-aparte`, `feat/211-listo-al-descargar`, `fase/f4-coleccion` y `docs/encuesta-17-plan-dominios` · F4 (#176, tareas #178 a #182; encuesta 17, #185): tus archivos de juegos reconocidos, verificados y marcados como «lo tengo» · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+`fix/225-sagas-al-abrir`, `docs/220-catalogo-versiones-manual`, `feat/215-imagenes-por-referencia`, `feat/217-catalogo-fork`, `feat/212-catalogo-aparte`, `feat/211-listo-al-descargar`, `fase/f4-coleccion` y `docs/encuesta-17-plan-dominios` · F4 (#176, tareas #178 a #182; encuesta 17, #185): tus archivos de juegos reconocidos, verificados y marcados como «lo tengo» · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
 
 ### Nuevo
 - **Tú decides cuándo cambia el catálogo** (#222, #223): en Ajustes › General › Catálogo, «Buscar versión nueva» la baja sin aplicarla. Antes de aceptarla ves qué cambia: juegos y sagas fusionados, quitados, renombrados, que pasan a otra saga y nuevos, y cuántos datos tuyos toca cada uno, con esos primero. La aceptas o la rechazas entera. Si el catálogo publica sus cambios, Otteretro los compara con lo que ve y avisa si algo no coincide; si saltas de un fork o de una versión que no conoce, te dice que usa su propia comparación.
@@ -52,6 +52,9 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - La versión pasa a 0.4: empieza la fase Colección.
 - **Un solo modelo de almacenamiento: discos** (#188): lo que quede de antes (una carpeta como `E:\Consolas` o `Herramientas\` en la carpeta de datos) pasa solo al estándar al abrir la app, con las rutas de los emuladores al día; ya no se crean ubicaciones de un solo tipo.
 - **El plan va por dominios** (encuesta 17, #185): la F4 pasa a ser «Archivos de juegos» y suma todo lo que le pasa a un archivo: tus discos al estándar, importar carpetas, una carpeta `Entrada` por disco que se ordena sola, descargas como un JDownloader dentro de Otteretro (sin programas aparte), descomprimir, convertir sin perder lo verificado y subir BIOS y keys. Después siguen Herramientas, Jugar con Steam, Respaldo, Tiendas y Descubrir.
+
+### Arreglos
+- **Sagas abre al instante** (#225): las sagas se arman una vez y quedan guardadas en tu carpeta de datos. Al volver a abrir la app ya no se consulta el catálogo, aunque el escaneo esté usando el disco. Se rehacen solas cuando cambia algo tuyo (archivos, horas, favoritas, consolas que ves) o aceptas una versión del catálogo; lo que haces tú se ve al instante.
 
 ## 0.3.12 · Carpetas y herramientas
 
