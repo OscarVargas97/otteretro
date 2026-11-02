@@ -273,7 +273,7 @@
     "withSystemBadge": "With the system",
     "attribution": "Game data: IGDB.com",
     "catalogSource": {
-      "title": "Catalog",
+      "title": "Catalog source",
       "official": "Updates from the official catalog, {repo}.",
       "fork": "Updates from {repo}, a fork: its content comes from third parties and Otteretro does not review it.",
       "repo": "Catalog repo",

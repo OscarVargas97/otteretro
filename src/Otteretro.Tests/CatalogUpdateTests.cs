@@ -316,15 +316,20 @@ public class CatalogUpdateTests
         });
         try
         {
+            // #230: una instalación de antes de #222 solo guardó el hash de lo aplicado; la lista encuentra su versión y la recuerda.
+            using (var c = f.Db.Open())
+                c.Execute("INSERT INTO setting (machine_id, name, value) VALUES ('', 'catalog.published', @sha)", new { sha = Convert.ToHexStringLower(SHA256.HashData(older)) });
             var page = await CatalogUpdate.Versions(f.Db);
+            Assert.Equal("catalogo-20261101", page.Current);
+            Assert.Equal("catalogo-20261101", CatalogUpdate.Version(f.Db));
+            Assert.True(page.Versions.Single(v => v.Tag == "catalogo-20261101").Current);
             Assert.Equal(["catalogo-20261102", "catalogo-20261101", "catalogo-20261030"], page.Versions.Select(v => v.Tag));
             Assert.Equal([true, true, false], page.Versions.Select(v => v.Available)); // la del 30 ya no se puede bajar
             Assert.Equal(1, page.Versions[0].Counts["renamed"]);
             Assert.Equal("Metroid Fusion", page.Versions[0].Changes.Single().From);
 
             Assert.Equal("done", (await f.Run(CatalogUpdate.Enqueue(f.Db, "catalogo-20261101"))).Status);
-            Assert.Equal("catalogo-20261101", CatalogUpdate.Waiting(f.Db)?.Tag);
-            Assert.Null(CatalogUpdate.Accept(f.Db));
+            Assert.Null(CatalogUpdate.Waiting(f.Db)); // ya es la tuya: no queda nada esperando
             Assert.True((await CatalogUpdate.Versions(f.Db)).Versions[1].Current);
 
             Assert.Equal("catalog.versionGone", (await f.Run(CatalogUpdate.Enqueue(f.Db, "catalogo-20261030"))).Detail?.Code);
