@@ -28,6 +28,17 @@ public static class CatalogUpdate
     /// <summary>Lo que se bajó y espera que la persona lo acepte o lo rechace.</summary>
     public record Pending(string Repo, string Tag, string Sha256);
 
+    /// <summary>Una versión publicada, como en el buscador de actualizaciones (#228).</summary>
+    /// <param name="Available">Se puede bajar: `publicar.yml` conserva solo las últimas; las demás aparecen por su historial de cambios.</param>
+    /// <param name="Counts">Cuántos hay de cada cambio en esa versión (renamed, merged, removed, added, changed), según su `cambios.json`.</param>
+    /// <param name="Changes">Los cambios de esa versión, hasta <see cref="ChangesShown"/>.</param>
+    public record VersionInfo(string Tag, string? PublishedAt, bool Available, bool Current, Dictionary<string, int> Counts, List<VersionChange> Changes);
+    public record VersionChange(string Kind, string Change, long Id, string? Name, string? From);
+    public record VersionsPage(string Repo, string? Current, List<VersionInfo> Versions);
+    record HistoryEntry(string Version, string Kind, string Change, long Id, string? Name = null, string? From = null);
+    record History(List<string> Versions, List<HistoryEntry> Entries);
+    const int ChangesShown = 100;
+
     static string Releases(string repo) => $"https://api.github.com/repos/{repo}/releases?per_page=30";
 
     /// <summary>El repo elegido, o el oficial.</summary>
@@ -84,16 +95,46 @@ public static class CatalogUpdate
     static readonly string[] Published = ["saga", "game", "version", "version_criterion", "field_value", "route", "route_step", "image"];
 
     record Asset(string Name, string BrowserDownloadUrl);
-    record Release(string TagName, bool Draft, List<Asset> Assets);
+    record Release(string TagName, bool Draft, List<Asset> Assets, string? PublishedAt = null);
     record Manifest(string Sha256);
 
     static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
 
-    /// <summary>«Buscar versión nueva», salvo que ya haya una búsqueda esperando.</summary>
-    public static long Enqueue(Database db)
+    record Job(string? Tag);
+
+    /// <summary>Bajar una versión para verla (#222); sin <paramref name="tag"/>, la última. Salvo que ya haya una búsqueda esperando.</summary>
+    public static long Enqueue(Database db, string? tag = null)
     {
         using var c = db.Open();
-        return c.ExecuteScalar<long?>("SELECT id FROM task WHERE kind = @Kind AND status IN ('queued', 'running') LIMIT 1", new { Kind }) ?? TaskQueue.Enqueue(db, Kind);
+        return c.ExecuteScalar<long?>("SELECT id FROM task WHERE kind = @Kind AND status IN ('queued', 'running') LIMIT 1", new { Kind })
+            ?? TaskQueue.Enqueue(db, Kind, tag is null ? null : JsonSerializer.Serialize(new Job(tag), JsonSerializerOptions.Web));
+    }
+
+    /// <summary>
+    /// Las versiones del origen elegido, de la más nueva a la más vieja, con los cambios de cada una (#228). Las que se pueden bajar salen de
+    /// las releases; las anteriores, del `cambios.json` de la última, que tiene todo el historial (#31).
+    /// </summary>
+    public static async Task<VersionsPage> Versions(Database db, CancellationToken ct = default)
+    {
+        var http = Handler is null ? Shared : NewClient(Handler);
+        var repo = Source(db);
+        var releases = (await ReadReleases(http, repo, ct)).Where(r => !r.Draft && r.TagName.StartsWith(TagPrefix, StringComparison.Ordinal)).ToList();
+        History? history = null;
+        if (releases.FirstOrDefault()?.Assets.FirstOrDefault(a => a.Name == ChangesAsset) is { } asset)
+            try { history = JsonSerializer.Deserialize<History>(await http.GetStringAsync(asset.BrowserDownloadUrl, ct), JsonSerializerOptions.Web); }
+            catch (Exception e) when (e is HttpRequestException or JsonException) { } // sin historial, cada versión va sin su detalle
+
+        var current = Version(db);
+        var tags = releases.Select(r => r.TagName).Union(history?.Versions ?? []).Distinct().OrderDescending(StringComparer.Ordinal);
+        var byVersion = history?.Entries.GroupBy(e => e.Version).ToDictionary(g => g.Key, g => g.ToList()) ?? [];
+        return new(repo, current, tags.Select(tag =>
+        {
+            var release = releases.FirstOrDefault(r => r.TagName == tag);
+            var entries = byVersion.GetValueOrDefault(tag) ?? [];
+            return new VersionInfo(tag, release?.PublishedAt, release?.Assets.Any(a => a.Name == DataAsset) == true, tag == current,
+                entries.GroupBy(e => e.Change).ToDictionary(g => g.Key, g => g.Count()),
+                entries.Take(ChangesShown).Select(e => new VersionChange(e.Kind, e.Change, e.Id, e.Name, e.From)).ToList());
+        }).ToList());
     }
 
     static string Folder(Database db) => Path.GetDirectoryName(db.CatalogPath)!;
@@ -121,12 +162,16 @@ public static class CatalogUpdate
     public static Pending? Waiting(Database db) =>
         Setting(db, PendingSetting) is { } json && File.Exists(PendingFile(db)) ? JsonSerializer.Deserialize<Pending>(json, JsonSerializerOptions.Web) : null;
 
-    /// <summary>Buscar (#222): baja la última versión, verifica el hash y la deja esperando. No aplica nada.</summary>
+    /// <summary>Buscar (#222): baja la versión elegida (#228) o la última, verifica el hash y la deja esperando. No aplica nada.</summary>
     public static async Task Run(TaskRun run, CancellationToken ct)
     {
         var http = Handler is null ? Shared : NewClient(Handler);
         var repo = Source(run.Db);
-        if (Latest(await ReadReleases(http, repo, ct)) is not { } latest) return;
+        var wanted = run.Data is { } data ? JsonSerializer.Deserialize<Job>(data, JsonSerializerOptions.Web)?.Tag : null;
+        var releases = await ReadReleases(http, repo, ct);
+        var latest = wanted is null ? Latest(releases) : releases.FirstOrDefault(r => !r.Draft && r.TagName == wanted)
+            ?? throw new TaskException(ApiError.Of("catalog.versionGone", ("version", wanted)));
+        if (latest is null) return;
         string Url(string name) => latest.Assets.FirstOrDefault(a => a.Name == name)?.BrowserDownloadUrl ?? throw new TaskException(ApiError.Of("catalog.badRelease"));
 
         var manifest = JsonSerializer.Deserialize<Manifest>(await http.GetStringAsync(Url(ManifestAsset), ct), JsonSerializerOptions.Web)!;

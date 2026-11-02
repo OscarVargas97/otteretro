@@ -277,6 +277,61 @@ public class CatalogUpdateTests
         }
     }
 
+    /// <summary>
+    /// #228: las versiones publicadas, de la más nueva a la más vieja, con los cambios de cada una; las que ya no se pueden bajar salen igual
+    /// por el historial. Elegir una que no es la última la baja y espera confirmación, como cualquier otra.
+    /// </summary>
+    [Fact]
+    public async Task VersionsListTheirChangesAndAnOlderOneCanBeChosen()
+    {
+        await using var f = new Fixture();
+        Mine(f);
+        var (older, newer) = (Compiled(f, Catalog2), Compiled(f, Catalog2.Replace("'Metroid Fusion'", "'Metroid Fusion (GBA)'")));
+        var history = new
+        {
+            versions = new[] { "catalogo-20261030", "catalogo-20261101", "catalogo-20261102" },
+            entries = new object[]
+            {
+                new { version = "catalogo-20261101", kind = "game", change = "merged", id = 11, name = "Duplicado", into = 10 },
+                new { version = "catalogo-20261102", kind = "game", change = "renamed", id = 10, name = "Metroid Fusion (GBA)", from = "Metroid Fusion" },
+            },
+        };
+        object Release(string tag, string letter, bool changes = false) => new
+        {
+            tag_name = tag, draft = false, published_at = "2026-11-02T10:00:00Z",
+            assets = new[]
+            {
+                new { name = "catalogo.db.gz", browser_download_url = $"https://{letter}.test/catalogo.db.gz" },
+                new { name = "catalogo.db.gz.json", browser_download_url = $"https://{letter}.test/manifest.json" },
+            }.Concat(changes ? [new { name = "cambios.json", browser_download_url = $"https://{letter}.test/cambios.json" }] : []).ToArray(),
+        };
+        CatalogUpdate.Handler = new Fake(new()
+        {
+            ["releases?"] = JsonSerializer.SerializeToUtf8Bytes(new[] { Release("catalogo-20261102", "n", changes: true), Release("catalogo-20261101", "o") }),
+            ["n.test/cambios.json"] = JsonSerializer.SerializeToUtf8Bytes(history),
+            ["n.test/manifest.json"] = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = Convert.ToHexStringLower(SHA256.HashData(newer)) }),
+            ["n.test/catalogo.db.gz"] = newer,
+            ["o.test/manifest.json"] = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = Convert.ToHexStringLower(SHA256.HashData(older)) }),
+            ["o.test/catalogo.db.gz"] = older,
+        });
+        try
+        {
+            var page = await CatalogUpdate.Versions(f.Db);
+            Assert.Equal(["catalogo-20261102", "catalogo-20261101", "catalogo-20261030"], page.Versions.Select(v => v.Tag));
+            Assert.Equal([true, true, false], page.Versions.Select(v => v.Available)); // la del 30 ya no se puede bajar
+            Assert.Equal(1, page.Versions[0].Counts["renamed"]);
+            Assert.Equal("Metroid Fusion", page.Versions[0].Changes.Single().From);
+
+            Assert.Equal("done", (await f.Run(CatalogUpdate.Enqueue(f.Db, "catalogo-20261101"))).Status);
+            Assert.Equal("catalogo-20261101", CatalogUpdate.Waiting(f.Db)?.Tag);
+            Assert.Null(CatalogUpdate.Accept(f.Db));
+            Assert.True((await CatalogUpdate.Versions(f.Db)).Versions[1].Current);
+
+            Assert.Equal("catalog.versionGone", (await f.Run(CatalogUpdate.Enqueue(f.Db, "catalogo-20261030"))).Detail?.Code);
+        }
+        finally { CatalogUpdate.Handler = null; }
+    }
+
     /// <summary>#217: un repo por fork, con su versión publicada en `https://&lt;letra&gt;.test/`.</summary>
     static Dictionary<string, byte[]> Repo(string repo, string letter, byte[] data) => new()
     {

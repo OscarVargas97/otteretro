@@ -310,7 +310,13 @@
       },
       "yours": "{count, plural, one {touches # of your items} other {touches # of your items}}",
       "accept": "Accept and apply",
-      "reject": "Reject"
+      "reject": "Reject",
+      "versions": "Catalog versions",
+      "yoursBadge": "Yours",
+      "goTo": "See this version",
+      "goBack": "Go back to this version",
+      "notAvailable": "No longer downloadable",
+      "noHistory": "No published change details"
     }
   },
   "errors": {
@@ -453,7 +459,8 @@
       "sourceName": "Write the repo as owner/repo, for example someone/otteretro-catalogo.",
       "sourceEmpty": "{repo} has no published catalog: you keep the previous one.",
       "sourceUnreachable": "Could not read {repo} on GitHub: check the name or your connection. You keep the previous one.",
-      "nothingPending": "No version is waiting: look for it again."
+      "nothingPending": "No version is waiting: look for it again.",
+      "versionGone": "Version {version} is no longer published: pick another one."
     },
     "automation": {
       "notFound": "That suggestion is gone.",

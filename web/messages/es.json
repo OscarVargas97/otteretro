@@ -310,7 +310,13 @@
       },
       "yours": "{count, plural, one {toca # dato tuyo} other {toca # datos tuyos}}",
       "accept": "Aceptar y aplicar",
-      "reject": "Rechazar"
+      "reject": "Rechazar",
+      "versions": "Versiones del catálogo",
+      "yoursBadge": "La tuya",
+      "goTo": "Ver esta versión",
+      "goBack": "Volver a esta versión",
+      "notAvailable": "Ya no se puede bajar",
+      "noHistory": "Sin detalle de cambios publicado"
     }
   },
   "errors": {
@@ -453,7 +459,8 @@
       "sourceName": "Escribe el repo como dueño/repo, por ejemplo alguien/otteretro-catalogo.",
       "sourceEmpty": "{repo} no tiene un catálogo publicado: sigues con el anterior.",
       "sourceUnreachable": "No se pudo leer {repo} en GitHub: revisa el nombre o la conexión. Sigues con el anterior.",
-      "nothingPending": "No hay ninguna versión esperando: búscala de nuevo."
+      "nothingPending": "No hay ninguna versión esperando: búscala de nuevo.",
+      "versionGone": "La versión {version} ya no está publicada: elige otra."
     },
     "automation": {
       "notFound": "Esa sugerencia ya no está.",
