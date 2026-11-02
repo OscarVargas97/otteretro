@@ -33,7 +33,7 @@ public class CatalogUpdateTests
         var plain = f.Tmp[$"pub/{Guid.NewGuid():N}.db"];
         using (var c = db.Open())
         {
-            c.Execute("DELETE FROM catalog.game; DELETE FROM catalog.saga; CREATE TABLE IF NOT EXISTS catalog.replaced (kind TEXT, old_id INTEGER, new_id INTEGER); DELETE FROM catalog.replaced;");
+            c.Execute("DELETE FROM catalog.game; DELETE FROM catalog.saga; CREATE TABLE IF NOT EXISTS catalog.replaced (kind TEXT, old_id INTEGER, new_id INTEGER); DELETE FROM catalog.replaced; DELETE FROM catalog.image;");
             c.Execute(sql);
             c.Execute("VACUUM catalog INTO @plain", new { plain });
         }
@@ -219,6 +219,47 @@ public class CatalogUpdateTests
             Assert.Equal(CatalogUpdate.Official, CatalogUpdate.Source(f.Db));
         }
         finally { CatalogUpdate.Handler = null; }
+    }
+
+    /// <summary>#215: la imagen se baja sin clave de su referencia la primera vez; si la referencia cambia, se baja la nueva; lo tuyo sin referencia sigue.</summary>
+    [Fact]
+    public async Task ImagesComeFromTheirReferenceAndARenewedOneIsDownloadedAgain()
+    {
+        await using var f = new Fixture();
+        var folder = SteamGridDb.Folder(f.Db);
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(Path.Combine(folder, "12-cover.jpg"), "la bajaste con tu clave");
+        string WithImage(string url) => Catalog2 + $"INSERT INTO catalog.image (game_id, kind, url) VALUES (10, 'cover', '{url}');";
+        var downloads = new List<string>();
+        var answers = Repo(CatalogUpdate.Official, "a", Compiled(f, WithImage("https://cdn2.steamgriddb.com/grid/vieja.jpg")));
+        answers["cdn2.steamgriddb.com"] = "no es una imagen"u8.ToArray();
+        var fake = new Fake(answers);
+        CatalogUpdate.Handler = ImageRefs.Handler = new Spy(fake, downloads);
+        try
+        {
+            Assert.Equal("done", (await f.Run(CatalogUpdate.Enqueue(f.Db))).Status);
+            Assert.EndsWith("10-cover.jpg", await ImageRefs.File(f.Db, 10, "cover"));
+            Assert.EndsWith("10-cover.jpg", await ImageRefs.File(f.Db, 10, "cover"));
+            Assert.Single(downloads, d => d.Contains("vieja"));
+
+            foreach (var (k, v) in Repo(CatalogUpdate.Official, "a", Compiled(f, WithImage("https://cdn2.steamgriddb.com/grid/nueva.jpg")))) answers[k] = v;
+            Assert.Equal("done", (await f.Run(CatalogUpdate.Enqueue(f.Db))).Status);
+            Assert.Null(SteamGridDb.Find(f.Db, 10, "cover")); // la vieja se borró
+            Assert.NotNull(await ImageRefs.File(f.Db, 10, "cover"));
+            Assert.Single(downloads, d => d.Contains("nueva"));
+            Assert.Equal("la bajaste con tu clave", File.ReadAllText(Path.Combine(folder, "12-cover.jpg")));
+            Assert.Null(await ImageRefs.File(f.Db, 22, "cover")); // sin referencia: el color de la consola
+        }
+        finally { CatalogUpdate.Handler = ImageRefs.Handler = null; }
+    }
+
+    sealed class Spy(HttpMessageHandler inner, List<string> downloads) : DelegatingHandler(inner)
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            if (request.RequestUri!.Host.EndsWith("steamgriddb.com", StringComparison.Ordinal)) lock (downloads) downloads.Add(request.RequestUri.ToString());
+            return base.SendAsync(request, ct);
+        }
     }
 
     [Fact]

@@ -44,6 +44,7 @@ const Icon = ({ d }: { d: string }) => (
 /** Barra lateral (componente NavItem del sistema de diseño). Los contadores llegan con cada módulo; Revisar lleva el suyo (D3). */
 export function Sidebar() {
   const t = useTranslations("nav");
+  const tApp = useTranslations("app");
   // Sin carpeta de datos la API responde 409: sin contador.
   // El menú se dibuja antes de saber si hay carpeta de datos (#105); sin ella no hay qué contar.
   const configured = !!useAppState().data?.configured;
@@ -100,6 +101,8 @@ export function Sidebar() {
         <Icon d={collapsed ? "M9 6l6 6-6 6" : "M15 6l-6 6 6 6"} />
         <span className="nav-label">{t(collapsed ? "expand" : "collapse")}</span>
       </button>
+      {/* Las imágenes se bajan de SteamGridDB e IGDB (#215): se atribuyen en todas las pantallas, en un lugar que no se mueve al cargar. */}
+      <p className="sidebar-credits muted">{tApp("credits")}</p>
     </aside>
   );
 }

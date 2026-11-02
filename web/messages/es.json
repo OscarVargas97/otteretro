@@ -4,7 +4,8 @@
     "more": "Más"
   },
   "app": {
-    "unreachable": "No se pudo hablar con la app: {detail}. Ciérrala y vuelve a abrirla."
+    "unreachable": "No se pudo hablar con la app: {detail}. Ciérrala y vuelve a abrirla.",
+    "credits": "Datos de juegos: IGDB.com · Imágenes: SteamGridDB e IGDB.com"
   },
   "nav": {
     "label": "Principal",
