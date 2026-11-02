@@ -27,8 +27,6 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
     {
         ["demo"] = Demo,
         [Catalog.CatalogUpdate.Kind] = Catalog.CatalogUpdate.Run,
-        ["sgdb.images"] = Catalog.SteamGridDb.Images,
-        ["sgdb.webp"] = Catalog.SteamGridDb.Convert,
         ["steam.sync"] = Catalog.Steam.Sync,
         [Claude.Identify.Kind] = Claude.Identify.Run,
         [Libraries.DiskTasks.Move] = Libraries.DiskTasks.RunMove,
@@ -193,8 +191,6 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
                         if (OnOpen && session.Config.DataFolder is { } dataFolder) Libraries.Disk.EnsureDataDisk(db, dataFolder);
                         // Al abrir la app, lo de antes pasa solo al estándar (#219), que al terminar escanea; si no, se escanea ya (#223).
                         if (OnOpen && Libraries.DiskTasks.EnqueueMigrateIfPending(db) is null) Libraries.Scan.Enqueue(db);
-                        // El catálogo publicado, sin claves (#213).
-                        if (OnOpen) Catalog.CatalogUpdate.Enqueue(db);
                     }
                     if (OnOpen)
                     {

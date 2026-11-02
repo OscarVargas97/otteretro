@@ -161,17 +161,7 @@
     },
     "consoles": {
       "title": "Consoles",
-      "help": "The consoles that are loaded and kept up to date. Disabling one does not delete its games.",
-      "every": "Updates every",
-      "days": "days",
-      "lastAgo": "last {ago}",
-      "nextOn": "next on {when}",
-      "allUpToDate": "All up to date as of {at}",
-      "mostUpToDate": "Up to date as of {at}, except where marked",
-      "upToDateAt": "Up to date as of {at}",
-      "notLoaded": "Not loaded",
-      "partial": "Partly loaded",
-      "loading": "Loading {progress} %",
+      "help": "Turned-off consoles don't show in Sagas, Collection or search. Nothing is deleted: turn them back on and they return.",
       "group": {
         "nintendo": "Nintendo",
         "playstation": "PlayStation",
@@ -180,20 +170,6 @@
         "other": "Others"
       },
       "games": "{count, plural, one {# game} other {# games}}",
-      "add": "Add console",
-      "search": "Search IGDB",
-      "close": "Close",
-      "enable": "Enable",
-      "already": "Already added",
-      "refreshNow": "Update now",
-      "queued": "Queued.",
-      "covers": {
-        "title": "Covers",
-        "count": "{have, number} of {total, number} games with a cover",
-        "download": "Download covers",
-        "running": "In progress",
-        "noKey": "SteamGridDB key missing"
-      },
       "location": {
         "in": "Its games: {library}",
         "move": "Move to another location",
@@ -219,7 +195,8 @@
         "inDataFolder": "In Herramientas",
         "inLocation": "In {location}",
         "open": "Show {name}"
-      }
+      },
+      "show": "Show {name}"
     },
     "storage": "Storage"
   },
@@ -303,6 +280,37 @@
       "use": "Use this repo",
       "hint": "A fork of otteretro-catalogo with its own published versions. Your collection and progress are kept; whatever the fork lacks stays unidentified until you switch back.",
       "officialButton": "Back to official"
+    },
+    "catalogVersion": {
+      "current": "You have catalog {version}.",
+      "unknown": "Your catalog doesn't say which version it is: the next one you accept will.",
+      "check": "Look for a new version",
+      "checking": "Looking…",
+      "pendingTitle": "New version: {version}",
+      "nothing": "No saga or game changes.",
+      "count": {
+        "merged": "{count, plural, one {# merged} other {# merged}}",
+        "removed": "{count, plural, one {# removed} other {# removed}}",
+        "renamed": "{count, plural, one {# renamed} other {# renamed}}",
+        "changed": "{count, plural, one {# moves saga} other {# move saga}}",
+        "added": "{count, plural, one {# new} other {# new}}"
+      },
+      "ownComparison": "The catalog didn't publish the changes since your version (a fork, or a version it doesn't know): what you see comes from Otteretro's comparison.",
+      "mismatch": "{count, plural, one {# change doesn't match} other {# changes don't match}} what the catalog published",
+      "kind": {
+        "saga": "Saga",
+        "game": "Game"
+      },
+      "item": {
+        "merged": "{kind} {name} is merged into {into}",
+        "removed": "{kind} {name} is removed",
+        "renamed": "{kind} “{from}” is renamed {name}",
+        "changed": "{kind} {name} moves from {from} to {into}",
+        "added": "{kind} {name} is new"
+      },
+      "yours": "{count, plural, one {touches # of your items} other {touches # of your items}}",
+      "accept": "Accept and apply",
+      "reject": "Reject"
     }
   },
   "errors": {
@@ -367,12 +375,6 @@
         "popular": "Popular PC games: {done} of {total}",
         "refresh": "Up to date: {done} of {total} consoles ({platform})",
         "popularity": "Popularity: {done} of {total} games"
-      },
-      "sgdb": {
-        "images": "{done} of {total} games",
-        "webp": "{done} of {total} images converted to WebP",
-        "noKey": "The SteamGridDB key is missing: paste it in Settings › Accounts and keys.",
-        "badKey": "SteamGridDB did not accept the key: check it in Settings › Accounts and keys."
       },
       "steam": {
         "synced": "{count} games in your Steam account",
@@ -443,7 +445,6 @@
       "noLearning": "That change no longer exists or cannot be corrected."
     },
     "catalog": {
-      "badRefreshDays": "Days go from 1 to 365.",
       "downloading": "Downloading catalog {version}",
       "applying": "Applying catalog {version}",
       "badHash": "The published catalog does not match its hash: you keep the previous one.",
@@ -451,7 +452,8 @@
       "badRelease": "The published catalog version is incomplete: you keep the previous one.",
       "sourceName": "Write the repo as owner/repo, for example someone/otteretro-catalogo.",
       "sourceEmpty": "{repo} has no published catalog: you keep the previous one.",
-      "sourceUnreachable": "Could not read {repo} on GitHub: check the name or your connection. You keep the previous one."
+      "sourceUnreachable": "Could not read {repo} on GitHub: check the name or your connection. You keep the previous one.",
+      "nothingPending": "No version is waiting: look for it again."
     },
     "automation": {
       "notFound": "That suggestion is gone.",
@@ -598,7 +600,6 @@
       "steam": "Steam Web API",
       "igdb": "IGDB (Twitch)",
       "screenscraper": "ScreenScraper",
-      "steamgriddb": "SteamGridDB",
       "rawg": "RAWG (optional)",
       "retroachievements": "RetroAchievements",
       "archives": "Compressed files",
@@ -628,7 +629,6 @@
       "steam": "What you own on Steam, with your hours.",
       "igdb": "Series, games and versions for the catalog.",
       "screenscraper": "Identifies ROMs that don’t match the DATs.",
-      "steamgriddb": "Covers, backgrounds and logos.",
       "rawg": "Fills in years IGDB doesn’t have.",
       "retroachievements": "Your achievements in retro games.",
       "archives": "Passwords tried automatically when extracting.",
@@ -647,10 +647,6 @@
         "refresh": "Update the catalog from IGDB",
         "popularity": "Fetch popularity from IGDB"
       },
-      "sgdb": {
-        "images": "Download covers from SteamGridDB",
-        "webp": "Convert images to WebP"
-      },
       "steam": {
         "sync": "Read what you own on Steam"
       },
@@ -661,7 +657,8 @@
         "identify": "Identify files with Claude"
       },
       "catalog": {
-        "extra": "Complete with Wikidata and RAWG"
+        "extra": "Complete with Wikidata and RAWG",
+        "check": "Look for a new catalog version"
       },
       "library": {
         "move": "Move a location or a folder",

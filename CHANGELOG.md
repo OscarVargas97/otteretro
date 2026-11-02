@@ -4,9 +4,11 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.4.0 · Colección · en desarrollo
 
-`feat/215-imagenes-por-referencia`, `feat/217-catalogo-fork`, `feat/212-catalogo-aparte`, `feat/211-listo-al-descargar`, `fase/f4-coleccion` y `docs/encuesta-17-plan-dominios` · F4 (#176, tareas #178 a #182; encuesta 17, #185): tus archivos de juegos reconocidos, verificados y marcados como «lo tengo» · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+`docs/220-catalogo-versiones-manual`, `feat/215-imagenes-por-referencia`, `feat/217-catalogo-fork`, `feat/212-catalogo-aparte`, `feat/211-listo-al-descargar`, `fase/f4-coleccion` y `docs/encuesta-17-plan-dominios` · F4 (#176, tareas #178 a #182; encuesta 17, #185): tus archivos de juegos reconocidos, verificados y marcados como «lo tengo» · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
 
 ### Nuevo
+- **Tú decides cuándo cambia el catálogo** (#222, #223): en Ajustes › General › Catálogo, «Buscar versión nueva» la baja sin aplicarla. Antes de aceptarla ves qué cambia: juegos y sagas fusionados, quitados, renombrados, que pasan a otra saga y nuevos, y cuántos datos tuyos toca cada uno, con esos primero. La aceptas o la rechazas entera. Si el catálogo publica sus cambios, Otteretro los compara con lo que ve y avisa si algo no coincide; si saltas de un fork o de una versión que no conoce, te dice que usa su propia comparación.
+- **Elige qué consolas ves** (#224): en Ajustes › Consolas, cada consola tiene un interruptor. Las que apagas no aparecen en Sagas, Colección ni la búsqueda; no se borra nada y al encenderlas vuelven. La elección se mantiene al cambiar de versión del catálogo.
 - **Imágenes sin clave** (#215): las portadas, fondos y logos se bajan solos cuando aparecen en pantalla: con la carga infinita, solo las de lo que ves, y las nuevas a medida que bajas, desde SteamGridDB o IGDB según lo que publica el catálogo, sin cargar ninguna clave. Quedan guardadas y se ven sin conexión; si el catálogo cambia una imagen, se baja la nueva. Sin conexión se ve el color de la consola. Las que ya tenías se siguen usando. Al pie de cada pantalla se atribuyen los datos y las imágenes.
 - **Catálogo desde un fork** (#217): en Ajustes › General › Catálogo puedes actualizar el catálogo desde un fork de otteretro-catalogo, con un aviso de que su contenido es de terceros y un botón para volver al oficial. Solo se acepta un repo con una versión publicada; el hash se verifica igual. Tu colección y tu progreso se conservan, y los archivos que el fork no tenga vuelven a identificarse solos al volver.
 - **El catálogo se actualiza solo** (#213): al abrir, la app busca la última versión publicada en [otteretro-catalogo](https://github.com/OscarVargas97/otteretro-catalogo), verifica su hash y la aplica en segundos, sin claves. Tu progreso, tu colección y tus enlaces siguen en su lugar, también si un juego se fusionó con otro. Si algo falla, sigues con el catálogo anterior.
@@ -40,6 +42,8 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - La ficha de un juego muestra **dónde tienes sus archivos**, con BASE, UPD y DLC, tamaño y si están verificados.
 
 ### Cambios
+- **Sin portadas propias** (#221): Otteretro ya no busca ni baja portadas con tu clave de SteamGridDB, y la clave sale de Cuentas y claves y del aviso de Inicio. Las imágenes llegan solas con el catálogo, sin clave (#215).
+- **El catálogo ya no se actualiza al abrir** (#222): lo que buscaba solo al abrir ahora lo pides tú. Cambiar a un fork solo guarda el origen; su versión se busca y se confirma igual que cualquier otra. Sale el comando `catalogo actualizar`.
 - **Descargas estables en discos lentos** (#202): lo que espera al disco ya no se acumula en memoria sin límite (llegó a 8 GB en un disco mecánico), la velocidad que se ve es la actual y una importación espera a que termine lo que se baja a su mismo disco.
 - **Generar el catálogo pasó a otro programa** (#214): cargar desde IGDB, depurar sagas, armar rutas, comparar versiones, Aprendizajes, habilitar consolas y sus claves ya no están en la app, sino en `otteretro-catalogo`. Revisar queda para tus archivos, y Claude, para identificarlos.
 - **Ya no se corrige a mano en la ficha** (#214): los cambios se proponen en el repo del catálogo.

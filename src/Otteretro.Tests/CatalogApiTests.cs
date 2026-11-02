@@ -50,6 +50,34 @@ public class CatalogApiTests : IAsyncLifetime
 
     Task<T?> Get<T>(string url) => http.GetFromJsonAsync<T>(url);
 
+    /// <summary>#224: desactivar una consola la saca de Sagas, juegos de una saga, búsqueda y Colección; activarla la devuelve. No borra nada.</summary>
+    [Fact]
+    public async Task AHiddenConsoleIsLeftOutOfWhatIsShown()
+    {
+        async Task Show(string id, bool visible) =>
+            Assert.Equal(HttpStatusCode.OK, (await http.PutAsJsonAsync($"/api/consoles/{id}/visible", new ConsoleVisibleRequest(visible))).StatusCode);
+
+        await Show("gb", false);
+        await Show("switch", false);
+        var settings = (await Get<ConsolesPage>("/api/consoles/settings"))!.Consoles;
+        Assert.False(settings.Single(c => c.Id == "gb").Visible);
+        Assert.True(settings.Single(c => c.Id == "n64").Visible);
+
+        var sagas = (await Get<SagaPage>("/api/sagas"))!.Items;
+        Assert.Equal([2L, 1L], sagas.Select(s => s.Id)); // «Emulación» solo tenía Tetris de Game Boy
+        var zelda = sagas.Single(s => s.Id == 1);
+        Assert.Equal(["n64", "3ds"], zelda.Platforms);
+        Assert.Equal(1, zelda.Games); // Breath of the Wild solo está en Switch
+        Assert.Equal(["Ocarina of Time"], (await Get<GamePage>("/api/sagas/1/games"))!.Items.Select(g => g.Name));
+        Assert.Empty((await Get<SearchResults>("/api/search?q=tetris"))!.Games);
+        Assert.DoesNotContain((await Get<List<ConsoleCount>>("/api/consoles"))!, c => c.Id == "gb");
+
+        await Show("gb", true);
+        await Show("switch", true);
+        Assert.Equal(3, (await Get<SagaPage>("/api/sagas"))!.Items.Count);
+        Assert.Equal(HttpStatusCode.NotFound, (await http.PutAsJsonAsync("/api/consoles/nada/visible", new ConsoleVisibleRequest(false))).StatusCode);
+    }
+
     [Fact]
     public async Task SagasHaveTheirPlatformsFiltersAndEmulationLast()
     {
@@ -153,6 +181,6 @@ public class CatalogApiTests : IAsyncLifetime
         Assert.Empty((await Get<SearchResults>("/api/search?q=z"))!.Games);
 
         var notices = (await Get<List<ApiError>>("/api/notices"))!;
-        Assert.Equal(["steamgriddb", "steam"], notices.Select(n => n.Params!["service"]));
+        Assert.Equal(["steam"], notices.Select(n => n.Params!["service"])); // #221: las imágenes ya no piden clave
     }
 }

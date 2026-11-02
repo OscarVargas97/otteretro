@@ -1,36 +1,34 @@
 using Dapper;
-using Otteretro.Api;
 using Otteretro.Data;
 
 namespace Otteretro.Catalog;
 
-/// <param name="RefreshedAt">Hasta cuándo trajo IGDB sus juegos (F2.14); null = nunca se cargó.</param>
-/// <param name="Loading">El avance (0 a 100) de su carga desde IGDB, si está en la cola o corriendo (#109).</param>
-public record ConsoleInfo(string Id, string Name, string? Company, bool Enabled, string? RefreshedAt, int Games, int? Loading);
+/// <param name="Visible">Si la app la muestra (#224): desactivarla la saca de Sagas, Colección y la búsqueda, sin borrar nada.</param>
+public record ConsoleInfo(string Id, string Name, string? Company, bool Visible, int Games);
 
-/// <param name="RefreshDays">Cada cuántos días se actualiza el catálogo (F2.14).</param>
 public record ConsolesPage(List<ConsoleInfo> Consoles);
 
-/// <param name="ConsoleId">La consola donde ya está, si está.</param>
-public record PlatformInfo(long IgdbId, string Name, string? Abbreviation, string? Company, string? ConsoleId);
+public record ConsoleVisibleRequest(bool Visible);
 
-public record EnableConsoleRequest(long IgdbId);
-
-public record ConsoleUpdateRequest(bool Enabled);
-
-public record RefreshSettingsRequest(int Days);
-
-/// <summary>Las consolas que habilitas (F2.13, #83) y cada cuánto se actualiza el catálogo (F2.14, #84).</summary>
+/// <summary>Las consolas del catálogo y cuáles muestra la app (#224, decisión 263).</summary>
 public static class Consoles
 {
     public static ConsolesPage Page(Database db)
     {
         using var c = db.Open();
-        var consoles = c.Query<(string Id, string Name, string? Company, bool Enabled, string? RefreshedAt, long Games, long? Loading)>("""
-            SELECT k.id, k.name, k.company, k.enabled, k.refreshed_at, (SELECT count(DISTINCT game_id) FROM version v WHERE v.platform = k.id),
-                   NULL
+        var consoles = c.Query<(string Id, string Name, string? Company, bool Visible, long Games)>("""
+            SELECT k.id, k.name, k.company, k.id NOT IN (SELECT console_id FROM console_hidden), (SELECT count(DISTINCT game_id) FROM version v WHERE v.platform = k.id)
             FROM console k ORDER BY k.rowid
-            """).Select(r => new ConsoleInfo(r.Id, r.Name, r.Company, r.Enabled, r.RefreshedAt, (int)r.Games, (int?)r.Loading)).ToList();
+            """).Select(r => new ConsoleInfo(r.Id, r.Name, r.Company, r.Visible, (int)r.Games)).ToList();
         return new ConsolesPage(consoles);
+    }
+
+    /// <returns>false si la consola no existe.</returns>
+    public static bool SetVisible(Database db, string id, bool visible)
+    {
+        using var c = db.Open();
+        if (c.ExecuteScalar<long>("SELECT count(*) FROM console WHERE id = @id", new { id }) == 0) return false;
+        c.Execute(visible ? "DELETE FROM console_hidden WHERE console_id = @id" : "INSERT OR IGNORE INTO console_hidden (console_id) VALUES (@id)", new { id });
+        return true;
     }
 }

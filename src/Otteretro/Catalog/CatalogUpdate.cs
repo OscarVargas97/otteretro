@@ -11,19 +11,22 @@ using Otteretro.Data;
 namespace Otteretro.Catalog;
 
 /// <summary>
-/// La app toma el catálogo de lo publicado en `otteretro-catalogo` (#213, decisión 253), sin claves. Baja a un temporal, verifica el hash y recién
-/// entonces reemplaza los datos, todo o nada: si algo falla, sigue el catálogo anterior. Lo de cada persona vive en otra base y apunta por id; lo
-/// fusionado o quitado se corrige con `replaced`.
+/// La app toma el catálogo de lo publicado en `otteretro-catalogo` (#213, decisión 253), sin claves y solo cuando la persona lo pide (259).
+/// Buscar (#222) baja la versión a un temporal, verifica el hash y la deja esperando; nada cambia hasta aceptarla. Aceptar la aplica entera y
+/// rechazar la descarta. Lo de cada persona vive en otra base y apunta por id; lo fusionado o quitado se corrige con `replaced`.
 /// </summary>
 public static class CatalogUpdate
 {
-    public const string Kind = "catalog.update";
+    public const string Kind = "catalog.check";
     /// <summary>De dónde sale el catálogo si la persona no eligió un fork (#217).</summary>
     public const string Official = "OscarVargas97/otteretro-catalogo";
-    const string TagPrefix = "catalogo-", DataAsset = "catalogo.db.gz", ManifestAsset = "catalogo.db.gz.json";
-    /// <summary>El hash de lo último aplicado. Se escribe al final: un corte a mitad hace que se repita.</summary>
-    const string Applied = "catalog.published", SourceSetting = "catalog.source";
+    const string TagPrefix = "catalogo-", DataAsset = "catalogo.db.gz", ManifestAsset = "catalogo.db.gz.json", ChangesAsset = "cambios.json";
+    /// <summary>El hash y la versión de lo último aplicado. Se escriben al final: un corte a mitad hace que se repita.</summary>
+    const string Applied = "catalog.published", AppliedVersion = "catalog.version", SourceSetting = "catalog.source", PendingSetting = "catalog.pending";
     static readonly Regex RepoName = new(@"^[A-Za-z0-9-]{1,39}/[A-Za-z0-9._-]{1,100}$");
+
+    /// <summary>Lo que se bajó y espera que la persona lo acepte o lo rechace.</summary>
+    public record Pending(string Repo, string Tag, string Sha256);
 
     static string Releases(string repo) => $"https://api.github.com/repos/{repo}/releases?per_page=30";
 
@@ -35,8 +38,8 @@ public static class CatalogUpdate
     }
 
     /// <summary>
-    /// Cambia el origen solo si `repo` tiene una versión publicada completa; si no, devuelve el error y sigue el anterior. Al cambiar, busca la
-    /// última versión de ese repo: como se compara el hash y no la fecha, se aplica aunque sea más antigua que la actual.
+    /// Cambia el origen solo si `repo` tiene una versión publicada completa; si no, devuelve el error y sigue el anterior. Solo guarda el origen (259):
+    /// su versión se busca y se confirma como cualquier otra, aunque sea más antigua que la actual. Lo que esperaba de otro origen se descarta.
     /// </summary>
     public static async Task<ApiError?> SetSource(Database db, string? repo, CancellationToken ct = default)
     {
@@ -55,7 +58,7 @@ public static class CatalogUpdate
             if (string.Equals(repo, Official, StringComparison.OrdinalIgnoreCase)) c.Execute("DELETE FROM setting WHERE machine_id = '' AND name = @SourceSetting", new { SourceSetting });
             else c.Execute("INSERT INTO setting (machine_id, name, value) VALUES ('', @SourceSetting, @repo) ON CONFLICT (name, machine_id) DO UPDATE SET value = excluded.value",
                 new { SourceSetting, repo });
-        Enqueue(db);
+        Reject(db);
         return null;
     }
 
@@ -86,25 +89,52 @@ public static class CatalogUpdate
 
     static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
 
-    /// <summary>Busca al abrir la app, salvo que ya haya una esperando.</summary>
+    /// <summary>«Buscar versión nueva», salvo que ya haya una búsqueda esperando.</summary>
     public static long Enqueue(Database db)
     {
         using var c = db.Open();
         return c.ExecuteScalar<long?>("SELECT id FROM task WHERE kind = @Kind AND status IN ('queued', 'running') LIMIT 1", new { Kind }) ?? TaskQueue.Enqueue(db, Kind);
     }
 
+    static string Folder(Database db) => Path.GetDirectoryName(db.CatalogPath)!;
+    /// <summary>La versión bajada que espera confirmación, y su `cambios.json` si el catálogo lo publica.</summary>
+    public static string PendingFile(Database db) => Path.Combine(Folder(db), "catalogo-pendiente.db");
+    internal static string PendingChanges(Database db) => Path.Combine(Folder(db), "catalogo-pendiente.cambios.json");
+
+    static string? Setting(Database db, string name)
+    {
+        using var c = db.Open();
+        return c.ExecuteScalar<string?>("SELECT value FROM setting WHERE machine_id = '' AND name = @name", new { name });
+    }
+
+    static void Save(SqliteConnection c, string name, string? value)
+    {
+        if (value is null) c.Execute("DELETE FROM setting WHERE machine_id = '' AND name = @name", new { name });
+        else c.Execute("INSERT INTO setting (machine_id, name, value) VALUES ('', @name, @value) ON CONFLICT (name, machine_id) DO UPDATE SET value = excluded.value",
+            new { name, value });
+    }
+
+    /// <summary>La versión aplicada; null si todavía no se aplicó ninguna desde que se guarda.</summary>
+    public static string? Version(Database db) => Setting(db, AppliedVersion);
+
+    /// <summary>Lo que espera confirmación, si su archivo sigue ahí.</summary>
+    public static Pending? Waiting(Database db) =>
+        Setting(db, PendingSetting) is { } json && File.Exists(PendingFile(db)) ? JsonSerializer.Deserialize<Pending>(json, JsonSerializerOptions.Web) : null;
+
+    /// <summary>Buscar (#222): baja la última versión, verifica el hash y la deja esperando. No aplica nada.</summary>
     public static async Task Run(TaskRun run, CancellationToken ct)
     {
         var http = Handler is null ? Shared : NewClient(Handler);
-        if (Latest(await ReadReleases(http, Source(run.Db), ct)) is not { } latest) return;
+        var repo = Source(run.Db);
+        if (Latest(await ReadReleases(http, repo, ct)) is not { } latest) return;
         string Url(string name) => latest.Assets.FirstOrDefault(a => a.Name == name)?.BrowserDownloadUrl ?? throw new TaskException(ApiError.Of("catalog.badRelease"));
 
         var manifest = JsonSerializer.Deserialize<Manifest>(await http.GetStringAsync(Url(ManifestAsset), ct), JsonSerializerOptions.Web)!;
-        using (var c = run.Db.Open())
-            if (c.ExecuteScalar<string?>("SELECT value FROM setting WHERE machine_id = '' AND name = @Applied", new { Applied }) == manifest.Sha256) return;
+        if (Setting(run.Db, Applied) == manifest.Sha256) { Reject(run.Db); return; }
+        if (Waiting(run.Db) is { } waiting && waiting.Sha256 == manifest.Sha256 && waiting.Repo == repo) return;
 
-        var folder = Path.GetDirectoryName(run.Db.CatalogPath)!;
-        var (gz, plain) = (Path.Combine(folder, "catalogo-nuevo.db.gz"), Path.Combine(folder, "catalogo-nuevo.tmp"));
+        Reject(run.Db);
+        var (gz, plain) = (Path.Combine(Folder(run.Db), "catalogo-nuevo.db.gz"), Path.Combine(Folder(run.Db), "catalogo-nuevo.tmp"));
         try
         {
             run.Report(0, ApiError.Of("catalog.downloading", ("version", latest.TagName)));
@@ -119,18 +149,43 @@ public static class CatalogUpdate
             await using (var input = new GZipStream(File.OpenRead(gz), CompressionMode.Decompress))
             await using (var output = File.Create(plain))
                 await input.CopyToAsync(output, ct);
-
-            run.Report(50, ApiError.Of("catalog.applying", ("version", latest.TagName)));
-            Apply(run.Db, plain);
-            using var done = run.Db.Open();
-            done.Execute("INSERT INTO setting (machine_id, name, value) VALUES ('', @Applied, @Sha256) ON CONFLICT (name, machine_id) DO UPDATE SET value = excluded.value",
-                new { Applied, manifest.Sha256 });
+            CheckFile(plain);
+            // El diff publicado (#223, decisión 260). Sin él, la app usa solo su propia comparación.
+            if (latest.Assets.Any(a => a.Name == ChangesAsset))
+                await File.WriteAllBytesAsync(PendingChanges(run.Db), await http.GetByteArrayAsync(Url(ChangesAsset), ct), ct);
+            File.Move(plain, PendingFile(run.Db), overwrite: true);
+            using var c = run.Db.Open();
+            Save(c, PendingSetting, JsonSerializer.Serialize(new Pending(repo, latest.TagName, manifest.Sha256), JsonSerializerOptions.Web));
         }
         finally
         {
             File.Delete(gz);
             File.Delete(plain);
         }
+    }
+
+    /// <summary>Aceptar (#222): aplica entero lo que espera. Sin nada esperando, no hace nada.</summary>
+    public static ApiError? Accept(Database db)
+    {
+        if (Waiting(db) is not { } pending) return ApiError.Of("catalog.nothingPending");
+        Apply(db, PendingFile(db));
+        using (var c = db.Open())
+        {
+            Save(c, Applied, pending.Sha256);
+            Save(c, AppliedVersion, pending.Tag);
+        }
+        Reject(db);
+        return null;
+    }
+
+    /// <summary>Rechazar: descarta lo bajado; el catálogo queda como estaba.</summary>
+    public static void Reject(Database db)
+    {
+        SqliteConnection.ClearAllPools(); // la comparación pudo dejar el archivo abierto
+        File.Delete(PendingFile(db));
+        File.Delete(PendingChanges(db));
+        using var c = db.Open();
+        Save(c, PendingSetting, null);
     }
 
     /// <summary>Reemplaza el catálogo por el de <paramref name="file"/>, y pasa lo de la persona a lo que reemplazó a cada juego y versión. Se puede repetir sin daño.</summary>

@@ -161,17 +161,7 @@
     },
     "consoles": {
       "title": "Consolas",
-      "help": "Las consolas que se cargan y se mantienen al día. Deshabilitar una no borra sus juegos.",
-      "every": "Se pone al día cada",
-      "days": "días",
-      "lastAgo": "última {ago}",
-      "nextOn": "próxima el {when}",
-      "allUpToDate": "Todo al día al {at}",
-      "mostUpToDate": "Al día al {at}, salvo lo marcado",
-      "upToDateAt": "Al día al {at}",
-      "notLoaded": "Sin cargar",
-      "partial": "Carga incompleta",
-      "loading": "Cargando {progress} %",
+      "help": "Las consolas desactivadas no aparecen en Sagas, Colección ni la búsqueda. No se borra nada: al activarlas vuelven.",
       "group": {
         "nintendo": "Nintendo",
         "playstation": "PlayStation",
@@ -180,20 +170,6 @@
         "other": "Otras"
       },
       "games": "{count, plural, one {# juego} other {# juegos}}",
-      "add": "Agregar consola",
-      "search": "Buscar en IGDB",
-      "close": "Cerrar",
-      "enable": "Habilitar",
-      "already": "Ya está",
-      "refreshNow": "Actualizar ahora",
-      "queued": "En la cola de tareas.",
-      "covers": {
-        "title": "Portadas",
-        "count": "{have, number} de {total, number} juegos con portada",
-        "download": "Bajar portadas",
-        "running": "En curso",
-        "noKey": "Falta la clave de SteamGridDB"
-      },
       "location": {
         "in": "Sus juegos: {library}",
         "move": "Mover a otra ubicación",
@@ -219,7 +195,8 @@
         "inDataFolder": "En Herramientas",
         "inLocation": "En {location}",
         "open": "Ver {name}"
-      }
+      },
+      "show": "Mostrar {name}"
     },
     "storage": "Almacenamiento"
   },
@@ -303,6 +280,37 @@
       "use": "Usar este repo",
       "hint": "Un fork de otteretro-catalogo con sus propias versiones publicadas. Tu colección y tu progreso se conservan; lo que el fork no tenga queda sin identificar hasta que vuelvas.",
       "officialButton": "Volver al oficial"
+    },
+    "catalogVersion": {
+      "current": "Tienes el catálogo {version}.",
+      "unknown": "Tu catálogo no dice de qué versión es: la próxima que aceptes lo dirá.",
+      "check": "Buscar versión nueva",
+      "checking": "Buscando…",
+      "pendingTitle": "Versión nueva: {version}",
+      "nothing": "No cambia ninguna saga ni ningún juego.",
+      "count": {
+        "merged": "{count, plural, one {# fusionado} other {# fusionados}}",
+        "removed": "{count, plural, one {# quitado} other {# quitados}}",
+        "renamed": "{count, plural, one {# renombrado} other {# renombrados}}",
+        "changed": "{count, plural, one {# cambia de saga} other {# cambian de saga}}",
+        "added": "{count, plural, one {# nuevo} other {# nuevos}}"
+      },
+      "ownComparison": "El catálogo no publicó los cambios desde tu versión (un fork, o una versión que no conoce): lo que ves sale de la comparación de Otteretro.",
+      "mismatch": "{count, plural, one {# cambio no coincide} other {# cambios no coinciden}} con lo que publicó el catálogo",
+      "kind": {
+        "saga": "La saga",
+        "game": "El juego"
+      },
+      "item": {
+        "merged": "{kind} {name} se fusiona con {into}",
+        "removed": "{kind} {name} se quita",
+        "renamed": "{kind} «{from}» pasa a llamarse {name}",
+        "changed": "{kind} {name} pasa de {from} a {into}",
+        "added": "{kind} {name} es nuevo"
+      },
+      "yours": "{count, plural, one {toca # dato tuyo} other {toca # datos tuyos}}",
+      "accept": "Aceptar y aplicar",
+      "reject": "Rechazar"
     }
   },
   "errors": {
@@ -367,12 +375,6 @@
         "popular": "PC populares: {done} de {total} juegos",
         "refresh": "Al día: {done} de {total} consolas ({platform})",
         "popularity": "Popularidad: {done} de {total} juegos"
-      },
-      "sgdb": {
-        "images": "{done} de {total} juegos",
-        "webp": "{done} de {total} imágenes pasadas a WebP",
-        "noKey": "Falta la clave de SteamGridDB: pégala en Ajustes › Cuentas y claves.",
-        "badKey": "SteamGridDB no aceptó la clave: revísala en Ajustes › Cuentas y claves."
       },
       "steam": {
         "synced": "{count} juegos en tu cuenta de Steam",
@@ -443,7 +445,6 @@
       "noLearning": "Ese cambio ya no existe o no se puede corregir."
     },
     "catalog": {
-      "badRefreshDays": "Los días van de 1 a 365.",
       "downloading": "Bajando el catálogo {version}",
       "applying": "Aplicando el catálogo {version}",
       "badHash": "El catálogo publicado no coincide con su hash: sigues con el anterior.",
@@ -451,7 +452,8 @@
       "badRelease": "La versión publicada del catálogo está incompleta: sigues con la anterior.",
       "sourceName": "Escribe el repo como dueño/repo, por ejemplo alguien/otteretro-catalogo.",
       "sourceEmpty": "{repo} no tiene un catálogo publicado: sigues con el anterior.",
-      "sourceUnreachable": "No se pudo leer {repo} en GitHub: revisa el nombre o la conexión. Sigues con el anterior."
+      "sourceUnreachable": "No se pudo leer {repo} en GitHub: revisa el nombre o la conexión. Sigues con el anterior.",
+      "nothingPending": "No hay ninguna versión esperando: búscala de nuevo."
     },
     "automation": {
       "notFound": "Esa sugerencia ya no está.",
@@ -598,7 +600,6 @@
       "steam": "Steam Web API",
       "igdb": "IGDB (Twitch)",
       "screenscraper": "ScreenScraper",
-      "steamgriddb": "SteamGridDB",
       "rawg": "RAWG (opcional)",
       "retroachievements": "RetroAchievements",
       "archives": "Comprimidos",
@@ -628,7 +629,6 @@
       "steam": "Lo que tienes en Steam, con sus horas.",
       "igdb": "Sagas, juegos y versiones del catálogo.",
       "screenscraper": "Identificar ROMs que no coinciden con los DAT.",
-      "steamgriddb": "Portadas, fondos y logos.",
       "rawg": "Completa años que IGDB no tiene.",
       "retroachievements": "Tus logros en juegos retro.",
       "archives": "Las contraseñas que se prueban solas al descomprimir.",
@@ -647,10 +647,6 @@
         "refresh": "Actualizar el catálogo desde IGDB",
         "popularity": "Traer la popularidad desde IGDB"
       },
-      "sgdb": {
-        "images": "Bajar portadas de SteamGridDB",
-        "webp": "Pasar las imágenes a WebP"
-      },
       "steam": {
         "sync": "Leer lo que tienes en Steam"
       },
@@ -661,7 +657,8 @@
         "identify": "Identificar archivos con Claude"
       },
       "catalog": {
-        "extra": "Completar con Wikidata y RAWG"
+        "extra": "Completar con Wikidata y RAWG",
+        "check": "Buscar versión nueva del catálogo"
       },
       "library": {
         "move": "Mover una ubicación o una carpeta",

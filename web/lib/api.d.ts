@@ -1102,6 +1102,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/consoles/{id}/visible": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConsoleVisibleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConsolesPage"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/catalog/source": {
         parameters: {
             query?: never;
@@ -1187,7 +1244,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/covers": {
+    "/api/catalog/version": {
         parameters: {
             query?: never;
             header?: never;
@@ -1209,7 +1266,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["CoversInfo"];
+                        "application/json": components["schemas"]["CatalogVersion"];
                     };
                 };
                 /** @description Conflict */
@@ -1223,6 +1280,22 @@ export interface paths {
                 };
             };
         };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/catalog/version/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
         put?: never;
         post: {
             parameters: {
@@ -1239,7 +1312,104 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["CoversInfo"];
+                        "application/json": number | string;
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/catalog/version/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CatalogVersion"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/catalog/version/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CatalogVersion"];
                     };
                 };
                 /** @description Conflict */
@@ -4517,12 +4687,40 @@ export interface components {
             /** Format: int64 */
             gameId?: null | number | string;
         };
+        CatalogChange: {
+            kind: string;
+            change: string;
+            /** Format: int64 */
+            id: number | string;
+            name: string;
+            from: null | string;
+            /** Format: int64 */
+            into: null | number | string;
+            intoName: null | string;
+            /** Format: int32 */
+            yours: number | string;
+        };
+        CatalogChanges: {
+            repo: string;
+            from: null | string;
+            to: string;
+            fromHistory: boolean;
+            items: components["schemas"]["CatalogChange"][];
+            counts: {
+                [key: string]: number | string;
+            };
+            mismatch: string[];
+        };
         CatalogSource: {
             repo: string;
             official: boolean;
         };
         CatalogSourceRequest: {
             repo: null | string;
+        };
+        CatalogVersion: {
+            current: null | string;
+            pending: null | components["schemas"]["CatalogChanges"];
         };
         ChooseRouteRequest: {
             /** Format: int64 */
@@ -4599,26 +4797,18 @@ export interface components {
             id: string;
             name: string;
             company: null | string;
-            enabled: boolean;
-            refreshedAt: null | string;
+            visible: boolean;
             /** Format: int32 */
             games: number | string;
-            /** Format: int32 */
-            loading: null | number | string;
         };
         ConsolesPage: {
             consoles: components["schemas"]["ConsoleInfo"][];
         };
+        ConsoleVisibleRequest: {
+            visible: boolean;
+        };
         ConvertRequest: {
             console: string;
-        };
-        CoversInfo: {
-            /** Format: int64 */
-            have: number | string;
-            /** Format: int64 */
-            total: number | string;
-            running: boolean;
-            hasKey: boolean;
         };
         CredentialRequest: {
             value: string;
