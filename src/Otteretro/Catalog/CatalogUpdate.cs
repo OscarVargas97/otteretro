@@ -78,7 +78,7 @@ public static class CatalogUpdate
     }
 
     /// <summary>Con cada tabla antes de las que apuntan a ella. `claude_fingerprint` y lo de Claude no: esos quedaron en el generador.</summary>
-    static readonly string[] Published = ["saga", "game", "version", "version_criterion", "field_value", "route", "route_step"];
+    static readonly string[] Published = ["saga", "game", "version", "version_criterion", "field_value", "route", "route_step", "image"];
 
     record Asset(string Name, string BrowserDownloadUrl);
     record Release(string TagName, bool Draft, List<Asset> Assets);
@@ -141,6 +141,12 @@ public static class CatalogUpdate
         c.Execute("ATTACH DATABASE @file AS initial", new { file });
         try
         {
+            // Lo bajado cuya referencia cambió o ya no está se borra después, para que se baje la nueva (#215). Un catálogo sin imágenes no borra nada.
+            var changed = c.ExecuteScalar<long>("SELECT count(*) FROM initial.sqlite_master WHERE name = 'image'") == 0 ? []
+                : c.Query<(long GameId, string Kind)>("""
+                    SELECT o.game_id, o.kind FROM catalog.image o
+                    WHERE NOT EXISTS (SELECT 1 FROM initial.image n WHERE n.game_id = o.game_id AND n.kind = o.kind AND n.url = o.url)
+                    """).ToList();
             using (var t = c.BeginTransaction())
             {
                 foreach (var table in Published.Reverse()) c.Execute($"DELETE FROM catalog.{table}", transaction: t);
@@ -150,6 +156,7 @@ public static class CatalogUpdate
                 foreach (var table in Published) Copy(c, t, table, "INSERT");
                 t.Commit();
             }
+            ImageRefs.Forget(db, changed);
             MoveWhatIsYours(c);
             Steam.Link(c); // lo de Steam que recién ahora está en el catálogo
         }

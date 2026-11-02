@@ -4,7 +4,8 @@
     "more": "More"
   },
   "app": {
-    "unreachable": "Could not talk to the app: {detail}. Close it and open it again."
+    "unreachable": "Could not talk to the app: {detail}. Close it and open it again.",
+    "credits": "Game data: IGDB.com · Images: SteamGridDB and IGDB.com"
   },
   "nav": {
     "label": "Main",

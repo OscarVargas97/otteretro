@@ -190,7 +190,7 @@ public static class SteamGridDb
     }
 
     /// <summary>Escribe a un temporal y lo renombra al final: un corte no deja una imagen rota.</summary>
-    static void Write(string path, byte[] bytes)
+    internal static void Write(string path, byte[] bytes)
     {
         var temp = Path.Combine(Path.GetDirectoryName(path)!, "." + Path.GetFileName(path) + ".part");
         File.WriteAllBytes(temp, bytes);

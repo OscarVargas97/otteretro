@@ -114,3 +114,30 @@ test("con un catálogo grande, cada pantalla aparece al instante y no salta", as
   for (const done of [...OVER_BUDGET].filter((x) => !slow.includes(x))) console.log(`Ya cumple, sácala de OVER_BUDGET: ${done}`);
   expect(slow.filter((x) => !OVER_BUDGET.has(x)), `pasan del presupuesto (marco ${FRAME_MS} ms, datos ${DATA_MS} ms, desplazamiento ${SHIFT})`).toEqual([]);
 });
+
+// #215: las imágenes se piden cuando su tarjeta llega a la pantalla. Con la carga infinita, abrir Sagas no baja las portadas de todo el tramo,
+// y al bajar se piden las que van apareciendo. Las imágenes las responde la prueba: no sale nada a internet.
+test("Sagas pide solo las portadas que se ven, y las nuevas al bajar", async () => {
+  test.setTimeout(60_000);
+  const { DatabaseSync } = await import("node:sqlite");
+  const db = new DatabaseSync(join(process.env.OTTERETRO_E2E_DIR!, "moved", "catalogo", "catalogo.db"));
+  db.exec("INSERT OR IGNORE INTO image (game_id, kind, url) SELECT id, 'cover', 'https://cdn2.steamgriddb.com/grid/' || id || '.png' FROM game WHERE id > 1000000");
+  db.close();
+  const asked = new Set<string>();
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
+  await page.route("**/api/images/**", (route) => {
+    asked.add(new URL(route.request().url()).pathname);
+    return route.fulfill({ status: 200, contentType: "image/png", body: png });
+  });
+  await page.goto(process.env.OTTERETRO_E2E_URL!);
+  await page.locator('.sidebar a[href="/sagas/"]').click();
+  await page.locator("a.ot-saga").nth(20).waitFor();
+  await page.waitForTimeout(500);
+  const cards = await page.locator("a.ot-saga").count();
+  const first = asked.size;
+  expect(first, "pidió alguna portada").toBeGreaterThan(0);
+  expect(first, `pidió ${first} portadas para ${cards} tarjetas`).toBeLessThan(cards);
+  await page.mouse.wheel(0, 2500);
+  await expect.poll(() => asked.size).toBeGreaterThan(first);
+  await page.unroute("**/api/images/**");
+});

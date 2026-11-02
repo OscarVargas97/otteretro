@@ -12,6 +12,8 @@ html, body { margin: 0; min-height: 100%; background: var(--bg); }
 .ot-nav-item .nav-label { flex: 1; }
 .nav-icon { flex: none; }
 .ot-nav-item { justify-content: flex-start; }
+.sidebar-credits { margin: 0; padding: 0 8px; font-size: 11px; line-height: 14px; }
+.sidebar.is-collapsed .sidebar-credits { display: none; }
 .sidebar-toggle { margin-top: auto; font: inherit; font-weight: 700; background: none; border: 0; cursor: pointer; text-align: left; }
 .sidebar.is-collapsed { flex: 0 0 64px; max-width: 64px; padding-inline: 8px; }
 .sidebar.is-collapsed .sidebar-logo { padding: 4px 8px; }
@@ -140,7 +142,10 @@ input:not([type="checkbox"], [type="radio"], [type="range"]), select { height: 3
 .toolbar { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; justify-content: space-between; }
 .toolbar-end, .toolbar-label { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
 .tabular { font-variant-numeric: tabular-nums; }
-.saga-art-name { text-shadow: 0 1px 3px rgba(0, 0, 0, .8); }
+.saga-art-name { position: relative; text-shadow: 0 1px 3px rgba(0, 0, 0, .8); }
+/* La imagen pedida al verse (#215) cubre la portada o la tarjeta de saga; debajo queda el color de la consola. */
+.lazy-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ot-saga-art { position: relative; overflow: hidden; }
 .hero { background: var(--accent-soft); padding: var(--space-6); display: flex; flex-wrap: wrap; gap: var(--space-6); align-items: flex-end; }
 .hero-main { flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 .hero-title { margin: 0; font-family: var(--font-display); font-size: 40px; line-height: 48px; font-weight: 700; }
