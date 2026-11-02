@@ -107,6 +107,22 @@ public class CatalogUpdateTests
         Assert.Null(c.ExecuteScalar<long?>("SELECT version_id FROM source WHERE relative_path = 'b.gb'"));
     }
 
+    /// <summary>Una versión que desaparece sin figurar en `replaced` no deja un archivo apuntando a nada.</summary>
+    [Fact]
+    public async Task AVersionThatDisappearsLeavesItsFileUnidentified()
+    {
+        await using var f = new Fixture();
+        Mine(f);
+        const string WithoutReplacements = """
+            INSERT INTO catalog.saga (id, name) VALUES (1, 'Metroid');
+            INSERT INTO catalog.game (id, saga_id, name_es) VALUES (10, 1, 'Metroid Fusion');
+            INSERT INTO catalog.version (id, game_id, platform) VALUES (20, 10, 'gba');
+            """;
+        Assert.Equal("done", (await Update(f, Answers(Compiled(f, WithoutReplacements)))).Status);
+        using var c = f.Db.Open();
+        Assert.Null(c.ExecuteScalar<long?>("SELECT version_id FROM source WHERE relative_path = 'a.gba'"));
+    }
+
     [Fact]
     public async Task TheSameVersionIsNotDownloadedTwice()
     {

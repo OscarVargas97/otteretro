@@ -287,7 +287,7 @@ public class DownloadsTests : IAsyncDisposable
         await using var f = new Fixture();
         f.Config.DownloadsPerSite = new() { ["direct"] = 2 };
         var (disk, _) = Disk.Create(f.Db, f.Tmp["Otteretro"], "E:");
-        slowUntil = 30;
+        slowUntil = 300; // que duren lo suficiente para verse juntas, también con el equipo ocupado
         var a = Downloads.Enqueue(f.Db, "A", disk, [baseUrl + "a.bin"]).Task!.Value;
         var b = Downloads.Enqueue(f.Db, "B", disk, [baseUrl + "b.bin"]).Task!.Value;
         await f.Queue.StartAsync(default);

@@ -161,6 +161,8 @@ public static class CatalogUpdate
                 if (newId is not null && HasColumn(c, t, "play_session", "version_id"))
                     c.Execute("UPDATE main.play_session SET version_id = @newId WHERE version_id = @oldId", new { newId, oldId }, t);
             }
+        // Una versión que ya no existe, aunque no figure en `replaced`: el archivo vuelve a quedar sin identificar.
+        c.Execute("UPDATE main.source SET version_id = NULL WHERE version_id IS NOT NULL AND version_id NOT IN (SELECT id FROM catalog.version)", transaction: t);
         t.Commit();
     }
 

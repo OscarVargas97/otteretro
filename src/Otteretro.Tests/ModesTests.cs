@@ -42,6 +42,6 @@ public class ModesTests
     {
         var output = new StringWriter();
         Assert.Equal(1, CliMode.Run(["catalogo", "cargar", "--consola"], output));
-        Assert.Contains("catalogo cargar", output.ToString());
+        Assert.Contains("catalogo actualizar", output.ToString());
     }
 }
