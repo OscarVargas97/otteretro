@@ -7,6 +7,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 `fase/f4-coleccion` y `docs/encuesta-17-plan-dominios` · F4 (#176, tareas #178 a #182; encuesta 17, #185): tus archivos de juegos reconocidos, verificados y marcados como «lo tengo» · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
 
 ### Nuevo
+- **El catálogo se actualiza solo** (#213): al abrir, la app busca la última versión publicada en [otteretro-catalogo](https://github.com/OscarVargas97/otteretro-catalogo), verifica su hash y la aplica en segundos, sin claves. Tu progreso, tu colección y tus enlaces siguen en su lugar, también si un juego se fusionó con otro. Si algo falla, sigues con el catálogo anterior.
 - **Listo al instalar** (#211): el catálogo con sus sagas y juegos viene con la app, sin claves ni días de carga. No trae nada personal. El repo suma un README con capturas y la licencia GPL-3.0.
 - **Escanear** en Colección (#178): busca tus juegos en `Juegos\<Consola>` de cada disco y marca como «lo tengo» los que reconoce por su nombre. En Switch separa BASE, actualizaciones y DLC por el TitleID del nombre del archivo, y cada actualización y DLC va con su juego. En GameCube y Wii guarda el serial del disco. Se lanza solo al agregar un disco y al terminar una mudanza. Nunca mueve ni borra archivos; lo que no reconoce queda para identificarlo después.
 - **Verificar por hash** (#179): en Colección (una consola) o en la ficha de un juego. Calcula el SHA-1 de tus archivos sin conexión y lo compara con los DAT de No-Intro (cartuchos) y Redump (discos) que publica libretro; lo que coincide queda verificado. Si un archivo ya no está (se borró o se movió desde el último escaneo), lo avisa y sigue con el resto. Los DAT se bajan solos y se ponen al día con el catálogo. El escaneo también usa el hash ya calculado y el serial del disco para reconocer lo que no dice su nombre.
@@ -37,6 +38,8 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - La ficha de un juego muestra **dónde tienes sus archivos**, con BASE, UPD y DLC, tamaño y si están verificados.
 
 ### Cambios
+- **Generar el catálogo pasó a otro programa** (#214): cargar desde IGDB, depurar sagas, armar rutas, comparar versiones, Aprendizajes, habilitar consolas y sus claves ya no están en la app, sino en `otteretro-catalogo`. Revisar queda para tus archivos, y Claude, para identificarlos.
+- **Ya no se corrige a mano en la ficha** (#214): los cambios se proponen en el repo del catálogo.
 - **Avisos más claros** (#211): Inicio ya no dice que faltan claves como si la app no funcionara, y Colección abre en una consola de la que tienes juegos.
 - **Actualizaciones** (#209): el canal Local ya no pide una carpeta: encuentra los paquetes en `Otteretro\Paquetes` de tus discos.
 - La versión pasa a 0.4: empieza la fase Colección.

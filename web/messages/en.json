@@ -432,7 +432,12 @@
       "noLearning": "That change no longer exists or cannot be corrected."
     },
     "catalog": {
-      "badRefreshDays": "Days go from 1 to 365."
+      "badRefreshDays": "Days go from 1 to 365.",
+      "downloading": "Downloading catalog {version}",
+      "applying": "Applying catalog {version}",
+      "badHash": "The published catalog does not match its hash: you keep the previous one.",
+      "badFile": "The published catalog could not be opened: you keep the previous one.",
+      "badRelease": "The published catalog version is incomplete: you keep the previous one."
     },
     "automation": {
       "notFound": "That suggestion is gone.",

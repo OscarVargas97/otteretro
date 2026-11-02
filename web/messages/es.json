@@ -432,7 +432,12 @@
       "noLearning": "Ese cambio ya no existe o no se puede corregir."
     },
     "catalog": {
-      "badRefreshDays": "Los días van de 1 a 365."
+      "badRefreshDays": "Los días van de 1 a 365.",
+      "downloading": "Bajando el catálogo {version}",
+      "applying": "Aplicando el catálogo {version}",
+      "badHash": "El catálogo publicado no coincide con su hash: sigues con el anterior.",
+      "badFile": "El catálogo publicado no se pudo abrir: sigues con el anterior.",
+      "badRelease": "La versión publicada del catálogo está incompleta: sigues con la anterior."
     },
     "automation": {
       "notFound": "Esa sugerencia ya no está.",

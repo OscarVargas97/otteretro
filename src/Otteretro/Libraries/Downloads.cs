@@ -277,19 +277,41 @@ public static partial class Downloads
             new { task, Kind, detail = JsonSerializer.Serialize(ApiError.Of("download.archiveBroken", ("file", Path.GetFileName(file))), JsonSerializerOptions.Web) });
     }
 
+    /// <summary>
+    /// Lo que puede quedar en memoria por descarga, esperando al disco. Sin tope, un disco lento acumula gigas en RAM: el avance parece rápido, pero lo
+    /// recibido todavía no está escrito y un corte lo pierde. Con tope, la velocidad que se ve es la que el disco aguanta.
+    /// </summary>
+    public const long MemoryCap = 64 * 1024 * 1024;
+
+    public static DownloadConfiguration Configuration(int connections) => new()
+    {
+        ChunkCount = connections,
+        ParallelDownload = connections > 1,
+        MaxTryAgainOnFailure = 5,
+        EnableAutoResumeDownload = true,
+        FileExistPolicy = FileExistPolicy.Exception,
+        CheckDiskSizeBeforeDownload = true,
+        MaximumMemoryBufferBytes = MemoryCap,
+        RequestConfiguration = { UserAgent = "Otteretro" },
+    };
+
+    /// <summary>
+    /// Si una descarga está escribiendo en el disco de esta importación. Descomprimir mientras tanto hace pelear a las dos por el mismo disco, y en uno
+    /// mecánico ambas se vuelven lentas: la importación espera.
+    /// </summary>
+    /// <remarks>ponytail: también espera en un SSD, donde no haría falta; distinguirlos es propio de cada sistema y aquí solo retrasa un poco.</remarks>
+    public static bool WritingOn(Database db, string? importData)
+    {
+        var disk = importData is null ? null : JsonSerializer.Deserialize<Import.Job>(importData, JsonSerializerOptions.Web)?.EntryDisk;
+        if (disk is null) return false;
+        using var c = db.Open();
+        return c.ExecuteScalar<long>("SELECT count(*) FROM task WHERE kind = @Kind AND status = 'running' AND json_extract(data, '$.diskId') = @disk", new { Kind, disk }) > 0;
+    }
+
     /// <summary>Baja un archivo por partes. Con la tarea pausada o cortada, su avance queda en el archivo `.download` y sigue de ahí. Devuelve su nombre.</summary>
     static async Task<string> Fetch(TaskRun run, ResolvedLink link, string folder, int index, int total, int connections, CancellationToken ct)
     {
-        var config = new DownloadConfiguration
-        {
-            ChunkCount = connections,
-            ParallelDownload = connections > 1,
-            MaxTryAgainOnFailure = 5,
-            EnableAutoResumeDownload = true,
-            FileExistPolicy = FileExistPolicy.Exception,
-            CheckDiskSizeBeforeDownload = true,
-            RequestConfiguration = { UserAgent = "Otteretro" },
-        };
+        var config = Configuration(connections);
         foreach (var (key, value) in link.Headers ?? []) config.RequestConfiguration.Headers[key] = value;
         await using var service = new DownloadService(config);
 
@@ -304,7 +326,7 @@ public static partial class Downloads
             if (DateTime.UtcNow - last < TimeSpan.FromSeconds(1)) return;
             last = DateTime.UtcNow;
             run.Report((int)((index + e.ProgressPercentage / 100) * 100 / total),
-                ApiError.Of("download.progress", ("file", name), ("speed", ((long)e.AverageBytesPerSecondSpeed).ToString()), ("done", e.ReceivedBytesSize.ToString()), ("total", e.TotalBytesToReceive.ToString())));
+                ApiError.Of("download.progress", ("file", name), ("speed", ((long)e.BytesPerSecondSpeed).ToString()), ("done", e.ReceivedBytesSize.ToString()), ("total", e.TotalBytesToReceive.ToString())));
         };
         Exception? failure = null;
         service.DownloadFileCompleted += (_, e) => failure = e.Cancelled ? new OperationCanceledException(ct) : e.Error;

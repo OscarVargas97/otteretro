@@ -1,62 +1,39 @@
 using System.IO.Compression;
-using System.Text;
 using Dapper;
+using Microsoft.Data.Sqlite;
 using Otteretro.Catalog;
 
 namespace Otteretro.Tests;
 
-/// <summary>#211: quien instala tiene el catálogo desde el primer momento, y en él no sale nada de la persona.</summary>
+/// <summary>#211: quien instala tiene el catálogo desde el primer momento.</summary>
 [Collection("Dats.Handler")]
 public class InitialCatalogTests
 {
-    const string Canary = "DATO-PERSONAL-DE-PRUEBA";
-
-    static void Fill(Fixture f)
+    /// <summary>Un archivo como el que trae la app, con el esquema real.</summary>
+    static string Bundled(Fixture f)
     {
-        using var c = f.Db.Open();
-        c.Execute($"""
-            INSERT INTO catalog.saga (id, name) VALUES (1, 'Metroid');
-            INSERT INTO catalog.game (id, saga_id, name_es) VALUES (10, 1, 'Metroid Fusion');
-            INSERT INTO catalog.version (id, game_id, platform) VALUES (20, 10, 'gba');
-            INSERT INTO catalog.field_value (entity, entity_id, field, value, source, manual) VALUES ('game', 10, 'year', '2002', 'igdb', 0), ('game', 10, 'notes', '{Canary}', 'manual', 1);
-            INSERT INTO catalog.learning (kind, content, created_at) VALUES ('rule', '{Canary}', '2026-01-01');
-            UPDATE catalog.console SET enabled = 0, refreshed_at = '{Canary}' WHERE id = 'gba';
-            CREATE TABLE catalog.something_new (value TEXT);
-            INSERT INTO catalog.something_new VALUES ('{Canary}');
-            INSERT INTO main.progress (game_id, status, notes) VALUES (10, 'finished', '{Canary}');
-            INSERT INTO main.download_link (url, name, package, created_at) VALUES ('https://sitio.test/{Canary}', '{Canary}', '{Canary}', '2026-01-01');
-            """);
-    }
-
-    static byte[] Plain(string gz)
-    {
-        using var input = new GZipStream(File.OpenRead(gz), CompressionMode.Decompress);
-        using var output = new MemoryStream();
-        input.CopyTo(output);
-        return output.ToArray();
-    }
-
-    [Fact]
-    public async Task TheExportHasNothingPersonal()
-    {
-        await using var f = new Fixture();
-        Fill(f);
+        using (var c = f.Db.Open())
+        {
+            c.Execute("""
+                INSERT INTO catalog.saga (id, name) VALUES (1, 'Metroid');
+                INSERT INTO catalog.game (id, saga_id, name_es) VALUES (10, 1, 'Metroid Fusion');
+                INSERT INTO catalog.version (id, game_id, platform) VALUES (20, 10, 'gba');
+                """);
+            c.Execute("VACUUM catalog INTO @plain", new { plain = f.Tmp["copia.db"] });
+        }
+        SqliteConnection.ClearAllPools();
         var file = f.Tmp["catalogo-inicial.db.gz"];
-        InitialCatalog.Export(f.Db, file);
-        var text = Encoding.UTF8.GetString(Plain(file));
-        Assert.Contains("Metroid Fusion", text);
-        Assert.DoesNotContain(Canary, text);
-        Assert.False(File.Exists(file + ".tmp"));
+        using (var input = File.OpenRead(f.Tmp["copia.db"]))
+        using (var gz = new GZipStream(File.Create(file), CompressionLevel.Fastest))
+            input.CopyTo(gz);
+        return file;
     }
 
     [Fact]
-    public async Task AFreshInstallGetsTheCatalogAndConsolesStayEnabled()
+    public async Task AFreshInstallGetsTheCatalog()
     {
         await using var source = new Fixture();
-        Fill(source);
-        var file = source.Tmp["catalogo-inicial.db.gz"];
-        InitialCatalog.Export(source.Db, file);
-
+        var file = Bundled(source);
         await using var fresh = new Fixture();
         InitialCatalog.BundledFile = file;
         try { Assert.True(InitialCatalog.Seed(fresh.Db)); }
@@ -64,19 +41,15 @@ public class InitialCatalogTests
         using var c = fresh.Db.Open();
         Assert.Equal("Metroid Fusion", c.ExecuteScalar<string>("SELECT name_es FROM catalog.game WHERE id = 10"));
         Assert.Equal(20, c.ExecuteScalar<long>("SELECT id FROM catalog.version WHERE game_id = 10"));
-        Assert.Equal(1, c.ExecuteScalar<long>("SELECT enabled FROM catalog.console WHERE id = 'gba'"));
         Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(fresh.Db.CatalogPath)!, "*.tmp"));
     }
 
-    /// <summary>Una instalación con catálogo no se toca: lo tuyo apunta a sus ids.</summary>
+    /// <summary>La copia inicial solo llena un catálogo vacío: lo demás es de la actualización.</summary>
     [Fact]
-    public async Task AnInstallWithACatalogIsNotTouched()
+    public async Task AnInstallWithACatalogIsNotSeeded()
     {
         await using var source = new Fixture();
-        Fill(source);
-        var file = source.Tmp["catalogo-inicial.db.gz"];
-        InitialCatalog.Export(source.Db, file);
-
+        var file = Bundled(source);
         await using var mine = new Fixture();
         using (var c = mine.Db.Open()) c.Execute("INSERT INTO catalog.game (id, name_es) VALUES (10, 'Mi juego')");
         InitialCatalog.BundledFile = file;
@@ -84,7 +57,6 @@ public class InitialCatalogTests
         finally { InitialCatalog.BundledFile = null; }
         using var check = mine.Db.Open();
         Assert.Equal("Mi juego", check.ExecuteScalar<string>("SELECT name_es FROM catalog.game WHERE id = 10"));
-        Assert.Equal(1, check.ExecuteScalar<long>("SELECT count(*) FROM catalog.game"));
     }
 
     [Fact]

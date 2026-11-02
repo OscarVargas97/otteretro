@@ -301,6 +301,37 @@ public class DownloadsTests : IAsyncDisposable
         Assert.True(both);
     }
 
+    /// <summary>Un disco lento no puede acumular gigas en memoria: lo vimos llegar a 8 GB de RAM con 3 descargas en un disco mecánico.</summary>
+    [Fact]
+    public void WhatWaitsForTheDiskInMemoryHasACap()
+    {
+        Assert.Equal(Downloads.MemoryCap, Downloads.Configuration(2).MaximumMemoryBufferBytes);
+        Assert.True(Downloads.MemoryCap <= 128 * 1024 * 1024);
+    }
+
+    /// <summary>Descomprimir mientras una descarga escribe en el mismo disco las vuelve lentas a las dos: la importación espera a que termine.</summary>
+    [Fact]
+    public async Task AnImportWaitsWhileADownloadWritesOnItsDisk()
+    {
+        await using var f = new Fixture();
+        var (disk, _) = Disk.Create(f.Db, f.Tmp["Otteretro"], "E:");
+        var (other, _) = Disk.Create(f.Db, f.Tmp["OtroDisco"], "F:");
+        slowUntil = 30;
+        var download = Downloads.Enqueue(f.Db, "P", disk, [baseUrl + "uno.bin"]).Task!.Value;
+        var same = Import.EnqueueEntry(f.Db, Disk.Get(f.Db, disk!)!);
+        var elsewhere = Import.EnqueueEntry(f.Db, Disk.Get(f.Db, other!)!);
+        await f.Queue.StartAsync(default);
+        for (var i = 0; i < 200 && Status(f, download) != "running"; i++) await Task.Delay(50);
+        // La de otro disco no tiene por qué esperar.
+        for (var i = 0; i < 200 && Status(f, elsewhere) != "done"; i++) await Task.Delay(50);
+        Assert.Equal("done", Status(f, elsewhere));
+        Assert.Equal("queued", Status(f, same));
+
+        slowUntil = 0;
+        for (var i = 0; i < 400 && Status(f, same) != "done"; i++) await Task.Delay(50);
+        Assert.Equal(("done", "done"), (Status(f, download), Status(f, same)));
+    }
+
     /// <summary>Un comprimido de una descarga que no pasa su CRC deja esa descarga con error, para volver a bajarla (decisión 249).</summary>
     [Fact]
     public async Task ABrokenArchiveMarksItsDownload()

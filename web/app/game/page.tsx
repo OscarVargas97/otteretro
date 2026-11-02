@@ -17,7 +17,6 @@ import { compareQuery, gameQuery } from "@/lib/queries";
 import type { CapturedLink, FieldRow, GameDetail, ProgressInfo, RoutesPage, VersionCompare } from "@/lib/types";
 
 const STATUSES = ["pending", "playing", "finished", "completed", "dropped"] as const;
-const FIELDS = ["name_es", "original_name", "year"] as const;
 
 // La ficha de un juego se abre como /game/?id=…
 export default function GameScreen() {
@@ -101,7 +100,6 @@ function Game() {
 
         <GameLinks gameId={Number(g.id)} />
 
-        <Sources game={g} />
       </div>
     </div>
   );
@@ -263,70 +261,9 @@ function Tracking({ game }: { game: GameDetail }) {
   );
 }
 
-/** Datos y fuentes (§6.8): cada campo con el valor de cada fuente. Lo corregido a mano gana; se puede volver al de las fuentes. */
-function Sources({ game }: { game: GameDetail }) {
-  const t = useTranslations("catalog");
-  const sources = [...new Set(game.fields.filter((f) => !f.manual).map((f) => t(`game.source.${f.source as "igdb"}`)))];
-  return (
-    <details className="fold">
-      <summary>{t("game.sources")} <span className="small muted">{sources.join(" · ")}</span></summary>
-      <div className="fold-body">
-        {FIELDS.map((field) => <FieldEditor key={field} game={game} field={field} rows={game.fields.filter((f) => f.field === field)} />)}
-        <p className="small muted" style={{ margin: 0 }}>{t("game.manualNote")}</p>
-      </div>
-    </details>
-  );
-}
-
-function FieldEditor({ game, field, rows }: { game: GameDetail; field: (typeof FIELDS)[number]; rows: FieldRow[] }) {
-  const t = useTranslations("catalog");
-  const describe = useDescribeError();
-  const cache = useQueryClient();
-  const current = field === "name_es" ? game.nameEs : field === "original_name" ? game.originalName : game.year;
-  const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState("");
-  const done = (data: GameDetail) => {
-    cache.setQueryData(["game", String(game.id)], data);
-    cache.invalidateQueries({ queryKey: ["collection"] });
-    setEditing(false);
-  };
-  const save = useMutation({ mutationFn: () => request<GameDetail>(`/api/games/${game.id}/fields/${field}`, { method: "PUT", body: JSON.stringify({ value }) }), onSuccess: done });
-  const undo = useMutation({ mutationFn: () => request<GameDetail>(`/api/games/${game.id}/fields/${field}`, { method: "DELETE" }), onSuccess: done });
-  const manual = rows.some((r) => r.manual);
-  const label = t(`game.field.${field}`);
-  const inputId = `field-${field}`;
-
-  return (
-    <div className="field-editor">
-      <div className="version-row">
-        <span className="field-line"><b>{label}</b>: {current ?? "—"} {!editing && <button className="ot-btn ot-btn-ghost ot-btn-icon" type="button" aria-label={`${t("game.fix")}: ${label}`} title={t("game.fix")} onClick={() => { setValue(String(current ?? "")); setEditing(true); save.reset(); }}>✎</button>}</span>
-        {manual && !editing && <button className="ot-btn ot-btn-ghost" type="button" disabled={undo.isPending} onClick={() => undo.mutate()}>{t("game.undoFix")}</button>}
-      </div>
-      {rows.length > 0 && (
-        <ul className="small muted source-list">
-          {rows.map((r) => (
-            <li key={r.source}>{t(`game.source.${r.source as "igdb"}`)}: {r.value ?? "—"}{r.winner && <span className="ot-badge ot-badge-have" style={{ marginLeft: 6 }}>{t("game.shown")}</span>}</li>
-          ))}
-        </ul>
-      )}
-      {editing && (
-        <form className="form-block" onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
-          <label className="small muted" htmlFor={inputId}>{label}</label>
-          <input id={inputId} value={value} inputMode={field === "year" ? "numeric" : undefined} onChange={(e) => setValue(e.target.value)} autoFocus />
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="ot-btn" type="button" onClick={() => setEditing(false)}>{t("game.cancel")}</button>
-            <button className="ot-btn ot-btn-primary" type="submit" disabled={save.isPending}>{t("game.save")}</button>
-          </div>
-        </form>
-      )}
-      {(save.error ?? undo.error) && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(save.error ?? undo.error)}</p>}
-    </div>
-  );
-}
-
+/** Puntaje de 1 a 5 como barra de 5 tramos (#171). */
 const CRITERIA = ["content", "gameplay", "technical", "original"] as const;
 
-/** Puntaje de 1 a 5 como barra de 5 tramos (#171). */
 function Score({ value, best }: { value: number; best: boolean }) {
   return (
     <span className={`score${best ? " is-best" : ""}`} role="img" aria-label={`${value}/5`}>

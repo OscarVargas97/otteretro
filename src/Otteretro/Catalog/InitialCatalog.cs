@@ -1,13 +1,12 @@
 using System.IO.Compression;
 using Dapper;
-using Microsoft.Data.Sqlite;
 using Otteretro.Data;
 
 namespace Otteretro.Catalog;
 
 /// <summary>
 /// El catálogo que trae la app (#211, decisión 250): quien la instala tiene las sagas y los juegos desde el primer momento, sin claves ni días de carga.
-/// Solo sale de `catalogo.db`, nunca de la base propia, y lo que no esté en <see cref="Shared"/> no se publica: una tabla nueva queda fuera hasta decidirlo.
+/// Lo genera y publica `otteretro-catalogo`; después, <see cref="CatalogUpdate"/> lo mantiene al día.
 /// </summary>
 public static class InitialCatalog
 {
@@ -16,31 +15,8 @@ public static class InitialCatalog
         ? Path.Combine(AppContext.BaseDirectory, "catalogo", "catalogo-inicial.db.gz")
         : null;
 
-    /// <summary>Lo que se publica, con cada tabla antes de las que apuntan a ella. `claude_fingerprint` evita que Claude vuelva a juzgar lo ya juzgado: son hashes.</summary>
-    static readonly string[] Shared = ["console", "console_platform", "saga", "game", "version", "version_criterion", "field_value", "route", "route_step", "claude_fingerprint"];
-
-    /// <summary>Escribe una copia comprimida del catálogo, sin nada propio: ni tus correcciones a mano, ni tus reglas para Claude, ni qué consolas habilitaste.</summary>
-    public static void Export(Database db, string path)
-    {
-        var temp = path + ".tmp";
-        File.Delete(temp);
-        using (var c = db.Open()) c.Execute("VACUUM catalog INTO @temp", new { temp });
-        using (var copy = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = temp, Pooling = false }.ToString()))
-        {
-            copy.Open();
-            foreach (var table in copy.Query<string>("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").ToList())
-                if (!Shared.Contains(table)) copy.Execute($"DROP TABLE \"{table}\"");
-            copy.Execute("""
-                DELETE FROM field_value WHERE manual = 1;
-                UPDATE console SET enabled = 1, refreshed_at = NULL;
-                VACUUM;
-                """);
-        }
-        using (var input = File.OpenRead(temp))
-        using (var output = new GZipStream(File.Create(path), CompressionLevel.SmallestSize))
-            input.CopyTo(output);
-        File.Delete(temp);
-    }
+    /// <summary>Lo que se copia, con cada tabla antes de las que apuntan a ella.</summary>
+    static readonly string[] Shared = ["console", "console_platform", "saga", "game", "version", "version_criterion", "field_value", "route", "route_step"];
 
     /// <summary>
     /// Llena un catálogo vacío con el que trae la app. Uno con juegos no se toca: tus datos apuntan a sus ids. Todo o nada, y solo las columnas que

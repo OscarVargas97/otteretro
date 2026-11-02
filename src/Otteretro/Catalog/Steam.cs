@@ -10,7 +10,7 @@ namespace Otteretro.Catalog;
 /// <summary>
 /// Lo comprado en Steam como «lo tengo · versión PC», con horas y última vez (F1.8, §6.6). Tarea `steam.sync`:
 /// lee la cuenta detectada en loginusers.vdf, pide `GetOwnedGames` y guarda cada juego como origen de tienda.
-/// Lo que no está en el catálogo se busca en IGDB por su id de Steam (tarea `igdb.steam`).
+/// Lo que no está en el catálogo aparece igual en tu colección, sin datos del catálogo.
 /// </summary>
 public static partial class Steam
 {
@@ -25,9 +25,6 @@ public static partial class Steam
     record Owned(OwnedResponse? Response);
     record OwnedResponse(OwnedGame[]? Games);
     record OwnedGame(long Appid, string? Name, long PlaytimeForever, long RtimeLastPlayed);
-    /// <summary>Punto de control de `igdb.steam`: el último id de Steam ya buscado.</summary>
-    public record LinkJob(long After = 0);
-
     public static long EnqueueSync(Database db) => TaskQueue.Enqueue(db, "steam.sync", "{}");
 
     public static async Task Sync(TaskRun run, CancellationToken ct)
@@ -58,11 +55,6 @@ public static partial class Steam
             t.Commit();
         }
         run.Report(100, ApiError.Of("tasks.steam.synced", ("count", games.Length.ToString())));
-
-        using (var c = run.Db.Open())
-            if (c.ExecuteScalar<long>("SELECT count(*) FROM source WHERE store = 'steam' AND version_id IS NULL") > 0
-                && c.ExecuteScalar<long>("SELECT count(*) FROM task WHERE kind = 'igdb.steam' AND status = 'queued'") == 0)
-                TaskQueue.Enqueue(run.Db, "igdb.steam", JsonSerializer.Serialize(new LinkJob(), JsonSerializerOptions.Web));
     }
 
     /// <summary>Enlaza los orígenes de Steam sueltos con la versión de PC que tiene ese id de Steam.</summary>

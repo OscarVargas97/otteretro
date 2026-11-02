@@ -6,7 +6,7 @@ import { useState } from "react";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
 import { optimistic } from "@/lib/optimistic";
-import type { AutomationSuggestion, ClaudeSettingsRequest, ClaudeStatus, ConsolesPage, UsagePage } from "@/lib/types";
+import type { ClaudeSettingsRequest, ClaudeStatus, UsagePage } from "@/lib/types";
 
 /**
  * Ajustes › Claude (§10, #110) en tres bloques: Horario (en una frase, se guarda solo), Ahora (estado, «Ejecutar ahora» y
@@ -19,12 +19,6 @@ export function ClaudeSettings() {
   const cache = useQueryClient();
   const status = useQuery({ queryKey: ["claude"], queryFn: () => request<ClaudeStatus>("/api/claude"), refetchInterval: (q) => (q.state.data?.task ? 5_000 : 30_000) });
   const [share, setShare] = useState<number | null>(null);
-  const [platform, setPlatform] = useState("");
-  const consoles = useQuery({ queryKey: ["consoles", "settings"], queryFn: () => request<ConsolesPage>("/api/consoles/settings") });
-  const iconic = useMutation({
-    mutationFn: () => request<number>(`/api/claude/iconic${platform ? `?console=${encodeURIComponent(platform)}` : ""}`, { method: "POST" }),
-    onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
-  });
   const done = (data: ClaudeStatus) => cache.setQueryData(["claude"], data);
   // Cada cambio se ve al tocar y se guarda solo (#107, #110).
   const save = useMutation({
@@ -85,22 +79,13 @@ export function ClaudeSettings() {
         </p>
         <div className="sentence">
           <button className="ot-btn ot-btn-primary" type="button" disabled={runNow.isPending || task?.status === "running"} onClick={() => runNow.mutate()}>{t("runNow")}</button>
-          <span style={{ flex: 1 }} />
-          <select aria-label={t("iconicScope")} value={platform} onChange={(e) => setPlatform(e.target.value)}>
-            <option value="">{t("iconicAll")}</option>
-            {consoles.data?.consoles.filter((c) => Number(c.games) > 0).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <button className="ot-btn" type="button" disabled={iconic.isPending} onClick={() => iconic.mutate()}>{t("iconic")}</button>
         </div>
-        {iconic.isSuccess && <span className="small muted">{t("iconicQueued")}</span>}
-        {iconic.isError && <span className="small muted">{t("iconicNone")}</span>}
         {runNow.error && <p className="error small" role="alert">{describe(runNow.error)}</p>}
       </section>
 
       <section className="panel">
         <h2>{t("use")}</h2>
         <UsageLog stamp={status.dataUpdatedAt} />
-        <AutomationSuggestions />
       </section>
     </div>
   );
@@ -156,33 +141,6 @@ function UsageLog({ stamp }: { stamp: number }) {
           <button className="ot-btn ot-btn-sm" type="button" disabled={at >= pages} onClick={() => setPage(at + 1)}>{t("next")}</button>
         </div>
       )}
-    </>
-  );
-}
-
-/** Lo que Claude repite y conviene automatizar (§11.5): «Crear issue» lo deja en GitHub con la etiqueta automatizar. */
-function AutomationSuggestions() {
-  const t = useTranslations("settings.claude");
-  const describe = useDescribeError();
-  const cache = useQueryClient();
-  const list = useQuery({ queryKey: ["claude", "automation"], queryFn: () => request<AutomationSuggestion[]>("/api/claude/automation") });
-  const create = useMutation({
-    mutationFn: (key: string) => request<AutomationSuggestion[]>(`/api/claude/automation/${key}/issue`, { method: "POST" }),
-    onSuccess: (data) => cache.setQueryData(["claude", "automation"], data),
-  });
-  return (
-    <>
-      <h3 className="small muted console-group">{t("automation")}</h3>
-      {list.data?.length === 0 && <p className="small muted" style={{ margin: 0 }}>{t("noAutomation", { count: 10 })}</p>}
-      {list.data?.map((a) => (
-        <div key={a.key} className="chips" style={{ alignItems: "center" }}>
-          <span className="small"><b>{t("automationTimes", { count: Number(a.count) })}</b> · {a.change} · {a.reason}</span>
-          {a.issueUrl
-            ? <a className="small" href={a.issueUrl} target="_blank" rel="noreferrer">{t("issueCreated")}</a>
-            : <button className="ot-btn ot-btn-sm" type="button" disabled={create.isPending} onClick={() => create.mutate(a.key)}>{t("createIssue")}</button>}
-        </div>
-      ))}
-      {create.error && <p className="error small" role="alert">{describe(create.error)}</p>}
     </>
   );
 }

@@ -19,7 +19,7 @@ export default function Home() {
   const notices = useQuery(noticesQuery);
   const next = useQuery(nextQuery);
   const review = useQuery(reviewQuery);
-  const pending = review.data?.pending.length ?? 0;
+  const pending = review.data?.files.length ?? 0;
   const missing = notices.data?.filter((n) => n.code === "notices.missingKey") ?? [];
   const unidentified = notices.data?.find((n) => n.code === "notices.unidentified");
   // Todo junto (#105): los avisos van arriba y, si llegaran después, empujarían el resto.

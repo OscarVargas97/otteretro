@@ -35,23 +35,26 @@ Las capturas salen de una instalación limpia con una biblioteca y descargas de 
 2. Ábrelo y elige dónde guardar tus datos.
 3. Listo: el catálogo ya está adentro.
 
-La app se actualiza sola. En **Ajustes › General** puedes pasar al canal **Pruebas** para ver lo más nuevo antes de que se publique.
+La app y su catálogo se actualizan solos. En **Ajustes › General** puedes pasar al canal **Pruebas** para ver lo más nuevo antes de que se publique.
 
 > Las funciones de la fase actual (importar, descargas, capturador) llegan a **Estable** cuando la fase termina. Antes de eso, están en el canal Pruebas.
 
 ## Qué necesitas
 
-**Nada para empezar.** Sagas, juegos, rutas, seguimiento, colección e importar funcionan sin ninguna cuenta. Lo demás es opcional, y se configura en **Ajustes › Cuentas y claves**:
+**Nada para empezar.** Sagas, juegos, rutas, seguimiento, colección, importar y las actualizaciones del catálogo funcionan sin ninguna cuenta. Lo demás es opcional, y se configura en **Ajustes › Cuentas y claves**:
 
 | Para | Necesitas | Costo |
 |---|---|---|
 | Portadas e imágenes | Clave de [SteamGridDB](https://www.steamgriddb.com/profile/preferences/api) | Gratis |
-| Actualizar el catálogo y sumar juegos | Client ID y Secret de [Twitch](https://dev.twitch.tv/console) para IGDB | Gratis |
 | Tus juegos y horas de Steam | Clave de la [Steam Web API](https://steamcommunity.com/dev/apikey) | Gratis |
 | Bajar con tu cuenta de 1fichier o Mega | Tu cuenta | Depende del sitio |
-| Que Claude compare versiones y arme rutas nuevas | [Claude Code](https://claude.com/claude-code) con tu suscripción | Tu suscripción |
+| Que Claude identifique los archivos que no se reconocen | [Claude Code](https://claude.com/claude-code) con tu suscripción | Tu suscripción |
 
 **Otteretro no trae juegos, BIOS, keys ni firmware**, ni te dice de dónde sacarlos. Los archivos son tuyos.
+
+## El catálogo
+
+Las sagas, los juegos y las rutas se publican aparte, en [otteretro-catalogo](https://github.com/OscarVargas97/otteretro-catalogo): un archivo por saga, que cualquiera puede corregir con un PR. Otteretro baja la última versión al abrir.
 
 ## Tu privacidad
 

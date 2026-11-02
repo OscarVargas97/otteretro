@@ -17,12 +17,7 @@ public class SteamGridDbTests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
             var url = request.RequestUri!.AbsoluteUri;
-            // IGDB (respaldo de la portada, #61): el token y la carátula del juego 3.
-            if (url == Igdb.TokenUrl)
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{ "access_token": "token", "expires_in": 3600 }""") });
-            if (url == Igdb.ApiUrl + "covers")
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""[ { "id": 1, "image_id": "co3nada" } ]""") });
-            if (url.StartsWith("https://cdn2.steamgriddb.com/") || url.StartsWith(SteamGridDb.IgdbImageUrl))
+            if (url.StartsWith("https://cdn2.steamgriddb.com/"))
             {
                 OnDownload?.Invoke(url);
                 // a.png es una imagen de verdad y grande (#64); lo demás no se puede leer como imagen y queda tal cual.
@@ -190,7 +185,7 @@ public class SteamGridDbTests
     /// que viene con el id del juego; sin cuenta de IGDB, el juego queda sin portada antes que con la de otro.
     /// </summary>
     [Fact]
-    public async Task WithoutAnExactMatchTheCoverComesFromIgdb()
+    public async Task WithoutAnExactMatchThereIsNoCover()
     {
         await using var f = new Fixture(("steamgriddb.apiKey", "clave"), ("igdb.clientId", "id"), ("igdb.clientSecret", "secreto"));
         using (var c = f.Db.Open())
@@ -203,7 +198,7 @@ public class SteamGridDbTests
 
         Assert.Equal("done", (await f.Run(SteamGridDb.Enqueue(f.Db))).Status);
         var files = Directory.GetFiles(SteamGridDb.Folder(f.Db)).Select(Path.GetFileName).Order();
-        Assert.Equal(["3-cover.jpg", "4-cover.jpg"], files);
+        Assert.Equal(["4-cover.jpg"], files);
     }
 
     [Fact]

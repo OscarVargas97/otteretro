@@ -125,7 +125,7 @@ test("elegir la carpeta de datos lleva al paso de bibliotecas y, al saltarlo, al
   // #169: un solo aviso con todos los servicios sin clave y el botón a Cuentas y claves.
   const notice = page.getByRole("note", { name: en.notices.title });
   await expect(notice).toHaveCount(1);
-  await expect(notice).toContainText(en.credentials.service.igdb);
+  await expect(notice).toContainText(en.credentials.service.steamgriddb);
   await expect(notice.getByRole("link", { name: en.notices.openCredentials })).toHaveAttribute("href", "/settings/?s=credentials");
   await expectNoRawKeys();
   await expectSearchFits();
@@ -140,7 +140,7 @@ test("todas las pantallas se ven en inglés", async () => {
     ["collection", en.catalog.collection.emptyTitle],
     ["game", en.catalog.game.noneTitle],
     ["saga", en.catalog.saga.noneTitle],
-    ["review", en.review.pendingEmptyTitle],
+    ["review", en.review.files.doubtfulEmptyTitle],
     ["tools", en.tools.emptyTitle],
     ...(["discover", "steam"] as const).map((s) => [s, en.comingSoon[s].title] as const),
   ] as const;
@@ -670,18 +670,6 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   await expect(page.getByRole("radio", { name: es.catalog.status.finished })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByLabel(es.catalog.game.rating)).toHaveValue("9");
 
-  // Corregir el nombre a mano gana sobre IGDB; volver al de las fuentes lo deshace.
-  await page.getByText(es.catalog.game.sources).click();
-  await page.getByRole("button", { name: `${es.catalog.game.fix}: ${es.catalog.game.field.name_es}` }).click();
-  await page.getByLabel(es.catalog.game.field.name_es).fill("La ocarina del tiempo");
-  await page.getByRole("button", { name: es.catalog.game.save }).click();
-  await expect(page.getByRole("heading", { level: 2, name: "La ocarina del tiempo" })).toBeVisible();
-  await expectNoRawKeys();
-  await expectTextFits();
-  await page.screenshot({ path: "e2e-results/9-ficha-es.png", fullPage: true });
-  await page.getByRole("button", { name: es.catalog.game.undoFix }).click();
-  await expect(page.getByRole("heading", { level: 2, name: "Ocarina of Time" })).toBeVisible();
-
   // F2.18: «Lo tengo» por defecto y el número de cada consola sigue al filtro.
   await page.goto(`${base()}/collection/?console=n64`);
   await expect(page.getByRole("button", { name: es.catalog.collection.filter.owned })).toHaveAttribute("aria-pressed", "true");
@@ -720,113 +708,6 @@ test("la ficha muestra tus enlaces de ese juego, y se pueden quitar (#210)", asy
   await expect(page.getByText("fusion.zip")).toBeVisible();
   await page.getByRole("button", { name: es.downloads.removeLink.replace("{name}", "fusion.zip") }).click();
   await expect(page.getByRole("heading", { name: es.downloads.gameLinks })).toHaveCount(0);
-});
-
-test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha y el siguiente juego en Inicio", async () => {
-  // Lo que dejaría `claude cargar` (F2.5): las rutas de Zelda y la mejor versión de Ocarina, por aprobar.
-  const db = await openDb();
-  const criterion = { score: 4, text: "Bien" };
-  const items = [
-    ["saga", 1, { prompt: "ruta-saga", result: [
-      { kind: "release", rationale: "Por fecha de salida.", steps: [{ gameId: 10, versionId: null, reason: "El primero en 3D" }, { gameId: 11, versionId: null, reason: "El último" }], sources: [] },
-      { kind: "community", rationale: "Así se recomienda empezar.", steps: [{ gameId: 10, versionId: 101, reason: "El de 3DS se ve mejor" }, { gameId: 11, versionId: null, reason: "Después, el mundo abierto" }], sources: [{ title: "r/zelda", url: "https://reddit.com/r/zelda" }] },
-    ] }],
-    ["game", 10, { prompt: "mejor-version", result: { gameId: 10, bestVersionId: 101, reason: "Mejor hoy", versions: [
-      { versionId: 100, content: criterion, gameplay: { score: 3, text: "Controles de su época" }, technical: criterion, original: { score: 5, text: "Es el original" } },
-      { versionId: 101, content: criterion, gameplay: { score: 5, text: "Pantalla táctil para el inventario" }, technical: criterion, original: criterion },
-    ] } }],
-  ] as const;
-  for (const [entity, id, data] of items)
-    db.prepare("INSERT INTO review_item (kind, entity, entity_id, data, created_at) VALUES ('pending_approval', ?, ?, ?, '2026-10-31')").run(entity, id, JSON.stringify(data));
-  db.close();
-
-  await page.goto(`${base()}/review/`);
-  await expect(page.getByText("Así se recomienda empezar.")).toBeVisible();
-  // #171: la ruta por aprobar con sus portadas numeradas y la razón de cada paso.
-  const preview = page.locator(".timeline.is-plain").first();
-  await expect(preview.locator(".step-num").first()).toHaveText("1");
-  await expect(preview).toContainText("Ocarina of Time");
-  await expectNoRawKeys();
-  await expectTextFits();
-  await page.screenshot({ path: "e2e-results/11-revisar-es.png", fullPage: true });
-  // F2.21: el contador de Revisar en la barra lateral, y la ruta de la comunidad editada antes de aprobarla.
-  const reviewLink = page.getByRole("navigation", { name: es.nav.label }).getByRole("link", { name: new RegExp(es.nav.review) });
-  await expect(reviewLink).toContainText("2");
-  await page.getByRole("button", { name: es.review.edit }).click();
-  await page.getByRole("button", { name: es.review.stepUp.replace("{step}", "2") }).nth(1).click();
-  await page.getByRole("button", { name: es.review.approveEdited }).click();
-  await expect(reviewLink).toContainText("1");
-  await page.getByRole("button", { name: es.review.approve }).first().click();
-  await expect(page.getByText(es.review.pendingEmptyTitle)).toBeVisible();
-  await expect(reviewLink.locator(".ot-count")).toHaveCount(0);
-
-  await page.goto(`${base()}/saga/?id=1`);
-  await expect(page.getByText(es.catalog.saga.why)).toBeVisible();
-  await expect(page.getByText("El de 3DS se ve mejor")).toBeVisible();
-  // #170: la ruta se elige con pestañas junto al título; elegirla es seguirla.
-  await page.getByRole("tab", { name: es.catalog.route.community }).click();
-  await expect(page.getByRole("tab", { name: es.catalog.route.community })).toHaveAttribute("aria-selected", "true");
-  // Editada: Breath of the Wild quedó primero. Los pasos llevan su número y lo jugado (Ocarina) va a color.
-  await expect(page.locator(".timeline").first()).toContainText(/Breath of the Wild[\s\S]*Ocarina of Time/);
-  await expect(page.locator(".timeline li.is-played")).toContainText("Ocarina of Time");
-  await expect(page.locator(".timeline .step-num").first()).toHaveText("1");
-  // «Pedir a Claude que la recalcule» está en el menú «⋯» del encabezado (no se pulsa: encolaría una llamada real).
-  await page.getByRole("button", { name: es.catalog.saga.moreActions }).click();
-  await expect(page.getByRole("menuitem", { name: es.catalog.saga.recalculate })).toBeVisible();
-  await page.keyboard.press("Escape");
-  // Las consolas de la tabla, abreviadas: Ocarina está en N64 y 3DS.
-  await expect(page.getByRole("row", { name: /Ocarina of Time/ }).locator(".ot-console")).toHaveText(["N64", "3DS"]);
-  await expectNoRawKeys();
-  await expectTextFits();
-  await page.screenshot({ path: "e2e-results/12-saga-ruta-es.png", fullPage: true });
-
-  await page.goto(`${base()}/game/?id=10`);
-  // #171: versiones y comparativa en una sola tabla, con barras de 5 y el mejor de cada columna resaltado.
-  await expect(page.getByRole("heading", { level: 2, name: es.catalog.game.versions })).toBeVisible();
-  await expect(page.getByText("Pantalla táctil para el inventario")).toBeVisible();
-  const ds = page.getByRole("row", { name: /Nintendo 3DS/ });
-  await expect(ds.getByRole("img", { name: "5/5" })).toHaveClass(/is-best/);
-  await expect(page.getByRole("row", { name: /Nintendo 64/ }).getByRole("img", { name: "3/5" })).not.toHaveClass(/is-best/);
-  await page.screenshot({ path: "e2e-results/13-comparativa-es.png", fullPage: true });
-
-  // Ocarina ya está terminado (prueba anterior): lo siguiente es Breath of the Wild.
-  await page.goto(`${base()}/`);
-  // #170: tarjeta horizontal con la ruta, el avance y «Ver ficha»; Revisar solo si hay algo (aquí ya se aprobó todo).
-  const card = page.locator(".next-card", { hasText: "Breath of the Wild" });
-  await expect(card.getByRole("link", { name: `${es.home.viewGame}: Breath of the Wild` })).toHaveAttribute("href", "/game/?id=11");
-  await expect(card).toContainText(es.catalog.ofTotal.replace("{done}", "1").replace("{total}", "2"));
-  await expect(page.getByRole("heading", { level: 2, name: es.home.review })).toHaveCount(0);
-  await page.screenshot({ path: "e2e-results/14-inicio-es.png", fullPage: true });
-
-  // F2.21: terminar Breath of the Wild completa la ruta que sigues: la nutria lo celebra.
-  await page.goto(`${base()}/game/?id=11`);
-  await page.getByRole("radio", { name: es.catalog.status.finished }).click();
-  await expect(page.getByRole("status").filter({ hasText: es.catalog.game.cheerRoute.replace("{saga}", "The Legend of Zelda") })).toBeVisible();
-  await page.screenshot({ path: "e2e-results/14b-nutria-es.png", fullPage: true });
-
-  // #95: el registro de uso va de a 10.
-  const usageDb = await openDb();
-  for (let i = 1; i <= 12; i++)
-    usageDb.exec(`INSERT INTO claude_usage (prompt, model, duration_ms, result, input_tokens, output_tokens, cost_usd, created_at)
-      VALUES ('uso-${i}', 'haiku', 1000, 'ok', 1, 1, 0, '2026-10-31T03:00:00Z')`);
-  usageDb.close();
-  await page.goto(`${base()}/settings/?s=claude`);
-  await expect(page.getByRole("button", { name: es.settings.claude.runNow })).toBeVisible();
-  // #110: tres bloques, el horario en una frase de una sola línea y el registro con su costo.
-  for (const h of [es.settings.claude.schedule, es.settings.claude.now, es.settings.claude.use])
-    await expect(page.locator("#settings-panel").getByRole("heading", { level: 2, name: h })).toBeVisible();
-  const scheduleRow = page.locator(".sentence").filter({ has: page.getByLabel(es.settings.claude.from) });
-  expect((await scheduleRow.boundingBox())!.height).toBeLessThan(48);
-  await expect(page.getByRole("columnheader", { name: es.settings.claude.cost })).toBeVisible();
-  const usageTable = page.locator("table").filter({ hasText: "uso-12" });
-  await expect(usageTable.locator("tbody tr")).toHaveCount(10);
-  // #172: el total de la página arriba del registro.
-  await expect(page.locator(".usage-total")).toContainText(/10/);
-  await page.getByRole("button", { name: es.settings.claude.next }).click();
-  await expect(page.getByRole("cell", { name: "uso-1", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: es.settings.claude.previous }).click();
-  await expect(page.getByRole("cell", { name: "uso-12" })).toBeVisible();
-  await expectNoRawKeys();
 });
 
 test("panel de tareas: terminadas por hora de término, registro al hacer clic y limpiar", async () => {
@@ -883,31 +764,6 @@ test("panel de tareas: pausar, reanudar y cancelar (#146)", async () => {
   await page.keyboard.press("Escape");
 });
 
-test("Aprendizajes: cada cambio en claro, filtros y corregir con una nota para Claude", async () => {
-  const db = await openDb();
-  const content = {
-    prompt: "depurar-sagas",
-    change: { kind: "move", reason: "No es de Zelda.", gameIds: [11], toSagaId: null, newSagaName: null },
-    before: { games: [{ item1: 11, item2: 1 }], createdSaga: null },
-  };
-  db.prepare("INSERT INTO learning (kind, content, created_at, task_id) VALUES ('rule', ?, '2026-10-31T15:00:00Z', 37)").run(JSON.stringify(content));
-  db.close();
-  await page.goto(`${base()}/review/`);
-  await page.getByRole("tab", { name: /Aprendizajes/ }).click();
-  await expect(page.getByRole("heading", { level: 2, name: "Tarea #37" })).toBeVisible();
-  await expect(page.getByText(/Breath of the Wild: de The Legend of Zelda a ninguna saga/)).toBeVisible();
-  await page.getByRole("button", { name: es.review.kindFilter.merge }).click();
-  await expect(page.getByText(/ninguna saga/)).toHaveCount(0);
-  await page.getByRole("button", { name: es.review.filterAll }).click();
-  await page.getByRole("button", { name: es.review.correct }).click();
-  await page.getByRole("textbox", { name: es.review.correct }).fill("Breath of the Wild sí es de Zelda");
-  await page.getByRole("button", { name: es.review.send }).click();
-  await expect(page.getByText("Tu corrección: Breath of the Wild sí es de Zelda")).toBeVisible();
-  await expect(page.getByText(es.review.undone)).toBeVisible();
-  await expectNoRawKeys();
-  await page.screenshot({ path: "e2e-results/16-aprendizajes-es.png", fullPage: true });
-});
-
 test("los cambios se ven al tocar y, si el guardado falla, vuelven y avisan", async () => {
   // #107: el servidor retiene el guardado; la estrella ya cambió y el botón sigue activo. Después responde con error.
   await page.goto(`${base()}/saga/?id=1`);
@@ -957,39 +813,6 @@ test("las pestañas nunca tienen barra: en una ventana angosta, lo que no cabe v
   const column = (await page.locator(".centered").boundingBox())!;
   expect(column.width).toBeLessThanOrEqual(881);
   expect(Math.abs((column.x - content.x) - (content.x + content.width - column.x - column.width))).toBeLessThan(40);
-});
-
-test("Ajustes: consolas habilitadas, al día y reevaluar icónicas", async () => {
-  await page.goto(`${base()}/settings/?s=consoles`);
-  await expect(page.getByRole("tabpanel", { name: es.settings.consoles.title })).toBeVisible();
-  // #109: filas por empresa en una sola línea y la fecha de carga, a lo más, una vez.
-  const heights = await page.locator(".console-row").evaluateAll((rows) => rows.map((r) => r.getBoundingClientRect().height));
-  expect(heights.length).toBeGreaterThan(20);
-  expect(Math.max(...heights)).toBeLessThan(48);
-  expect(await page.getByText(/al día al/i).count()).toBeLessThanOrEqual(1);
-  await expect(page.getByRole("heading", { level: 3, name: es.settings.consoles.group.nintendo })).toBeVisible();
-  const vb = page.getByRole("switch", { name: /Virtual Boy/ });
-  await expect(vb).toBeChecked();
-  await vb.click(); // cambia al tocar (#107)
-  await expect(vb).not.toBeChecked();
-  await vb.click();
-  await expect(vb).toBeChecked();
-  // #94: la búsqueda en IGDB se cierra con el botón y con Escape.
-  const add = page.getByRole("button", { name: es.settings.consoles.add });
-  await add.click();
-  await page.getByRole("button", { name: es.settings.consoles.close }).click();
-  await expect(add).toBeVisible();
-  await add.click();
-  await page.getByRole("searchbox", { name: es.settings.consoles.search }).press("Escape");
-  await expect(add).toBeVisible();
-  await expect(page.getByRole("searchbox", { name: es.settings.consoles.search })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: es.settings.consoles.refreshNow })).toBeVisible();
-  await expectNoRawKeys();
-  await page.screenshot({ path: "e2e-results/17-consolas-es.png", fullPage: true });
-  await page.getByRole("tab", { name: es.settings.claude.title }).click();
-  await expect(page.getByRole("button", { name: es.settings.claude.iconic })).toBeVisible();
-  await expectNoRawKeys();
-  await page.screenshot({ path: "e2e-results/18-claude-es.png", fullPage: true });
 });
 
 test("Ajustes en una sola columna a cualquier ancho, y el menú se retrae, se recuerda y se expande", async () => {

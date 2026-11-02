@@ -19,8 +19,6 @@ const STEPS = [
   { key: "libraries" },
   { key: "accounts" },
   { key: "steam", phase: 6 },
-  { key: "keys", phase: 1 },
-  { key: "initialLoad", phase: 2 },
 ] as const;
 
 /** Asistente de primer arranque (pantallas.md §1). Funcionan los pasos 1, 2, 4 (discos) y 5 (cuentas de descarga, #191); el resto llega con su fase. Todo se puede saltar y hacer después en Ajustes. */

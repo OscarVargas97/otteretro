@@ -20,7 +20,6 @@ public static class Startup
         var applied = Migrations.Apply(db);
         Catalog.InitialCatalog.Seed(db);
         Migrations.RegisterMachine(db, config.MachineId);
-        Catalog.IgdbImport.EnqueuePopularity(db);
         FolderMove.RememberedSize(folder); // empieza a medirla, para que Ajustes no espere
         FileLog.Write(LogLevel.Information, "Startup", $"Otteretro {Version}; carpeta de datos {folder}; {applied} migraciones nuevas.");
         return db;

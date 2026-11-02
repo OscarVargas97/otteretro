@@ -26,19 +26,10 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
     public static readonly Dictionary<string, Handler> Handlers = new()
     {
         ["demo"] = Demo,
-        ["igdb.saga"] = Catalog.IgdbImport.Saga,
-        ["igdb.platform"] = Catalog.IgdbImport.Platform,
-        ["igdb.refresh"] = Catalog.IgdbImport.Refresh,
-        ["igdb.popular"] = Catalog.IgdbImport.Popular,
-        ["igdb.popularity"] = Catalog.IgdbImport.Popularity,
+        [Catalog.CatalogUpdate.Kind] = Catalog.CatalogUpdate.Run,
         ["sgdb.images"] = Catalog.SteamGridDb.Images,
         ["sgdb.webp"] = Catalog.SteamGridDb.Convert,
-        ["catalog.extra"] = Catalog.ExtraSources.Run,
         ["steam.sync"] = Catalog.Steam.Sync,
-        ["igdb.steam"] = Catalog.IgdbImport.FromSteam,
-        [Claude.CatalogCleanup.Kind] = Claude.CatalogCleanup.Run,
-        [Claude.SagaAnalysis.Kind] = Claude.SagaAnalysis.Run,
-        [Claude.InitialLoad.Kind] = Claude.InitialLoad.Run,
         [Claude.Identify.Kind] = Claude.Identify.Run,
         [Libraries.DiskTasks.Move] = Libraries.DiskTasks.RunMove,
         [Libraries.DiskTasks.Migrate] = Libraries.DiskTasks.RunMigrate,
@@ -202,6 +193,8 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
                         if (OnOpen && session.Config.DataFolder is { } dataFolder) Libraries.Disk.EnsureDataDisk(db, dataFolder);
                         // Al abrir la app, lo de antes pasa solo al estándar (#219), que al terminar escanea; si no, se escanea ya (#223).
                         if (OnOpen && Libraries.DiskTasks.EnqueueMigrateIfPending(db) is null) Libraries.Scan.Enqueue(db);
+                        // El catálogo publicado, sin claves (#213).
+                        if (OnOpen) Catalog.CatalogUpdate.Enqueue(db);
                     }
                     if (OnOpen)
                     {
@@ -232,6 +225,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
             """, new { now = Now() });
         foreach (var t in queued)
         {
+            if (t.Kind == Libraries.Import.Kind && Libraries.Downloads.WritingOn(db, t.Data)) continue;
             var (key, limit) = SlotOf(db, t);
             lock (gate)
             {

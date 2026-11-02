@@ -35,7 +35,6 @@ public static class CatalogEndpoints
     /// <summary>Claves sin las que una parte del catálogo no funciona: van como aviso en Inicio (§2, #44).</summary>
     static readonly (string Service, string[] Ids)[] NeededKeys =
     [
-        ("igdb", ["igdb.clientId", "igdb.clientSecret"]),
         ("steamgriddb", ["steamgriddb.apiKey"]),
         ("steam", ["steam.apiKey"]),
     ];
@@ -62,27 +61,8 @@ public static class CatalogEndpoints
         api.MapGet("/consoles", Results<Ok<List<ConsoleCount>>, Conflict<ApiError>> (AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(CatalogQueries.Consoles(db)) : NoData());
 
-        // Ajustes › Consolas (F2.13, F2.14): habilitar consolas desde IGDB y el catálogo al día.
         api.MapGet("/consoles/settings", Results<Ok<ConsolesPage>, Conflict<ApiError>> (AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(Consoles.Page(db)) : NoData());
-        api.MapGet("/consoles/igdb", async Task<Results<Ok<List<PlatformInfo>>, Conflict<ApiError>>> (AppSession s, SecretBox box, CancellationToken ct) =>
-        {
-            if (Db(s) is not { } db) return NoData();
-            try { return TypedResults.Ok(await Consoles.Available(db, IgdbFor(db, s, box), ct)); }
-            catch (TaskException e) { return TypedResults.Conflict(e.Error); }
-        });
-        api.MapPost("/consoles", async Task<Results<Ok<ConsolesPage>, NotFound, Conflict<ApiError>>> (EnableConsoleRequest request, AppSession s, SecretBox box, CancellationToken ct) =>
-        {
-            if (Db(s) is not { } db) return NoData();
-            try { return await Consoles.Enable(db, IgdbFor(db, s, box), request.IgdbId, ct) is null ? TypedResults.NotFound() : TypedResults.Ok(Consoles.Page(db)); }
-            catch (TaskException e) { return TypedResults.Conflict(e.Error); }
-        });
-        api.MapPut("/consoles/{id}", Results<Ok<ConsolesPage>, NotFound, Conflict<ApiError>> (string id, ConsoleUpdateRequest request, AppSession s) =>
-            Db(s) is not { } db ? NoData() : Consoles.SetEnabled(db, id, request.Enabled) ? TypedResults.Ok(Consoles.Page(db)) : TypedResults.NotFound());
-        api.MapPut("/catalog/refresh", Results<Ok<ConsolesPage>, BadRequest<ApiError>, Conflict<ApiError>> (RefreshSettingsRequest request, AppSession s) =>
-            Db(s) is not { } db ? NoData() : Consoles.SaveRefreshDays(db, request.Days) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(Consoles.Page(db)));
-        api.MapPost("/catalog/refresh", Results<Ok<long>, Conflict<ApiError>> (AppSession s) =>
-            Db(s) is { } db ? TypedResults.Ok(IgdbImport.EnqueueRefresh(db)) : NoData());
 
         // Portadas a pedido (#132).
         api.MapGet("/covers", Results<Ok<SteamGridDb.CoversInfo>, Conflict<ApiError>> (AppSession s, SecretBox box) =>
@@ -248,27 +228,6 @@ public static class CatalogEndpoints
             return CatalogQueries.SaveProgress(db, id, request) ? TypedResults.Ok(CatalogQueries.Game(db, id)!) : TypedResults.NotFound();
         });
 
-        // Corregir a mano un dato (§6.8): gana siempre y ninguna carga lo pisa. DELETE vuelve al de las fuentes.
-        api.MapPut("/games/{id:long}/fields/{field}", Results<Ok<GameDetail>, BadRequest<ApiError>, NotFound, Conflict<ApiError>> (long id, string field, FieldRequest request, AppSession s) =>
-        {
-            if (Db(s) is not { } db) return NoData();
-            if (!CatalogQueries.EditableFields.Contains(field)) return TypedResults.NotFound();
-            var value = request.Value?.Trim() ?? "";
-            if (value.Length == 0 && field == "name_es") return TypedResults.BadRequest(ApiError.Of("fields.empty"));
-            if (field == "year" && !(int.TryParse(value, out var year) && year is >= 1970 and <= 2100)) return TypedResults.BadRequest(ApiError.Of("fields.badYear"));
-            if (CatalogQueries.Game(db, id) is null) return TypedResults.NotFound();
-            using (var c = db.Open()) FieldValues.Set(c, "game", id, field, value.Length == 0 ? null : value, FieldValues.Manual);
-            return TypedResults.Ok(CatalogQueries.Game(db, id)!);
-        });
-
-        api.MapDelete("/games/{id:long}/fields/{field}", Results<Ok<GameDetail>, NotFound, Conflict<ApiError>> (long id, string field, AppSession s) =>
-        {
-            if (Db(s) is not { } db) return NoData();
-            if (!CatalogQueries.EditableFields.Contains(field) || CatalogQueries.Game(db, id) is null) return TypedResults.NotFound();
-            using (var c = db.Open()) FieldValues.Clear(c, "game", id, field, FieldValues.Manual);
-            return TypedResults.Ok(CatalogQueries.Game(db, id)!);
-        });
-
         api.MapGet("/search", Results<Ok<SearchResults>, Conflict<ApiError>> (AppSession s, string? q) =>
         {
             if (Db(s) is not { } db) return NoData();
@@ -289,9 +248,6 @@ public static class CatalogEndpoints
             return TypedResults.Ok(notices);
         });
     }
-
-    static Igdb IgdbFor(Database db, AppSession s, SecretBox box) =>
-        new(new ApiClient(db, IgdbImport.Handler), new Credentials(db, s.Config.MachineId, box), IgdbImport.Handler);
 
     static bool HasSgdbKey(Database db, AppSession s, SecretBox box) =>
         new Credentials(db, s.Config.MachineId, box).List().Any(c => c.Id == "steamgriddb.apiKey" && c.Saved);

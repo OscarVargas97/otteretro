@@ -214,12 +214,11 @@ public static partial class ClaudeBudget
         var opened = NextScheduleStart(s, now).AddDays(-1); // cuándo empezó este horario
         if (Date(s, LastAuto) >= opened) return null;
         Set(c, LastAuto, now.ToString("O"));
-        Catalog.IgdbImport.RefreshIfDue(db, now); // F2.14: el catálogo al día, cada semana
         return Launch(c, db);
     }
 
     static long Launch(System.Data.IDbConnection c, Database db) =>
-        c.ExecuteScalar<long?>($"SELECT id FROM task WHERE {Pending} ORDER BY id LIMIT 1") ?? InitialLoad.Enqueue(db)!.Value;
+        c.ExecuteScalar<long?>($"SELECT id FROM task WHERE {Pending} ORDER BY id LIMIT 1") ?? Identify.EnqueueIfNeeded(db) ?? 0;
 
     static Dictionary<string, string> Settings(System.Data.IDbConnection c) =>
         c.Query<(string Name, string Value)>("SELECT name, value FROM setting WHERE machine_id = '' AND name LIKE 'claude.%'")
