@@ -292,7 +292,17 @@
       "withSystem": "Se actualiza con el sistema: llega con la próxima actualización de PlayOS o NixOS."
     },
     "withSystemBadge": "Con el sistema",
-    "attribution": "Datos de juegos: IGDB.com"
+    "attribution": "Datos de juegos: IGDB.com",
+    "catalogSource": {
+      "title": "Catálogo",
+      "official": "Se actualiza desde el catálogo oficial, {repo}.",
+      "fork": "Se actualiza desde {repo}, un fork: su contenido es de terceros y no lo revisa Otteretro.",
+      "repo": "Repo del catálogo",
+      "placeholder": "alguien/otteretro-catalogo",
+      "use": "Usar este repo",
+      "hint": "Un fork de otteretro-catalogo con sus propias versiones publicadas. Tu colección y tu progreso se conservan; lo que el fork no tenga queda sin identificar hasta que vuelvas.",
+      "officialButton": "Volver al oficial"
+    }
   },
   "errors": {
     "http": "La app respondió con un error ({status}).",
@@ -437,7 +447,10 @@
       "applying": "Aplicando el catálogo {version}",
       "badHash": "El catálogo publicado no coincide con su hash: sigues con el anterior.",
       "badFile": "El catálogo publicado no se pudo abrir: sigues con el anterior.",
-      "badRelease": "La versión publicada del catálogo está incompleta: sigues con la anterior."
+      "badRelease": "La versión publicada del catálogo está incompleta: sigues con la anterior.",
+      "sourceName": "Escribe el repo como dueño/repo, por ejemplo alguien/otteretro-catalogo.",
+      "sourceEmpty": "{repo} no tiene un catálogo publicado: sigues con el anterior.",
+      "sourceUnreachable": "No se pudo leer {repo} en GitHub: revisa el nombre o la conexión. Sigues con el anterior."
     },
     "automation": {
       "notFound": "Esa sugerencia ya no está.",

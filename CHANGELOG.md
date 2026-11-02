@@ -4,9 +4,10 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.4.0 · Colección · en desarrollo
 
-`feat/212-catalogo-aparte`, `feat/211-listo-al-descargar`, `fase/f4-coleccion` y `docs/encuesta-17-plan-dominios` · F4 (#176, tareas #178 a #182; encuesta 17, #185): tus archivos de juegos reconocidos, verificados y marcados como «lo tengo» · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+`feat/217-catalogo-fork`, `feat/212-catalogo-aparte`, `feat/211-listo-al-descargar`, `fase/f4-coleccion` y `docs/encuesta-17-plan-dominios` · F4 (#176, tareas #178 a #182; encuesta 17, #185): tus archivos de juegos reconocidos, verificados y marcados como «lo tengo» · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
 
 ### Nuevo
+- **Catálogo desde un fork** (#217): en Ajustes › General › Catálogo puedes actualizar el catálogo desde un fork de otteretro-catalogo, con un aviso de que su contenido es de terceros y un botón para volver al oficial. Solo se acepta un repo con una versión publicada; el hash se verifica igual. Tu colección y tu progreso se conservan, y los archivos que el fork no tenga vuelven a identificarse solos al volver.
 - **El catálogo se actualiza solo** (#213): al abrir, la app busca la última versión publicada en [otteretro-catalogo](https://github.com/OscarVargas97/otteretro-catalogo), verifica su hash y la aplica en segundos, sin claves. Tu progreso, tu colección y tus enlaces siguen en su lugar, también si un juego se fusionó con otro. Si algo falla, sigues con el catálogo anterior.
 - **Listo al instalar** (#211): el catálogo con sus sagas y juegos viene con la app, sin claves ni días de carga. No trae nada personal. El repo suma un README con capturas y la licencia GPL-3.0.
 - **Escanear** en Colección (#178): busca tus juegos en `Juegos\<Consola>` de cada disco y marca como «lo tengo» los que reconoce por su nombre. En Switch separa BASE, actualizaciones y DLC por el TitleID del nombre del archivo, y cada actualización y DLC va con su juego. En GameCube y Wii guarda el serial del disco. Se lanza solo al agregar un disco y al terminar una mudanza. Nunca mueve ni borra archivos; lo que no reconoce queda para identificarlo después.

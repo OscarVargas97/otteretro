@@ -5,7 +5,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useState } from "react";
 import { request } from "@/lib/client";
 import { useDescribeError, useDynamicT } from "@/lib/i18n";
-import type { UpdateChannelInfo, UpdateState } from "@/lib/types";
+import type { CatalogSource, UpdateChannelInfo, UpdateState } from "@/lib/types";
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -170,6 +170,37 @@ export function UpdateChannel() {
           <button className="ot-btn" type="submit" disabled={save.isPending || !text.trim()}>{t("use")}</button>
         </form>
       )}
+      {save.error && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(save.error)}</p>}
+    </section>
+  );
+}
+
+/** De qué repo se actualiza el catálogo: el oficial o un fork, con su aviso y la vuelta al oficial (#217). */
+export function CatalogSourceSettings() {
+  const t = useTranslations("update.catalogSource");
+  const describe = useDescribeError();
+  const cache = useQueryClient();
+  const info = useQuery({ queryKey: ["catalog", "source"], queryFn: () => request<CatalogSource>("/api/catalog/source") });
+  const [repo, setRepo] = useState("");
+  const save = useMutation({
+    mutationFn: (value: string | null) => request<CatalogSource>("/api/catalog/source", { method: "PUT", body: JSON.stringify({ repo: value }) }),
+    onSuccess: (data) => { cache.setQueryData(["catalog", "source"], data); setRepo(""); },
+  });
+  if (!info.data) return null;
+  return (
+    <section className="panel">
+      <h2>{t("title")}</h2>
+      <p className="small" role={info.data.official ? undefined : "note"} style={{ margin: 0, fontWeight: info.data.official ? undefined : 600 }}>
+        {t(info.data.official ? "official" : "fork", { repo: info.data.repo })}
+      </p>
+      <p className="small muted" style={{ margin: 0 }}>{t("hint")}</p>
+      <form className="sentence" onSubmit={(e) => { e.preventDefault(); if (repo.trim()) save.mutate(repo.trim()); }}>
+        <input style={{ flex: 1 }} aria-label={t("repo")} placeholder={t("placeholder")} value={repo} onChange={(e) => setRepo(e.target.value)} />
+        <button className="ot-btn" type="submit" disabled={save.isPending || !repo.trim()} aria-busy={save.isPending}>{t("use")}</button>
+        {!info.data.official && (
+          <button className="ot-btn" type="button" disabled={save.isPending} onClick={() => save.mutate(null)}>{t("officialButton")}</button>
+        )}
+      </form>
       {save.error && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(save.error)}</p>}
     </section>
   );

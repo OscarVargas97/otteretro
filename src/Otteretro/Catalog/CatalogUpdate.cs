@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Dapper;
 using Microsoft.Data.Sqlite;
 using Otteretro.Api;
@@ -17,10 +18,52 @@ namespace Otteretro.Catalog;
 public static class CatalogUpdate
 {
     public const string Kind = "catalog.update";
-    const string Releases = "https://api.github.com/repos/OscarVargas97/otteretro-catalogo/releases?per_page=30";
+    /// <summary>De dónde sale el catálogo si la persona no eligió un fork (#217).</summary>
+    public const string Official = "OscarVargas97/otteretro-catalogo";
     const string TagPrefix = "catalogo-", DataAsset = "catalogo.db.gz", ManifestAsset = "catalogo.db.gz.json";
     /// <summary>El hash de lo último aplicado. Se escribe al final: un corte a mitad hace que se repita.</summary>
-    const string Applied = "catalog.published";
+    const string Applied = "catalog.published", SourceSetting = "catalog.source";
+    static readonly Regex RepoName = new(@"^[A-Za-z0-9-]{1,39}/[A-Za-z0-9._-]{1,100}$");
+
+    static string Releases(string repo) => $"https://api.github.com/repos/{repo}/releases?per_page=30";
+
+    /// <summary>El repo elegido, o el oficial.</summary>
+    public static string Source(Database db)
+    {
+        using var c = db.Open();
+        return c.ExecuteScalar<string?>("SELECT value FROM setting WHERE machine_id = '' AND name = @SourceSetting", new { SourceSetting }) ?? Official;
+    }
+
+    /// <summary>
+    /// Cambia el origen solo si `repo` tiene una versión publicada completa; si no, devuelve el error y sigue el anterior. Al cambiar, busca la
+    /// última versión de ese repo: como se compara el hash y no la fecha, se aplica aunque sea más antigua que la actual.
+    /// </summary>
+    public static async Task<ApiError?> SetSource(Database db, string? repo, CancellationToken ct = default)
+    {
+        repo = string.IsNullOrWhiteSpace(repo) ? Official : repo.Trim().Trim('/');
+        if (repo.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase)) repo = repo["https://github.com/".Length..].TrimEnd('/');
+        if (!RepoName.IsMatch(repo)) return ApiError.Of("catalog.sourceName");
+        try
+        {
+            if (Latest(await ReadReleases(Handler is null ? Shared : NewClient(Handler), repo, ct)) is not { } latest
+                || !latest.Assets.Any(a => a.Name == DataAsset) || !latest.Assets.Any(a => a.Name == ManifestAsset))
+                return ApiError.Of("catalog.sourceEmpty", ("repo", repo));
+        }
+        catch (HttpRequestException) { return ApiError.Of("catalog.sourceUnreachable", ("repo", repo)); }
+
+        using (var c = db.Open())
+            if (string.Equals(repo, Official, StringComparison.OrdinalIgnoreCase)) c.Execute("DELETE FROM setting WHERE machine_id = '' AND name = @SourceSetting", new { SourceSetting });
+            else c.Execute("INSERT INTO setting (machine_id, name, value) VALUES ('', @SourceSetting, @repo) ON CONFLICT (name, machine_id) DO UPDATE SET value = excluded.value",
+                new { SourceSetting, repo });
+        Enqueue(db);
+        return null;
+    }
+
+    static async Task<List<Release>> ReadReleases(HttpClient http, string repo, CancellationToken ct) =>
+        JsonSerializer.Deserialize<List<Release>>(await http.GetStringAsync(Releases(repo), ct), Json)!;
+
+    // Las versiones del catálogo conviven con otras en el repo (imágenes, por ejemplo): solo cuentan las de este prefijo.
+    static Release? Latest(List<Release> releases) => releases.FirstOrDefault(r => !r.Draft && r.TagName.StartsWith(TagPrefix, StringComparison.Ordinal));
 
     /// <summary>Para las pruebas: responde en lugar de GitHub.</summary>
     public static HttpMessageHandler? Handler { get; set; }
@@ -53,9 +96,7 @@ public static class CatalogUpdate
     public static async Task Run(TaskRun run, CancellationToken ct)
     {
         var http = Handler is null ? Shared : NewClient(Handler);
-        // Las versiones del catálogo conviven con otras en el repo (imágenes, por ejemplo): solo cuentan las de este prefijo.
-        var releases = JsonSerializer.Deserialize<List<Release>>(await http.GetStringAsync(Releases, ct), Json)!;
-        if (releases.FirstOrDefault(r => !r.Draft && r.TagName.StartsWith(TagPrefix, StringComparison.Ordinal)) is not { } latest) return;
+        if (Latest(await ReadReleases(http, Source(run.Db), ct)) is not { } latest) return;
         string Url(string name) => latest.Assets.FirstOrDefault(a => a.Name == name)?.BrowserDownloadUrl ?? throw new TaskException(ApiError.Of("catalog.badRelease"));
 
         var manifest = JsonSerializer.Deserialize<Manifest>(await http.GetStringAsync(Url(ManifestAsset), ct), JsonSerializerOptions.Web)!;
@@ -140,8 +181,8 @@ public static class CatalogUpdate
     /// </summary>
     static void MoveWhatIsYours(SqliteConnection c)
     {
-        if (c.ExecuteScalar<long>("SELECT count(*) FROM initial.sqlite_master WHERE name = 'replaced'") == 0) return;
-        var replaced = c.Query<(string Kind, long OldId, long? NewId)>("SELECT kind, old_id, new_id FROM initial.replaced").ToList();
+        var replaced = c.ExecuteScalar<long>("SELECT count(*) FROM initial.sqlite_master WHERE name = 'replaced'") == 0 ? []
+            : c.Query<(string Kind, long OldId, long? NewId)>("SELECT kind, old_id, new_id FROM initial.replaced").ToList();
         using var t = c.BeginTransaction();
         foreach (var (kind, oldId, newId) in replaced)
             if (kind == "game")
@@ -161,8 +202,10 @@ public static class CatalogUpdate
                 if (newId is not null && HasColumn(c, t, "play_session", "version_id"))
                     c.Execute("UPDATE main.play_session SET version_id = @newId WHERE version_id = @oldId", new { newId, oldId }, t);
             }
-        // Una versión que ya no existe, aunque no figure en `replaced`: el archivo vuelve a quedar sin identificar.
-        c.Execute("UPDATE main.source SET version_id = NULL WHERE version_id IS NOT NULL AND version_id NOT IN (SELECT id FROM catalog.version)", transaction: t);
+        // Una versión que ya no existe, aunque no figure en `replaced`: el archivo vuelve a quedar sin identificar, recordando a cuál apuntaba (#217).
+        c.Execute("UPDATE main.source SET lost_version_id = version_id, version_id = NULL WHERE version_id IS NOT NULL AND version_id NOT IN (SELECT id FROM catalog.version)", transaction: t);
+        // Y si un catálogo la vuelve a tener (volver al oficial desde un fork), se recupera sola.
+        c.Execute("UPDATE main.source SET version_id = lost_version_id, lost_version_id = NULL WHERE version_id IS NULL AND lost_version_id IN (SELECT id FROM catalog.version)", transaction: t);
         t.Commit();
     }
 
