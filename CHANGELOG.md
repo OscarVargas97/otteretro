@@ -4,7 +4,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.4.0 · Colección · en desarrollo
 
-`fase/f4-coleccion` y `docs/encuesta-17-plan-dominios` · F4 (#176, tareas #178 a #182; encuesta 17, #185): tus archivos de juegos reconocidos, verificados y marcados como «lo tengo» · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+`feat/212-catalogo-aparte`, `feat/211-listo-al-descargar`, `fase/f4-coleccion` y `docs/encuesta-17-plan-dominios` · F4 (#176, tareas #178 a #182; encuesta 17, #185): tus archivos de juegos reconocidos, verificados y marcados como «lo tengo» · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
 
 ### Nuevo
 - **El catálogo se actualiza solo** (#213): al abrir, la app busca la última versión publicada en [otteretro-catalogo](https://github.com/OscarVargas97/otteretro-catalogo), verifica su hash y la aplica en segundos, sin claves. Tu progreso, tu colección y tus enlaces siguen en su lugar, también si un juego se fusionó con otro. Si algo falla, sigues con el catálogo anterior.
