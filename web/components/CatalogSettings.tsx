@@ -47,7 +47,9 @@ export function CatalogSettings() {
   const reject = useMutation({ mutationFn: () => request<CatalogVersion>("/api/catalog/version/reject", { method: "POST" }), onSuccess: done });
   if (!info.data) return null;
 
-  const { current, pending, totals } = info.data;
+  const { pending, totals } = info.data;
+  // La lista identifica tu versión por su hash si no se sabía su nombre (#230): aparece sin esperar a recargar.
+  const current = info.data.current ?? versions.data?.current ?? null;
   const busy = accept.isPending || reject.isPending || !!checking || check.isPending;
   const error = check.error ?? accept.error ?? reject.error ?? versions.error;
   const day = (d: Date | null) => (d ? format.dateTime(d, { day: "numeric", month: "short", year: "numeric" }) : "");

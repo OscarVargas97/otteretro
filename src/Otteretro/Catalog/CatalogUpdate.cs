@@ -103,6 +103,28 @@ public static class CatalogUpdate
 
     record Job(string? Tag);
 
+    /// <summary>
+    /// Qué versión tienes, cuando solo se sabe su hash (#230): antes de #222 se guardaba el hash de lo aplicado y no el nombre. Se busca entre las
+    /// publicadas y, si aparece, se guarda el nombre para la próxima vez.
+    /// </summary>
+    static async Task<string?> Identify(Database db, HttpClient http, List<Release> releases, CancellationToken ct)
+    {
+        if (Setting(db, Applied) is not { } applied) return null;
+        foreach (var release in releases)
+        {
+            if (release.Assets.FirstOrDefault(a => a.Name == ManifestAsset) is not { } asset) continue;
+            try
+            {
+                if (JsonSerializer.Deserialize<Manifest>(await http.GetStringAsync(asset.BrowserDownloadUrl, ct), JsonSerializerOptions.Web)?.Sha256 != applied) continue;
+            }
+            catch (Exception e) when (e is HttpRequestException or JsonException) { continue; }
+            using var c = db.Open();
+            Save(c, AppliedVersion, release.TagName);
+            return release.TagName;
+        }
+        return null;
+    }
+
     /// <summary>Cuántos hay de cada cambio, con las imágenes como «image»: una versión que solo trae imágenes no dice «sin cambios».</summary>
     static Dictionary<string, int> Counts(List<HistoryEntry> entries, int images)
     {
@@ -133,7 +155,7 @@ public static class CatalogUpdate
             try { history = JsonSerializer.Deserialize<History>(await http.GetStringAsync(asset.BrowserDownloadUrl, ct), JsonSerializerOptions.Web); }
             catch (Exception e) when (e is HttpRequestException or JsonException) { } // sin historial, cada versión va sin su detalle
 
-        var current = Version(db);
+        var current = Version(db) ?? await Identify(db, http, releases, ct);
         var tags = releases.Select(r => r.TagName).Union(history?.Versions ?? []).Distinct().OrderDescending(StringComparer.Ordinal);
         var byVersion = history?.Entries.GroupBy(e => e.Version).ToDictionary(g => g.Key, g => g.ToList()) ?? [];
         return new(repo, current, tags.Select(tag =>

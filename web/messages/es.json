@@ -273,7 +273,7 @@
     "withSystemBadge": "Con el sistema",
     "attribution": "Datos de juegos: IGDB.com",
     "catalogSource": {
-      "title": "Catálogo",
+      "title": "Origen del catálogo",
       "official": "Se actualiza desde el catálogo oficial, {repo}.",
       "fork": "Se actualiza desde {repo}, un fork: su contenido es de terceros y no lo revisa Otteretro.",
       "repo": "Repo del catálogo",
