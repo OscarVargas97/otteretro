@@ -10,6 +10,8 @@ namespace Otteretro.Api;
 public record SagaFlagsRequest(bool? Favorite, bool? Following);
 public record CatalogSource(string Repo, bool Official);
 public record CatalogSourceRequest(string? Repo);
+/// <summary>La versión aplicada y, si hay una esperando, qué cambia con ella (#222, #223).</summary>
+public record CatalogVersion(string? Current, CatalogChanges? Pending);
 public record FieldRequest(string? Value);
 
 /// <summary>Una consola o un juego (#179).</summary>
@@ -37,7 +39,6 @@ public static class CatalogEndpoints
     /// <summary>Claves sin las que una parte del catálogo no funciona: van como aviso en Inicio (§2, #44).</summary>
     static readonly (string Service, string[] Ids)[] NeededKeys =
     [
-        ("steamgriddb", ["steamgriddb.apiKey"]),
         ("steam", ["steam.apiKey"]),
     ];
 
@@ -65,6 +66,8 @@ public static class CatalogEndpoints
 
         api.MapGet("/consoles/settings", Results<Ok<ConsolesPage>, Conflict<ApiError>> (AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(Consoles.Page(db)) : NoData());
+        api.MapPut("/consoles/{id}/visible", Results<Ok<ConsolesPage>, NotFound, Conflict<ApiError>> (string id, ConsoleVisibleRequest request, AppSession s) =>
+            Db(s) is not { } db ? NoData() : Consoles.SetVisible(db, id, request.Visible) ? TypedResults.Ok(Consoles.Page(db)) : TypedResults.NotFound());
 
         // De qué repo se actualiza el catálogo: el oficial o un fork (#217).
         api.MapGet("/catalog/source", Results<Ok<CatalogSource>, Conflict<ApiError>> (AppSession s) =>
@@ -75,11 +78,23 @@ public static class CatalogEndpoints
             return await CatalogUpdate.SetSource(db, request.Repo, ct) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(SourceOf(db));
         });
 
-        // Portadas a pedido (#132).
-        api.MapGet("/covers", Results<Ok<SteamGridDb.CoversInfo>, Conflict<ApiError>> (AppSession s, SecretBox box) =>
-            Db(s) is { } db ? TypedResults.Ok(SteamGridDb.Status(db, HasSgdbKey(db, s, box))) : NoData());
-        api.MapPost("/covers", Results<Ok<SteamGridDb.CoversInfo>, Conflict<ApiError>> (AppSession s, SecretBox box) =>
-            Db(s) is { } db ? TypedResults.Ok(SteamGridDb.Request(db, HasSgdbKey(db, s, box))) : NoData());
+        // Ajustes › General › Catálogo (#222, #223): buscar a mano, ver qué cambia y aceptar o rechazar la versión entera (259).
+        api.MapGet("/catalog/version", Results<Ok<CatalogVersion>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(VersionOf(db)) : NoData());
+        api.MapPost("/catalog/version/check", Results<Ok<long>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(CatalogUpdate.Enqueue(db)) : NoData());
+        api.MapPost("/catalog/version/accept", Results<Ok<CatalogVersion>, BadRequest<ApiError>, Conflict<ApiError>> (AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            try { return CatalogUpdate.Accept(db) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(VersionOf(db)); }
+            catch (TaskException e) { return TypedResults.BadRequest(e.Error); }
+        });
+        api.MapPost("/catalog/version/reject", Results<Ok<CatalogVersion>, Conflict<ApiError>> (AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            CatalogUpdate.Reject(db);
+            return TypedResults.Ok(VersionOf(db));
+        });
 
         api.MapGet("/collection/{platform}", Results<Ok<CollectionPage>, NotFound, Conflict<ApiError>> (string platform, AppSession s, string? filter, string? sort, int offset = 0, int limit = CatalogQueries.PageSize) =>
         {
@@ -266,8 +281,7 @@ public static class CatalogEndpoints
         return new(repo, string.Equals(repo, CatalogUpdate.Official, StringComparison.OrdinalIgnoreCase));
     }
 
-    static bool HasSgdbKey(Database db, AppSession s, SecretBox box) =>
-        new Credentials(db, s.Config.MachineId, box).List().Any(c => c.Id == "steamgriddb.apiKey" && c.Saved);
+    static CatalogVersion VersionOf(Database db) => new(CatalogUpdate.Version(db), CatalogDiff.Of(db));
 
     internal static Database? Db(AppSession s) =>
         DataFolder.IsReady(s.Config.DataFolder) ? DataFolder.Open(s.Config.DataFolder!) : null;

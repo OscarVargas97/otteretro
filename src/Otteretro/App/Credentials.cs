@@ -35,7 +35,6 @@ public sealed class Credentials(Database db, string machineId, SecretBox box)
         new("onefichier", "apiKey", "https://1fichier.com/console/params.pl", 4),
         new("mega", "email", "https://mega.io/", 4),
         new("mega", "password", "https://mega.io/", 4),
-        new("steamgriddb", "apiKey", "https://www.steamgriddb.com/profile/preferences/api", 1),
         new("retroachievements", "user", "https://retroachievements.org/settings", 9),
         new("retroachievements", "apiKey", "https://retroachievements.org/settings", 9),
     ];

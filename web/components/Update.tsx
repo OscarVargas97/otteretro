@@ -5,7 +5,8 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useState } from "react";
 import { request } from "@/lib/client";
 import { useDescribeError, useDynamicT } from "@/lib/i18n";
-import type { CatalogSource, UpdateChannelInfo, UpdateState } from "@/lib/types";
+import { useTasks } from "@/components/Tasks";
+import type { CatalogSource, CatalogVersion, UpdateChannelInfo, UpdateState } from "@/lib/types";
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -202,7 +203,83 @@ export function CatalogSourceSettings() {
         )}
       </form>
       {save.error && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(save.error)}</p>}
+      <CatalogVersionSettings />
     </section>
+  );
+}
+
+const CHANGES = ["merged", "removed", "renamed", "changed", "added"] as const;
+
+/**
+ * La versión del catálogo, a mano (#222, #223, decisión 259): «Buscar versión nueva» la baja sin aplicarla; después se ve qué cambia, con lo que
+ * toca tus datos primero, y se acepta o se rechaza entera. Si lo que publicó el catálogo no coincide con lo que ve la app, se avisa (260, 262).
+ */
+function CatalogVersionSettings() {
+  const t = useTranslations("update.catalogVersion");
+  const describe = useDescribeError();
+  const dt = useDynamicT();
+  const cache = useQueryClient();
+  const checking = useTasks().find((x) => x.kind === "catalog.check" && (x.status === "queued" || x.status === "running"));
+  const info = useQuery({
+    queryKey: ["catalog", "version"],
+    queryFn: () => request<CatalogVersion>("/api/catalog/version"),
+    refetchInterval: checking ? 2_000 : false,
+  });
+  const done = (data: CatalogVersion) => {
+    cache.setQueryData(["catalog", "version"], data);
+    for (const key of ["sagas", "saga", "collection", "consoles", "search", "home", "game"]) cache.invalidateQueries({ queryKey: [key] });
+  };
+  const check = useMutation({
+    mutationFn: () => request<number>("/api/catalog/version/check", { method: "POST" }),
+    onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+  const accept = useMutation({ mutationFn: () => request<CatalogVersion>("/api/catalog/version/accept", { method: "POST" }), onSuccess: done });
+  const reject = useMutation({ mutationFn: () => request<CatalogVersion>("/api/catalog/version/reject", { method: "POST" }), onSuccess: done });
+  if (!info.data) return null;
+  const pending = info.data.pending;
+  const busy = accept.isPending || reject.isPending;
+  const error = check.error ?? accept.error ?? reject.error;
+
+  return (
+    <div className="settings-blocks" style={{ gap: 8 }}>
+      <div className="version-row">
+        <span className="small">{info.data.current ? t("current", { version: info.data.current }) : t("unknown")}</span>
+        <button className="ot-btn" type="button" disabled={!!checking || check.isPending || busy} aria-busy={!!checking} onClick={() => check.mutate()}>
+          {checking && <span className="spinner" aria-hidden="true" />}
+          {checking ? t("checking") : t("check")}
+        </button>
+      </div>
+      {pending && (
+        <div className="panel" role="region" aria-label={t("pendingTitle", { version: pending.to })}>
+          <h3 style={{ margin: 0 }}>{t("pendingTitle", { version: pending.to })}</h3>
+          <p className="small muted" style={{ margin: 0 }}>
+            {CHANGES.filter((c) => Number(pending.counts[c] ?? 0) > 0).map((c) => t(`count.${c}`, { count: Number(pending.counts[c]) })).join(" · ") || t("nothing")}
+          </p>
+          {!pending.fromHistory && <p className="small" role="note" style={{ margin: 0 }}>{t("ownComparison")}</p>}
+          {pending.mismatch.length > 0 && (
+            <details role="alert">
+              <summary className="small">{t("mismatch", { count: pending.mismatch.length })}</summary>
+              <ul className="small tabular">{pending.mismatch.map((m) => <li key={m}>{m}</li>)}</ul>
+            </details>
+          )}
+          {pending.items.length > 0 && (
+            <ul className="small" style={{ maxHeight: 320, overflow: "auto", margin: 0 }}>
+              {pending.items.map((c) => (
+                <li key={`${c.kind}-${c.id}-${c.change}`}>
+                  {dt(`update.catalogVersion.item.${c.change}`, { kind: dt(`update.catalogVersion.kind.${c.kind}`), name: c.name, from: c.from ?? "", into: c.intoName ?? "" })}
+                  {Number(c.yours) > 0 && <b> · {t("yours", { count: Number(c.yours) })}</b>}
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="sentence">
+            <button className="ot-btn ot-btn-primary" type="button" disabled={busy} aria-busy={accept.isPending} onClick={() => accept.mutate()}>{t("accept")}</button>
+            <button className="ot-btn" type="button" disabled={busy} aria-busy={reject.isPending} onClick={() => reject.mutate()}>{t("reject")}</button>
+          </div>
+        </div>
+      )}
+      {error && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(error)}</p>}
+    </div>
   );
 }
 

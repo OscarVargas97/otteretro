@@ -59,7 +59,6 @@ public static class CliMode
           --fullscreen           Abre la app a pantalla completa (en la sesión Play es automático).
           jugar <id>             Lanza un juego (fase 4).
           version                Muestra la versión.
-          catalogo actualizar    Busca una versión publicada del catálogo; lo hace la app abierta.
           openapi <archivo>      Escribe el contrato OpenAPI de la API (para generar los tipos del front).
           steam sincronizar      Lee lo que tienes en Steam (con sus horas) y lo enlaza con el catálogo; lo hace la app abierta.
           claude ahora           Lanza ya la carga de Claude, fuera de su horario (00:00 a 08:00), hasta que empiece el siguiente.
@@ -85,8 +84,6 @@ public static class CliMode
             case ["ayuda"] or ["--help"] or ["-h"]:
                 output.WriteLine(Help);
                 return 0;
-            case ["catalogo", "actualizar"]:
-                return Enqueue(output, db => [Catalog.CatalogUpdate.Enqueue(db)]);
             case ["openapi", var file]:
                 WriteOpenApi(file).GetAwaiter().GetResult();
                 output.WriteLine($"Contrato escrito en {file}");

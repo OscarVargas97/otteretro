@@ -8,14 +8,14 @@ import { librariesQuery } from "@/components/Libraries";
 import { useState } from "react";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
-import type { ConsoleDetail, ConsoleFolder, ConsoleInfo, ConsolesPage, CoversInfo, DiskInfo } from "@/lib/types";
+import type { ConsoleDetail, ConsoleFolder, ConsoleInfo, ConsolesPage, DiskInfo } from "@/lib/types";
 
 const GROUPS = ["nintendo", "playstation", "xbox", "pc", "other"] as const;
 const groupOf = (c: ConsoleInfo): (typeof GROUPS)[number] =>
   c.id === "pc" || c.id === "pcvr" ? "pc" : c.company === "Nintendo" ? "nintendo" : c.company === "Sony" ? "playstation" : c.company === "Microsoft" ? "xbox" : "other";
 
 /**
- * Ajustes › Consolas: las portadas y, por empresa, cada consola con su detalle al lado (`?c=`).
+ * Ajustes › Consolas: por empresa, cada consola con su detalle al lado (`?c=`) y si la app la muestra (#224).
  */
 export function ConsoleSettings() {
   const t = useTranslations("settings.consoles");
@@ -23,11 +23,14 @@ export function ConsoleSettings() {
   const cache = useQueryClient();
   const page = useQuery({ queryKey: ["consoles", "settings"], queryFn: () => request<ConsolesPage>("/api/consoles/settings") });
 
-  // Portadas a pedido (#132): mientras hay una descarga, el total se refresca solo.
-  const covers = useQuery({ queryKey: ["covers"], queryFn: () => request<CoversInfo>("/api/covers"), refetchInterval: (q) => (q.state.data?.running ? 5_000 : false) });
-  const downloadCovers = useMutation({
-    mutationFn: () => request<CoversInfo>("/api/covers", { method: "POST" }),
-    onSuccess: (data) => { cache.setQueryData(["covers"], data); cache.invalidateQueries({ queryKey: ["tasks"] }); },
+  // Mostrar u ocultar una consola solo cambia lo que se ve (#224): Sagas, Colección y la búsqueda se recalculan.
+  const visible = useMutation({
+    mutationFn: ({ id, value }: { id: string; value: boolean }) =>
+      request<ConsolesPage>(`/api/consoles/${id}/visible`, { method: "PUT", body: JSON.stringify({ visible: value }) }),
+    onSuccess: (data) => {
+      cache.setQueryData(["consoles", "settings"], data);
+      for (const key of ["sagas", "saga", "collection", "consoles", "search", "home"]) cache.invalidateQueries({ queryKey: [key] });
+    },
   });
 
   const router = useRouter();
@@ -39,22 +42,7 @@ export function ConsoleSettings() {
 
   return (
     <div className="settings-blocks">
-      {covers.data && (
-        <section className="panel" aria-labelledby="covers-title">
-          <div className="version-row">
-            <div>
-              <h2 id="covers-title">{t("covers.title")}</h2>
-              <span className="small muted tabular">{t("covers.count", { have: Number(covers.data.have), total: Number(covers.data.total) })}</span>
-            </div>
-            {!covers.data.hasKey ? <Link className="ot-btn" href="/settings/?s=credentials">{t("covers.noKey")}</Link>
-              : <button className="ot-btn" type="button" disabled={covers.data.running || downloadCovers.isPending} onClick={() => downloadCovers.mutate()}>
-                  {covers.data.running ? t("covers.running") : t("covers.download")}
-                </button>}
-          </div>
-          {downloadCovers.error && <p className="error small" role="alert">{describe(downloadCovers.error)}</p>}
-        </section>
-      )}
-
+      <p className="small muted" style={{ margin: 0 }}>{t("help")}</p>
       <section className="panel">
         <div className="console-split">
           <div className="console-list">
@@ -72,6 +60,8 @@ export function ConsoleSettings() {
                           <b>{c.name}</b>
                         </button>
                         <span className="small muted tabular console-games">{Number(c.games)}</span>
+                        <input type="checkbox" role="switch" aria-label={t("show", { name: c.name })} checked={c.visible}
+                          disabled={visible.isPending} onChange={(e) => visible.mutate({ id: c.id, value: e.target.checked })} />
                       </li>
                     ))}
                   </ul>
@@ -79,6 +69,7 @@ export function ConsoleSettings() {
               );
             })}
           </div>
+          {visible.error && <p className="error small" role="alert">{describe(visible.error)}</p>}
           {chosen ? <ConsoleDetailPanel id={chosen} status={status(p.consoles.find((x) => x.id === chosen))} />
             : <p className="missing small">{t("detail.pick")}</p>}
         </div>

@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:49978/"
+      "url": "http://127.0.0.1:52214/"
     }
   ],
   "paths": {
@@ -927,6 +927,58 @@
         }
       }
     },
+    "/api/consoles/{id}/visible": {
+      "put": {
+        "tags": [
+          "Otteretro"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsoleVisibleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsolesPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/catalog/source": {
       "get": {
         "tags": [
@@ -1003,7 +1055,7 @@
         }
       }
     },
-    "/api/covers": {
+    "/api/catalog/version": {
       "get": {
         "tags": [
           "Otteretro"
@@ -1014,7 +1066,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CoversInfo"
+                  "$ref": "#/components/schemas/CatalogVersion"
                 }
               }
             }
@@ -1030,7 +1082,9 @@
             }
           }
         }
-      },
+      }
+    },
+    "/api/catalog/version/check": {
       "post": {
         "tags": [
           "Otteretro"
@@ -1041,7 +1095,80 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CoversInfo"
+                  "pattern": "^-?(?:0|[1-9]\\d*)$",
+                  "type": [
+                    "integer",
+                    "string"
+                  ],
+                  "format": "int64"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/catalog/version/accept": {
+      "post": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogVersion"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/catalog/version/reject": {
+      "post": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogVersion"
                 }
               }
             }
@@ -4045,6 +4172,119 @@
           }
         }
       },
+      "CatalogChange": {
+        "required": [
+          "kind",
+          "change",
+          "id",
+          "name",
+          "from",
+          "into",
+          "intoName",
+          "yours"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "change": {
+            "type": "string"
+          },
+          "id": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "from": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "into": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "intoName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "yours": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "CatalogChanges": {
+        "required": [
+          "repo",
+          "from",
+          "to",
+          "fromHistory",
+          "items",
+          "counts",
+          "mismatch"
+        ],
+        "type": "object",
+        "properties": {
+          "repo": {
+            "type": "string"
+          },
+          "from": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "to": {
+            "type": "string"
+          },
+          "fromHistory": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CatalogChange"
+            }
+          },
+          "counts": {
+            "type": "object",
+            "additionalProperties": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          "mismatch": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "CatalogSource": {
         "required": [
           "repo",
@@ -4070,6 +4310,31 @@
             "type": [
               "null",
               "string"
+            ]
+          }
+        }
+      },
+      "CatalogVersion": {
+        "required": [
+          "current",
+          "pending"
+        ],
+        "type": "object",
+        "properties": {
+          "current": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pending": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CatalogChanges"
+              }
             ]
           }
         }
@@ -4416,10 +4681,8 @@
           "id",
           "name",
           "company",
-          "enabled",
-          "refreshedAt",
-          "games",
-          "loading"
+          "visible",
+          "games"
         ],
         "type": "object",
         "properties": {
@@ -4435,27 +4698,12 @@
               "string"
             ]
           },
-          "enabled": {
+          "visible": {
             "type": "boolean"
-          },
-          "refreshedAt": {
-            "type": [
-              "null",
-              "string"
-            ]
           },
           "games": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "loading": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
               "integer",
               "string"
             ],
@@ -4477,6 +4725,17 @@
           }
         }
       },
+      "ConsoleVisibleRequest": {
+        "required": [
+          "visible"
+        ],
+        "type": "object",
+        "properties": {
+          "visible": {
+            "type": "boolean"
+          }
+        }
+      },
       "ConvertRequest": {
         "required": [
           "console"
@@ -4485,39 +4744,6 @@
         "properties": {
           "console": {
             "type": "string"
-          }
-        }
-      },
-      "CoversInfo": {
-        "required": [
-          "have",
-          "total",
-          "running",
-          "hasKey"
-        ],
-        "type": "object",
-        "properties": {
-          "have": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int64"
-          },
-          "total": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int64"
-          },
-          "running": {
-            "type": "boolean"
-          },
-          "hasKey": {
-            "type": "boolean"
           }
         }
       },

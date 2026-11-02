@@ -125,7 +125,7 @@ test("elegir la carpeta de datos lleva al paso de bibliotecas y, al saltarlo, al
   // #169: un solo aviso con todos los servicios sin clave y el botón a Cuentas y claves.
   const notice = page.getByRole("note", { name: en.notices.title });
   await expect(notice).toHaveCount(1);
-  await expect(notice).toContainText(en.credentials.service.steamgriddb);
+  await expect(notice).toContainText(en.credentials.service.steam);
   await expect(notice.getByRole("link", { name: en.notices.openCredentials })).toHaveAttribute("href", "/settings/?s=credentials");
   await expectNoRawKeys();
   await expectSearchFits();
@@ -852,23 +852,19 @@ test("Ajustes en una sola columna a cualquier ancho, y el menú se retrae, se re
   await expect(sidebar).not.toHaveClass(/is-collapsed/);
 });
 
-test("Ajustes › Consolas: portadas con su total, bajarlas a pedido y «En curso»", async () => {
-  // #132: sin clave de SteamGridDB, el bloque lleva a Cuentas y claves.
+test("Ajustes › Consolas: desactivar una consola la saca de lo que se muestra y activarla la devuelve", async () => {
+  // #224: sin bajar nada; la elección es tuya y queda guardada.
   await page.goto(`${base()}/settings/?s=consoles`);
-  const block = page.getByRole("region", { name: es.settings.consoles.covers.title });
-  await expect(block).toContainText(/\d+ de \d+ juegos con portada/);
-  await expect(block.getByRole("link", { name: es.settings.consoles.covers.noKey })).toHaveAttribute("href", "/settings/?s=credentials");
-  // Con clave (la descarga real se prueba en xUnit, sin red): el botón encola y queda «En curso».
-  let queued = 0;
-  await page.route("**/api/covers", (route) => {
-    if (route.request().method() === "POST") queued++;
-    return route.fulfill({ json: { have: 31967, total: 40210, running: queued > 0, hasKey: true } });
-  });
+  await expect(page.getByText(es.settings.consoles.help)).toBeVisible();
+  const nes = page.getByRole("switch", { name: es.settings.consoles.show.replace("{name}", "NES") });
+  await expect(nes).toBeChecked();
+  await nes.uncheck();
+  await expect(nes).not.toBeChecked();
+  const consoles = JSON.parse((await api("GET", "/api/consoles")).text);
+  expect(consoles.some((c: { id: string }) => c.id === "nes")).toBe(false);
   await page.reload();
-  await expect(block).toContainText("31.967 de 40.210 juegos con portada");
-  await block.getByRole("button", { name: es.settings.consoles.covers.download }).click();
-  await expect(block.getByRole("button", { name: es.settings.consoles.covers.running })).toBeDisabled();
-  expect(queued).toBe(1);
+  await expect(nes).not.toBeChecked();
+  await nes.check();
+  await expect(nes).toBeChecked();
   await expectNoRawKeys();
-  await page.unroute("**/api/covers");
 });

@@ -8,7 +8,7 @@ using Otteretro.Catalog;
 
 namespace Otteretro.Tests;
 
-/// <summary>#213: la app toma el catálogo publicado sin perder lo de la persona, y si algo falla sigue el anterior.</summary>
+/// <summary>#213 y #222: buscar no aplica nada; aceptar aplica sin perder lo de la persona, y si algo falla sigue el anterior.</summary>
 [Collection("Dats.Handler")]
 public class CatalogUpdateTests
 {
@@ -52,20 +52,27 @@ public class CatalogUpdateTests
         INSERT INTO catalog.replaced (kind, old_id, new_id) VALUES ('game', 11, 10), ('version', 21, 20), ('version', 29, NULL);
         """;
 
-    static Fake Answers(byte[] data, string? sha = null, string tag = "catalogo-20261101") => new(new()
+    static Fake Answers(byte[] data, string? sha = null, string tag = "catalogo-20261101", object? changes = null)
     {
-        ["releases?"] = JsonSerializer.SerializeToUtf8Bytes(new object[]
+        var assets = new List<object>
         {
-            new { tag_name = "imagenes-1", draft = false, assets = new[] { new { name = "x", browser_download_url = "https://x.test/mal" } } },
-            new { tag_name = tag, draft = false, assets = new[]
+            new { name = "catalogo.db.gz", browser_download_url = "https://x.test/catalogo.db.gz" },
+            new { name = "catalogo.db.gz.json", browser_download_url = "https://x.test/manifest.json" },
+        };
+        if (changes is not null) assets.Add(new { name = "cambios.json", browser_download_url = "https://x.test/cambios.json" });
+        var answers = new Dictionary<string, byte[]>
+        {
+            ["releases?"] = JsonSerializer.SerializeToUtf8Bytes(new object[]
             {
-                new { name = "catalogo.db.gz", browser_download_url = "https://x.test/catalogo.db.gz" },
-                new { name = "catalogo.db.gz.json", browser_download_url = "https://x.test/manifest.json" },
-            } },
-        }),
-        ["manifest.json"] = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = sha ?? Convert.ToHexStringLower(SHA256.HashData(data)) }),
-        ["catalogo.db.gz"] = data,
-    });
+                new { tag_name = "imagenes-1", draft = false, assets = new[] { new { name = "x", browser_download_url = "https://x.test/mal" } } },
+                new { tag_name = tag, draft = false, assets },
+            }),
+            ["manifest.json"] = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = sha ?? Convert.ToHexStringLower(SHA256.HashData(data)) }),
+            ["catalogo.db.gz"] = data,
+        };
+        if (changes is not null) answers["cambios.json"] = JsonSerializer.SerializeToUtf8Bytes(changes);
+        return new(answers);
+    }
 
     static void Mine(Fixture f)
     {
@@ -81,10 +88,18 @@ public class CatalogUpdateTests
             """);
     }
 
+    /// <summary>Buscar y, si quedó una versión esperando, aceptarla.</summary>
+    static async Task<App.TaskInfo> CheckAndAccept(Fixture f)
+    {
+        var task = await f.Run(CatalogUpdate.Enqueue(f.Db));
+        if (task.Status == "done" && CatalogUpdate.Waiting(f.Db) is not null) Assert.Null(CatalogUpdate.Accept(f.Db));
+        return task;
+    }
+
     async Task<App.TaskInfo> Update(Fixture f, Fake fake)
     {
         CatalogUpdate.Handler = fake;
-        try { return await f.Run(CatalogUpdate.Enqueue(f.Db)); }
+        try { return await CheckAndAccept(f); }
         finally { CatalogUpdate.Handler = null; }
     }
 
@@ -143,6 +158,7 @@ public class CatalogUpdateTests
         using var c = f.Db.Open();
         Assert.Equal("Viejo Fusion", c.ExecuteScalar<string>("SELECT name_es FROM catalog.game WHERE id = 10"));
         Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(f.Db.CatalogPath)!, "catalogo-nuevo*"));
+        Assert.Null(CatalogUpdate.Waiting(f.Db));
     }
 
     [Fact]
@@ -156,6 +172,109 @@ public class CatalogUpdateTests
         Assert.Equal("catalog.badFile", (await Update(f, Answers(Compiled(f, "SELECT 1")))).Detail?.Code);
         using var c = f.Db.Open();
         Assert.Equal(2, c.ExecuteScalar<long>("SELECT count(*) FROM catalog.game"));
+    }
+
+    /// <summary>#222 (decisión 259): buscar deja la versión esperando sin tocar nada; rechazar la descarta y aceptar la aplica entera.</summary>
+    [Fact]
+    public async Task CheckingAppliesNothingUntilItIsAccepted()
+    {
+        await using var f = new Fixture();
+        Mine(f);
+        CatalogUpdate.Handler = Answers(Compiled(f, Catalog2));
+        try
+        {
+            Assert.Equal("done", (await f.Run(CatalogUpdate.Enqueue(f.Db))).Status);
+            Assert.Equal("catalogo-20261101", CatalogUpdate.Waiting(f.Db)?.Tag);
+            using var c = f.Db.Open();
+            string Name() => c.ExecuteScalar<string>("SELECT name_es FROM catalog.game WHERE id = 10")!;
+            Assert.Equal("Viejo Fusion", Name());
+
+            CatalogUpdate.Reject(f.Db);
+            Assert.Null(CatalogUpdate.Waiting(f.Db));
+            Assert.Equal("Viejo Fusion", Name());
+            Assert.Equal("catalog.nothingPending", CatalogUpdate.Accept(f.Db)?.Code);
+
+            Assert.Equal("done", (await f.Run(CatalogUpdate.Enqueue(f.Db))).Status);
+            Assert.Null(CatalogUpdate.Accept(f.Db));
+            Assert.Equal("Metroid Fusion", Name());
+            Assert.Equal("catalogo-20261101", CatalogUpdate.Version(f.Db));
+            Assert.Null(CatalogUpdate.Waiting(f.Db));
+            Assert.False(File.Exists(CatalogUpdate.PendingFile(f.Db)));
+        }
+        finally { CatalogUpdate.Handler = null; }
+    }
+
+    /// <summary>#217 con #222: guardar un fork solo cambia el origen; no baja ni aplica nada.</summary>
+    [Fact]
+    public async Task SavingAForkOnlyChangesTheSource()
+    {
+        await using var f = new Fixture();
+        Mine(f);
+        var fake = new Fake(Repo("alguien/otteretro-catalogo", "b", Compiled(f, Catalog2)));
+        CatalogUpdate.Handler = fake;
+        try
+        {
+            Assert.Null(await CatalogUpdate.SetSource(f.Db, "alguien/otteretro-catalogo"));
+            Assert.Equal(0, fake.DataDownloads);
+            Assert.Equal(0, f.Db.Open().ExecuteScalar<long>("SELECT count(*) FROM task WHERE kind = @Kind", new { CatalogUpdate.Kind }));
+            Assert.Null(CatalogUpdate.Waiting(f.Db));
+        }
+        finally { CatalogUpdate.Handler = null; }
+    }
+
+    /// <summary>
+    /// #223 (decisiones 260 y 262): qué cambia, con lo que toca tus datos primero; sin tu versión en el historial publicado vale la comparación
+    /// propia; con ella, lo publicado se verifica y lo que no coincide se avisa.
+    /// </summary>
+    [Fact]
+    public async Task TheChangesComeFirstWithWhatIsYoursAndArePublishedAndVerified()
+    {
+        await using var f = new Fixture();
+        Mine(f);
+        CatalogUpdate.Handler = Answers(Compiled(f, Catalog2));
+        try
+        {
+            Assert.Equal("done", (await f.Run(CatalogUpdate.Enqueue(f.Db))).Status);
+            var changes = CatalogDiff.Of(f.Db)!;
+            Assert.False(changes.FromHistory); // tu catálogo no dice su versión
+            Assert.Equal(("game", "merged", 11L, "Metroid Fusion", 4), (changes.Items[0].Kind, changes.Items[0].Change, changes.Items[0].Id, changes.Items[0].IntoName, changes.Items[0].Yours)); // progreso, enlace y sus dos archivos
+            Assert.Contains(changes.Items, x => x is { Kind: "game", Change: "renamed", Id: 10, From: "Viejo Fusion", Name: "Metroid Fusion" });
+            Assert.Contains(changes.Items, x => x is { Kind: "saga", Change: "renamed", Id: 1, From: "Viejo", Name: "Metroid" });
+            Assert.Contains(changes.Items, x => x is { Kind: "game", Change: "added", Id: 12 });
+            Assert.Null(CatalogUpdate.Accept(f.Db));
+        }
+        finally { CatalogUpdate.Handler = null; }
+
+        // Dos versiones después, con el historial publicado: lo que coincide no se avisa y lo distinto, sí.
+        const string Catalog4 = """
+            INSERT INTO catalog.saga (id, name) VALUES (1, 'Metroid');
+            INSERT INTO catalog.game (id, saga_id, name_es) VALUES (10, 1, 'Metroid Fusion'), (12, 1, 'Super Metroid (SNES)'), (13, 1, 'Metroid Dread');
+            INSERT INTO catalog.version (id, game_id, platform) VALUES (20, 10, 'gba'), (22, 12, 'snes'), (23, 13, 'switch');
+            """;
+        object History(string change13) => new
+        {
+            versions = new[] { "catalogo-20261101", "catalogo-20261102", "catalogo-20261103" },
+            entries = new object[]
+            {
+                new { version = "catalogo-20261101", kind = "game", change = "merged", id = 11, into = 10 },
+                new { version = "catalogo-20261102", kind = "game", change = "renamed", id = 12, name = "Super Metroid (SNES)", from = "Super Metroid" },
+                new { version = "catalogo-20261103", kind = "game", change = change13, id = 13, name = "Metroid Dread" },
+            },
+        };
+        foreach (var (change13, mismatches) in new[] { ("added", 0), ("removed", 1) })
+        {
+            CatalogUpdate.Handler = Answers(Compiled(f, Catalog4), tag: "catalogo-20261103", changes: History(change13));
+            try
+            {
+                Assert.Equal("done", (await f.Run(CatalogUpdate.Enqueue(f.Db))).Status);
+                var changes = CatalogDiff.Of(f.Db)!;
+                Assert.True(changes.FromHistory);
+                Assert.Equal(("catalogo-20261101", "catalogo-20261103"), (changes.From, changes.To));
+                Assert.Equal(mismatches, changes.Mismatch.Count);
+                CatalogUpdate.Reject(f.Db);
+            }
+            finally { CatalogUpdate.Handler = null; }
+        }
     }
 
     /// <summary>#217: un repo por fork, con su versión publicada en `https://&lt;letra&gt;.test/`.</summary>
@@ -185,7 +304,7 @@ public class CatalogUpdateTests
         CatalogUpdate.Handler = new Fake(answers);
         try
         {
-            async Task Apply() => Assert.Equal("done", (await f.Run(CatalogUpdate.Enqueue(f.Db))).Status);
+            async Task Apply() => Assert.Equal("done", (await CheckAndAccept(f)).Status);
             await Apply();
             using var c = f.Db.Open();
             long? Version() => c.ExecuteScalar<long?>("SELECT version_id FROM source WHERE relative_path = 'a.gba'");
@@ -237,13 +356,13 @@ public class CatalogUpdateTests
         CatalogUpdate.Handler = ImageRefs.Handler = new Spy(fake, downloads);
         try
         {
-            Assert.Equal("done", (await f.Run(CatalogUpdate.Enqueue(f.Db))).Status);
+            Assert.Equal("done", (await CheckAndAccept(f)).Status);
             Assert.EndsWith("10-cover.jpg", await ImageRefs.File(f.Db, 10, "cover"));
             Assert.EndsWith("10-cover.jpg", await ImageRefs.File(f.Db, 10, "cover"));
             Assert.Single(downloads, d => d.Contains("vieja"));
 
             foreach (var (k, v) in Repo(CatalogUpdate.Official, "a", Compiled(f, WithImage("https://cdn2.steamgriddb.com/grid/nueva.jpg")))) answers[k] = v;
-            Assert.Equal("done", (await f.Run(CatalogUpdate.Enqueue(f.Db))).Status);
+            Assert.Equal("done", (await CheckAndAccept(f)).Status);
             Assert.Null(SteamGridDb.Find(f.Db, 10, "cover")); // la vieja se borró
             Assert.NotNull(await ImageRefs.File(f.Db, 10, "cover"));
             Assert.Single(downloads, d => d.Contains("nueva"));

@@ -16,7 +16,6 @@ public sealed class ApiClient(Database db, HttpMessageHandler? handler = null)
     {
         ["igdb"] = TimeSpan.FromMilliseconds(260),
         // ponytail: SteamGridDB no publica su límite; 4 por segundo es prudente. Bajarlo si responde 429.
-        ["steamgriddb"] = TimeSpan.FromMilliseconds(250),
     };
 
     /// <summary>Para las fuentes sin ritmo propio: una por segundo, por si acaso.</summary>
