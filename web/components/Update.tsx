@@ -6,7 +6,7 @@ import { useState } from "react";
 import { request } from "@/lib/client";
 import { useDescribeError, useDynamicT } from "@/lib/i18n";
 import { useTasks } from "@/components/Tasks";
-import type { CatalogSource, CatalogVersion, UpdateChannelInfo, UpdateState } from "@/lib/types";
+import type { CatalogSource, CatalogVersion, CatalogVersions, UpdateChannelInfo, UpdateState } from "@/lib/types";
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -229,26 +229,60 @@ function CatalogVersionSettings() {
     cache.setQueryData(["catalog", "version"], data);
     for (const key of ["sagas", "saga", "collection", "consoles", "search", "home", "game"]) cache.invalidateQueries({ queryKey: [key] });
   };
+  // #228: elegir a qué versión ir, como en el buscador de actualizaciones. Sin versión elegida, la última.
   const check = useMutation({
-    mutationFn: () => request<number>("/api/catalog/version/check", { method: "POST" }),
+    mutationFn: (tag?: string) => request<number>(`/api/catalog/version/check${tag ? `?tag=${encodeURIComponent(tag)}` : ""}`, { method: "POST" }),
     onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
   });
+  const format = useFormatter();
+  const versions = useQuery({ queryKey: ["catalog", "versions"], queryFn: () => request<CatalogVersions>("/api/catalog/versions"), staleTime: 5 * 60_000 });
   const accept = useMutation({ mutationFn: () => request<CatalogVersion>("/api/catalog/version/accept", { method: "POST" }), onSuccess: done });
   const reject = useMutation({ mutationFn: () => request<CatalogVersion>("/api/catalog/version/reject", { method: "POST" }), onSuccess: done });
   if (!info.data) return null;
   const pending = info.data.pending;
   const busy = accept.isPending || reject.isPending;
-  const error = check.error ?? accept.error ?? reject.error;
+  const error = check.error ?? accept.error ?? reject.error ?? versions.error;
+  const current = info.data.current;
 
   return (
     <div className="settings-blocks" style={{ gap: 8 }}>
       <div className="version-row">
         <span className="small">{info.data.current ? t("current", { version: info.data.current }) : t("unknown")}</span>
-        <button className="ot-btn" type="button" disabled={!!checking || check.isPending || busy} aria-busy={!!checking} onClick={() => check.mutate()}>
+        <button className="ot-btn" type="button" disabled={!!checking || check.isPending || busy} aria-busy={!!checking} onClick={() => check.mutate(undefined)}>
           {checking && <span className="spinner" aria-hidden="true" />}
           {checking ? t("checking") : t("check")}
         </button>
       </div>
+      {versions.data && versions.data.versions.length > 0 && (
+        <ul className="catalog-versions" aria-label={t("versions")} style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 6, maxHeight: 360, overflow: "auto" }}>
+          {versions.data.versions.map((v) => {
+            const summary = CHANGES.filter((c) => Number(v.counts[c] ?? 0) > 0).map((c) => t(`count.${c}`, { count: Number(v.counts[c]) })).join(" · ");
+            const older = !!current && v.tag < current;
+            return (
+              <li key={v.tag} className="panel" style={{ padding: 8 }}>
+                <div className="version-row">
+                  <span className="small">
+                    <b className="tabular">{v.tag}</b>
+                    {v.publishedAt && <span className="muted"> · {format.dateTime(new Date(v.publishedAt), { day: "numeric", month: "short", year: "numeric" })}</span>}
+                    {v.current && <span className="ot-badge ot-badge-have" style={{ marginLeft: 6 }}>{t("yoursBadge")}</span>}
+                  </span>
+                  {!v.current && (v.available
+                    ? <button className="ot-btn" type="button" disabled={!!checking || check.isPending || busy} onClick={() => check.mutate(v.tag)}>{older ? t("goBack") : t("goTo")}</button>
+                    : <span className="small muted">{t("notAvailable")}</span>)}
+                </div>
+                {v.changes.length > 0 ? (
+                  <details>
+                    <summary className="small muted">{summary}</summary>
+                    <ul className="small" style={{ margin: 0 }}>
+                      {v.changes.map((c) => <li key={`${c.kind}-${c.id}-${c.change}`}>{dt(`update.catalogVersion.item.${c.change}`, { kind: dt(`update.catalogVersion.kind.${c.kind}`), name: c.name ?? "", from: c.from ?? "", into: "" })}</li>)}
+                    </ul>
+                  </details>
+                ) : <span className="small muted">{t("noHistory")}</span>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
       {pending && (
         <div className="panel" role="region" aria-label={t("pendingTitle", { version: pending.to })}>
           <h3 style={{ margin: 0 }}>{t("pendingTitle", { version: pending.to })}</h3>

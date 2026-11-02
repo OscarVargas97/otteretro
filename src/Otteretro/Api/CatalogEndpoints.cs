@@ -81,8 +81,15 @@ public static class CatalogEndpoints
         // Ajustes › General › Catálogo (#222, #223): buscar a mano, ver qué cambia y aceptar o rechazar la versión entera (259).
         api.MapGet("/catalog/version", Results<Ok<CatalogVersion>, Conflict<ApiError>> (AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(VersionOf(db)) : NoData());
-        api.MapPost("/catalog/version/check", Results<Ok<long>, Conflict<ApiError>> (AppSession s) =>
-            Db(s) is { } db ? TypedResults.Ok(CatalogUpdate.Enqueue(db)) : NoData());
+        api.MapPost("/catalog/version/check", Results<Ok<long>, Conflict<ApiError>> (AppSession s, string? tag) =>
+            Db(s) is { } db ? TypedResults.Ok(CatalogUpdate.Enqueue(db, string.IsNullOrWhiteSpace(tag) ? null : tag)) : NoData());
+        // #228: las versiones publicadas con los cambios de cada una, para elegir a cuál ir.
+        api.MapGet("/catalog/versions", async Task<Results<Ok<CatalogUpdate.VersionsPage>, Conflict<ApiError>>> (AppSession s, CancellationToken ct) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            try { return TypedResults.Ok(await CatalogUpdate.Versions(db, ct)); }
+            catch (HttpRequestException) { return TypedResults.Conflict(ApiError.Of("catalog.sourceUnreachable", ("repo", CatalogUpdate.Source(db)))); }
+        });
         api.MapPost("/catalog/version/accept", Results<Ok<CatalogVersion>, BadRequest<ApiError>, Conflict<ApiError>> (AppSession s) =>
         {
             if (Db(s) is not { } db) return NoData();

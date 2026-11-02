@@ -41,6 +41,7 @@ export type ClaudeSettingsRequest = Schemas["ClaudeSettingsRequest"];
 export type ConsolesPage = Schemas["ConsolesPage"];
 export type CatalogVersion = Schemas["CatalogVersion"];
 export type CatalogChange = Schemas["CatalogChange"];
+export type CatalogVersions = Schemas["VersionsPage"];
 export type ConsoleInfo = Schemas["ConsoleInfo"];
 export type DiskInfo = Schemas["DiskInfo"];
 export type DownloadInfo = Schemas["DownloadInfo"];

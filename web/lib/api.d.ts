@@ -1299,7 +1299,9 @@ export interface paths {
         put?: never;
         post: {
             parameters: {
-                query?: never;
+                query?: {
+                    tag?: string;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -1326,6 +1328,50 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/catalog/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VersionsPage"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5277,6 +5323,14 @@ export interface components {
             /** Format: int64 */
             gameId: null | number | string;
         };
+        VersionChange: {
+            kind: string;
+            change: string;
+            /** Format: int64 */
+            id: number | string;
+            name: null | string;
+            from: null | string;
+        };
         VersionCompare: {
             /** Format: int64 */
             versionId: number | string;
@@ -5287,6 +5341,16 @@ export interface components {
             best: boolean;
             criteria: components["schemas"]["CriterionInfo"][];
         };
+        VersionInfo: {
+            tag: string;
+            publishedAt: null | string;
+            available: boolean;
+            current: boolean;
+            counts: {
+                [key: string]: number | string;
+            };
+            changes: components["schemas"]["VersionChange"][];
+        };
         VersionRow: {
             /** Format: int64 */
             id: number | string;
@@ -5296,6 +5360,11 @@ export interface components {
             year: null | number | string;
             stores: components["schemas"]["StoreEntry"][];
             files: components["schemas"]["FileEntry"][];
+        };
+        VersionsPage: {
+            repo: string;
+            current: null | string;
+            versions: components["schemas"]["VersionInfo"][];
         };
     };
     responses: never;
