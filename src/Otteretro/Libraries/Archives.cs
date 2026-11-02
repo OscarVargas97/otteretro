@@ -108,6 +108,15 @@ public static partial class Archives
         return c;
     }).ToArray();
 
+    /// <summary>El CRC32 de todo un archivo (para los `.sfv`, #202).</summary>
+    public static uint Crc32(Stream stream)
+    {
+        var crc = 0xFFFFFFFFu;
+        var buffer = new byte[1 << 20];
+        for (int n; (n = stream.Read(buffer)) > 0;) crc = Update(crc, buffer.AsSpan(0, n));
+        return ~crc;
+    }
+
     static uint Update(uint crc, ReadOnlySpan<byte> data)
     {
         foreach (var b in data) crc = Table[(crc ^ b) & 0xFF] ^ (crc >> 8);

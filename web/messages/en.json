@@ -546,7 +546,8 @@
       "waiting": "The site asks to wait {seconds} s",
       "progress": "Downloading {file}",
       "log": {
-        "done": "{name}: finished and moved to {path}."
+        "done": "{name}: finished and moved to {path}.",
+        "corrupt": "{file} does not match what was expected: downloading it again."
       },
       "unavailable": "{file}: the site answered {status}; the link is not available.",
       "notDirect": "{url} is a page, not a file: that site needs a connector.",
@@ -555,7 +556,10 @@
       "siteSaid": "{site} answered: {message}",
       "badConnections": "Connections go from 1 to 8.",
       "running": "Downloading {file}",
-      "openInBrowser": "{site} did not give the direct link (its page changed or it asks for a captcha): open it in the browser and leave what you download in Entrada."
+      "openInBrowser": "{site} did not give the direct link (its page changed or it asks for a captcha): open it in the browser and leave what you download in Entrada.",
+      "corrupt": "{file} arrived damaged three times: the link may be bad. Download it again or find it elsewhere.",
+      "archiveBroken": "{file} arrived damaged: it failed its CRC when extracting. Nothing was deleted; download it again.",
+      "badParallel": "That number is over the site's limit for your account."
     }
   },
   "credentials": {
@@ -1169,6 +1173,27 @@
     "gameLinksPrivate": "Private: they stay only in your data",
     "downloadAgain": "Download again",
     "itemsSummary": "{count, plural, one {Show # link} other {Show # links}}",
-    "itemPending": "Pending"
+    "itemPending": "Pending",
+    "parallelTitle": "Downloads at once, per site",
+    "parallelHelp": "How many downloads run at the same time from each site. Different sites download in parallel. The limit depends on your account.",
+    "parallelMax": "Up to {max} with your account",
+    "parallelFree": "Without premium, 1. With your API key, up to 10.",
+    "site": {
+      "1fichier": "1fichier",
+      "mega": "Mega",
+      "mediafire": "MediaFire",
+      "torrent": "Torrents",
+      "direct": "Direct links"
+    },
+    "verified": {
+      "crc32": "Verified (CRC32)",
+      "md5": "Verified (MD5)",
+      "sha1": "Verified (SHA-1)",
+      "sha256": "Verified (SHA-256)",
+      "sha512": "Verified (SHA-512)",
+      "size": "Size only",
+      "site": "Verified by the site",
+      "none": "Not verified"
+    }
   }
 }

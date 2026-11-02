@@ -65,20 +65,48 @@ public class OneFichierTests
         Assert.Equal("https://1fichier.com/?abc123", JsonDocument.Parse(fake.Sent!).RootElement.GetProperty("url").GetString());
     }
 
-    /// <summary>Con la clave puesta, un rechazo dice lo que respondió el sitio y no «falta tu cuenta»; y cada enlace va en su paquete.</summary>
+    /// <summary>
+    /// Decisión 249: comprobar usa `check_links.pl`, como JDownloader: nombre y tamaño sin pedir tokens ni mandar tu clave, así un enlace
+    /// muerto no suma pedidos fallidos a tu cuenta. Sin clave ni se consulta.
+    /// </summary>
     [Fact]
-    public async Task ThePreviewTellsWhatTheSiteAnswered()
+    public async Task CheckingUsesTheLinkCheckerWithoutYourKey()
     {
         await using var f = new Fixture(Key);
-        OneFichierSite.Handler = new Fake(HttpStatusCode.Forbidden, """{ "message": "Resource not found #644", "status": "KO" }""");
+        var fake = new Fake(HttpStatusCode.OK, "https://1fichier.com/?abc123;;;NOT FOUND\nhttps://1fichier.com/?def456;Juego.part1.rar;1234\n");
+        OneFichierSite.Handler = fake;
         List<PackagePreview> preview;
-        try { preview = await Downloads.Preview("https://1fichier.com/?abc123\nhttps://1fichier.com/?def456", f.Credentials, default); }
+        try { preview = await Downloads.Preview("https://1fichier.com/?abc123\nhttps://1fichier.com/?def456&af=9", f.Credentials, default); }
         finally { OneFichierSite.Handler = null; }
-        Assert.Equal(["abc123", "def456"], preview.Select(p => p.Name).Order());
-        var link = preview[0].Links[0];
-        Assert.Equal("blocked", link.State);
-        Assert.Equal("download.siteSaid", link.Detail?.Code);
-        Assert.Contains("#644", link.Detail!.Params!["message"]);
+        Assert.Null(fake.Auth);
+        Assert.Contains("links%5B%5D=https%3A%2F%2F1fichier.com%2F%3F", fake.Sent);
+        var links = preview.SelectMany(p => p.Links).ToDictionary(l => l.Url);
+        Assert.Equal("unavailable", links["https://1fichier.com/?abc123"].State);
+        var found = links["https://1fichier.com/?def456&af=9"];
+        Assert.Equal(("ok", "Juego.part1.rar", (long?)1234), (found.State, found.Name, found.Size));
+
+        await using var free = new Fixture();
+        var blocked = Assert.Single(Assert.Single(await Downloads.Preview("https://1fichier.com/?abc123", free.Credentials, default)).Links);
+        Assert.Equal("download.needsAccount", blocked.Detail?.Code);
+    }
+
+    /// <summary>Decisión 248: 1fichier deja 1 descarga a la vez sin premium y 10 con premium; lo que elijas queda dentro.</summary>
+    [Fact]
+    public async Task ParallelDownloadsDependOnYourAccount()
+    {
+        await using var free = new Fixture();
+        await using var premium = new Fixture(Key);
+        var config = new App.AppConfig { DownloadsPerSite = new() { ["1fichier"] = 5, ["direct"] = 50 } };
+        Assert.Equal((1, 1), Of(Downloads.Limits(config, free.Credentials), "1fichier"));
+        Assert.Equal((10, 5), Of(Downloads.Limits(config, premium.Credentials), "1fichier"));
+        Assert.Equal((8, 8), Of(Downloads.Limits(config, premium.Credentials), "direct"));
+        Assert.Equal((4, 1), Of(Downloads.Limits(new App.AppConfig(), premium.Credentials), "mega"));
+    }
+
+    static (int, int) Of(List<SiteLimit> limits, string site)
+    {
+        var l = limits.Single(x => x.Site == site);
+        return (l.Max, l.Value);
     }
 
     [Fact]

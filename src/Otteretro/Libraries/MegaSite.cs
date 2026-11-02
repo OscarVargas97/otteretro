@@ -11,6 +11,9 @@ namespace Otteretro.Libraries;
 public sealed class MegaSite : IDownloadSite, IOwnTransfer
 {
     public string Id => "mega";
+
+    /// <summary>Mega limita por cuota de transferencia, no por cantidad: pocas a la vez alcanzan.</summary>
+    public int MaxParallel(Credentials credentials) => 4;
     public bool Handles(Uri url) => url.Host is "mega.nz" or "www.mega.nz" or "mega.co.nz" or "www.mega.co.nz";
 
     /// <summary>Los enlaces de Mega no se resuelven a uno directo: los baja <see cref="Transfer"/>.</summary>

@@ -20,6 +20,7 @@ public record DownloadRequest(string Name, string? DiskId, List<string> Links, l
 public record CaptureRequest(string Text, long? GameId = null);
 public record QueueLinksRequest(List<string> Packages, string? DiskId);
 public record ClipboardRequest(bool Enabled);
+public record SiteLimitRequest(string Site, int Value);
 public record ConnectionsRequest(int Connections);
 public record ImportRequest(string Path, List<string>? Skip = null);
 public record PreviewRequest(string Path);
@@ -177,6 +178,20 @@ public static class CatalogEndpoints
 
         api.MapGet("/games/{id:long}/links", Results<Ok<List<Libraries.CapturedLink>>, Conflict<ApiError>> (long id, AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(Libraries.DownloadLinks.OfGame(db, id)) : NoData());
+
+        // Descargas a la vez por sitio (#202, decisión 248), con el tope de tu cuenta.
+        api.MapGet("/downloads/sites", Results<Ok<List<Libraries.SiteLimit>>, Conflict<ApiError>> (AppSession s, SecretBox box) =>
+            Db(s) is { } db ? TypedResults.Ok(Libraries.Downloads.Limits(s.Config, new Credentials(db, s.Config.MachineId, box))) : NoData());
+        api.MapPut("/downloads/sites", Results<Ok<List<Libraries.SiteLimit>>, BadRequest<ApiError>, Conflict<ApiError>> (SiteLimitRequest request, AppSession s, SecretBox box) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var credentials = new Credentials(db, s.Config.MachineId, box);
+            if (Libraries.Downloads.Limits(s.Config, credentials).FirstOrDefault(l => l.Site == request.Site) is not { } site || request.Value < 1 || request.Value > site.Max)
+                return TypedResults.BadRequest(ApiError.Of("download.badParallel"));
+            (s.Config.DownloadsPerSite ??= [])[request.Site] = request.Value;
+            s.Config.Save(s.ConfigPath);
+            return TypedResults.Ok(Libraries.Downloads.Limits(s.Config, credentials));
+        });
 
         api.MapGet("/downloads/clipboard", (AppSession s) => s.Config.ClipboardCapture ?? true);
         api.MapPut("/downloads/clipboard", (ClipboardRequest request, AppSession s) =>

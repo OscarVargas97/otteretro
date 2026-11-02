@@ -176,6 +176,8 @@ public static partial class Import
         if (Archives.Extract(main, target, p.Passwords, ct) is { } error)
         {
             p.Run.Log(error, "warn");
+            // Llegó dañado de una descarga: esa descarga queda con error, para volver a bajarla (#202). Una contraseña que falta no es eso.
+            if (error.Code == "import.log.archiveFailed" && p.Job.DownloadTask is { } from) Downloads.MarkBroken(p.Db, from, main);
             p.Skipped++;
             RemoveExtracting(p);
             return;

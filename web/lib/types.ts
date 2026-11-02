@@ -49,6 +49,7 @@ export type PlatformInfo = Schemas["PlatformInfo"];
 export type DiskInfo = Schemas["DiskInfo"];
 export type DownloadInfo = Schemas["DownloadInfo"];
 export type LinkPackage = Schemas["LinkPackage"];
+export type SiteLimit = Schemas["SiteLimit"];
 export type CapturedLink = Schemas["CapturedLink"];
 export type SystemConsole = Schemas["SystemConsole"];
 export type MegapackPreview = Schemas["MegapackPreview"];

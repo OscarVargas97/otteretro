@@ -12,6 +12,7 @@ sealed class Fixture : IAsyncDisposable
     public readonly TaskQueue Queue;
     public readonly AppSession Session;
     readonly AppConfig config;
+    public AppConfig Config => config;
     readonly SecretBox box = new();
 
     public Fixture(params (string Id, string Value)[] keys)

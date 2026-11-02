@@ -27,6 +27,38 @@ public sealed partial class OneFichierSite : IDownloadSite
 
     public string Id => "1fichier";
     public int MaxConnections => 1;
+
+    /// <summary>Como JDownloader: 1 descarga a la vez sin premium y 10 con premium (con clave de API).</summary>
+    public int MaxParallel(Credentials credentials) => string.IsNullOrEmpty(credentials.Read("onefichier.apiKey")) ? 1 : 10;
+
+    /// <summary>
+    /// Comprueba con `check_links.pl`, como JDownloader: nombre y tamaño sin pedir un enlace de descarga ni usar tu clave, así un enlace muerto
+    /// no suma pedidos fallidos a tu cuenta (#202, decisión 249). Sin clave no se consulta: sin premium no se puede bajar.
+    /// </summary>
+    public async Task<LinkCheck?> Inspect(Uri url, Credentials credentials, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(credentials.Read("onefichier.apiKey"))) return new(url.ToString(), "", null, Id, "blocked", ApiError.Of("download.needsAccount", ("site", Id)));
+        if (LinkId().Match(url.Query) is not { Success: true } id) return null;
+        using var request = new HttpRequestMessage(HttpMethod.Post, "https://1fichier.com/check_links.pl")
+        {
+            Content = new FormUrlEncodedContent([new("links[]", Canonical(url))]),
+        };
+        var http = Handler is null ? Shared : new HttpClient(Handler);
+        string text;
+        await Gate.WaitAsync(ct);
+        try
+        {
+            using var response = await http.SendAsync(request, ct);
+            text = await response.Content.ReadAsStringAsync(ct);
+            await Task.Delay(Spacing, ct);
+        }
+        finally { Gate.Release(); }
+        // Una línea por enlace: `enlace;nombre;tamaño`, o `enlace;;;NOT FOUND`.
+        var line = text.Split('\n').FirstOrDefault(l => Regex.IsMatch(l, $@"\?{id.Groups[1].Value}[;&]"));
+        if (line?.Split(';') is not [_, var name, var size, ..] parts) return null;
+        if (parts.Length > 3 && parts[3].Contains("NOT FOUND") || parts.Length > 3 && parts[3].Contains("BAD LINK")) return new(url.ToString(), "", null, Id, "unavailable");
+        return new(url.ToString(), WebUtility.HtmlDecode(name), long.TryParse(size, out var bytes) ? bytes : null, Id, "ok");
+    }
     public bool Handles(Uri url) => url.Host.Equals("1fichier.com", StringComparison.OrdinalIgnoreCase) || url.Host.EndsWith(".1fichier.com", StringComparison.OrdinalIgnoreCase);
 
     public async Task<ResolvedLink> Resolve(Uri url, Credentials credentials, CancellationToken ct)

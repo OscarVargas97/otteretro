@@ -81,7 +81,8 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
 
     const string Columns = "id, kind, status, progress, detail, data, created_at AS CreatedAt, finished_at AS FinishedAt";
 
-    readonly HashSet<string> running = [];
+    /// <summary>Lo que corre por grupo: cada tipo de tarea, y las descargas por sitio, que pueden ir varias a la vez (#202).</summary>
+    readonly Dictionary<string, int> running = [];
     readonly Lock gate = new();
     /// <summary>Las que corren, con su token y el estado al que pasan si se detienen a pedido (#146).</summary>
     readonly Dictionary<long, (CancellationTokenSource Token, string? StopAs)> live = [];
@@ -231,18 +232,31 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
             """, new { now = Now() });
         foreach (var t in queued)
         {
+            var (key, limit) = SlotOf(db, t);
             lock (gate)
-                if (!running.Add(LockOf(t.Kind))) continue;
+            {
+                if (running.GetValueOrDefault(key) >= limit) continue;
+                running[key] = running.GetValueOrDefault(key) + 1;
+            }
             c.Execute("UPDATE task SET status = 'running', attempts = attempts + 1 WHERE id = @Id", t);
             Log(db, t.Id, ApiError.Of("tasks.log.started"));
             Publish(db, t.Id);
             var token = CancellationTokenSource.CreateLinkedTokenSource(ct);
             lock (gate) live[t.Id] = (token, null);
-            _ = Task.Run(() => Run(db, t, token.Token, ct), CancellationToken.None);
+            _ = Task.Run(() => Run(db, t, key, token.Token, ct), CancellationToken.None);
         }
     }
 
-    async Task Run(Database db, Row t, CancellationToken ct, CancellationToken app)
+    /// <summary>El grupo de una tarea y cuántas del grupo pueden correr a la vez.</summary>
+    (string Key, int Limit) SlotOf(Database db, Row t)
+    {
+        if (t.Kind != Libraries.Downloads.Kind) return (LockOf(t.Kind), 1);
+        var site = Libraries.Downloads.SiteOfJob(t.Data);
+        var limit = Libraries.Downloads.Limits(session.Config, new Credentials(db, session.Config.MachineId, box)).FirstOrDefault(l => l.Site == site)?.Value ?? 1;
+        return ("download:" + site, limit);
+    }
+
+    async Task Run(Database db, Row t, string key, CancellationToken ct, CancellationToken app)
     {
         var clock = Stopwatch.StartNew();
         try
@@ -269,7 +283,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         {
             lock (gate)
             {
-                running.Remove(LockOf(t.Kind));
+                if (--running[key] == 0) running.Remove(key);
                 if (live.Remove(t.Id, out var run)) run.Token.Dispose();
             }
         }

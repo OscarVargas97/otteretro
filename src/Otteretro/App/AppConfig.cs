@@ -45,6 +45,10 @@ public sealed class AppConfig
     [JsonPropertyName("conexionesDescarga")]
     public int? DownloadConnections { get; set; }
 
+    /// <summary>Descargas a la vez por sitio (#202, decisión 248); cada sitio tiene su tope según tu cuenta. Sin valor, 1.</summary>
+    [JsonPropertyName("descargasPorSitio")]
+    public Dictionary<string, int>? DownloadsPerSite { get; set; }
+
     /// <summary>Lo que copias entra al capturador (#210). Sin valor, sí.</summary>
     [JsonPropertyName("capturarPortapapeles")]
     public bool? ClipboardCapture { get; set; }

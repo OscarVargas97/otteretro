@@ -2076,6 +2076,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/downloads/sites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SiteLimit"][];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SiteLimitRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SiteLimit"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/downloads/clipboard": {
         parameters: {
             query?: never;
@@ -5384,6 +5469,7 @@ export interface components {
             name: string;
             /** Format: int64 */
             size: null | number | string;
+            check: null | string;
         };
         DownloadRequest: {
             name: string;
@@ -5743,6 +5829,18 @@ export interface components {
         SearchResults: {
             sagas: components["schemas"]["SagaCard"][];
             games: components["schemas"]["GameCard"][];
+        };
+        SiteLimit: {
+            site: string;
+            /** Format: int32 */
+            max: number | string;
+            /** Format: int32 */
+            value: number | string;
+        };
+        SiteLimitRequest: {
+            site: string;
+            /** Format: int32 */
+            value: number | string;
         };
         Source: {
             title: string;

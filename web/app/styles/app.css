@@ -43,6 +43,12 @@ html, body { margin: 0; min-height: 100%; background: var(--bg); }
 .download-package { display: grid; gap: var(--space-2); padding-block: var(--space-2); border-top: 1px solid var(--line); }
 .download-problem { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding-left: 22px; }
 .download-problem .ot-badge { white-space: normal; }
+/* Descargas a la vez por sitio (#202). */
+.download-sites { display: grid; gap: var(--space-2); }
+.download-sites summary { cursor: pointer; font-weight: 700; }
+.download-sites-list { display: grid; gap: var(--space-2); }
+.download-sites-list label { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.download-sites-list label > span:first-child { min-width: 9rem; }
 /* Los enlaces de una descarga (#202), desplegables. */
 .download-items summary { cursor: pointer; color: var(--ink-muted); }
 .download-item { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-1) var(--space-3); padding-block: var(--space-2); border-top: 1px solid var(--line); }

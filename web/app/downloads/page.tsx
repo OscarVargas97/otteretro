@@ -10,7 +10,7 @@ import { Tabs } from "@/components/Tabs";
 import { useTasks } from "@/components/Tasks";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
-import type { DownloadInfo, LinkPackage } from "@/lib/types";
+import type { DownloadInfo, LinkPackage, SiteLimit } from "@/lib/types";
 
 const post = (body: unknown) => ({ method: "POST", body: JSON.stringify(body) });
 const linksQuery = { queryKey: ["download-links"], queryFn: () => request<LinkPackage[]>("/api/downloads/links") };
@@ -147,6 +147,37 @@ function Capture({ packages }: { packages: LinkPackage[] }) {
   );
 }
 
+/** Cuántas bajan a la vez de cada sitio (#202, decisión 248), dentro del tope de tu cuenta. */
+function ParallelPerSite() {
+  const t = useTranslations("downloads");
+  const describe = useDescribeError();
+  const cache = useQueryClient();
+  const sites = useQuery({ queryKey: ["download-sites"], queryFn: () => request<SiteLimit[]>("/api/downloads/sites") });
+  const save = useMutation({
+    mutationFn: (body: { site: string; value: number }) => request<SiteLimit[]>("/api/downloads/sites", { method: "PUT", body: JSON.stringify(body) }),
+    onSuccess: (data) => cache.setQueryData(["download-sites"], data),
+  });
+  if (!sites.data) return null;
+  return (
+    <details className="panel small download-sites">
+      <summary>{t("parallelTitle")}</summary>
+      <p className="muted" style={{ margin: 0 }}>{t("parallelHelp")}</p>
+      <div className="download-sites-list">
+        {sites.data.map((s) => (
+          <label key={s.site}>
+            <span>{t(`site.${s.site as "direct"}`)}</span>
+            <select className="ot-btn ot-btn-sm" value={Number(s.value)} disabled={save.isPending} onChange={(e) => save.mutate({ site: s.site, value: Number(e.target.value) })}>
+              {Array.from({ length: Number(s.max) }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+            <span className="muted">{s.site === "1fichier" && Number(s.max) === 1 ? t("parallelFree") : t("parallelMax", { max: Number(s.max) })}</span>
+          </label>
+        ))}
+      </div>
+      {save.isError && <p className="error" role="alert" style={{ margin: 0 }}>{describe(save.error)}</p>}
+    </details>
+  );
+}
+
 /** La cola (§9.2, #202): progreso, velocidad y pausa. */
 function Queue() {
   const t = useTranslations("downloads");
@@ -169,9 +200,17 @@ function Queue() {
     onSettled: refresh,
   });
   const size = (bytes: string | undefined) => bytes ? format.number(Number(bytes) / 1048576, { maximumFractionDigits: 1 }) : "0";
+  const router = useRouter();
+  // Lo que llegó dañado vuelve al capturador, para bajarlo otra vez (#202); lo dañado no se borra.
+  const again = useMutation({
+    mutationFn: (links: string[]) => request<number>("/api/downloads/links", post({ text: links.join("\n") })),
+    onSuccess: () => router.push("/downloads/?tab=links"),
+  });
 
   return (
     <>
+      <ParallelPerSite />
+      {again.isError && <p className="error small" role="alert">{describe(again.error)}</p>}
       {list.isError && <p className="error small" role="alert">{describe(list.error)}</p>}
       {act.isError && <p className="error small" role="alert">{describe(act.error)}</p>}
       {list.data?.length === 0 && <Empty title={t("emptyTitle")} text={t("emptyText")} />}
@@ -182,7 +221,7 @@ function Queue() {
         const progress = Number(task?.progress ?? d.progress);
         const detail = task?.detail ?? d.detail;
         const running = status === "running" || status === "queued";
-        const speed = detail?.code === "download.progress" ? detail.params?.speed : undefined;
+        const speed = status === "running" && detail?.code === "download.progress" ? detail.params?.speed : undefined;
         return (
           <section key={d.id} className="panel" style={{ display: "grid", gap: 6 }}>
             <div className="version-row">
@@ -206,6 +245,7 @@ function Queue() {
                     <span className="hero-actions" style={{ alignItems: "center" }}>
                       {bytes ? <span className="muted tabular">{size(String(bytes.done))} / {size(String(bytes.total))} MB</span>
                         : item.size != null && <span className="muted tabular">{size(String(item.size))} MB</span>}
+                      {state === "done" && <span className="muted">{t(`verified.${(item.check ?? "none") as "none"}`)}</span>}
                       <span className={state === "done" ? "ot-badge ot-badge-have" : state === "error" ? "ot-badge ot-badge-danger" : "ot-badge"}>{state === "pending" ? t("itemPending") : t(`status.${state as "running"}`)}</span>
                     </span>
                     {bytes && <progress max={bytes.total} value={bytes.done} aria-label={item.name} />}
@@ -217,6 +257,7 @@ function Queue() {
               {running && <button className="ot-btn ot-btn-sm" type="button" onClick={() => act.mutate({ id: Number(d.id), action: "pause" })}>{t("pause")}</button>}
               {status === "paused" && <button className="ot-btn ot-btn-sm" type="button" onClick={() => act.mutate({ id: Number(d.id), action: "resume" })}>{t("resume")}</button>}
               {(running || status === "paused") && <button className="ot-btn ot-btn-sm" type="button" onClick={() => act.mutate({ id: Number(d.id), action: "cancel" })}>{t("cancel")}</button>}
+              {status === "error" && <button className="ot-btn ot-btn-sm" type="button" disabled={again.isPending} onClick={() => again.mutate(d.items.map((i) => i.url))}>{t("downloadAgain")}</button>}
             </div>
           </section>
         );

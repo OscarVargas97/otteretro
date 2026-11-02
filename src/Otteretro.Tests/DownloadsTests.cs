@@ -224,6 +224,96 @@ public class DownloadsTests : IAsyncDisposable
         Assert.Equal("rom", File.ReadAllText(f.Tmp[@"Otteretro\Entrada\P\juego.gba"]));
     }
 
+    /// <summary>Como 1fichier: cada vez da un enlace distinto, que sirve una sola descarga.</summary>
+    sealed class TokenSite(string baseUrl, long? size = null) : IDownloadSite
+    {
+        public int Resolved;
+        public string Id => "token";
+        public bool Handles(Uri url) => url.Host == "token.test";
+        public Task<ResolvedLink> Resolve(Uri url, App.Credentials c, CancellationToken ct) =>
+            Task.FromResult(new ResolvedLink($"{baseUrl}grande.bin?t={Interlocked.Increment(ref Resolved)}", "grande.bin", size));
+    }
+
+    /// <summary>Decisión 249: cortar a mitad de archivo y seguir con un enlace nuevo deja el archivo idéntico al original.</summary>
+    [Fact]
+    public async Task ResumesMidFileWithANewLink()
+    {
+        await using var f = new Fixture();
+        var (disk, _) = Disk.Create(f.Db, f.Tmp["Otteretro"], "E:");
+        var site = new TokenSite(baseUrl, content.Length);
+        Downloads.Sites.Insert(0, site);
+        try
+        {
+            slowUntil = 30;
+            var id = Downloads.Enqueue(f.Db, "Paquete", disk, ["https://token.test/a"]).Task!.Value;
+            await f.Queue.StartAsync(default);
+            for (var i = 0; i < 200 && !Directory.EnumerateFiles(f.Tmp["Otteretro"], "*.download", SearchOption.AllDirectories).Any(); i++) await Task.Delay(50);
+            await Task.Delay(300);
+            Assert.True(f.Queue.Pause(f.Db, id));
+            for (var i = 0; i < 100 && Status(f, id) != "paused"; i++) await Task.Delay(50);
+            slowUntil = 0;
+            Assert.True(f.Queue.Resume(f.Db, id));
+            for (var i = 0; i < 400 && Status(f, id) != "done"; i++) await Task.Delay(50);
+            Assert.Equal("done", Status(f, id));
+            Assert.True(site.Resolved >= 2);
+            Assert.Equal("size", Assert.Single(Downloads.List(f.Db)).Items[0].Check);
+        }
+        finally { Downloads.Sites.Remove(site); }
+        Assert.Equal(content, File.ReadAllBytes(f.Tmp[@"Otteretro\Entrada\Paquete\grande.bin"]));
+    }
+
+    /// <summary>Decisión 249, como pyLoad: un archivo que llega con otro tamaño se borra y se vuelve a bajar; a la tercera, error.</summary>
+    [Fact]
+    public async Task AFileWithTheWrongSizeIsRetriedThenFails()
+    {
+        await using var f = new Fixture();
+        var (disk, _) = Disk.Create(f.Db, f.Tmp["Otteretro"], "E:");
+        var site = new TokenSite(baseUrl, content.Length + 1);
+        Downloads.Sites.Insert(0, site);
+        try
+        {
+            var done = await f.Run(Downloads.Enqueue(f.Db, "Paquete", disk, ["https://token.test/a"]).Task!.Value);
+            Assert.Equal(("error", "download.corrupt"), (done.Status, done.Detail?.Code));
+            Assert.Equal(1 + Downloads.MaxRetries, site.Resolved);
+        }
+        finally { Downloads.Sites.Remove(site); }
+        Assert.False(Directory.Exists(f.Tmp[@"Otteretro\Entrada\Paquete"]));
+    }
+
+    /// <summary>Decisión 248: con 2 a la vez de un sitio, dos descargas de ese sitio bajan juntas.</summary>
+    [Fact]
+    public async Task DownloadsOfOneSiteRunTogetherUpToYourLimit()
+    {
+        await using var f = new Fixture();
+        f.Config.DownloadsPerSite = new() { ["direct"] = 2 };
+        var (disk, _) = Disk.Create(f.Db, f.Tmp["Otteretro"], "E:");
+        slowUntil = 30;
+        var a = Downloads.Enqueue(f.Db, "A", disk, [baseUrl + "a.bin"]).Task!.Value;
+        var b = Downloads.Enqueue(f.Db, "B", disk, [baseUrl + "b.bin"]).Task!.Value;
+        await f.Queue.StartAsync(default);
+        var both = false;
+        for (var i = 0; i < 200 && !both; i++)
+        {
+            await Task.Delay(50);
+            both = Status(f, a) == "running" && Status(f, b) == "running";
+        }
+        slowUntil = 0;
+        Assert.True(both);
+    }
+
+    /// <summary>Un comprimido de una descarga que no pasa su CRC deja esa descarga con error, para volver a bajarla (decisión 249).</summary>
+    [Fact]
+    public async Task ABrokenArchiveMarksItsDownload()
+    {
+        await using var f = new Fixture();
+        var (disk, _) = Disk.Create(f.Db, f.Tmp["Otteretro"], "E:");
+        var id = Downloads.Enqueue(f.Db, "P", disk, [baseUrl + "uno.bin"]).Task!.Value;
+        Assert.Equal("done", (await f.Run(id)).Status);
+        Downloads.MarkBroken(f.Db, id, @"E:\Otteretro\Entrada\P\juego.rar");
+        var info = Assert.Single(Downloads.List(f.Db));
+        Assert.Equal(("error", "download.archiveBroken"), (info.Status, info.Detail?.Code));
+    }
+
     sealed class NoNetwork : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) => throw new HttpRequestException("sin red");

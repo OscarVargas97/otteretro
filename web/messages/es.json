@@ -546,7 +546,8 @@
       "waiting": "El sitio pide esperar {seconds} s",
       "progress": "Bajando {file}",
       "log": {
-        "done": "{name}: terminó y pasó a {path}."
+        "done": "{name}: terminó y pasó a {path}.",
+        "corrupt": "{file} no coincide con lo esperado: se vuelve a bajar."
       },
       "unavailable": "{file}: el sitio respondió {status}; el enlace no está disponible.",
       "notDirect": "{url} es una página, no un archivo: ese sitio necesita un conector.",
@@ -555,7 +556,10 @@
       "siteSaid": "{site} respondió: {message}",
       "badConnections": "Las conexiones van de 1 a 8.",
       "running": "Bajando {file}",
-      "openInBrowser": "{site} no dio el enlace directo (cambió su página o pide un captcha): ábrelo en el navegador y deja lo que bajes en Entrada."
+      "openInBrowser": "{site} no dio el enlace directo (cambió su página o pide un captcha): ábrelo en el navegador y deja lo que bajes en Entrada.",
+      "corrupt": "{file} llegó dañado tres veces: el enlace puede estar mal. Vuelve a bajarlo o búscalo en otro lado.",
+      "archiveBroken": "{file} llegó dañado: no pasó su CRC al descomprimirlo. No se borró nada; vuelve a bajarlo.",
+      "badParallel": "Ese número pasa el tope del sitio con tu cuenta."
     }
   },
   "credentials": {
@@ -1169,6 +1173,27 @@
     "gameLinksPrivate": "Privados: quedan solo en tus datos",
     "downloadAgain": "Volver a bajar",
     "itemsSummary": "{count, plural, one {Ver # enlace} other {Ver # enlaces}}",
-    "itemPending": "Pendiente"
+    "itemPending": "Pendiente",
+    "parallelTitle": "Descargas a la vez, por sitio",
+    "parallelHelp": "Cuántas bajan al mismo tiempo de cada sitio. Sitios distintos bajan en paralelo. El tope depende de tu cuenta.",
+    "parallelMax": "Hasta {max} con tu cuenta",
+    "parallelFree": "Sin premium, 1. Con tu clave de API, hasta 10.",
+    "site": {
+      "1fichier": "1fichier",
+      "mega": "Mega",
+      "mediafire": "MediaFire",
+      "torrent": "Torrents",
+      "direct": "Enlaces directos"
+    },
+    "verified": {
+      "crc32": "Verificado (CRC32)",
+      "md5": "Verificado (MD5)",
+      "sha1": "Verificado (SHA-1)",
+      "sha256": "Verificado (SHA-256)",
+      "sha512": "Verificado (SHA-512)",
+      "size": "Solo tamaño",
+      "site": "Verificado por el sitio",
+      "none": "Sin verificar"
+    }
   }
 }

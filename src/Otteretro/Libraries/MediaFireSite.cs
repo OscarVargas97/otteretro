@@ -17,6 +17,9 @@ public sealed partial class MediaFireSite : IDownloadSite
     static readonly HttpClient Shared = new() { Timeout = TimeSpan.FromSeconds(30) };
 
     public string Id => "mediafire";
+
+    /// <summary>Sin cuenta: pocas a la vez, para no parecer un abuso.</summary>
+    public int MaxParallel(Credentials credentials) => 4;
     public int MaxConnections => 2;
     public bool Handles(Uri url) => url.Host is "mediafire.com" or "www.mediafire.com";
 
