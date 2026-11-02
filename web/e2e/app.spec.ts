@@ -414,12 +414,15 @@ test("Ajustes en inglés: carpeta, idioma y actualización", async () => {
   await page.reload();
   await expect(page.getByRole("group", { name: en.update.channel.title }).getByRole("button", { name: en.update.channel.custom })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByLabel(en.update.channel.origin)).toHaveValue(dataDir("paquetes"));
-  // #217: el catálogo sale del oficial; un nombre que no es dueño/repo se rechaza sin tocar el origen.
+  // #230: el catálogo tiene su pestaña: el que usas arriba y el origen al final. #217: un nombre que no es dueño/repo se rechaza sin tocar el origen.
+  await page.goto(`${base()}/settings/?s=catalog`);
+  await expect(page.getByRole("heading", { name: en.update.catalogVersion.inUse })).toBeVisible();
   await expect(page.getByText(en.update.catalogSource.official.replace("{repo}", "OscarVargas97/otteretro-catalogo"))).toBeVisible();
   await page.getByLabel(en.update.catalogSource.repo).fill("esto no es un repo");
   await page.getByRole("button", { name: en.update.catalogSource.use }).click();
   await expect(page.getByRole("alert").filter({ hasText: en.errors.catalog.sourceName })).toBeVisible();
   await expect(page.getByRole("button", { name: en.update.catalogSource.officialButton })).toHaveCount(0);
+  await page.goto(`${base()}/settings/?s=general`);
   // #209: Local no pide nada: busca sus paquetes en tus discos y, sin paquetes, lo dice.
   const group = page.getByRole("group", { name: en.update.channel.title });
   await group.getByRole("button", { name: en.update.channel.local, exact: true }).click();
@@ -594,9 +597,15 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   // #96: con más de 60 sagas se dibujan de a 60 y al bajar aparecen las demás.
   const many = await openDb();
   many.exec(`WITH RECURSIVE n(i) AS (SELECT 1000 UNION ALL SELECT i + 1 FROM n WHERE i < 1099) INSERT INTO saga (id, name) SELECT i, 'Saga de prueba ' || i FROM n`);
+  // #225: la app rehace Sagas cuando cambia la generación (al aplicar un catálogo); acá el catálogo se escribe directo, así que se sube a mano.
+  many.exec("UPDATE cache_generation SET value = value + 1");
   await page.goto(`${base()}/sagas/`);
   const tiles = page.locator("a.ot-saga");
-  await expect(tiles).toHaveCount(60);
+  // Lo guardado se sirve al instante y se rehace aparte: la siguiente carga ya trae las sagas nuevas.
+  await expect(async () => {
+    await page.reload();
+    await expect(tiles).toHaveCount(60, { timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
   // #170: el total en la barra de filtros, y la tarjeta con sus insignias y «lo que tienes».
   await expect(page.locator(".toolbar-total")).toContainText("102");
   const zelda = tiles.filter({ hasText: "The Legend of Zelda" });
@@ -622,7 +631,7 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   await sagasLink.click();
   await expect(tiles).toHaveCount(102);
   await expect(page.locator("p.error")).toHaveCount(0);
-  many.exec("DELETE FROM saga WHERE id >= 1000");
+  many.exec("DELETE FROM saga WHERE id >= 1000; UPDATE cache_generation SET value = value + 1");
   many.close();
 
   await page.goto(`${base()}/sagas/`);
@@ -812,7 +821,7 @@ test("las pestañas nunca tienen barra: en una ventana angosta, lo que no cabe v
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${base()}/settings/`);
   await expect(more).toHaveCount(0);
-  await expect(page.getByRole("tab")).toHaveCount(5);
+  await expect(page.getByRole("tab")).toHaveCount(6); // con Catálogo (#230)
   await noScroll();
   // #200: una sola columna centrada con ancho máximo.
   const content = (await page.locator(".content").boundingBox())!;
@@ -858,13 +867,13 @@ test("Ajustes › Consolas: desactivar una consola la saca de lo que se muestra 
   await expect(page.getByText(es.settings.consoles.help)).toBeVisible();
   const nes = page.getByRole("switch", { name: es.settings.consoles.show.replace("{name}", "NES") });
   await expect(nes).toBeChecked();
-  await nes.uncheck();
+  // Un clic y se espera: el interruptor es controlado y cambia cuando React vuelve a dibujar, no en el mismo instante del clic.
+  await nes.click();
   await expect(nes).not.toBeChecked();
-  const consoles = JSON.parse((await api("GET", "/api/consoles")).text);
-  expect(consoles.some((c: { id: string }) => c.id === "nes")).toBe(false);
+  await expect.poll(async () => JSON.parse((await api("GET", "/api/consoles")).text).some((c: { id: string }) => c.id === "nes")).toBe(false);
   await page.reload();
   await expect(nes).not.toBeChecked();
-  await nes.check();
+  await nes.click();
   await expect(nes).toBeChecked();
   await expectNoRawKeys();
 });

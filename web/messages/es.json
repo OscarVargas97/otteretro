@@ -198,7 +198,8 @@
       },
       "show": "Mostrar {name}"
     },
-    "storage": "Almacenamiento"
+    "storage": "Almacenamiento",
+    "catalogTab": "Catálogo"
   },
   "dataFolder": {
     "dismiss": "Cerrar aviso",
@@ -293,7 +294,8 @@
         "removed": "{count, plural, one {# quitado} other {# quitados}}",
         "renamed": "{count, plural, one {# renombrado} other {# renombrados}}",
         "changed": "{count, plural, one {# cambia de saga} other {# cambian de saga}}",
-        "added": "{count, plural, one {# nuevo} other {# nuevos}}"
+        "added": "{count, plural, one {# nuevo} other {# nuevos}}",
+        "image": "{count, plural, one {# juego con imágenes nuevas} other {# juegos con imágenes nuevas}}"
       },
       "ownComparison": "El catálogo no publicó los cambios desde tu versión (un fork, o una versión que no conoce): lo que ves sale de la comparación de Otteretro.",
       "mismatch": "{count, plural, one {# cambio no coincide} other {# cambios no coinciden}} con lo que publicó el catálogo",
@@ -311,12 +313,20 @@
       "yours": "{count, plural, one {toca # dato tuyo} other {toca # datos tuyos}}",
       "accept": "Aceptar y aplicar",
       "reject": "Rechazar",
-      "versions": "Versiones del catálogo",
+      "versions": "Versiones disponibles",
       "yoursBadge": "La tuya",
-      "goTo": "Ver esta versión",
-      "goBack": "Volver a esta versión",
+      "goTo": "Usar esta",
+      "goBack": "Volver a esta",
       "notAvailable": "Ya no se puede bajar",
-      "noHistory": "Sin detalle de cambios publicado"
+      "noHistory": "Sin detalle de cambios publicado",
+      "inUse": "Catálogo en uso",
+      "unknownVersion": "Versión sin identificar",
+      "official": "oficial",
+      "forkOf": "fork {repo}",
+      "totals": "{sagas, number} sagas · {games, number} juegos · {covers, number} con portada",
+      "upToDate": "Es la última versión publicada.",
+      "newer": "Hay una versión más nueva: {version}.",
+      "loadingVersions": "Buscando las versiones publicadas…"
     }
   },
   "errors": {

@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Suspense } from "react";
+import { CatalogSettings } from "@/components/CatalogSettings";
 import { ClaudeSettings } from "@/components/ClaudeSettings";
 import { ConsoleSettings } from "@/components/ConsoleSettings";
 import { CredentialsSettings } from "@/components/Credentials";
@@ -10,10 +11,10 @@ import { LanguagePicker } from "@/components/LanguagePicker";
 import { StorageSettings } from "@/components/Libraries";
 import { useAppState } from "@/components/Shell";
 import { Tabs } from "@/components/Tabs";
-import { CatalogSourceSettings, UpdateChannel, VersionAndUpdate } from "@/components/Update";
+import { UpdateChannel, VersionAndUpdate } from "@/components/Update";
 
 /** Las pestañas de Ajustes, en orden (#97, #111). La que viene en `?s=` se abre; sin ella, la primera. */
-const SECTIONS = ["storage", "credentials", "consoles", "claude", "general"] as const;
+const SECTIONS = ["storage", "credentials", "consoles", "catalog", "claude", "general"] as const;
 /** Las pestañas de antes (#111, #199; la carpeta de datos es parte de Almacenamiento, #208). */
 const OLD: Record<string, Section> = { language: "general", about: "general", libraries: "storage", dataFolder: "storage" };
 type Section = (typeof SECTIONS)[number];
@@ -28,7 +29,7 @@ function SettingsTabs() {
   const router = useRouter();
   const asked = useSearchParams().get("s");
   const current: Section = SECTIONS.find((s) => s === asked) ?? OLD[asked ?? ""] ?? SECTIONS[0];
-  const title = (s: Section) => t(s === "consoles" ? "consoles.title" : s === "claude" ? "claude.title" : s);
+  const title = (s: Section) => t(s === "consoles" ? "consoles.title" : s === "claude" ? "claude.title" : s === "catalog" ? "catalogTab" : s);
 
   return (
     <div className="content">
@@ -51,13 +52,13 @@ function Panel({ section }: { section: Section }) {
     case "storage": return <StorageSettings />;
     case "credentials": return <CredentialsSettings />;
     case "consoles": return <ConsoleSettings />;
+    case "catalog": return <CatalogSettings />;
     case "claude": return <ClaudeSettings />;
     case "general": return (
       <div className="settings-blocks">
         <section className="panel"><h2>{t("language")}</h2><LanguagePicker /></section>
         <VersionAndUpdate version={data?.version} />
         <UpdateChannel />
-        <CatalogSourceSettings />
         <p className="small muted" style={{ margin: 0 }}>{t("later")}</p>
       </div>
     );

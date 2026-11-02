@@ -27,6 +27,13 @@ export function ConsoleSettings() {
   const visible = useMutation({
     mutationFn: ({ id, value }: { id: string; value: boolean }) =>
       request<ConsolesPage>(`/api/consoles/${id}/visible`, { method: "PUT", body: JSON.stringify({ visible: value }) }),
+    // Cambia al instante (el servidor rehace Sagas antes de responder, #225); si falla, vuelve como estaba.
+    onMutate: ({ id, value }) => {
+      const before = cache.getQueryData<ConsolesPage>(["consoles", "settings"]);
+      if (before) cache.setQueryData(["consoles", "settings"], { ...before, consoles: before.consoles.map((c) => (c.id === id ? { ...c, visible: value } : c)) });
+      return { before };
+    },
+    onError: (_error, _vars, context) => { if (context?.before) cache.setQueryData(["consoles", "settings"], context.before); },
     onSuccess: (data) => {
       cache.setQueryData(["consoles", "settings"], data);
       for (const key of ["sagas", "saga", "collection", "consoles", "search", "home"]) cache.invalidateQueries({ queryKey: [key] });
@@ -61,7 +68,7 @@ export function ConsoleSettings() {
                         </button>
                         <span className="small muted tabular console-games">{Number(c.games)}</span>
                         <input type="checkbox" role="switch" aria-label={t("show", { name: c.name })} checked={c.visible}
-                          disabled={visible.isPending} onChange={(e) => visible.mutate({ id: c.id, value: e.target.checked })} />
+                          onChange={(e) => visible.mutate({ id: c.id, value: e.target.checked })} />
                       </li>
                     ))}
                   </ul>

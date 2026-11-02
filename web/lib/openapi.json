@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:53815/"
+      "url": "http://127.0.0.1:50387/"
     }
   ],
   "paths": {
@@ -4352,6 +4352,40 @@
           }
         }
       },
+      "CatalogTotals": {
+        "required": [
+          "sagas",
+          "games",
+          "covers"
+        ],
+        "type": "object",
+        "properties": {
+          "sagas": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "games": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "covers": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "CatalogVersion": {
         "required": [
           "current",
@@ -4372,6 +4406,16 @@
               },
               {
                 "$ref": "#/components/schemas/CatalogChanges"
+              }
+            ]
+          },
+          "totals": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CatalogTotals"
               }
             ]
           }

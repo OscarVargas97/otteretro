@@ -11,7 +11,9 @@ public record SagaFlagsRequest(bool? Favorite, bool? Following);
 public record CatalogSource(string Repo, bool Official);
 public record CatalogSourceRequest(string? Repo);
 /// <summary>La versión aplicada y, si hay una esperando, qué cambia con ella (#222, #223).</summary>
-public record CatalogVersion(string? Current, CatalogChanges? Pending);
+/// <param name="Totals">Lo que trae el catálogo en uso (#230): sagas, juegos y juegos con portada.</param>
+public record CatalogVersion(string? Current, CatalogChanges? Pending, CatalogTotals? Totals = null);
+public record CatalogTotals(int Sagas, int Games, int Covers);
 public record FieldRequest(string? Value);
 
 /// <summary>Una consola o un juego (#179).</summary>
@@ -288,7 +290,13 @@ public static class CatalogEndpoints
         return new(repo, string.Equals(repo, CatalogUpdate.Official, StringComparison.OrdinalIgnoreCase));
     }
 
-    static CatalogVersion VersionOf(Database db) => new(CatalogUpdate.Version(db), CatalogDiff.Of(db));
+    static CatalogVersion VersionOf(Database db)
+    {
+        using var c = db.Open();
+        var totals = c.QuerySingle<(long Sagas, long Games, long Covers)>(
+            "SELECT (SELECT count(*) FROM catalog.saga), (SELECT count(*) FROM catalog.game), (SELECT count(DISTINCT game_id) FROM catalog.image WHERE kind = 'cover')");
+        return new(CatalogUpdate.Version(db), CatalogDiff.Of(db), new((int)totals.Sagas, (int)totals.Games, (int)totals.Covers));
+    }
 
     internal static Database? Db(AppSession s) =>
         DataFolder.IsReady(s.Config.DataFolder) ? DataFolder.Open(s.Config.DataFolder!) : null;

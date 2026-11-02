@@ -123,6 +123,14 @@ test("Sagas pide solo las portadas que se ven, y las nuevas al bajar", async () 
   const db = new DatabaseSync(join(process.env.OTTERETRO_E2E_DIR!, "moved", "catalogo", "catalogo.db"));
   db.exec("INSERT OR IGNORE INTO image (game_id, kind, url) SELECT id, 'cover', 'https://cdn2.steamgriddb.com/grid/' || id || '.png' FROM game WHERE id > 1000000");
   db.close();
+  // #225: las portadas de cada saga se calculan al armar Sagas; el catálogo cambió directo, así que se sube la generación y se deja rehacer.
+  const own = new DatabaseSync(join(process.env.OTTERETRO_E2E_DIR!, "moved", "data", "otteretro.db"));
+  own.exec("UPDATE cache_generation SET value = value + 1");
+  own.close();
+  await page.goto(process.env.OTTERETRO_E2E_URL!);
+  await page.locator('.sidebar a[href="/sagas/"]').click();
+  await page.locator("a.ot-saga").first().waitFor();
+  await page.waitForTimeout(2_000);
   const asked = new Set<string>();
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
   await page.route("**/api/images/**", (route) => {
