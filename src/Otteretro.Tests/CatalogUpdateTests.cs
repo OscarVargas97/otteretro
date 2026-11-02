@@ -158,6 +158,69 @@ public class CatalogUpdateTests
         Assert.Equal(2, c.ExecuteScalar<long>("SELECT count(*) FROM catalog.game"));
     }
 
+    /// <summary>#217: un repo por fork, con su versión publicada en `https://&lt;letra&gt;.test/`.</summary>
+    static Dictionary<string, byte[]> Repo(string repo, string letter, byte[] data) => new()
+    {
+        [$"repos/{repo}/releases?"] = JsonSerializer.SerializeToUtf8Bytes(new[] { new { tag_name = "catalogo-1", draft = false, assets = new[]
+        {
+            new { name = "catalogo.db.gz", browser_download_url = $"https://{letter}.test/catalogo.db.gz" },
+            new { name = "catalogo.db.gz.json", browser_download_url = $"https://{letter}.test/manifest.json" },
+        } } }),
+        [$"{letter}.test/manifest.json"] = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = Convert.ToHexStringLower(SHA256.HashData(data)) }),
+        [$"{letter}.test/catalogo.db.gz"] = data,
+    };
+
+    [Fact]
+    public async Task AForkAndBackKeepsWhatIsYours()
+    {
+        await using var f = new Fixture();
+        Mine(f);
+        const string ForkCatalog = """
+            INSERT INTO catalog.saga (id, name) VALUES (1, 'Metroid');
+            INSERT INTO catalog.game (id, saga_id, name_es) VALUES (12, 1, 'Super Metroid del fork');
+            INSERT INTO catalog.version (id, game_id, platform) VALUES (22, 12, 'snes');
+            """;
+        var answers = Repo(CatalogUpdate.Official, "a", Compiled(f, Catalog2));
+        foreach (var (k, v) in Repo("alguien/otteretro-catalogo", "b", Compiled(f, ForkCatalog))) answers[k] = v;
+        CatalogUpdate.Handler = new Fake(answers);
+        try
+        {
+            async Task Apply() => Assert.Equal("done", (await f.Run(CatalogUpdate.Enqueue(f.Db))).Status);
+            await Apply();
+            using var c = f.Db.Open();
+            long? Version() => c.ExecuteScalar<long?>("SELECT version_id FROM source WHERE relative_path = 'a.gba'");
+            Assert.Equal(20, Version());
+
+            Assert.Null(await CatalogUpdate.SetSource(f.Db, "https://github.com/alguien/otteretro-catalogo/"));
+            Assert.Equal("alguien/otteretro-catalogo", CatalogUpdate.Source(f.Db));
+            await Apply();
+            Assert.Equal("Super Metroid del fork", c.ExecuteScalar<string>("SELECT name_es FROM catalog.game WHERE id = 12"));
+            Assert.Null(Version()); // sin identificar mientras el fork no tenga su versión
+            Assert.Equal("Lo terminé", c.ExecuteScalar<string>("SELECT notes FROM progress WHERE game_id = 10"));
+
+            Assert.Null(await CatalogUpdate.SetSource(f.Db, null)); // volver al oficial
+            Assert.Equal(CatalogUpdate.Official, CatalogUpdate.Source(f.Db));
+            await Apply();
+            Assert.Equal(20, Version());
+        }
+        finally { CatalogUpdate.Handler = null; }
+    }
+
+    [Fact]
+    public async Task ARepoWithoutAPublishedCatalogIsNotUsed()
+    {
+        await using var f = new Fixture();
+        CatalogUpdate.Handler = new Fake(new() { ["repos/alguien/vacio/releases?"] = "[]"u8.ToArray() });
+        try
+        {
+            Assert.Equal("catalog.sourceName", (await CatalogUpdate.SetSource(f.Db, "esto no es un repo"))?.Code);
+            Assert.Equal("catalog.sourceEmpty", (await CatalogUpdate.SetSource(f.Db, "alguien/vacio"))?.Code);
+            Assert.Equal("catalog.sourceUnreachable", (await CatalogUpdate.SetSource(f.Db, "alguien/no-existe"))?.Code);
+            Assert.Equal(CatalogUpdate.Official, CatalogUpdate.Source(f.Db));
+        }
+        finally { CatalogUpdate.Handler = null; }
+    }
+
     [Fact]
     public async Task WithoutAPublishedVersionNothingHappens()
     {

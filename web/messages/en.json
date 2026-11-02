@@ -292,7 +292,17 @@
       "withSystem": "Updated with the system: it arrives with the next PlayOS or NixOS update."
     },
     "withSystemBadge": "With the system",
-    "attribution": "Game data: IGDB.com"
+    "attribution": "Game data: IGDB.com",
+    "catalogSource": {
+      "title": "Catalog",
+      "official": "Updates from the official catalog, {repo}.",
+      "fork": "Updates from {repo}, a fork: its content comes from third parties and Otteretro does not review it.",
+      "repo": "Catalog repo",
+      "placeholder": "someone/otteretro-catalogo",
+      "use": "Use this repo",
+      "hint": "A fork of otteretro-catalogo with its own published versions. Your collection and progress are kept; whatever the fork lacks stays unidentified until you switch back.",
+      "officialButton": "Back to official"
+    }
   },
   "errors": {
     "http": "The app responded with an error ({status}).",
@@ -437,7 +447,10 @@
       "applying": "Applying catalog {version}",
       "badHash": "The published catalog does not match its hash: you keep the previous one.",
       "badFile": "The published catalog could not be opened: you keep the previous one.",
-      "badRelease": "The published catalog version is incomplete: you keep the previous one."
+      "badRelease": "The published catalog version is incomplete: you keep the previous one.",
+      "sourceName": "Write the repo as owner/repo, for example someone/otteretro-catalogo.",
+      "sourceEmpty": "{repo} has no published catalog: you keep the previous one.",
+      "sourceUnreachable": "Could not read {repo} on GitHub: check the name or your connection. You keep the previous one."
     },
     "automation": {
       "notFound": "That suggestion is gone.",

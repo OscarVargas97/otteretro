@@ -414,6 +414,12 @@ test("Ajustes en inglés: carpeta, idioma y actualización", async () => {
   await page.reload();
   await expect(page.getByRole("group", { name: en.update.channel.title }).getByRole("button", { name: en.update.channel.custom })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByLabel(en.update.channel.origin)).toHaveValue(dataDir("paquetes"));
+  // #217: el catálogo sale del oficial; un nombre que no es dueño/repo se rechaza sin tocar el origen.
+  await expect(page.getByText(en.update.catalogSource.official.replace("{repo}", "OscarVargas97/otteretro-catalogo"))).toBeVisible();
+  await page.getByLabel(en.update.catalogSource.repo).fill("esto no es un repo");
+  await page.getByRole("button", { name: en.update.catalogSource.use }).click();
+  await expect(page.getByRole("alert").filter({ hasText: en.errors.catalog.sourceName })).toBeVisible();
+  await expect(page.getByRole("button", { name: en.update.catalogSource.officialButton })).toHaveCount(0);
   // #209: Local no pide nada: busca sus paquetes en tus discos y, sin paquetes, lo dice.
   const group = page.getByRole("group", { name: en.update.channel.title });
   await group.getByRole("button", { name: en.update.channel.local, exact: true }).click();

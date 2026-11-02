@@ -8,6 +8,8 @@ using Otteretro.Data;
 namespace Otteretro.Api;
 
 public record SagaFlagsRequest(bool? Favorite, bool? Following);
+public record CatalogSource(string Repo, bool Official);
+public record CatalogSourceRequest(string? Repo);
 public record FieldRequest(string? Value);
 
 /// <summary>Una consola o un juego (#179).</summary>
@@ -63,6 +65,15 @@ public static class CatalogEndpoints
 
         api.MapGet("/consoles/settings", Results<Ok<ConsolesPage>, Conflict<ApiError>> (AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(Consoles.Page(db)) : NoData());
+
+        // De qué repo se actualiza el catálogo: el oficial o un fork (#217).
+        api.MapGet("/catalog/source", Results<Ok<CatalogSource>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(SourceOf(db)) : NoData());
+        api.MapPut("/catalog/source", async Task<Results<Ok<CatalogSource>, BadRequest<ApiError>, Conflict<ApiError>>> (CatalogSourceRequest request, AppSession s, CancellationToken ct) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            return await CatalogUpdate.SetSource(db, request.Repo, ct) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(SourceOf(db));
+        });
 
         // Portadas a pedido (#132).
         api.MapGet("/covers", Results<Ok<SteamGridDb.CoversInfo>, Conflict<ApiError>> (AppSession s, SecretBox box) =>
@@ -247,6 +258,12 @@ public static class CatalogEndpoints
                     notices.Add(ApiError.Of("notices.unidentified", ("count", n.ToString())));
             return TypedResults.Ok(notices);
         });
+    }
+
+    static CatalogSource SourceOf(Database db)
+    {
+        var repo = CatalogUpdate.Source(db);
+        return new(repo, string.Equals(repo, CatalogUpdate.Official, StringComparison.OrdinalIgnoreCase));
     }
 
     static bool HasSgdbKey(Database db, AppSession s, SecretBox box) =>

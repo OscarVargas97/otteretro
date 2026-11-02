@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:62655/"
+      "url": "http://127.0.0.1:49978/"
     }
   ],
   "paths": {
@@ -896,46 +896,6 @@
             }
           }
         }
-      },
-      "post": {
-        "tags": [
-          "Otteretro"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EnableConsoleRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConsolesPage"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
       }
     },
     "/api/consoles/settings": {
@@ -967,7 +927,7 @@
         }
       }
     },
-    "/api/consoles/igdb": {
+    "/api/catalog/source": {
       "get": {
         "tags": [
           "Otteretro"
@@ -978,111 +938,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PlatformInfo"
-                  }
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/consoles/{id}": {
-      "put": {
-        "tags": [
-          "Otteretro"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ConsoleUpdateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConsolesPage"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/catalog/refresh": {
-      "put": {
-        "tags": [
-          "Otteretro"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RefreshSettingsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConsolesPage"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
+                  "$ref": "#/components/schemas/CatalogSource"
                 }
               }
             }
@@ -1099,22 +955,37 @@
           }
         }
       },
-      "post": {
+      "put": {
         "tags": [
           "Otteretro"
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatalogSourceRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "pattern": "^-?(?:0|[1-9]\\d*)$",
-                  "type": [
-                    "integer",
-                    "string"
-                  ],
-                  "format": "int64"
+                  "$ref": "#/components/schemas/CatalogSource"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -2239,128 +2110,6 @@
         }
       }
     },
-    "/api/games/{id}/fields/{field}": {
-      "put": {
-        "tags": [
-          "Otteretro"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "field",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FieldRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GameDetail"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Otteretro"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "field",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GameDetail"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/search": {
       "get": {
         "tags": [
@@ -2460,175 +2209,6 @@
         }
       }
     },
-    "/api/learnings": {
-      "get": {
-        "tags": [
-          "Otteretro"
-        ],
-        "parameters": [
-          {
-            "name": "kind",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
-              "format": "int32",
-              "default": 0
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
-              "format": "int32",
-              "default": 60
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LearningPage"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/review/{id}/approve": {
-      "post": {
-        "tags": [
-          "Otteretro"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReviewPage"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/review/{id}/approve-edited": {
-      "post": {
-        "tags": [
-          "Otteretro"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ApproveRoutesRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReviewPage"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/review/count": {
       "get": {
         "tags": [
@@ -2646,90 +2226,6 @@
                     "string"
                   ],
                   "format": "int32"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/claude/automation": {
-      "get": {
-        "tags": [
-          "Otteretro"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AutomationSuggestion"
-                  }
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/claude/automation/{key}/issue": {
-      "post": {
-        "tags": [
-          "Otteretro"
-        ],
-        "parameters": [
-          {
-            "name": "key",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AutomationSuggestion"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -2769,155 +2265,6 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ResolveFileRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReviewPage"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/review/{id}/reject": {
-      "post": {
-        "tags": [
-          "Otteretro"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReviewPage"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/learnings/{id}/undo": {
-      "post": {
-        "tags": [
-          "Otteretro"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReviewPage"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/learnings/{id}/correct": {
-      "post": {
-        "tags": [
-          "Otteretro"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CorrectRequest"
               }
             }
           },
@@ -3038,98 +2385,6 @@
           },
           "404": {
             "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/claude/iconic": {
-      "post": {
-        "tags": [
-          "Otteretro"
-        ],
-        "parameters": [
-          {
-            "name": "console",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "pattern": "^-?(?:0|[1-9]\\d*)$",
-                  "type": [
-                    "integer",
-                    "string"
-                  ],
-                  "format": "int64"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/sagas/{id}/recalculate": {
-      "post": {
-        "tags": [
-          "Otteretro"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "pattern": "^-?(?:0|[1-9]\\d*)$",
-                  "type": [
-                    "integer",
-                    "string"
-                  ],
-                  "format": "int64"
-                }
-              }
-            }
           },
           "409": {
             "description": "Conflict",
@@ -4666,20 +3921,6 @@
           }
         }
       },
-      "ApproveRoutesRequest": {
-        "required": [
-          "routes"
-        ],
-        "type": "object",
-        "properties": {
-          "routes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Route"
-            }
-          }
-        }
-      },
       "AppState": {
         "required": [
           "version",
@@ -4711,48 +3952,6 @@
           },
           "menuCollapsed": {
             "type": "boolean"
-          }
-        }
-      },
-      "AutomationSuggestion": {
-        "required": [
-          "key",
-          "change",
-          "reason",
-          "count",
-          "examples",
-          "issueUrl"
-        ],
-        "type": "object",
-        "properties": {
-          "key": {
-            "type": "string"
-          },
-          "change": {
-            "type": "string"
-          },
-          "reason": {
-            "type": "string"
-          },
-          "count": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "examples": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "issueUrl": {
-            "type": [
-              "null",
-              "string"
-            ]
           }
         }
       },
@@ -4843,6 +4042,35 @@
               "string"
             ],
             "format": "int64"
+          }
+        }
+      },
+      "CatalogSource": {
+        "required": [
+          "repo",
+          "official"
+        ],
+        "type": "object",
+        "properties": {
+          "repo": {
+            "type": "string"
+          },
+          "official": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CatalogSourceRequest": {
+        "required": [
+          "repo"
+        ],
+        "type": "object",
+        "properties": {
+          "repo": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -5237,9 +4465,7 @@
       },
       "ConsolesPage": {
         "required": [
-          "consoles",
-          "refreshDays",
-          "lastRefresh"
+          "consoles"
         ],
         "type": "object",
         "properties": {
@@ -5248,31 +4474,6 @@
             "items": {
               "$ref": "#/components/schemas/ConsoleInfo"
             }
-          },
-          "refreshDays": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "lastRefresh": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "ConsoleUpdateRequest": {
-        "required": [
-          "enabled"
-        ],
-        "type": "object",
-        "properties": {
-          "enabled": {
-            "type": "boolean"
           }
         }
       },
@@ -5283,17 +4484,6 @@
         "type": "object",
         "properties": {
           "console": {
-            "type": "string"
-          }
-        }
-      },
-      "CorrectRequest": {
-        "required": [
-          "note"
-        ],
-        "type": "object",
-        "properties": {
-          "note": {
             "type": "string"
           }
         }
@@ -5708,22 +4898,6 @@
           }
         }
       },
-      "EnableConsoleRequest": {
-        "required": [
-          "igdbId"
-        ],
-        "type": "object",
-        "properties": {
-          "igdbId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int64"
-          }
-        }
-      },
       "ExecutableRequest": {
         "required": [
           "path"
@@ -5732,20 +4906,6 @@
         "properties": {
           "path": {
             "type": "string"
-          }
-        }
-      },
-      "FieldRequest": {
-        "required": [
-          "value"
-        ],
-        "type": "object",
-        "properties": {
-          "value": {
-            "type": [
-              "null",
-              "string"
-            ]
           }
         }
       },
@@ -6196,151 +5356,6 @@
           }
         }
       },
-      "LearningItem": {
-        "required": [
-          "id",
-          "change",
-          "reason",
-          "detail",
-          "createdAt",
-          "undone",
-          "taskId",
-          "sagaId",
-          "sagaName",
-          "games",
-          "from",
-          "to",
-          "toKind",
-          "kept",
-          "nameBefore",
-          "nameAfter",
-          "rules"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int64"
-          },
-          "change": {
-            "type": "string"
-          },
-          "reason": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "detail": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "undone": {
-            "type": "boolean"
-          },
-          "taskId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int64"
-          },
-          "sagaId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int64"
-          },
-          "sagaName": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "games": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "from": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "to": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "toKind": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "kept": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "nameBefore": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "nameAfter": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "rules": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "LearningPage": {
-        "required": [
-          "items",
-          "total"
-        ],
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/LearningItem"
-            }
-          },
-          "total": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          }
-        }
-      },
       "LibraryRequest": {
         "required": [
           "path"
@@ -6616,47 +5631,6 @@
           }
         }
       },
-      "PlatformInfo": {
-        "required": [
-          "igdbId",
-          "name",
-          "abbreviation",
-          "company",
-          "consoleId"
-        ],
-        "type": "object",
-        "properties": {
-          "igdbId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int64"
-          },
-          "name": {
-            "type": "string"
-          },
-          "abbreviation": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "company": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "consoleId": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
       "PreviewItem": {
         "required": [
           "path",
@@ -6813,22 +5787,6 @@
           }
         }
       },
-      "RefreshSettingsRequest": {
-        "required": [
-          "days"
-        ],
-        "type": "object",
-        "properties": {
-          "days": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          }
-        }
-      },
       "RegionsRequest": {
         "required": [
           "order"
@@ -6871,106 +5829,16 @@
           }
         }
       },
-      "ReviewItem": {
-        "required": [
-          "id",
-          "prompt",
-          "entity",
-          "entityId",
-          "title",
-          "result",
-          "createdAt"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int64"
-          },
-          "prompt": {
-            "type": "string"
-          },
-          "entity": {
-            "type": "string"
-          },
-          "entityId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int64"
-          },
-          "title": {
-            "type": "string"
-          },
-          "result": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string"
-          }
-        }
-      },
       "ReviewPage": {
         "required": [
-          "pending",
-          "activeLearnings",
           "files"
         ],
         "type": "object",
         "properties": {
-          "pending": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ReviewItem"
-            }
-          },
-          "activeLearnings": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
           "files": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/FileReview"
-            }
-          }
-        }
-      },
-      "Route": {
-        "required": [
-          "kind",
-          "rationale",
-          "steps",
-          "sources"
-        ],
-        "type": "object",
-        "properties": {
-          "kind": {
-            "type": "string"
-          },
-          "rationale": {
-            "type": "string"
-          },
-          "steps": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RouteStep"
-            }
-          },
-          "sources": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Source"
             }
           }
         }
@@ -7037,36 +5905,6 @@
             "items": {
               "$ref": "#/components/schemas/RouteInfo"
             }
-          }
-        }
-      },
-      "RouteStep": {
-        "required": [
-          "gameId",
-          "versionId",
-          "reason"
-        ],
-        "type": "object",
-        "properties": {
-          "gameId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int64"
-          },
-          "versionId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int64"
-          },
-          "reason": {
-            "type": "string"
           }
         }
       },
@@ -7386,21 +6224,6 @@
               "string"
             ],
             "format": "int32"
-          }
-        }
-      },
-      "Source": {
-        "required": [
-          "title",
-          "url"
-        ],
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string"
-          },
-          "url": {
-            "type": "string"
           }
         }
       },
