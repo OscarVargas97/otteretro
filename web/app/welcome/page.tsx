@@ -5,10 +5,11 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LanguagePicker } from "@/components/LanguagePicker";
+import { CredentialsSettings } from "@/components/Credentials";
 import { request } from "@/lib/client";
 import { gb } from "@/lib/format";
 import { useDescribeError } from "@/lib/i18n";
-import type { AdoptResult, AppState, Drive, FolderRequest, LibraryInfo } from "@/lib/types";
+import type { AdoptResult, AppState, Drive, FolderRequest, DiskInfo } from "@/lib/types";
 
 // Clave en welcome.steps.* y fase en que se activa cada paso.
 const STEPS = [
@@ -16,12 +17,11 @@ const STEPS = [
   { key: "dataFolder" },
   { key: "backup", phase: 7 },
   { key: "libraries" },
-  { key: "steam", phase: 8 },
-  { key: "keys", phase: 1 },
-  { key: "initialLoad", phase: 2 },
+  { key: "accounts" },
+  { key: "steam", phase: 6 },
 ] as const;
 
-/** Asistente de primer arranque (pantallas.md §1). Funcionan los pasos 1, 2 y 4 (bibliotecas, F3); el resto llega con su fase. */
+/** Asistente de primer arranque (pantallas.md §1). Funcionan los pasos 1, 2, 4 (discos) y 5 (cuentas de descarga, #191); el resto llega con su fase. Todo se puede saltar y hacer después en Ajustes. */
 export default function Welcome() {
   const t = useTranslations("welcome");
   const [step, setStep] = useState(1);
@@ -48,7 +48,8 @@ export default function Welcome() {
         <span className="small muted">{t("stepOf", { step, total: STEPS.length })}</span>
         {step === 1 ? <WelcomeStep onNext={() => setStep(2)} />
           : step === 2 ? <FolderStep onBack={() => setStep(1)} onNext={() => setStep(4)} />
-          : <LibrariesStep />}
+          : step === 4 ? <LibrariesStep onNext={() => setStep(5)} />
+          : <AccountsStep onBack={() => setStep(4)} />}
       </main>
     </div>
   );
@@ -121,26 +122,44 @@ function FolderStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
 }
 
 /** Paso 4 (§5.5, #201, #202): elegir los discos, adoptar la carpeta con la estructura antigua que se encuentre (pasa al estándar sola) o saltar. */
-function LibrariesStep() {
+/** Cuentas de descarga (#191): 1fichier y Mega. Se puede saltar y volver desde Ajustes › Cuentas y claves. */
+function AccountsStep({ onBack }: { onBack: () => void }) {
   const t = useTranslations("welcome");
-  const describe = useDescribeError();
   const router = useRouter();
   const cache = useQueryClient();
-  const found = useQuery({ queryKey: ["libraries", "detect"], queryFn: () => request<string[]>("/api/locations/detect") });
-  const [path, setPath] = useState("");
-  const drives = useQuery({ queryKey: ["drives"], queryFn: () => request<Drive[]>("/api/drives") });
-  const [added, setAdded] = useState<string[]>([]);
   const finish = () => {
     const state = cache.getQueryData<AppState>(["welcome-state"]);
     if (state) cache.setQueryData(["state"], state);
     router.replace("/");
   };
+  return (
+    <>
+      <h1>{t("accountsTitle")}</h1>
+      <p className="small muted">{t("accountsText")}</p>
+      <CredentialsSettings only={["onefichier", "mega"]} />
+      <div style={{ display: "flex", gap: 8 }}>
+        <button className="ot-btn" type="button" onClick={onBack}>{t("back")}</button>
+        <button className="ot-btn ot-btn-primary" type="button" onClick={finish}>{t("done")}</button>
+      </div>
+      <p className="small muted">{t("nextSteps")}</p>
+    </>
+  );
+}
+
+function LibrariesStep({ onNext }: { onNext: () => void }) {
+  const t = useTranslations("welcome");
+  const describe = useDescribeError();
+  const cache = useQueryClient();
+  const found = useQuery({ queryKey: ["libraries", "detect"], queryFn: () => request<string[]>("/api/locations/detect") });
+  const [path, setPath] = useState("");
+  const drives = useQuery({ queryKey: ["drives"], queryFn: () => request<Drive[]>("/api/drives") });
+  const [added, setAdded] = useState<string[]>([]);
   const adopt = useMutation({
     mutationFn: (p: string) => request<AdoptResult>("/api/locations/adopt", { method: "POST", body: JSON.stringify({ path: p }) }),
-    onSuccess: finish,
+    onSuccess: onNext,
   });
   const create = useMutation({
-    mutationFn: (d: Drive) => request<LibraryInfo[]>("/api/disks", { method: "POST", body: JSON.stringify({ path: d.folder, name: d.name.replace(/[\\/]+$/, "") || d.name }) }),
+    mutationFn: (d: Drive) => request<DiskInfo[]>("/api/disks", { method: "POST", body: JSON.stringify({ path: d.folder, name: d.name.replace(/[\\/]+$/, "") || d.name }) }),
     onSuccess: (_, d) => setAdded((a) => [...a, d.folder]),
   });
   const error = adopt.error ?? create.error;
@@ -169,10 +188,9 @@ function LibrariesStep() {
       <input id="library" value={path} onChange={(e) => setPath(e.target.value)} />
       {error && <p className="error">{describe(error)}</p>}
       <div style={{ display: "flex", gap: 8 }}>
-        <button className="ot-btn" type="button" onClick={finish}>{added.length > 0 ? t("done") : t("skip")}</button>
+        <button className="ot-btn" type="button" onClick={onNext}>{added.length > 0 ? t("next") : t("skip")}</button>
         <button className="ot-btn ot-btn-primary" type="button" disabled={!path || adopt.isPending} onClick={() => adopt.mutate(path)}>{t("adoptThis", { path })}</button>
       </div>
-      <p className="small muted">{t("nextSteps")}</p>
     </>
   );
 }

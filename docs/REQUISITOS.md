@@ -1,7 +1,7 @@
 # Otteretro: requisitos consolidados
 
 > **Este es el único documento vigente.** Si algo de aquí contradice el historial, manda este documento.
-> **Última actualización:** 2026-11-01, con la #215 a la #237 (encuesta 17: el plan va por dominios, la F4 pasa a «Archivos de juegos», un solo modelo de discos, descargas como un JDownloader dentro de Otteretro, carpeta de entrada por disco, verificar lo convertido y §5 y §9 reescritos sin capas), la #212 a la #214 (apertura de la F4: cuándo se escanea, TitleID de Switch y juegos de PC sueltos en `Juegos\PC`), la #211 (mover por grupos: tipo › consola › cada cosa, una consola entera en una sola tarea), la #210 (Almacenamiento con la distribución de Steam: tabla con los datos de la app como una fila más), la #208 y la #209 (la carpeta de datos es la raíz del disco ★, que se registra solo, y los discos en un desplegable como Steam), la #207 (el tercer número sube con cada PR a dev), la #206 (canal de actualizaciones Local), la #201 a la #205 (discos como Steam: una raíz `X:\Otteretro` por disco con cinco carpetas fijas, `E:\Consolas` y Herramientas pasan al estándar, disco predeterminado ★ y mover lo marcado), la #200 (Ajustes y Herramientas con pestañas arriba y una sola columna centrada; reemplaza la #196 y la #197), la #192 a la #199 (encuesta 16: la consola como centro, Almacenamiento por tipo con ubicaciones, Herramientas como inventario y Ajustes con lista y detalle), la #186 a la #189 (plan reorganizado desde la F3, adoptar migra a §5.1, Dusklight con su enlace y avisos de versiones nuevas), la #184 y la #185 (Ajustes en dos columnas y menú lateral retraíble), la #183 (`0.FASE.extra`: F2.5 es 0.2.1 y el plan completo, 1.0.0), la #179 a la #182 (versión por fase, canales de actualización, `main` por defecto y la primera release 0.2.0), la #178 (la imagen de cada saga), la #169 a la #177 (revisión de UI de toda la app y fluidez primero, encuesta 15), la #165 a la #168 (exclusivas, más reconocidas, catálogo separado de tus datos), la #162, la #163 y la #164 (consolas que habilitas tú, catálogo al día cada semana y reevaluar icónicas), la #161 (corregir lo que cambió Claude), la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
+> **Última actualización:** 2026-11-01, con la #253 a la #256 (catálogo como proyecto aparte), la #250 a la #252 (catálogo incluido, licencia GPL-3.0 y portadas), la #244 a la #249 (descargas a la vez por sitio y calidad de las descargas, canal Local detectado en los discos, capturador persistente con enlaces privados por juego, portapapeles y su aviso), la #239 a la #242 (fuentes de emuladores y librería privada, TitleID solo del nombre, herramientas en el repositorio y conservar el entorno), la #215 a la #237 (encuesta 17: el plan va por dominios, la F4 pasa a «Archivos de juegos», un solo modelo de discos, descargas como un JDownloader dentro de Otteretro, carpeta de entrada por disco, verificar lo convertido y §5 y §9 reescritos sin capas), la #212 a la #214 (apertura de la F4: cuándo se escanea, TitleID de Switch y juegos de PC sueltos en `Juegos\PC`), la #211 (mover por grupos: tipo › consola › cada cosa, una consola entera en una sola tarea), la #210 (Almacenamiento con la distribución de Steam: tabla con los datos de la app como una fila más), la #208 y la #209 (la carpeta de datos es la raíz del disco ★, que se registra solo, y los discos en un desplegable como Steam), la #207 (el tercer número sube con cada PR a dev), la #206 (canal de actualizaciones Local), la #201 a la #205 (discos como Steam: una raíz `X:\Otteretro` por disco con cinco carpetas fijas, `E:\Consolas` y Herramientas pasan al estándar, disco predeterminado ★ y mover lo marcado), la #200 (Ajustes y Herramientas con pestañas arriba y una sola columna centrada; reemplaza la #196 y la #197), la #192 a la #199 (encuesta 16: la consola como centro, Almacenamiento por tipo con ubicaciones, Herramientas como inventario y Ajustes con lista y detalle), la #186 a la #189 (plan reorganizado desde la F3, adoptar migra a §5.1, Dusklight con su enlace y avisos de versiones nuevas), la #184 y la #185 (Ajustes en dos columnas y menú lateral retraíble), la #183 (`0.FASE.extra`: F2.5 es 0.2.1 y el plan completo, 1.0.0), la #179 a la #182 (versión por fase, canales de actualización, `main` por defecto y la primera release 0.2.0), la #178 (la imagen de cada saga), la #169 a la #177 (revisión de UI de toda la app y fluidez primero, encuesta 15), la #165 a la #168 (exclusivas, más reconocidas, catálogo separado de tus datos), la #162, la #163 y la #164 (consolas que habilitas tú, catálogo al día cada semana y reevaluar icónicas), la #161 (corregir lo que cambió Claude), la #159 y la #160 (el horario lanza solo, «Ejecutar ahora» corre ya y el tope de día es opcional; antes #158: sin tope de tareas).
 
 ## Cómo se mantiene
 
@@ -53,7 +53,7 @@ Otteretro es una app **personal** para:
 - **Idioma del código** (#125, #139): identificadores, tablas y columnas en **inglés**; documentación, comentarios, commits, PRs e issues en español.
 - **Repositorio:** en **GitHub, público** (#145). Ramas: **`dev`**, donde se trabaja, y **`main`**, que es lo publicado.
 - **Releases:** se desarrolla en `dev` y una release es un PR de `dev` a `main` (#181); al fusionarlo, GitHub Actions publica `0.FASE.N` (#207, reemplaza el tercer número de la #183): `VERSION` dice la fase y N sube con cada PR fusionado en `dev`, que publica la prerelease `0.FASE.N-dev`; la estable lleva la N de la punta de dev que se fusiona. El plan completo, 1.0.0.
-- **Canales** (#180): en Ajustes › General, Estable (releases de `main`, por defecto), Pruebas (prereleases de `dev`), Local (la carpeta de los paquetes armados en este equipo, que se recuerda aparte; #206) u Otro origen (carpeta, URL o repo de GitHub de quien arma su propia versión).
+- **Canales** (#180): en Ajustes › General, Estable (releases de `main`, por defecto), Pruebas (prereleases de `dev`), Local (los paquetes armados en este equipo, que se encuentran solos en `Otteretro\Paquetes` de tus discos; #244) u Otro origen (carpeta, URL o repo de GitHub de quien arma su propia versión).
 - **Instalación y actualización:** con **Velopack**, desde las releases de GitHub. En Windows se instala en `%LocalAppData%\Otteretro`. *En Linux, reemplazado por la #114:* paquete y módulo de Nix, que se actualiza con el sistema. Se actualiza sola y nunca toca la carpeta de datos.
 
 ## 4. Consolas ✅
@@ -149,7 +149,7 @@ Todo desde **Ajustes › Almacenamiento**: arriba, un desplegable con el disco e
 - Para cada juego se indica **si existe versión de PC**.
 - **Exclusivas** (#165): una saga es exclusiva de una empresa si todas sus versiones de consola son de ella; una versión de PC no le quita lo exclusivo.
 - **Más reconocidas** (#166): primero las icónicas aprobadas y después la popularidad en IGDB (cuánta gente calificó sus juegos, en la consola que mires).
-- **El catálogo va aparte de lo tuyo** (#167), con sus imágenes, para poder distribuirlo algún día sin tus datos. Cómo se distribuye queda para después.
+- **El catálogo va aparte de lo tuyo** (#167) y **viene con la app** (#250): quien la instala tiene las sagas y los juegos desde el primer momento, sin claves. Se publica sin nada tuyo. El catálogo es un proyecto aparte, `otteretro-catalogo` (#253): la app baja lo publicado al abrir, verifica su hash y lo aplica sin tocar lo tuyo. Generar el catálogo (IGDB, Claude, sus claves) ya no es parte de la app, y los cambios se proponen en ese repo (#254, #256). Las portadas no vienen incluidas por ahora: cada quien usa su clave gratuita de SteamGridDB (#252).
 
 ### 6.2 Modelo ✅
 **Saga → Juego → Versión** (consola o PC; original, remaster o remake) **→ Origen** (un archivo en un disco o tu cuenta en una tienda de PC).
@@ -214,7 +214,7 @@ Si dos fuentes no coinciden, se usa una **prioridad fija por campo**. Lo que cor
 - En PlayOS, además, lo que está en **Heroic** (Epic, GOG, Amazon), **Lutris** (Battle.net, EA, Ubisoft) e **itch.io**, y los **juegos sueltos** sin tienda (#132).
 
 ### 7.2 Detección ✅
-1. Escaneo rápido por nombre y TitleID o serial, al abrir la app, al agregar un disco, al terminar una mudanza, con «Escanear» en Colección (#212) y cuando cambia algo en `Juegos\` mientras la app está abierta (#223). En Switch, el TitleID sale del nombre y, si falta y hay `prod.keys`, de adentro del archivo (#213).
+1. Escaneo rápido por nombre y TitleID o serial, al abrir la app, al agregar un disco, al terminar una mudanza, con «Escanear» en Colección (#212) y cuando cambia algo en `Juegos\` mientras la app está abierta (#223). En Switch, el TitleID sale solo del nombre del archivo: Otteretro no abre ni descifra los NSP o XCI (#240).
 2. Verificación por hash cuando la pides, **sin conexión**: los **cartuchos** con los DAT de No-Intro que publica libretro en GitHub (`libretro-database`) y los **discos** con los DAT de Redump. Ambos se descargan solos (#76). Los hashes quedan guardados.
 
 ### 7.3 Actualizaciones y DLC ✅
@@ -240,7 +240,7 @@ Se detectan y se muestran BASE, UPD y DLC. **Nunca se borran las versiones vieja
   | Partidas guardadas | **Al cerrar el juego o el emulador** |
   | BIOS, keys y firmware | Cuando cambian (siempre en repositorio privado) |
 
-- **No** se respaldan los packs de texturas, los binarios de emuladores ni los juegos: se vuelven a conseguir, los emuladores con sus recetas (#78). Alguna versión vieja de un emulador podría no estar ya disponible.
+- **No** se respaldan aquí los packs de texturas, los binarios de emuladores ni los juegos. Los emuladores y mods se conservan en tu librería privada (§8.1, #239). Alguna versión vieja de un emulador podría no estar ya disponible.
 - Antes de actualizar un emulador o un port se sigue haciendo además una copia puntual (§8.4).
 - Para saber cuándo se cierra un juego, **todo se lanza a través de Otteretro** (§10).
 
@@ -266,6 +266,13 @@ Se detectan y se muestran BASE, UPD y DLC. **Nunca se borran las versiones vieja
 
 - **Recetas compartidas** (#135): la misma receta lleva, por versión y por sistema, la URL y el hash. En Windows la app descarga con ella; en PlayOS, Nix arma con ella los paquetes que no están en nixpkgs, y **todas las versiones** de la receta quedan instaladas. Lo de base lo deciden las recetas por consola, pero se puede elegir por juego otra variante (por ejemplo, un emulador con packs de texturas o ajustado para el rendimiento de un juego).
 
+### 8.1.1 Fuentes y tu librería ✅ (#239, se aterriza emulador por emulador al abrir la F5)
+- **Otteretro público solo trae recetas** con la fuente oficial y el hash, sin binarios. La descarga de un emulador siempre la solicita la persona.
+- **La fuente se elige:** cada persona puede indicar la suya (una carpeta, un drive sincronizado, un repositorio), y Otteretro busca ahí.
+- **Tu librería privada** guarda tus emuladores y mods, con versión y hash, en al menos dos copias independientes, para que sigan disponibles si dan de baja un emulador.
+- **Compartir con un amigo** va sin keys, BIOS, firmware ni ROMs, y con cuidado con los mods derivados de un juego. A un desconocido se le recomienda dónde conseguirlos.
+- **Conservar el entorno (#242):** tampoco deben perderse las imágenes, las rutas ni el contenido generado. Se define con Herramientas y Respaldo.
+
 ### 8.2 Ubicación ✅
 Van en las carpetas `Emuladores\`, `Ports\` y `Complementos\` del disco ★ (§5.1) y se pueden mover a otro disco. Los **complementos** (packs de texturas, shaders, ReShade, mods) van junto a su emulador o port y se **instalan y actualizan igual que ellos**.
 
@@ -287,12 +294,12 @@ Van en las carpetas `Emuladores\`, `Ports\` y `Complementos\` del disco ★ (§5
 
 ### 8.5 Archivos de sistema ✅
 - Las BIOS, keys y firmware **los subes desde la interfaz**. La app no los descarga.
-- Quedan en `Sistema\<Consola>\` del disco ★, compartidos por todos los emuladores, **con versiones**. Subirlos desde la interfaz llega con Archivos de juegos (#218), porque el escaneo ya usa tus `prod.keys`.
+- Quedan en `Sistema\<Consola>\` del disco ★, compartidos por todos los emuladores, **con versiones**. Subirlos desde la interfaz llega con Archivos de juegos (#218).
 - La app indica dónde va cada uno, comprueba que estén y avisa si falta alguno.
 
 ### 8.6 Contenido instalado dentro del emulador ✅
 - Actualizaciones y DLC de Switch, juegos de Wii U (Cemu), paquetes `.pkg` de PS3 y `.cia` de 3DS: **la app los instala sola** en el emulador, según la receta. Los archivos originales siguen en `Juegos\`.
-- **PS4:** shadPS4 ya no instala `.pkg`, así que la importación lo **extrae** con una herramienta externa (receta) y guarda el juego extraído (#71).
+- **PS4:** los `.pkg` no se extraen (#243); se decide con el emulador, en la F5.
 - Si no lo consigue, **avisa de qué hay que instalar a mano**.
 
 ### 8.7 Herramientas que gestiona la app ✅
@@ -328,8 +335,11 @@ Todo origen termina en la misma importación. Lo que se importa **se mueve**: co
 
   Un sitio nuevo es un conector nuevo. Los de la primera versión son esos cuatro (#225).
 - **Tus cuentas** van en Ajustes › Cuentas y claves, cifradas (§5.6). Se descarga desde tu PC, con tu IP y reutilizando la sesión o la clave.
-- **Agregar enlaces** (#227): pegas un texto con muchos enlaces (o lo arrastras) en Descargas o en la ficha de un juego. Otteretro los reconoce, comprueba que estén en línea y su tamaño, junta las partes de un mismo archivo (`.part1.rar`, `.part2.rar`…) en un paquete y muestra la lista antes de empezar. **Nunca vigila el portapapeles.**
+- **Agregar enlaces** (#227): pegas un texto con muchos enlaces (o lo arrastras) en Descargas o en la ficha de un juego. Otteretro los reconoce, comprueba que estén en línea y su tamaño, junta las partes de un mismo archivo (`.part1.rar`, `.part2.rar`…) en un paquete y muestra la lista antes de empezar. Los enlaces **quedan guardados al instante** en el capturador, como en JDownloader, hasta que los mandas a la cola o los quitas (#245). Con la app abierta, **los enlaces que copias de un sitio con conector entran solos**, con un interruptor para apagarlo y un aviso del sistema que lo confirma; el resto de lo copiado no se guarda (#246, #247).
+- **Tus enlaces de cada juego** (#245): cuando se identifica el juego de una descarga, o si la pegaste desde su ficha, sus enlaces quedan en la ficha. Son datos privados: viven en tu base, aparte del catálogo, y no se comparten con la comunidad. Sí van a tu respaldo privado.
 - **Se respetan las reglas de cada sitio** (#228): sin cuenta, si el sitio pide esperar, se espera; si pide un captcha, te lo muestra para que lo resuelvas tú; si solo permite una descarga a la vez, se respeta. Nunca se saltan límites ni se comparten cuentas.
+- **Descargas a la vez por sitio** (#248): eliges cuántas bajan al mismo tiempo de cada sitio, con el tope de tu cuenta (1fichier: 1 sin premium y 10 con premium). Sitios distintos bajan en paralelo.
+- **Calidad** (#249): cada archivo se compara con su tamaño esperado y con los hashes que traiga el paquete (`.sfv`, `.md5`, `.sha*` o `[CRC]` en el nombre). Lo que llega dañado se vuelve a bajar hasta dos veces; un comprimido que no pasa su CRC deja la descarga con error para volver a bajarla, sin borrar nada. Cada archivo dice cómo se verificó, o «Sin verificar». 1fichier se comprueba sin pedir tokens, para no sumar pedidos fallidos a tu cuenta.
 - **Conexiones por sitio** (#226): por debajo del máximo de cada sitio, ajustable en Ajustes.
 - **Un enlace de un sitio sin conector** (#226): si es directo se baja; si no, Otteretro avisa qué sitio es.
 - **Torrents y magnets** (#229) con MonoTorrent (.NET, MIT), en la misma cola. Mientras bajan también comparten, desde tu IP.
@@ -365,8 +375,8 @@ Se prueba en este orden:
 - **Lo que pide el port manda sobre el emulador.** Si un port exige el formato original, se guarda **solo el original**, sin recortes, y esa única copia la usan el port y el emulador. Si lo que tienes es RVZ o CHD, se regenera el ISO completo.
 - **Verificar lo convertido** (#231): se verifica el original contra Redump y se guarda su hash **antes** de convertir; un RVZ o CHD que llega ya convertido lo verifica DolphinTool o chdman.
 - **Cuándo** (#233): al importar, y con un botón por consola para lo que ya tienes.
-- **DolphinTool y chdman vienen con Otteretro** (#232); DolphinTool se toma del Dolphin instalado si ya está.
-- **PS4:** shadPS4 no instala `.pkg`, así que la importación lo **extrae** con una herramienta externa y guarda el juego extraído (#71).
+- **DolphinTool y chdman vienen en el repositorio** con su licencia (#232, #241); si faltan, se toma el del Dolphin instalado.
+- **PS4:** los `.pkg` no se extraen (#243): normalmente implica descifrarlos. Se decide con el emulador, en la F5.
 
 ## 10. Steam ✅
 

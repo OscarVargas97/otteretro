@@ -282,7 +282,7 @@ public static class Links
         (link, target) = (Path.GetFullPath(link), Path.GetFullPath(target));
         if (IsLink(link))
         {
-            if (Path.TrimEndingDirectorySeparator(new DirectoryInfo(link).LinkTarget ?? "") is var current && Library.Same(current.Replace(@"\??\", ""), target)) return;
+            if (Path.TrimEndingDirectorySeparator(new DirectoryInfo(link).LinkTarget ?? "") is var current && Disk.Same(current.Replace(@"\??\", ""), target)) return;
             Directory.Delete(link); // borra el enlace, no lo que hay dentro
         }
         else if (Directory.Exists(link))

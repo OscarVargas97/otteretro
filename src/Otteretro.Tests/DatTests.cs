@@ -7,6 +7,7 @@ using Otteretro.Libraries;
 namespace Otteretro.Tests;
 
 /// <summary>#179: DAT de No-Intro y Redump y verificación por hash.</summary>
+[Collection("Dats.Handler")] // comparten ese estático
 public class DatTests
 {
     const string GameCubeDat = """
@@ -43,7 +44,7 @@ public class DatTests
     public async Task TwilightPrincessComesOutVerifiedByRedump()
     {
         await using var f = new Fixture();
-        Library.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
+        Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
         var tp = Disc("GZ2P01", 1);
         var copy = Disc("GZ2P01", 2); // otro volcado: mismo serial, distinto hash
         Write(f.Tmp[@"e\Otteretro\Juegos\GameCube\The Legend of Zelda Twilight Princess\The Legend of Zelda Twilight Princess (Europe) (En,Fr,De,Es,It).iso"], tp);

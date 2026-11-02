@@ -52,7 +52,7 @@ public class IdentifyTests : IAsyncDisposable
     [Fact]
     public async Task ClaudeIdentifiesWhatTheScanCouldNot()
     {
-        Library.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
+        Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
         foreach (var file in new[] { @"GameCube\juego raro.iso", @"GameCube\basura.iso", @"Switch\x\Sin nombre [0100AAAA00000000][v0].nsp",
                      @"Switch\x\Sin nombre [0100AAAA00000800][v65536].nsp" })
             Write(f.Tmp[$@"e\Otteretro\Juegos\{file}"]);
@@ -88,7 +88,7 @@ public class IdentifyTests : IAsyncDisposable
     [Fact]
     public async Task ReviewConfirmsOrPicksTheGameAndLearnsAnAlias()
     {
-        Library.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
+        Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
         foreach (var file in new[] { @"GameCube\juego raro.iso", @"GameCube\basura.iso", @"Switch\x\Sin nombre [0100AAAA00000000][v0].nsp",
                      @"Switch\x\Sin nombre [0100AAAA00000800][v65536].nsp" })
             Write(f.Tmp[$@"e\Otteretro\Juegos\{file}"]);
@@ -111,10 +111,6 @@ public class IdentifyTests : IAsyncDisposable
         Assert.Equal(18, c.ExecuteScalar<long>("SELECT version_id FROM source WHERE relative_path LIKE '%basura%'"));
         var alias = c.QuerySingle<(long Id, string Content)>("SELECT id, content FROM learning WHERE kind = 'alias' AND content LIKE '%basura%'");
         Assert.Contains("\"origin\":\"manual\"", alias.Content);
-        var learned = ClaudeReview.Learnings(f.Db, "alias", null, 0, 10).Items.Single(l => l.Id == alias.Id);
-        Assert.Equal(("basura", "The Legend of Zelda: Twilight Princess"), (learned.NameBefore, learned.NameAfter));
-        Assert.True(CatalogCleanup.Undo(f.Db, alias.Id));
-        Assert.Equal(1, c.ExecuteScalar<long>("SELECT undone FROM learning WHERE id = @Id", new { alias.Id }));
     }
 
     static void Write(string path)

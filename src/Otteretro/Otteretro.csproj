@@ -13,9 +13,14 @@
 
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.89" />
+    <PackageReference Include="Downloader" Version="5.10.2" />
+    <PackageReference Include="MegaApiClient" Version="1.10.5" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.13" />
+    <PackageReference Include="MonoTorrent" Version="3.0.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="Photino.NET" Version="4.0.16" />
+    <PackageReference Include="SharpCompress" Version="0.50.7" />
     <PackageReference Include="SkiaSharp" Version="4.154.0" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.154.0" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.13" />
@@ -52,5 +57,12 @@
     </ItemGroup>
     <Copy SourceFiles="@(WebFile)" DestinationFiles="@(WebFile->'$(PublishDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
   </Target>
+
+  <!-- DolphinTool y chdman, en el repo con su licencia (#232, #241). Se actualizan con scripts/herramientas.ps1. -->
+  <ItemGroup>
+    <Content Include="herramientas\**" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <!-- El catálogo que trae la app, sin nada de la persona (#211). Se regenera con `otteretro catalogo exportar`. -->
+    <Content Include="catalogo\**" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
 
 </Project>

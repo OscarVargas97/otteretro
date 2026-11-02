@@ -70,10 +70,11 @@
       "welcome": "Bienvenida",
       "dataFolder": "Carpeta de datos",
       "backup": "Respaldo",
-      "libraries": "Ubicaciones de juegos",
+      "libraries": "Discos",
       "steam": "Steam",
       "keys": "Claves",
-      "initialLoad": "Carga inicial"
+      "initialLoad": "Carga inicial",
+      "accounts": "Cuentas de descarga"
     },
     "phase": "Fase {phase}",
     "stepOf": "Paso {step} de {total}",
@@ -95,7 +96,10 @@
     "disksText": "Discos:",
     "useDisk": "Usar {path}",
     "diskAdded": "{path} ✓",
-    "done": "Listo"
+    "done": "Listo",
+    "accountsTitle": "Tus cuentas de descarga",
+    "accountsText": "Si pagas 1fichier o Mega, deja aquí tu clave para bajar con tu cuenta. Es opcional: lo puedes hacer después en Ajustes › Cuentas y claves.",
+    "next": "Siguiente"
   },
   "settings": {
     "dataFolder": "Carpeta de datos",
@@ -255,13 +259,13 @@
       "custom": "Otro origen",
       "stableHint": "Las versiones publicadas en GitHub: probadas y con su lista de novedades.",
       "testingHint": "Lo último en desarrollo, antes de publicarse. Puede traer errores.",
-      "localHint": "Los paquetes que armas en este equipo con scripts/empaquetar.ps1. Se guarda su carpeta, así vuelves a ella de un clic.",
+      "localHint": "Los paquetes que armas en este equipo con scripts/empaquetar.ps1. Se buscan solos en la carpeta Otteretro\\Paquetes de tus discos.",
       "customHint": "Una carpeta, una dirección web o el repo de GitHub de quien arma su propia versión de Otteretro.",
       "origin": "Origen de las actualizaciones",
       "originPlaceholder": "D:\\paquetes o https://github.com/usuario/otteretro",
-      "localFolder": "Carpeta de los paquetes locales",
-      "localPlaceholder": "Por ejemplo D:\\dev\\artefactos\\otteretro\\paquetes",
-      "use": "Usar"
+      "use": "Usar",
+      "localFound": "Paquetes en {path}",
+      "localNone": "Ningún disco tiene paquetes en Otteretro\\Paquetes."
     },
     "taskTitle": "Actualización de Otteretro",
     "checking": "Buscando…",
@@ -287,7 +291,8 @@
       "failed": "No se pudo buscar o descargar la actualización. El detalle está en el registro.",
       "withSystem": "Se actualiza con el sistema: llega con la próxima actualización de PlayOS o NixOS."
     },
-    "withSystemBadge": "Con el sistema"
+    "withSystemBadge": "Con el sistema",
+    "attribution": "Datos de juegos: IGDB.com"
   },
   "errors": {
     "http": "La app respondió con un error ({status}).",
@@ -427,7 +432,12 @@
       "noLearning": "Ese cambio ya no existe o no se puede corregir."
     },
     "catalog": {
-      "badRefreshDays": "Los días van de 1 a 365."
+      "badRefreshDays": "Los días van de 1 a 365.",
+      "downloading": "Bajando el catálogo {version}",
+      "applying": "Aplicando el catálogo {version}",
+      "badHash": "El catálogo publicado no coincide con su hash: sigues con el anterior.",
+      "badFile": "El catálogo publicado no se pudo abrir: sigues con el anterior.",
+      "badRelease": "La versión publicada del catálogo está incompleta: sigues con la anterior."
     },
     "automation": {
       "notFound": "Esa sugerencia ya no está.",
@@ -475,7 +485,9 @@
         "verified": "{path}: verificado ({name}).",
         "notInDat": "{path}: su hash no está en el DAT.",
         "summary": "{verified} verificados y {missing} sin coincidencia.",
-        "missingFile": "No está {path}: se borró o se movió desde el último escaneo."
+        "missingFile": "No está {path}: se borró o se movió desde el último escaneo.",
+        "chdIntact": "{path}: el CHD está sano.",
+        "chdDamaged": "{path}: el CHD está dañado."
       }
     },
     "review": {
@@ -484,7 +496,76 @@
       "noVersion": "Ese juego no tiene versión en la consola del archivo."
     },
     "source": {
-      "badExecutable": "Ese ejecutable no está en la carpeta del juego."
+      "badExecutable": "Ese ejecutable no está en la carpeta del juego.",
+      "nothingMarked": "No marcaste nada para quitar.",
+      "notFound": "Uno de los archivos ya no está registrado: vuelve a abrir la ficha."
+    },
+    "trash": {
+      "unsupported": "En este sistema todavía no se puede mandar a la papelera.",
+      "unavailable": "{path} está en un disco sin papelera (de red o extraíble): quítalo a mano si quieres borrarlo.",
+      "failed": "No se pudo mandar {path} a la papelera."
+    },
+    "import": {
+      "overlapsDisk": "Esa carpeta se cruza con el disco {name}: elige una que esté fuera de sus carpetas.",
+      "file": "Importando {path}",
+      "log": {
+        "moved": "{path} → {to}",
+        "unknown": "{path}: no se sabe de qué consola es y se queda donde está. Ponlo en una carpeta con el nombre de la consola.",
+        "conflict": "{path}: ya hay otro archivo distinto en {to}, no se pisa.",
+        "noSpace": "{path}: no hay espacio en {disk}.",
+        "noDat": "No se pudo bajar el DAT de {console}: se importa sin verificar.",
+        "summary": "Importados: {moved}. Sin importar: {skipped}.",
+        "waiting": "{path} espera en Entrada: no se reconoció con seguridad. Revísalo en Revisar.",
+        "archiveFailed": "{path}: no se pudo descomprimir (dañado o le falta una parte). Se queda donde está.",
+        "password": "{path}: ninguna contraseña de tu lista lo abre. Suma la suya en Ajustes › Cuentas y claves.",
+        "noGames": "{path}: no trae ningún juego. Se queda donde está.",
+        "archiveDone": "{path}: importado y borrado.",
+        "extra": "{path}: es un hack, beta o demo; no se importa solo.",
+        "duplicate": "{path}: ya tienes ese juego; se salta.",
+        "replaced": "{path}: reemplaza al tuyo, que no estaba verificado y fue a la papelera.",
+        "screenscraper": "ScreenScraper no respondió, rechazó tus cuentas o se acabó tu cuota: esta tarea sigue sin él."
+      },
+      "extracting": "Descomprimiendo {path}",
+      "badRegions": "Ese orden de regiones no es válido."
+    },
+    "convert": {
+      "notConvertible": "Esa consola no tiene formato liviano.",
+      "file": "Convirtiendo {console}",
+      "converting": "Convirtiendo {path}",
+      "log": {
+        "portKeeps": "{path}: el port de este juego no acepta ese formato, se queda como está.",
+        "noTool": "{path}: falta la herramienta de conversión o verificación.",
+        "failed": "{path}: no se pudo convertir; el original queda igual.",
+        "done": "{path}: convertido y comprobado.",
+        "summary": "Convertidos: {converted}."
+      }
+    },
+    "system": {
+      "badConsole": "Esa consola no existe.",
+      "badName": "Ese nombre de archivo no sirve."
+    },
+    "download": {
+      "noLinks": "No hay enlaces.",
+      "badLink": "Uno de los enlaces no se puede descargar.",
+      "badName": "Ese nombre de paquete no sirve.",
+      "failed": "{file}: la descarga no se completó.",
+      "waiting": "El sitio pide esperar {seconds} s",
+      "progress": "Bajando {file}",
+      "log": {
+        "done": "{name}: terminó y pasó a {path}.",
+        "corrupt": "{file} no coincide con lo esperado: se vuelve a bajar."
+      },
+      "unavailable": "{file}: el sitio respondió {status}; el enlace no está disponible.",
+      "notDirect": "{url} es una página, no un archivo: ese sitio necesita un conector.",
+      "needsAccount": "{site} necesita tu cuenta: agrégala en Ajustes › Cuentas y claves.",
+      "badAccount": "{site} rechazó tu cuenta: revísala en Ajustes › Cuentas y claves.",
+      "siteSaid": "{site} respondió: {message}",
+      "badConnections": "Las conexiones van de 1 a 8.",
+      "running": "Bajando {file}",
+      "openInBrowser": "{site} no dio el enlace directo (cambió su página o pide un captcha): ábrelo en el navegador y deja lo que bajes en Entrada.",
+      "corrupt": "{file} llegó dañado tres veces: el enlace puede estar mal. Vuelve a bajarlo o búscalo en otro lado.",
+      "archiveBroken": "{file} llegó dañado: no pasó su CRC al descomprimirlo. No se borró nada; vuelve a bajarlo.",
+      "badParallel": "Ese número pasa el tope del sitio con tu cuenta."
     }
   },
   "credentials": {
@@ -506,7 +587,9 @@
       "steamgriddb": "SteamGridDB",
       "rawg": "RAWG (opcional)",
       "retroachievements": "RetroAchievements",
-      "myjdownloader": "MyJDownloader"
+      "archives": "Comprimidos",
+      "onefichier": "1fichier",
+      "mega": "Mega"
     },
     "field": {
       "token": "Token",
@@ -515,7 +598,10 @@
       "clientSecret": "Client secret",
       "user": "Usuario",
       "password": "Contraseña",
-      "email": "Correo"
+      "email": "Correo",
+      "passwords": "Contraseñas, una por línea",
+      "devId": "ID de desarrollador",
+      "devPassword": "Contraseña de desarrollador"
     },
     "later": "Más adelante ({count})",
     "laterHint": "Todavía no hacen falta: cada una se pide cuando llega su fase.",
@@ -531,7 +617,9 @@
       "steamgriddb": "Portadas, fondos y logos.",
       "rawg": "Completa años que IGDB no tiene.",
       "retroachievements": "Tus logros en juegos retro.",
-      "myjdownloader": "Mandar descargas a JDownloader."
+      "archives": "Las contraseñas que se prueban solas al descomprimir.",
+      "onefichier": "Descargar con tu cuenta premium.",
+      "mega": "Descargar con tu cuenta."
     }
   },
   "tasks": {
@@ -565,13 +653,18 @@
         "move": "Mover una ubicación o una carpeta",
         "adopt": "Migrar una ubicación a la estructura nueva",
         "scan": "Escanear tus discos",
-        "verify": "Verificar archivos por hash"
+        "verify": "Verificar archivos por hash",
+        "import": "Importar una carpeta",
+        "convert": "Convertir al formato liviano"
       },
       "disk": {
         "migrate": "Pasar al estándar de discos"
       },
       "dat": {
         "update": "Bajar los DAT de No-Intro y Redump"
+      },
+      "download": {
+        "package": "Descargar un paquete"
       }
     },
     "status": {
@@ -654,7 +747,7 @@
         "activity": "Última actividad"
       },
       "emptyTitle": "Aún no hay sagas",
-      "emptyText": "Las sagas y sus juegos se cargan desde IGDB. Pega la cuenta en Ajustes › Cuentas y claves y carga una saga con «otteretro catalogo cargar --saga zelda».",
+      "emptyText": "Las sagas llegan con la app y se actualizan solas. Si no ves ninguna, revisa tu conexión y vuelve a abrirla.",
       "noMatch": "Ninguna saga cumple el filtro.",
       "platform": "Empresa o consola",
       "allPlatforms": "Todas las consolas",
@@ -674,7 +767,7 @@
       "noneText": "Abre una saga desde Sagas o con la búsqueda.",
       "notFound": "Esta saga ya no está en el catálogo.",
       "route": "Ruta",
-      "noRoutes": "Claude todavía no preparó las rutas de esta saga. Se preparan solas de noche (otteretro claude cargar) o al pedirlas, y se aprueban en Revisar.",
+      "noRoutes": "Esta saga todavía no tiene rutas en el catálogo.",
       "recalculate": "Pedir a Claude que la recalcule",
       "queued": "Encolado: Claude la revisa en su horario y el resultado llega a Revisar.",
       "why": "Por qué este orden",
@@ -706,7 +799,7 @@
       "unlinked": "En tus tiendas, todavía sin datos del catálogo",
       "unlinkedHint": "Aparecen igual; al cargar su saga desde IGDB pasan a la cuadrícula.",
       "emptyTitle": "No hay juegos de esta consola",
-      "emptyText": "Carga sus juegos con «otteretro catalogo cargar --consola {console}» o, para PC, sincroniza Steam.",
+      "emptyText": "Todavía no están en el catálogo. Llegarán con una próxima versión.",
       "name": "Juego",
       "saga": "Saga",
       "year": "Año",
@@ -719,7 +812,43 @@
       "scanQueued": "Escaneando: míralo en el panel de tareas.",
       "verify": "Verificar",
       "verifyHelp": "Calcula el hash de tus archivos de esta consola y lo compara con No-Intro o Redump, sin conexión.",
-      "verifyQueued": "Verificando: míralo en el panel de tareas."
+      "verifyQueued": "Verificando: míralo en el panel de tareas.",
+      "import": "Importar carpeta",
+      "importHelp": "Trae los juegos de una carpeta a sus discos, cada uno en su lugar.",
+      "importLabel": "Carpeta que quieres importar",
+      "importPlaceholder": "D:\\Descargas\\Juegos",
+      "importHint": "Primero ves qué hay. Cada juego se mueve a Juegos en su disco: se copia, se verifica y recién entonces se borra de acá. Lo que no se sepa de qué consola es se queda en la carpeta.",
+      "importCancel": "Cancelar",
+      "importQueued": "Importación en cola: mira su avance en el panel de tareas.",
+      "convert": "Convertir",
+      "convertHelp": "Pasa lo que tienes de esta consola a RVZ o CHD. El original se borra después de comprobar la copia.",
+      "convertQueued": "Conversión en cola: mira su avance en el panel de tareas.",
+      "importSee": "Ver qué hay",
+      "importRun": "Importar ({count})",
+      "importEmpty": "No encontré juegos en esa carpeta.",
+      "importAll": "Todas",
+      "importOnlyCatalog": "Solo lo que está en el catálogo",
+      "importSaga": "Saga",
+      "importConsole": "Consola",
+      "importNoConsole": "Sin consola",
+      "importMore": "Ver {count} más",
+      "importCount": "{selected} de {total} marcados",
+      "importRegions": "Orden de regiones",
+      "importUp": "Subir {region}",
+      "importRegion": {
+        "es": "Con español",
+        "Europe": "Europa",
+        "USA": "USA",
+        "Japan": "Japón",
+        "World": "Mundo"
+      },
+      "importReason": {
+        "extra": "Hack, beta o demo",
+        "region": "Otra versión",
+        "owned": "Ya lo tienes verificado"
+      },
+      "noneTitle": "Nada que mostrar con este filtro",
+      "noneText": "Importa una carpeta, deja tus juegos en Entrada o prueba otro filtro."
     },
     "game": {
       "noneTitle": "Elige un juego",
@@ -783,7 +912,12 @@
       "notVerified": "Sin verificar",
       "verify": "Verificar",
       "verifyQueued": "Verificando: míralo en el panel de tareas.",
-      "executable": "Ejecutable"
+      "executable": "Ejecutable",
+      "remove": "Quitar del disco",
+      "removeHint": "Lo marcado va a la papelera y deja de contar como «lo tengo». Las actualizaciones y DLC solo se van si los marcas.",
+      "removeConfirm": "Mandar a la papelera ({count})",
+      "removeCancel": "Cancelar",
+      "download": "Descargar"
     },
     "search": {
       "sagas": "Sagas",
@@ -807,7 +941,7 @@
     "title": "Avisos",
     "missingKey": "Falta la clave de {service}: sin ella no se cargan sus datos.",
     "openSettings": "Abrir Ajustes",
-    "missingKeys": "Faltan claves de {services}: sin ellas no se cargan sus datos.",
+    "missingKeys": "Otteretro ya funciona. Si quieres portadas y datos nuevos, agrega tus claves de {services}.",
     "openCredentials": "Cuentas y claves",
     "unidentified": "{count, plural, one {1 archivo sin identificar} other {# archivos sin identificar}}: elige su juego en Revisar.",
     "openReview": "Abrir Revisar"
@@ -987,8 +1121,87 @@
     "cancel": "Cancelar",
     "confirm": "Mover",
     "queued": "Quedó en el panel de tareas.",
-    "systemHelp": "BIOS, keys y firmware viven en las ubicaciones de sistema de Ajustes › Almacenamiento. Cada consola muestra los suyos.",
-    "openStorage": "Abrir Almacenamiento",
-    "dataFolder": "Herramientas (carpeta de datos)"
+    "systemHelp": "Tus BIOS, keys y firmware, con versiones, en Sistema del disco ★. Los subes tú: Otteretro no los descarga ni los comparte. Otra versión nunca reemplaza la anterior.",
+    "dataFolder": "Herramientas (carpeta de datos)",
+    "systemConsole": "Elige la consola",
+    "systemUpload": "Subir un archivo",
+    "systemUploading": "Subiendo…",
+    "systemEmptyTitle": "Sin archivos de sistema",
+    "systemEmptyText": "Elige una consola y sube tu BIOS, keys o firmware.",
+    "systemMissing": "Falta {name}"
+  },
+  "downloads": {
+    "add": "Capturar enlaces",
+    "links": "Pega o arrastra tus enlaces, en cualquier texto: quedan guardados al instante",
+    "linksHint": "https://…",
+    "disk": "Disco de destino",
+    "defaultDisk": "Disco ★",
+    "emptyTitle": "Sin descargas",
+    "emptyText": "Agrega enlaces en el capturador: lo que baja se ordena solo en tu disco.",
+    "summary": "{disk} · {done} de {total} archivos",
+    "speed": "{speed} MB/s",
+    "pause": "Pausar",
+    "resume": "Reanudar",
+    "cancel": "Cancelar",
+    "status": {
+      "queued": "En cola",
+      "running": "Descargando",
+      "paused": "En pausa",
+      "done": "Terminada",
+      "error": "Con error",
+      "canceled": "Cancelada"
+    },
+    "addForGame": "Capturar enlaces de {name}",
+    "check": "Comprobar enlaces",
+    "checking": "Comprobando…",
+    "noLinks": "No encontré enlaces en ese texto.",
+    "files": "{count, plural, one {# archivo} other {# archivos}}",
+    "startCount": "Descargar ({count})",
+    "state": {
+      "unavailable": "No disponible",
+      "blocked": "Falta tu cuenta o resolver un captcha",
+      "noConnector": "Sitio sin conector",
+      "unknown": "No respondió",
+      "unchecked": "Sin comprobar"
+    },
+    "connections": "Conexiones",
+    "connectionsHelp": "Por archivo. Cada sitio tiene su tope, para no arriesgar tu cuenta: 1fichier usa una.",
+    "openBrowser": "Abrir en el navegador",
+    "tabQueue": "Descargas",
+    "tabLinks": "Capturador de enlaces",
+    "tabLinksCount": "Capturador de enlaces ({count})",
+    "sections": "Secciones de Descargas",
+    "addLinks": "Agregar",
+    "clipboard": "Capturar también los enlaces que copie",
+    "captureEmpty": "No hay enlaces esperando. Pega algunos arriba, o cópialos con la app abierta.",
+    "checkHelp": "Consulta cada sitio. Úsalo con calma: si un sitio recibe muchos pedidos fallidos, puede bloquear tu cuenta por un tiempo.",
+    "remove": "Quitar",
+    "removeLink": "Quitar {name}",
+    "gameLinks": "Tus enlaces",
+    "gameLinksPrivate": "Privados: quedan solo en tus datos",
+    "downloadAgain": "Volver a bajar",
+    "itemsSummary": "{count, plural, one {Ver # enlace} other {Ver # enlaces}}",
+    "itemPending": "Pendiente",
+    "parallelTitle": "Descargas a la vez, por sitio",
+    "parallelHelp": "Cuántas bajan al mismo tiempo de cada sitio. Sitios distintos bajan en paralelo. El tope depende de tu cuenta.",
+    "parallelMax": "Hasta {max} con tu cuenta",
+    "parallelFree": "Sin premium, 1. Con tu clave de API, hasta 10.",
+    "site": {
+      "1fichier": "1fichier",
+      "mega": "Mega",
+      "mediafire": "MediaFire",
+      "torrent": "Torrents",
+      "direct": "Enlaces directos"
+    },
+    "verified": {
+      "crc32": "Verificado (CRC32)",
+      "md5": "Verificado (MD5)",
+      "sha1": "Verificado (SHA-1)",
+      "sha256": "Verificado (SHA-256)",
+      "sha512": "Verificado (SHA-512)",
+      "size": "Solo tamaño",
+      "site": "Verificado por el sitio",
+      "none": "Sin verificar"
+    }
   }
 }

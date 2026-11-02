@@ -90,7 +90,7 @@ public static partial class Dats
     }
 
     /// <summary>Reemplaza los DAT de una consola por los de libretro. Devuelve cuántas entradas quedaron.</summary>
-    static async Task<int> Download(Database db, string console, CancellationToken ct)
+    internal static async Task<int> Download(Database db, string console, CancellationToken ct)
     {
         var http = Handler is null ? Shared : new HttpClient(Handler);
         var entries = new List<(string Source, Entry Entry)>();
@@ -136,7 +136,8 @@ public static partial class Dats
                   AND (@GameId IS NULL OR o.version_id IN (SELECT id FROM version WHERE game_id = @GameId))
                 ORDER BY o.id
                 """, job).ToList();
-        var libraries = Library.List(run.Db).Where(l => l.Connected).ToDictionary(l => l.Id, l => l.Path);
+        var libraries = Disk.List(run.Db).Where(l => l.Connected).ToDictionary(l => l.Id, l => l.Path);
+        var scraper = new ScreenScraper(run);
         var total = Math.Max(1, files.Sum(f => f.Size));
         long done = 0;
         int verified = 0, missing = 0;
@@ -155,11 +156,31 @@ public static partial class Dats
                 continue;
             }
             run.Report((int)(done * 100 / total), ApiError.Of("dat.hashing", ("path", path)));
-            var sha1 = await Sha1(path, ct);
+            // Un CHD no se compara con Redump: se comprueba que esté sano (#231).
+            if (Path.GetExtension(path).Equals(".chd", StringComparison.OrdinalIgnoreCase))
+            {
+                if (await Converter.ChdIntact(run.Db, path, ct) is { } intact)
+                {
+                    using var chd = run.Db.Open();
+                    chd.Execute("UPDATE source SET verified = @intact WHERE id = @Id", new { f.Id, intact });
+                    if (intact) verified++;
+                    else missing++;
+                    run.Log(intact ? ApiError.Of("dat.log.chdIntact", ("path", path)) : ApiError.Of("dat.log.chdDamaged", ("path", path)), intact ? "info" : "warn");
+                }
+                else run.Log(ApiError.Of("convert.log.noTool", ("path", path)), "warn");
+                done += f.Size;
+                run.Report((int)(done * 100 / total), null, JsonSerializer.Serialize(job with { After = f.Id }, JsonSerializerOptions.Web));
+                continue;
+            }
+            var sha1 = await Converter.Sha1Of(run.Db, path, ct);
             done += f.Size;
             using var db = run.Db.Open();
             var match = db.QueryFirstOrDefault<string?>("SELECT name FROM dat_entry WHERE console = @Console AND sha1 = @sha1", new { f.Console, sha1 });
             var version = f.VersionId ?? (match is null ? null : Scan.MatchName(run.Db, f.Console, match));
+            // Sin juego y fuera del DAT, se le pregunta a ScreenScraper (§9.6). Identifica, pero no cuenta como verificado.
+            if (version is null)
+                foreach (var known in await scraper.NamesOf(f.Console, path, sha1, ct))
+                    if ((version = Scan.MatchName(run.Db, f.Console, known)) is not null) break;
             db.Execute("UPDATE source SET sha1 = @sha1, verified = @ok, version_id = @version WHERE id = @Id",
                 new { f.Id, sha1, ok = match is not null, version });
             if (match is not null) verified++;
@@ -171,7 +192,7 @@ public static partial class Dats
         run.Log(ApiError.Of("dat.log.summary", ("verified", verified.ToString()), ("missing", missing.ToString())));
     }
 
-    static async Task<string> Sha1(string path, CancellationToken ct)
+    internal static async Task<string> Sha1(string path, CancellationToken ct)
     {
         await using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20, FileOptions.SequentialScan | FileOptions.Asynchronous);
         return Convert.ToHexString(await SHA1.HashDataAsync(file, ct));

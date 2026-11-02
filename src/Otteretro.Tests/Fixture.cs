@@ -12,6 +12,7 @@ sealed class Fixture : IAsyncDisposable
     public readonly TaskQueue Queue;
     public readonly AppSession Session;
     readonly AppConfig config;
+    public AppConfig Config => config;
     readonly SecretBox box = new();
 
     public Fixture(params (string Id, string Value)[] keys)
@@ -29,6 +30,14 @@ sealed class Fixture : IAsyncDisposable
     public Credentials Credentials => new(Db, config.MachineId, box);
 
     /// <summary>Encola, corre la cola hasta que la tarea termina y devuelve cómo terminó.</summary>
+    /// <summary>El log puede estar escribiéndose en este momento: otra prueba, en paralelo.</summary>
+    static string ReadShared(string path)
+    {
+        using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        using var reader = new StreamReader(file);
+        return reader.ReadToEnd();
+    }
+
     public async Task<TaskInfo> Run(long id)
     {
         await Queue.StartAsync(CancellationToken.None);
@@ -41,7 +50,7 @@ sealed class Fixture : IAsyncDisposable
         }
         await Queue.StopAsync(CancellationToken.None);
         var logs = Path.Combine(config.DataFolder!, "logs");
-        Assert.True(task is not null, $"La tarea {id} no aparece. Log: " + string.Join(" | ", Directory.GetFiles(logs).Select(File.ReadAllText)));
+        Assert.True(task is not null, $"La tarea {id} no aparece. Log: " + string.Join(" | ", Directory.GetFiles(logs).Select(ReadShared)));
         return task;
     }
 

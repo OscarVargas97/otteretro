@@ -45,10 +45,7 @@ public static class SteamGridDb
 
     public record Job(long After = 0);
     record Found(long Id, string? Name = null, [property: JsonPropertyName("release_date")] long? ReleaseDate = null);
-    record IgdbCover(string? ImageId);
 
-    /// <summary>Carátula de IGDB (528×748): https://api-docs.igdb.com/#images.</summary>
-    public const string IgdbImageUrl = "https://images.igdb.com/igdb/image/upload/t_cover_big_2x/";
     record Image(string Url);
     record Response<T>(bool Success, T? Data);
 
@@ -111,8 +108,6 @@ public static class SteamGridDb
         Directory.CreateDirectory(folder);
         EnqueueConvert(run.Db);
 
-        var igdb = !string.IsNullOrEmpty(run.Credentials.Read("igdb.clientId")) && !string.IsNullOrEmpty(run.Credentials.Read("igdb.clientSecret"))
-            ? new Igdb(api, run.Credentials, Handler) : null;
 
         List<(long Id, string Name, long? Steam, long? Year, long? IgdbId)> games;
         using (var c = run.Db.Open())
@@ -133,9 +128,6 @@ public static class SteamGridDb
                     if (Find(run.Db, id, kind) is null && await First(api, key, string.Format(Queries[kind], sgdbId), ct) is { } url)
                         got.Add((kind, await Download(http, url, folder, id, kind, ct)));
             // ponytail: una consulta a IGDB por juego sin portada; de a 500 si la carga completa se hace lenta.
-            if (Find(run.Db, id, "cover") is null && igdb is not null && igdbId is not null
-                && (await igdb.Query<IgdbCover>("covers", $"fields image_id; where game = {igdbId}; limit 1;", ct)).FirstOrDefault()?.ImageId is { } image)
-                got.Add(("cover", await Download(http, IgdbImageUrl + image + ".jpg", folder, id, "cover", ct)));
             run.Log(got.Count == 0 ? ApiError.Of("tasks.log.noImages", ("game", name))
                 : ApiError.Of("tasks.log.images", ("game", name), ("kinds", string.Join(", ", got.Select(g => g.Kind))), ("kb", (got.Sum(g => g.Bytes) / 1024).ToString())));
             // La carga corre a la par: si el juego se fusionó y se borró mientras bajaba, su imagen no queda para el próximo id (#59).
@@ -160,8 +152,8 @@ public static class SteamGridDb
     {
         if (steam is not null && await Get<Found>(api, key, $"games/steam/{steam}", ct) is { } bySteam) return bySteam.Id;
         var list = await Get<Found[]>(api, key, $"search/autocomplete/{Uri.EscapeDataString(name)}", ct) ?? [];
-        var wanted = IgdbImport.NameKey(name);
-        return list.FirstOrDefault(f => f.Name is not null && IgdbImport.NameKey(f.Name) == wanted
+        var wanted = NameKey(name);
+        return list.FirstOrDefault(f => f.Name is not null && NameKey(f.Name) == wanted
             && (year is null || f.ReleaseDate is not { } date || Math.Abs(DateTimeOffset.FromUnixTimeSeconds(date).Year - year.Value) <= 1))?.Id;
     }
 
@@ -261,4 +253,7 @@ public static class SteamGridDb
         }
         return Task.CompletedTask;
     }
+
+    /// <summary>El nombre para comparar: minúsculas, solo letras y números.</summary>
+    static string NameKey(string name) => new([.. name.ToLowerInvariant().Where(char.IsLetterOrDigit)]);
 }

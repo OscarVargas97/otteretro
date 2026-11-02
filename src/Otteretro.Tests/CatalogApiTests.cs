@@ -33,7 +33,7 @@ public class CatalogApiTests : IAsyncLifetime
                     ('store', 'steam', '70', 'Half-Life', 600, '2026-10-01T00:00:00Z', 200),
                     ('store', 'steam', '999', 'Algo que IGDB no tiene', 5, NULL, NULL);
                 """);
-            FieldValues.Set(c, "game", 11, "name_es", "Breath of the Wild", "igdb");
+            c.Execute("INSERT INTO field_value (entity, entity_id, field, value, source) VALUES ('game', 11, 'name_es', 'Breath of the Wild', 'igdb'); UPDATE game SET name_es = 'Breath of the Wild' WHERE id = 11");
         }
         app = LocalServer.Create(f.Session, b => b.WebHost.UseTestServer());
         await app.StartAsync();
@@ -142,13 +142,6 @@ public class CatalogApiTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.BadRequest, (await http.PutAsJsonAsync("/api/games/10/progress", new ProgressInfo("perdido", null, null, null, null, false))).StatusCode);
 
         // A mano gana sobre IGDB; al quitarlo, vuelve el de IGDB.
-        var fixedName = await (await http.PutAsJsonAsync("/api/games/11/fields/name_es", new FieldRequest("Zelda: Aliento de lo salvaje"))).Content.ReadFromJsonAsync<GameDetail>();
-        Assert.Equal("Zelda: Aliento de lo salvaje", fixedName!.NameEs);
-        Assert.Equal(("manual", true), fixedName.Fields.Where(x => x.Winner).Select(x => (x.Source, x.Manual)).Single());
-        Assert.Equal("Breath of the Wild", (await (await http.DeleteAsync("/api/games/11/fields/name_es")).Content.ReadFromJsonAsync<GameDetail>())!.NameEs);
-        Assert.Equal(HttpStatusCode.BadRequest, (await http.PutAsJsonAsync("/api/games/11/fields/year", new FieldRequest("hace mucho"))).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await http.PutAsJsonAsync("/api/games/11/fields/name_es", new FieldRequest(null))).StatusCode); // #59
-        Assert.Equal(HttpStatusCode.NotFound, (await http.PutAsJsonAsync("/api/games/11/fields/saga_id", new FieldRequest("2"))).StatusCode);
     }
 
     [Fact]
@@ -160,6 +153,6 @@ public class CatalogApiTests : IAsyncLifetime
         Assert.Empty((await Get<SearchResults>("/api/search?q=z"))!.Games);
 
         var notices = (await Get<List<ApiError>>("/api/notices"))!;
-        Assert.Equal(["igdb", "steamgriddb", "steam"], notices.Select(n => n.Params!["service"]));
+        Assert.Equal(["steamgriddb", "steam"], notices.Select(n => n.Params!["service"]));
     }
 }

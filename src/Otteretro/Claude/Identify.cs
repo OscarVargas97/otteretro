@@ -17,7 +17,7 @@ public static class Identify
     public const string Kind = "claude.identify", Prompt = "identificar-juego";
 
     /// <summary>El escaneo la encola al terminar. Las pruebas lo apagan: no deben lanzar `claude`.</summary>
-    public static bool AfterScan { get; set; } = true;
+    public static bool AfterScan { get; set; } = Environment.GetEnvironmentVariable("OTTERETRO_E2E") is null;
 
     /// <summary>Archivos por llamada.</summary>
     public static int PerCall { get; set; } = 25;

@@ -84,14 +84,15 @@ test("con un catálogo grande, cada pantalla aparece al instante y no salta", as
   const steps: [string, string, string, string][] = [
     ["Sagas", '.sidebar a[href="/sagas/"]', content, "a.ot-saga"],
     ["Una saga", "a.ot-saga", content, 'table a[href^="/game/"]'],
-    ["Un juego", 'table a[href^="/game/"]', content, ".version-row"],
+    ["Un juego", 'table a[href^="/game/"]', content, ".sec"],
     ["Colección", '.sidebar a[href="/collection/"]', content, ".collection-consoles button"],
     ["Revisar", '.sidebar a[href="/review/"]', content, '.content [role="tablist"]'],
     ["Inicio", '.sidebar a[href="/"]', content, ".content .sec"],
+    ["Descargas", '.sidebar a[href="/downloads/"]', content, ".content .ot-empty, .content section.panel"],
     ["Herramientas", '.sidebar a[href="/tools/"]', content, ".content .ot-empty, .content .version-row"],
     ["Ajustes", '.sidebar a[href="/settings/"]', content, "#settings-panel .version-row"],
     ["Ajustes › Cuentas y claves", "#tab-credentials", panel, "#settings-panel .cred-line"],
-    ["Ajustes › Consolas", "#tab-consoles", panel, '#settings-panel input[type="checkbox"]'],
+    ["Ajustes › Consolas", "#tab-consoles", panel, "#settings-panel .console-row"],
     ["Ajustes › Claude", "#tab-claude", panel, '#settings-panel input[type="time"]'],
     ["Ajustes › General", "#tab-general", panel, "#settings-panel .version-row"],
     // Almacenamiento es la primera pestaña (#208): se mide al volver a ella.

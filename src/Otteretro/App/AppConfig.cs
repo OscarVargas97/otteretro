@@ -18,23 +18,15 @@ public sealed class AppConfig
     [JsonPropertyName("origenActualizaciones")]
     public string? UpdateSource { get; set; }
 
-    /// <summary>Con el canal «local» (#163): la carpeta donde `scripts/empaquetar.ps1` deja los paquetes de este equipo.</summary>
-    [JsonPropertyName("carpetaActualizacionesLocal")]
-    public string? LocalUpdateFolder { get; set; }
-
     /// <summary>
     /// De dónde se actualiza (#180, #163): «stable» (releases de main), «testing» (prereleases de dev), «local»
-    /// (LocalUpdateFolder) o «custom» (UpdateSource).
+    /// (`Paquetes` de tus discos, decisión 244) o «custom» (UpdateSource).
     /// Sin canal, un config.json de antes con origen sigue con él; si no, Estable.
     /// </summary>
     [JsonPropertyName("canalActualizaciones")]
     public string? UpdateChannel { get; set; }
 
     public static readonly string[] UpdateChannels = ["stable", "testing", "local", "custom"];
-
-    /// <summary>El origen del canal en uso: la carpeta local o el otro origen.</summary>
-    [JsonIgnore]
-    public string? EffectiveUpdateOrigin => EffectiveUpdateChannel == "local" ? LocalUpdateFolder : UpdateSource;
 
     [JsonIgnore]
     public string EffectiveUpdateChannel => UpdateChannel is { } c && UpdateChannels.Contains(c) ? c : string.IsNullOrEmpty(UpdateSource) ? "stable" : "custom";
@@ -44,6 +36,22 @@ public sealed class AppConfig
 
     /// <summary>Idioma elegido en Ajustes; null = el del sistema (#140). Va acá y no en la base porque el asistente corre antes de que exista.</summary>
     public string? Language { get; set; }
+
+    /// <summary>El orden de regiones al elegir una versión por juego (§9.4, #197). `es` es «tiene español».</summary>
+    [JsonPropertyName("ordenRegiones")]
+    public List<string>? RegionOrder { get; set; }
+
+    /// <summary>Conexiones por archivo al descargar (#226); cada sitio tiene su tope.</summary>
+    [JsonPropertyName("conexionesDescarga")]
+    public int? DownloadConnections { get; set; }
+
+    /// <summary>Descargas a la vez por sitio (#202, decisión 248); cada sitio tiene su tope según tu cuenta. Sin valor, 1.</summary>
+    [JsonPropertyName("descargasPorSitio")]
+    public Dictionary<string, int>? DownloadsPerSite { get; set; }
+
+    /// <summary>Lo que copias entra al capturador (#210). Sin valor, sí.</summary>
+    [JsonPropertyName("capturarPortapapeles")]
+    public bool? ClipboardCapture { get; set; }
 
     /// <summary>El menú lateral retraído a una franja de íconos (#130). Va acá porque el puerto local cambia en cada arranque y el navegador no lo recordaría.</summary>
     [JsonPropertyName("menuRetraido")]

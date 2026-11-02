@@ -1,0 +1,11 @@
+Herramientas de conversión que viajan con Otteretro (#232, #241). Se distribuyen sin cambios, bajo su licencia.
+
+DolphinTool.exe
+  De Dolphin 2512 (dolphin-2512-x64.7z). Licencia: GPL-2.0 o posterior, en COPYING-Dolphin.txt.
+  Código fuente: https://github.com/dolphin-emu/dolphin (etiqueta 2512)
+
+chdman.exe
+  De MAME 0.289 (mame0289b_x64.exe). Licencia: en COPYING-MAME.txt.
+  Código fuente: https://github.com/mamedev/mame (etiqueta mame0289)
+
+Para actualizarlas: borra el archivo, cambia la versión y el hash en scripts/herramientas.ps1 y córrelo.

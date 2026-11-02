@@ -15,13 +15,13 @@ const MAIN: Entry[] = [
   { href: "/", key: "home" },
   { href: "/sagas/", key: "sagas" },
   { href: "/collection/", key: "collection" },
-  { href: "/discover/", key: "discover", phase: 11 },
+  { href: "/discover/", key: "discover", phase: 9 },
   { href: "/review/", key: "review" },
 ];
 const SECONDARY: Entry[] = [
-  { href: "/downloads/", key: "downloads", phase: 10 },
+  { href: "/downloads/", key: "downloads" },
   { href: "/tools/", key: "tools" },
-  { href: "/steam/", key: "steam", phase: 8 },
+  { href: "/steam/", key: "steam", phase: 6 },
   { href: "/settings/", key: "settings" },
 ];
 

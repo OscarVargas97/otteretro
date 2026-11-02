@@ -11,7 +11,7 @@ import type { CredentialRequest, CredentialStatus } from "@/lib/types";
 const KEY = ["credentials"];
 
 /** Fase en curso: arriba van los servicios que ya se usan; los de fases posteriores, plegados. Subirla al abrir cada fase. */
-const CURRENT_PHASE = 1;
+const CURRENT_PHASE = 4;
 
 /** Un campo dentro del diálogo: si está guardado y, al editarlo, el campo para pegar el valor. Nunca se muestra el valor. */
 function CredentialRow({ c }: { c: CredentialStatus }) {
@@ -67,7 +67,10 @@ function CredentialRow({ c }: { c: CredentialStatus }) {
       {editing && (
         <form className="form-block" onSubmit={(e) => { e.preventDefault(); save.mutate({ value }); }}>
           <label className="small muted" htmlFor={inputId}>{label}</label>
-          <input id={inputId} type="password" autoComplete="off" spellCheck={false} value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
+          {/* La lista de contraseñas de comprimidos (#195) va una por línea. */}
+          {c.id === "archives.passwords"
+            ? <textarea id={inputId} autoComplete="off" spellCheck={false} rows={4} value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
+            : <input id={inputId} type="password" autoComplete="off" spellCheck={false} value={value} onChange={(e) => setValue(e.target.value)} autoFocus />}
           <div style={{ display: "flex", gap: 8 }}>
             <button className="ot-btn" type="button" onClick={() => { setEditing(false); setValue(""); }}>{t("cancel")}</button>
             <button className="ot-btn ot-btn-primary" type="submit" disabled={!value.trim() || save.isPending}>{t("save")}</button>
@@ -111,7 +114,7 @@ function ServiceDialog({ service, fields, onClose }: { service: string; fields: 
         {fields.map((c) => <CredentialRow key={c.id} c={c} />)}
         {open.error && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(open.error)}</p>}
         <div className="dialog-actions">
-          <button className="ot-btn ot-btn-ghost" type="button" title={fields[0].url} onClick={() => open.mutate(fields[0].id)}>{t("getIt")}</button>
+          {fields[0].url && <button className="ot-btn ot-btn-ghost" type="button" title={fields[0].url} onClick={() => open.mutate(fields[0].id)}>{t("getIt")}</button>}
           <button className="ot-btn" type="button" onClick={onClose}>{t("close")}</button>
         </div>
       </div>
@@ -138,7 +141,7 @@ function ServiceLine({ service, fields, onOpen, phase }: { service: string; fiel
 }
 
 /** Ajustes › Cuentas y claves (§5.6, #57, #111): una fila por servicio; lo de fases posteriores, en una línea gris al final. */
-export function CredentialsSettings() {
+export function CredentialsSettings({ only }: { only?: string[] }) {
   const t = useTranslations("credentials");
   const dt = useDynamicT();
   const describe = useDescribeError();
@@ -148,7 +151,7 @@ export function CredentialsSettings() {
   if (list.isError) return <div className="panel"><p className="error small" style={{ margin: 0 }}>{describe(list.error)}</p></div>;
   if (list.isPending) return <div className="panel" aria-busy="true"><Panels count={3} /></div>;
   const all = list.data ?? [];
-  const services = [...new Set(all.map((c) => c.service))];
+  const services = [...new Set(all.map((c) => c.service))].filter((s) => !only || only.includes(s));
   const fieldsOf = (s: string) => all.filter((c) => c.service === s);
   const phaseOf = (s: string) => Number(fieldsOf(s)[0].phase);
   const now = services.filter((s) => phaseOf(s) <= CURRENT_PHASE);

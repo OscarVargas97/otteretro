@@ -70,10 +70,11 @@
       "welcome": "Welcome",
       "dataFolder": "Data folder",
       "backup": "Backup",
-      "libraries": "Game locations",
+      "libraries": "Disks",
       "steam": "Steam",
       "keys": "Keys",
-      "initialLoad": "Initial load"
+      "initialLoad": "Initial load",
+      "accounts": "Download accounts"
     },
     "phase": "Phase {phase}",
     "stepOf": "Step {step} of {total}",
@@ -95,7 +96,10 @@
     "disksText": "Drives:",
     "useDisk": "Use {path}",
     "diskAdded": "{path} ✓",
-    "done": "Done"
+    "done": "Done",
+    "accountsTitle": "Your download accounts",
+    "accountsText": "If you pay for 1fichier or Mega, leave your key here to download with your account. It is optional: you can do it later in Settings › Accounts and keys.",
+    "next": "Next"
   },
   "settings": {
     "dataFolder": "Data folder",
@@ -255,13 +259,13 @@
       "custom": "Other source",
       "stableHint": "The versions published on GitHub: tested and with their release notes.",
       "testingHint": "The latest in development, before it is published. It may have bugs.",
-      "localHint": "The packages you build on this computer with scripts/empaquetar.ps1. Its folder is remembered, so you can come back to it in one click.",
+      "localHint": "The packages you build on this computer with scripts/empaquetar.ps1. They are found on their own in the Otteretro\\Paquetes folder of your disks.",
       "customHint": "A folder, a web address or the GitHub repo of someone who builds their own Otteretro.",
       "origin": "Update source",
       "originPlaceholder": "D:\\packages or https://github.com/user/otteretro",
-      "localFolder": "Local packages folder",
-      "localPlaceholder": "For example D:\\dev\\artefactos\\otteretro\\paquetes",
-      "use": "Use"
+      "use": "Use",
+      "localFound": "Packages in {path}",
+      "localNone": "None of your disks has packages in Otteretro\\Paquetes."
     },
     "taskTitle": "Otteretro update",
     "checking": "Checking…",
@@ -287,7 +291,8 @@
       "failed": "Could not check for or download the update. The details are in the log.",
       "withSystem": "Updated with the system: it arrives with the next PlayOS or NixOS update."
     },
-    "withSystemBadge": "With the system"
+    "withSystemBadge": "With the system",
+    "attribution": "Game data: IGDB.com"
   },
   "errors": {
     "http": "The app responded with an error ({status}).",
@@ -427,7 +432,12 @@
       "noLearning": "That change no longer exists or cannot be corrected."
     },
     "catalog": {
-      "badRefreshDays": "Days go from 1 to 365."
+      "badRefreshDays": "Days go from 1 to 365.",
+      "downloading": "Downloading catalog {version}",
+      "applying": "Applying catalog {version}",
+      "badHash": "The published catalog does not match its hash: you keep the previous one.",
+      "badFile": "The published catalog could not be opened: you keep the previous one.",
+      "badRelease": "The published catalog version is incomplete: you keep the previous one."
     },
     "automation": {
       "notFound": "That suggestion is gone.",
@@ -475,7 +485,9 @@
         "verified": "{path}: verified ({name}).",
         "notInDat": "{path}: its hash is not in the DAT.",
         "summary": "{verified} verified and {missing} with no match.",
-        "missingFile": "{path} is missing: it was deleted or moved since the last scan."
+        "missingFile": "{path} is missing: it was deleted or moved since the last scan.",
+        "chdIntact": "{path}: the CHD is intact.",
+        "chdDamaged": "{path}: the CHD is damaged."
       }
     },
     "review": {
@@ -484,7 +496,76 @@
       "noVersion": "That game has no version on the file's console."
     },
     "source": {
-      "badExecutable": "That executable is not in the game's folder."
+      "badExecutable": "That executable is not in the game's folder.",
+      "nothingMarked": "You did not mark anything to remove.",
+      "notFound": "One of the files is no longer registered: open the game again."
+    },
+    "trash": {
+      "unsupported": "Sending to the recycle bin is not available on this system yet.",
+      "unavailable": "{path} is on a drive without a recycle bin (network or removable): remove it by hand if you want to delete it.",
+      "failed": "Could not send {path} to the recycle bin."
+    },
+    "import": {
+      "overlapsDisk": "That folder overlaps the disk {name}: choose one outside its folders.",
+      "file": "Importing {path}",
+      "log": {
+        "moved": "{path} → {to}",
+        "unknown": "{path}: its console is unknown, so it stays where it is. Put it in a folder named after the console.",
+        "conflict": "{path}: a different file already exists at {to}, it is not overwritten.",
+        "noSpace": "{path}: not enough space on {disk}.",
+        "noDat": "Could not download the DAT for {console}: importing without verifying.",
+        "summary": "Imported: {moved}. Not imported: {skipped}.",
+        "waiting": "{path} is waiting in Entrada: it was not recognized for sure. Check it in Review.",
+        "archiveFailed": "{path}: could not be extracted (damaged or a part is missing). It stays where it is.",
+        "password": "{path}: no password in your list opens it. Add it in Settings › Accounts and keys.",
+        "noGames": "{path}: it contains no games. It stays where it is.",
+        "archiveDone": "{path}: imported and deleted.",
+        "extra": "{path}: it is a hack, beta or demo; it is not imported automatically.",
+        "duplicate": "{path}: you already have that game; skipped.",
+        "replaced": "{path}: replaces yours, which was not verified and went to the recycle bin.",
+        "screenscraper": "ScreenScraper did not answer, rejected your accounts or your quota ran out: this task continues without it."
+      },
+      "extracting": "Extracting {path}",
+      "badRegions": "That region order is not valid."
+    },
+    "convert": {
+      "notConvertible": "That console has no light format.",
+      "file": "Converting {console}",
+      "converting": "Converting {path}",
+      "log": {
+        "portKeeps": "{path}: this game's port does not accept that format, so it stays as is.",
+        "noTool": "{path}: the conversion or verification tool is missing.",
+        "failed": "{path}: could not be converted; the original stays as is.",
+        "done": "{path}: converted and checked.",
+        "summary": "Converted: {converted}."
+      }
+    },
+    "system": {
+      "badConsole": "That console does not exist.",
+      "badName": "That file name is not valid."
+    },
+    "download": {
+      "noLinks": "There are no links.",
+      "badLink": "One of the links cannot be downloaded.",
+      "badName": "That package name is not valid.",
+      "failed": "{file}: the download did not complete.",
+      "waiting": "The site asks to wait {seconds} s",
+      "progress": "Downloading {file}",
+      "log": {
+        "done": "{name}: finished and moved to {path}.",
+        "corrupt": "{file} does not match what was expected: downloading it again."
+      },
+      "unavailable": "{file}: the site answered {status}; the link is not available.",
+      "notDirect": "{url} is a page, not a file: that site needs a connector.",
+      "needsAccount": "{site} needs your account: add it in Settings › Accounts and keys.",
+      "badAccount": "{site} rejected your account: check it in Settings › Accounts and keys.",
+      "siteSaid": "{site} answered: {message}",
+      "badConnections": "Connections go from 1 to 8.",
+      "running": "Downloading {file}",
+      "openInBrowser": "{site} did not give the direct link (its page changed or it asks for a captcha): open it in the browser and leave what you download in Entrada.",
+      "corrupt": "{file} arrived damaged three times: the link may be bad. Download it again or find it elsewhere.",
+      "archiveBroken": "{file} arrived damaged: it failed its CRC when extracting. Nothing was deleted; download it again.",
+      "badParallel": "That number is over the site's limit for your account."
     }
   },
   "credentials": {
@@ -506,7 +587,9 @@
       "steamgriddb": "SteamGridDB",
       "rawg": "RAWG (optional)",
       "retroachievements": "RetroAchievements",
-      "myjdownloader": "MyJDownloader"
+      "archives": "Compressed files",
+      "onefichier": "1fichier",
+      "mega": "Mega"
     },
     "field": {
       "token": "Token",
@@ -515,7 +598,10 @@
       "clientSecret": "Client secret",
       "user": "Username",
       "password": "Password",
-      "email": "Email"
+      "email": "Email",
+      "passwords": "Passwords, one per line",
+      "devId": "Developer ID",
+      "devPassword": "Developer password"
     },
     "later": "Later ({count})",
     "laterHint": "Not needed yet: each one is asked for when its phase arrives.",
@@ -531,7 +617,9 @@
       "steamgriddb": "Covers, backgrounds and logos.",
       "rawg": "Fills in years IGDB doesn’t have.",
       "retroachievements": "Your achievements in retro games.",
-      "myjdownloader": "Sends downloads to JDownloader."
+      "archives": "Passwords tried automatically when extracting.",
+      "onefichier": "Download with your premium account.",
+      "mega": "Download with your account."
     }
   },
   "tasks": {
@@ -565,13 +653,18 @@
         "move": "Move a location or a folder",
         "adopt": "Migrate a location to the new layout",
         "scan": "Scan your drives",
-        "verify": "Verify files by hash"
+        "verify": "Verify files by hash",
+        "import": "Import a folder",
+        "convert": "Convert to the light format"
       },
       "disk": {
         "migrate": "Move to the standard drive layout"
       },
       "dat": {
         "update": "Download the No-Intro and Redump DATs"
+      },
+      "download": {
+        "package": "Download a package"
       }
     },
     "status": {
@@ -654,7 +747,7 @@
         "activity": "Recent activity"
       },
       "emptyTitle": "No series yet",
-      "emptyText": "Series and their games are loaded from IGDB. Paste the account in Settings › Accounts and keys and load one with “otteretro catalogo cargar --saga zelda”.",
+      "emptyText": "Sagas come with the app and update on their own. If you see none, check your connection and reopen it.",
       "noMatch": "No series match this filter.",
       "platform": "Company or console",
       "allPlatforms": "All consoles",
@@ -674,7 +767,7 @@
       "noneText": "Open a series from Series or with search.",
       "notFound": "This series is no longer in the catalog.",
       "route": "Route",
-      "noRoutes": "Claude hasn't prepared this saga's routes yet. They're prepared at night (otteretro claude cargar) or on request, and approved in Review.",
+      "noRoutes": "This saga has no routes in the catalog yet.",
       "recalculate": "Ask Claude to recalculate",
       "queued": "Queued: Claude reviews it during its schedule and the result goes to Review.",
       "why": "Why this order",
@@ -706,7 +799,7 @@
       "unlinked": "In your stores, not in the catalog yet",
       "unlinkedHint": "They show up anyway; once their series is loaded from IGDB they move to the grid.",
       "emptyTitle": "No games for this console",
-      "emptyText": "Load its games with “otteretro catalogo cargar --consola {console}” or, for PC, sync Steam.",
+      "emptyText": "They are not in the catalog yet. They will come with a future version.",
       "name": "Game",
       "saga": "Series",
       "year": "Year",
@@ -719,7 +812,43 @@
       "scanQueued": "Scanning: follow it in the tasks panel.",
       "verify": "Verify",
       "verifyHelp": "Hashes your files for this console and checks them against No-Intro or Redump, offline.",
-      "verifyQueued": "Verifying: follow it in the tasks panel."
+      "verifyQueued": "Verifying: follow it in the tasks panel.",
+      "import": "Import folder",
+      "importHelp": "Brings the games in a folder to your disks, each in its place.",
+      "importLabel": "Folder to import",
+      "importPlaceholder": "D:\\Downloads\\Games",
+      "importHint": "First you see what is there. Each game moves to Juegos on its disk: it is copied, verified and only then deleted from here. Anything whose console is unknown stays in the folder.",
+      "importCancel": "Cancel",
+      "importQueued": "Import queued: follow it in the tasks panel.",
+      "convert": "Convert",
+      "convertHelp": "Turns what you have of this console into RVZ or CHD. The original is deleted after checking the copy.",
+      "convertQueued": "Conversion queued: follow it in the tasks panel.",
+      "importSee": "See what is there",
+      "importRun": "Import ({count})",
+      "importEmpty": "No games found in that folder.",
+      "importAll": "All",
+      "importOnlyCatalog": "Only what is in the catalog",
+      "importSaga": "Saga",
+      "importConsole": "Console",
+      "importNoConsole": "No console",
+      "importMore": "Show {count} more",
+      "importCount": "{selected} of {total} marked",
+      "importRegions": "Region order",
+      "importUp": "Move {region} up",
+      "importRegion": {
+        "es": "With Spanish",
+        "Europe": "Europe",
+        "USA": "USA",
+        "Japan": "Japan",
+        "World": "World"
+      },
+      "importReason": {
+        "extra": "Hack, beta or demo",
+        "region": "Another version",
+        "owned": "You already have it verified"
+      },
+      "noneTitle": "Nothing to show with this filter",
+      "noneText": "Import a folder, drop your games in Entrada or try another filter."
     },
     "game": {
       "noneTitle": "Pick a game",
@@ -783,7 +912,12 @@
       "notVerified": "Not verified",
       "verify": "Verify",
       "verifyQueued": "Verifying: follow it in the tasks panel.",
-      "executable": "Executable"
+      "executable": "Executable",
+      "remove": "Remove from disk",
+      "removeHint": "What you mark goes to the recycle bin and stops counting as owned. Updates and DLC only go if you mark them.",
+      "removeConfirm": "Send to recycle bin ({count})",
+      "removeCancel": "Cancel",
+      "download": "Download"
     },
     "search": {
       "sagas": "Series",
@@ -807,7 +941,7 @@
     "title": "Notices",
     "missingKey": "The {service} key is missing: its data can't be loaded without it.",
     "openSettings": "Open Settings",
-    "missingKeys": "Keys are missing for {services}: their data can't be loaded without them.",
+    "missingKeys": "Otteretro already works. For covers and new data, add your keys for {services}.",
     "openCredentials": "Accounts and keys",
     "unidentified": "{count, plural, one {1 unidentified file} other {# unidentified files}}: pick its game in Review.",
     "openReview": "Open Review"
@@ -987,8 +1121,87 @@
     "cancel": "Cancel",
     "confirm": "Move",
     "queued": "Added to the tasks panel.",
-    "systemHelp": "BIOS, keys and firmware live in the system locations of Settings › Storage. Each console shows its own.",
-    "openStorage": "Open Storage",
-    "dataFolder": "Herramientas (data folder)"
+    "systemHelp": "Your BIOS, keys and firmware, with versions, in Sistema on the ★ disk. You upload them: Otteretro neither downloads nor shares them. A new version never replaces the previous one.",
+    "dataFolder": "Herramientas (data folder)",
+    "systemConsole": "Choose the console",
+    "systemUpload": "Upload a file",
+    "systemUploading": "Uploading…",
+    "systemEmptyTitle": "No system files",
+    "systemEmptyText": "Choose a console and upload your BIOS, keys or firmware.",
+    "systemMissing": "{name} is missing"
+  },
+  "downloads": {
+    "add": "Grab links",
+    "links": "Paste or drop your links, in any text: they are saved right away",
+    "linksHint": "https://…",
+    "disk": "Destination disk",
+    "defaultDisk": "★ disk",
+    "emptyTitle": "No downloads",
+    "emptyText": "Add links in the grabber: what you download sorts itself onto your disk.",
+    "summary": "{disk} · {done} of {total} files",
+    "speed": "{speed} MB/s",
+    "pause": "Pause",
+    "resume": "Resume",
+    "cancel": "Cancel",
+    "status": {
+      "queued": "Queued",
+      "running": "Downloading",
+      "paused": "Paused",
+      "done": "Finished",
+      "error": "Failed",
+      "canceled": "Canceled"
+    },
+    "addForGame": "Grab links for {name}",
+    "check": "Check links",
+    "checking": "Checking…",
+    "noLinks": "No links found in that text.",
+    "files": "{count, plural, one {# file} other {# files}}",
+    "startCount": "Download ({count})",
+    "state": {
+      "unavailable": "Not available",
+      "blocked": "Needs your account or solving a captcha",
+      "noConnector": "Site without a connector",
+      "unknown": "No answer",
+      "unchecked": "Not checked"
+    },
+    "connections": "Connections",
+    "connectionsHelp": "Per file. Each site has its cap, so your account is not at risk: 1fichier uses one.",
+    "openBrowser": "Open in browser",
+    "tabQueue": "Downloads",
+    "tabLinks": "Link grabber",
+    "tabLinksCount": "Link grabber ({count})",
+    "sections": "Downloads sections",
+    "addLinks": "Add",
+    "clipboard": "Also grab the links I copy",
+    "captureEmpty": "No links waiting. Paste some above, or copy them with the app open.",
+    "checkHelp": "Asks each site. Use it calmly: a site that receives many failed requests may block your account for a while.",
+    "remove": "Remove",
+    "removeLink": "Remove {name}",
+    "gameLinks": "Your links",
+    "gameLinksPrivate": "Private: they stay only in your data",
+    "downloadAgain": "Download again",
+    "itemsSummary": "{count, plural, one {Show # link} other {Show # links}}",
+    "itemPending": "Pending",
+    "parallelTitle": "Downloads at once, per site",
+    "parallelHelp": "How many downloads run at the same time from each site. Different sites download in parallel. The limit depends on your account.",
+    "parallelMax": "Up to {max} with your account",
+    "parallelFree": "Without premium, 1. With your API key, up to 10.",
+    "site": {
+      "1fichier": "1fichier",
+      "mega": "Mega",
+      "mediafire": "MediaFire",
+      "torrent": "Torrents",
+      "direct": "Direct links"
+    },
+    "verified": {
+      "crc32": "Verified (CRC32)",
+      "md5": "Verified (MD5)",
+      "sha1": "Verified (SHA-1)",
+      "sha256": "Verified (SHA-256)",
+      "sha512": "Verified (SHA-512)",
+      "size": "Size only",
+      "site": "Verified by the site",
+      "none": "Not verified"
+    }
   }
 }

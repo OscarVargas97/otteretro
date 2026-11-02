@@ -15,6 +15,19 @@ public record VerifyRequest(string? Console, long? GameId);
 
 /// <summary>El ejecutable de un juego de PC suelto, relativo a su carpeta (#182).</summary>
 public record ExecutableRequest(string Path);
+/// <param name="Skip">Lo que se desmarcó en la vista previa, relativo a la carpeta.</param>
+public record DownloadRequest(string Name, string? DiskId, List<string> Links, long? GameId = null);
+public record CaptureRequest(string Text, long? GameId = null);
+public record QueueLinksRequest(List<string> Packages, string? DiskId);
+public record ClipboardRequest(bool Enabled);
+public record SiteLimitRequest(string Site, int Value);
+public record ConnectionsRequest(int Connections);
+public record ImportRequest(string Path, List<string>? Skip = null);
+public record PreviewRequest(string Path);
+public record RegionsRequest(List<string> Order);
+public record ConvertRequest(string Console);
+/// <param name="Ids">Las filas de <c>source</c> que se quitan del disco (#224).</param>
+public record TrashRequest(List<long> Ids);
 
 /// <summary>Pantallas del catálogo (F1.9): sagas, colección, ficha, seguimiento, búsqueda y avisos de Inicio.</summary>
 public static class CatalogEndpoints
@@ -22,7 +35,6 @@ public static class CatalogEndpoints
     /// <summary>Claves sin las que una parte del catálogo no funciona: van como aviso en Inicio (§2, #44).</summary>
     static readonly (string Service, string[] Ids)[] NeededKeys =
     [
-        ("igdb", ["igdb.clientId", "igdb.clientSecret"]),
         ("steamgriddb", ["steamgriddb.apiKey"]),
         ("steam", ["steam.apiKey"]),
     ];
@@ -49,27 +61,8 @@ public static class CatalogEndpoints
         api.MapGet("/consoles", Results<Ok<List<ConsoleCount>>, Conflict<ApiError>> (AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(CatalogQueries.Consoles(db)) : NoData());
 
-        // Ajustes › Consolas (F2.13, F2.14): habilitar consolas desde IGDB y el catálogo al día.
         api.MapGet("/consoles/settings", Results<Ok<ConsolesPage>, Conflict<ApiError>> (AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(Consoles.Page(db)) : NoData());
-        api.MapGet("/consoles/igdb", async Task<Results<Ok<List<PlatformInfo>>, Conflict<ApiError>>> (AppSession s, SecretBox box, CancellationToken ct) =>
-        {
-            if (Db(s) is not { } db) return NoData();
-            try { return TypedResults.Ok(await Consoles.Available(db, IgdbFor(db, s, box), ct)); }
-            catch (TaskException e) { return TypedResults.Conflict(e.Error); }
-        });
-        api.MapPost("/consoles", async Task<Results<Ok<ConsolesPage>, NotFound, Conflict<ApiError>>> (EnableConsoleRequest request, AppSession s, SecretBox box, CancellationToken ct) =>
-        {
-            if (Db(s) is not { } db) return NoData();
-            try { return await Consoles.Enable(db, IgdbFor(db, s, box), request.IgdbId, ct) is null ? TypedResults.NotFound() : TypedResults.Ok(Consoles.Page(db)); }
-            catch (TaskException e) { return TypedResults.Conflict(e.Error); }
-        });
-        api.MapPut("/consoles/{id}", Results<Ok<ConsolesPage>, NotFound, Conflict<ApiError>> (string id, ConsoleUpdateRequest request, AppSession s) =>
-            Db(s) is not { } db ? NoData() : Consoles.SetEnabled(db, id, request.Enabled) ? TypedResults.Ok(Consoles.Page(db)) : TypedResults.NotFound());
-        api.MapPut("/catalog/refresh", Results<Ok<ConsolesPage>, BadRequest<ApiError>, Conflict<ApiError>> (RefreshSettingsRequest request, AppSession s) =>
-            Db(s) is not { } db ? NoData() : Consoles.SaveRefreshDays(db, request.Days) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(Consoles.Page(db)));
-        api.MapPost("/catalog/refresh", Results<Ok<long>, Conflict<ApiError>> (AppSession s) =>
-            Db(s) is { } db ? TypedResults.Ok(IgdbImport.EnqueueRefresh(db)) : NoData());
 
         // Portadas a pedido (#132).
         api.MapGet("/covers", Results<Ok<SteamGridDb.CoversInfo>, Conflict<ApiError>> (AppSession s, SecretBox box) =>
@@ -89,6 +82,112 @@ public static class CatalogEndpoints
         api.MapPost("/collection/scan", Results<Ok<long>, Conflict<ApiError>> (AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(Libraries.Scan.Enqueue(db)) : NoData());
 
+        // «Importar carpeta» (#193): cada juego de esa carpeta a su lugar, movido con copia y hash.
+        api.MapPost("/collection/import", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (ImportRequest request, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var (task, error) = Libraries.Import.Enqueue(db, request.Path, request.Skip);
+            return error is null ? TypedResults.Ok(task!.Value) : TypedResults.BadRequest(error);
+        });
+
+        // La vista previa de esa carpeta (#197): qué hay, una versión por juego. No mueve nada.
+        api.MapPost("/collection/import/preview", Results<Ok<Libraries.MegapackPreview>, BadRequest<ApiError>, Conflict<ApiError>> (PreviewRequest request, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            if (Libraries.Import.CheckFolder(db, request.Path) is { } error) return TypedResults.BadRequest(error);
+            return TypedResults.Ok(Libraries.Megapack.Preview(db, request.Path, s.Config.RegionOrder ?? [.. Libraries.Megapack.DefaultRegions]));
+        });
+
+        api.MapPut("/collection/regions", Results<Ok, BadRequest<ApiError>> (RegionsRequest request, AppSession s) =>
+        {
+            if (request.Order.Count != Libraries.Megapack.DefaultRegions.Length || request.Order.Except(Libraries.Megapack.DefaultRegions).Any())
+                return TypedResults.BadRequest(ApiError.Of("import.badRegions"));
+            s.Config.RegionOrder = request.Order;
+            s.Config.Save(s.ConfigPath);
+            return TypedResults.Ok();
+        });
+
+        // Descargas (#202): la cola y agregar un paquete. Pausar, reanudar y cancelar son los de cualquier tarea.
+        api.MapGet("/downloads", Results<Ok<List<Libraries.DownloadInfo>>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(Libraries.Downloads.List(db)) : NoData());
+
+        api.MapPost("/downloads", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (DownloadRequest request, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var (task, error) = Libraries.Downloads.Enqueue(db, request.Name, request.DiskId, request.Links, request.GameId, s.Config.DownloadConnections ?? Libraries.Downloads.DefaultConnections);
+            return error is null ? TypedResults.Ok(task!.Value) : TypedResults.BadRequest(error);
+        });
+
+        // Conexiones por archivo (#226): se ajustan, y cada sitio tiene su tope.
+        api.MapGet("/downloads/connections", (AppSession s) => s.Config.DownloadConnections ?? Libraries.Downloads.DefaultConnections);
+        api.MapPut("/downloads/connections", Results<Ok, BadRequest<ApiError>> (ConnectionsRequest request, AppSession s) =>
+        {
+            if (request.Connections is < 1 or > 8) return TypedResults.BadRequest(ApiError.Of("download.badConnections"));
+            s.Config.DownloadConnections = request.Connections;
+            s.Config.Save(s.ConfigPath);
+            return TypedResults.Ok();
+        });
+
+        // Capturador (#203, #210): lo que pegas o copias queda guardado. Agregar no consulta los sitios; comprobar, solo cuando lo pides.
+        api.MapGet("/downloads/links", Results<Ok<List<Libraries.LinkPackage>>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(Libraries.DownloadLinks.Captured(db)) : NoData());
+
+        api.MapPost("/downloads/links", Results<Ok<int>, Conflict<ApiError>> (CaptureRequest request, AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(Libraries.DownloadLinks.Add(db, request.Text, request.GameId).Found) : NoData());
+
+        api.MapPost("/downloads/links/check", async Task<Results<Ok<List<Libraries.LinkPackage>>, Conflict<ApiError>>> (AppSession s, SecretBox box, CancellationToken ct) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            await Libraries.DownloadLinks.Check(db, new Credentials(db, s.Config.MachineId, box), ct);
+            return TypedResults.Ok(Libraries.DownloadLinks.Captured(db));
+        });
+
+        api.MapPost("/downloads/links/queue", Results<Ok, BadRequest<ApiError>, Conflict<ApiError>> (QueueLinksRequest request, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var error = Libraries.DownloadLinks.Queue(db, request.Packages, request.DiskId, s.Config.DownloadConnections ?? Libraries.Downloads.DefaultConnections);
+            return error is null ? TypedResults.Ok() : TypedResults.BadRequest(error);
+        });
+
+        api.MapDelete("/downloads/links/{id:long}", Results<Ok, Conflict<ApiError>> (long id, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            Libraries.DownloadLinks.Remove(db, id);
+            return TypedResults.Ok();
+        });
+
+        api.MapGet("/games/{id:long}/links", Results<Ok<List<Libraries.CapturedLink>>, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(Libraries.DownloadLinks.OfGame(db, id)) : NoData());
+
+        // Descargas a la vez por sitio (#202, decisión 248), con el tope de tu cuenta.
+        api.MapGet("/downloads/sites", Results<Ok<List<Libraries.SiteLimit>>, Conflict<ApiError>> (AppSession s, SecretBox box) =>
+            Db(s) is { } db ? TypedResults.Ok(Libraries.Downloads.Limits(s.Config, new Credentials(db, s.Config.MachineId, box))) : NoData());
+        api.MapPut("/downloads/sites", Results<Ok<List<Libraries.SiteLimit>>, BadRequest<ApiError>, Conflict<ApiError>> (SiteLimitRequest request, AppSession s, SecretBox box) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var credentials = new Credentials(db, s.Config.MachineId, box);
+            if (Libraries.Downloads.Limits(s.Config, credentials).FirstOrDefault(l => l.Site == request.Site) is not { } site || request.Value < 1 || request.Value > site.Max)
+                return TypedResults.BadRequest(ApiError.Of("download.badParallel"));
+            (s.Config.DownloadsPerSite ??= [])[request.Site] = request.Value;
+            s.Config.Save(s.ConfigPath);
+            return TypedResults.Ok(Libraries.Downloads.Limits(s.Config, credentials));
+        });
+
+        api.MapGet("/downloads/clipboard", (AppSession s) => s.Config.ClipboardCapture ?? true);
+        api.MapPut("/downloads/clipboard", (ClipboardRequest request, AppSession s) =>
+        {
+            s.Config.ClipboardCapture = request.Enabled;
+            s.Config.Save(s.ConfigPath);
+        });
+
+        // «Convertir» (#233): lo que ya tienes de una consola al formato liviano.
+        api.MapPost("/collection/convert", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (ConvertRequest request, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var (task, error) = Libraries.Converter.Enqueue(db, request.Console);
+            return error is null ? TypedResults.Ok(task!.Value) : TypedResults.BadRequest(error);
+        });
+
         // «Verificar» (#179): el SHA-1 contra No-Intro o Redump, de una consola o de un juego.
         api.MapPost("/collection/verify", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (VerifyRequest request, AppSession s) =>
             Db(s) is not { } db ? NoData()
@@ -96,6 +195,13 @@ public static class CatalogEndpoints
             : TypedResults.Ok(Libraries.Dats.EnqueueVerify(db, request.Console, request.GameId)));
 
         // Cambiar el ejecutable de un juego de PC suelto (#182): uno de los .exe de su carpeta.
+        // Quitar un juego del disco (#224): lo marcado va a la papelera y deja de contar como «lo tengo».
+        api.MapPost("/sources/trash", Results<Ok, BadRequest<ApiError>, Conflict<ApiError>> (TrashRequest request, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            return Libraries.Disk.TrashSources(db, request.Ids.Distinct().ToList()) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok();
+        });
+
         api.MapPut("/sources/{id:long}/executable", Results<Ok, BadRequest<ApiError>, NotFound, Conflict<ApiError>> (long id, ExecutableRequest request, AppSession s) =>
         {
             if (Db(s) is not { } db) return NoData();
@@ -122,27 +228,6 @@ public static class CatalogEndpoints
             return CatalogQueries.SaveProgress(db, id, request) ? TypedResults.Ok(CatalogQueries.Game(db, id)!) : TypedResults.NotFound();
         });
 
-        // Corregir a mano un dato (§6.8): gana siempre y ninguna carga lo pisa. DELETE vuelve al de las fuentes.
-        api.MapPut("/games/{id:long}/fields/{field}", Results<Ok<GameDetail>, BadRequest<ApiError>, NotFound, Conflict<ApiError>> (long id, string field, FieldRequest request, AppSession s) =>
-        {
-            if (Db(s) is not { } db) return NoData();
-            if (!CatalogQueries.EditableFields.Contains(field)) return TypedResults.NotFound();
-            var value = request.Value?.Trim() ?? "";
-            if (value.Length == 0 && field == "name_es") return TypedResults.BadRequest(ApiError.Of("fields.empty"));
-            if (field == "year" && !(int.TryParse(value, out var year) && year is >= 1970 and <= 2100)) return TypedResults.BadRequest(ApiError.Of("fields.badYear"));
-            if (CatalogQueries.Game(db, id) is null) return TypedResults.NotFound();
-            using (var c = db.Open()) FieldValues.Set(c, "game", id, field, value.Length == 0 ? null : value, FieldValues.Manual);
-            return TypedResults.Ok(CatalogQueries.Game(db, id)!);
-        });
-
-        api.MapDelete("/games/{id:long}/fields/{field}", Results<Ok<GameDetail>, NotFound, Conflict<ApiError>> (long id, string field, AppSession s) =>
-        {
-            if (Db(s) is not { } db) return NoData();
-            if (!CatalogQueries.EditableFields.Contains(field) || CatalogQueries.Game(db, id) is null) return TypedResults.NotFound();
-            using (var c = db.Open()) FieldValues.Clear(c, "game", id, field, FieldValues.Manual);
-            return TypedResults.Ok(CatalogQueries.Game(db, id)!);
-        });
-
         api.MapGet("/search", Results<Ok<SearchResults>, Conflict<ApiError>> (AppSession s, string? q) =>
         {
             if (Db(s) is not { } db) return NoData();
@@ -163,9 +248,6 @@ public static class CatalogEndpoints
             return TypedResults.Ok(notices);
         });
     }
-
-    static Igdb IgdbFor(Database db, AppSession s, SecretBox box) =>
-        new(new ApiClient(db, IgdbImport.Handler), new Credentials(db, s.Config.MachineId, box), IgdbImport.Handler);
 
     static bool HasSgdbKey(Database db, AppSession s, SecretBox box) =>
         new Credentials(db, s.Config.MachineId, box).List().Any(c => c.Id == "steamgriddb.apiKey" && c.Saved);

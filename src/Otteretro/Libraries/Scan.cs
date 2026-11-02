@@ -18,7 +18,7 @@ public static partial class Scan
     public const string Kind = "library.scan";
 
     /// <summary>Lo que se cuenta como juego: de un CD, el .cue y no cada .bin. PC tiene su propio escaneo (#182).</summary>
-    static readonly HashSet<string> GameExtensions = new(StringComparer.OrdinalIgnoreCase)
+    internal static readonly HashSet<string> GameExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".nsp", ".nsz", ".xci", ".xcz", ".iso", ".rvz", ".gcm", ".gcz", ".wbfs", ".wia", ".ciso", ".chd", ".cue", ".cso", ".pbp", ".m3u",
         ".nes", ".fds", ".sfc", ".smc", ".n64", ".z64", ".v64", ".gb", ".gbc", ".gba", ".vb", ".nds", ".3ds", ".cia", ".cci", ".wua", ".wux",
@@ -40,10 +40,8 @@ public static partial class Scan
 
     public static Task Run(TaskRun run, CancellationToken ct)
     {
-        var folders = Library.ConsoleFolders(run.Db);
-        var libraries = Library.List(run.Db).ToDictionary(l => l.Id);
-        byte[]? keys = null;
-        var keysRead = false;
+        var folders = Disk.ConsoleFolders(run.Db);
+        var libraries = Disk.List(run.Db).ToDictionary(l => l.Id);
         var catalog = Catalog(run.Db);
         var aliases = Aliases(run.Db);
         int files = 0, matched = 0;
@@ -59,19 +57,14 @@ public static partial class Scan
                 foreach (var file in Directory.EnumerateFiles(Path.Combine(root, relative), "*", new EnumerationOptions { RecurseSubdirectories = true }))
                 {
                     ct.ThrowIfCancellationRequested();
-                    if (!GameExtensions.Contains(Path.GetExtension(file))) continue;
+                    if (!GameExtensions.Contains(Path.GetExtension(file)) || file.Contains(".convirtiendo.", StringComparison.OrdinalIgnoreCase)) continue;
                     var name = Path.GetFileNameWithoutExtension(file);
                     var parent = Path.GetDirectoryName(file)!;
-                    var folder = Library.Same(parent, Path.Combine(root, relative)) ? null : Path.GetFileName(parent);
+                    var folder = Disk.Same(parent, Path.Combine(root, relative)) ? null : Path.GetFileName(parent);
                     string? titleId = null, component = null;
                     if (console == "switch")
                     {
                         titleId = TitleIdInName().Match(name) is { Success: true } m ? m.Groups[1].Value.ToUpperInvariant() : null;
-                        if (titleId is null)
-                        {
-                            if (!keysRead) (keys, keysRead) = (SwitchTitle.HeaderKey(SystemFolders(run.Db, libraries.Values)), true);
-                            titleId = SwitchTitle.Read(file, keys);
-                        }
                         component = titleId is null ? null : ComponentOf(titleId);
                     }
                     else titleId = Serial(file);
@@ -174,7 +167,7 @@ public static partial class Scan
     private static partial Regex NotTheGame();
 
     /// <summary>Las versiones de cada consola por nombre normalizado (español y original). Un nombre con varias versiones queda dudoso.</summary>
-    static Dictionary<string, Dictionary<string, HashSet<long>>> Catalog(Database db)
+    internal static Dictionary<string, Dictionary<string, HashSet<long>>> Catalog(Database db)
     {
         using var c = db.Open();
         var result = new Dictionary<string, Dictionary<string, HashSet<long>>>();
@@ -211,7 +204,7 @@ public static partial class Scan
     public static string AliasText(string relativePath) => Normalize(Path.GetFileNameWithoutExtension(relativePath));
 
     /// <summary>Los alias vigentes (`learning` kind alias) de cada consola: nombre normalizado → la versión de su juego en esa consola.</summary>
-    static Dictionary<string, Dictionary<string, HashSet<long>>> Aliases(Database db)
+    internal static Dictionary<string, Dictionary<string, HashSet<long>>> Aliases(Database db)
     {
         using var c = db.Open();
         var result = new Dictionary<string, Dictionary<string, HashSet<long>>>();
@@ -228,7 +221,7 @@ public static partial class Scan
     }
 
     /// <summary>La versión si el nombre coincide con una sola; null si no hay o hay varias (eso queda para Claude, #180).</summary>
-    static long? Match(Dictionary<string, HashSet<long>> versions, string name) =>
+    internal static long? Match(Dictionary<string, HashSet<long>> versions, string name) =>
         versions.TryGetValue(Normalize(name), out var set) && set.Count == 1 ? set.First() : null;
 
     /// <summary>
@@ -255,7 +248,7 @@ public static partial class Scan
     }
 
     /// <summary>El serial de un disco de GameCube o Wii (ISO, GCM o RVZ), como «GZ2P01»; null en lo demás.</summary>
-    static string? Serial(string file)
+    internal static string? Serial(string file)
     {
         var ext = Path.GetExtension(file).ToLowerInvariant();
         if (ext is not (".iso" or ".gcm" or ".rvz")) return null;
@@ -276,13 +269,8 @@ public static partial class Scan
     static bool IsNintendoDisc(byte[] head) =>
         head.AsSpan(0x1C, 4).SequenceEqual(new byte[] { 0xC2, 0x33, 0x9F, 0x3D }) || head.AsSpan(0x18, 4).SequenceEqual(new byte[] { 0x5D, 0x1C, 0x9E, 0xA3 });
 
-    /// <summary>Dónde buscar `prod.keys`: Sistema de cada disco o ubicación de sistema conectada, y la de Herramientas de antes.</summary>
-    static IEnumerable<string> SystemFolders(Database db, IEnumerable<LibraryInfo> libraries) =>
-        libraries.Where(l => l.Connected).Select(l => Library.FolderOf(l, "system")).OfType<string>()
-            .Append(Path.Combine(LibraryTasks.ToolsOf(db), "Sistema"));
-
     [GeneratedRegex(@"\[(0100[0-9A-Fa-f]{12})\]")]
-    private static partial Regex TitleIdInName();
+    internal static partial Regex TitleIdInName();
 
     /// <summary>Como lo escriben No-Intro y Redump: «Legend of Zelda, The - Twilight Princess».</summary>
     [GeneratedRegex(@"^(.+?), (The|A|An)\b(.*)$", RegexOptions.IgnoreCase)]
