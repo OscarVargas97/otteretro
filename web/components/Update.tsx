@@ -85,7 +85,7 @@ export function VersionAndUpdate({ version }: { version?: string }) {
   return (
     <div className="panel">
       <div className="version-row">
-        <span>Otteretro {version}</span>
+        <span>Otteretro {version} <span className="small muted">· {t("attribution")}</span></span>
         {u?.phase === "Ready" ? (
           <button className="ot-btn ot-btn-primary" type="button" disabled={restart.isPending} aria-busy={restart.isPending} onClick={() => restart.mutate()}>
             {restart.isPending && <span className="spinner" aria-hidden="true" />}

@@ -61,6 +61,8 @@
   <!-- DolphinTool y chdman, en el repo con su licencia (#232, #241). Se actualizan con scripts/herramientas.ps1. -->
   <ItemGroup>
     <Content Include="herramientas\**" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <!-- El catálogo que trae la app, sin nada de la persona (#211). Se regenera con `otteretro catalogo exportar`. -->
+    <Content Include="catalogo\**" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

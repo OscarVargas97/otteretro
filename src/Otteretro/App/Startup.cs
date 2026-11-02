@@ -18,6 +18,7 @@ public static class Startup
         DataFolder.Upgrade(folder);
         var db = DataFolder.Open(folder);
         var applied = Migrations.Apply(db);
+        Catalog.InitialCatalog.Seed(db);
         Migrations.RegisterMachine(db, config.MachineId);
         Catalog.IgdbImport.EnqueuePopularity(db);
         FolderMove.RememberedSize(folder); // empieza a medirla, para que Ajustes no espere

@@ -12,6 +12,7 @@ static class Setup
         TaskQueue.AutoClaude = false;
         TaskQueue.OnOpen = false; // cada prueba lanza la migración, el escaneo o el vigilante cuando los quiere
         Claude.Identify.AfterScan = false;
+        Catalog.InitialCatalog.BundledFile = null; // cada prueba empieza con el catálogo vacío
         Libraries.Converter.BundledFolder = ""; // sin herramientas reales: la conversión se prueba con una falsa
     }
 }

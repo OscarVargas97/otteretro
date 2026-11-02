@@ -291,7 +291,8 @@
       "failed": "No se pudo buscar o descargar la actualización. El detalle está en el registro.",
       "withSystem": "Se actualiza con el sistema: llega con la próxima actualización de PlayOS o NixOS."
     },
-    "withSystemBadge": "Con el sistema"
+    "withSystemBadge": "Con el sistema",
+    "attribution": "Datos de juegos: IGDB.com"
   },
   "errors": {
     "http": "La app respondió con un error ({status}).",
@@ -840,7 +841,9 @@
         "extra": "Hack, beta o demo",
         "region": "Otra versión",
         "owned": "Ya lo tienes verificado"
-      }
+      },
+      "noneTitle": "Nada que mostrar con este filtro",
+      "noneText": "Importa una carpeta, deja tus juegos en Entrada o prueba otro filtro."
     },
     "game": {
       "noneTitle": "Elige un juego",
@@ -933,7 +936,7 @@
     "title": "Avisos",
     "missingKey": "Falta la clave de {service}: sin ella no se cargan sus datos.",
     "openSettings": "Abrir Ajustes",
-    "missingKeys": "Faltan claves de {services}: sin ellas no se cargan sus datos.",
+    "missingKeys": "Otteretro ya funciona. Si quieres portadas y datos nuevos, agrega tus claves de {services}.",
     "openCredentials": "Cuentas y claves",
     "unidentified": "{count, plural, one {1 archivo sin identificar} other {# archivos sin identificar}}: elige su juego en Revisar.",
     "openReview": "Abrir Revisar"

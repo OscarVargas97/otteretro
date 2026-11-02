@@ -49,6 +49,8 @@ Desde un **espacio** de [ia-workspace](https://github.com/OscarVargas97/ia-works
 | Ver la interfaz en un navegador sin ventana ni tocar la config real | `OTTERETRO_CONFIG=<ruta>/config.json Otteretro.exe servidor` → abre la URL que imprime |
 | Front en caliente | `cd web && npm run dev` (puerto 3000) y la app con `OTTERETRO_DEV_WEB=http://localhost:3000` |
 | Instalador local | `./scripts/empaquetar.ps1 [-Disk D:]` → `<disco>\Otteretro\Paquetes` con la versión `0.FASE.N-local.M`; para probarla, Ajustes › General › Actualizaciones › «Local», que la encuentra sola |
+| Regenerar el catálogo que trae la app (sin nada de la persona, #211) | `otteretro catalogo exportar src/Otteretro/catalogo/catalogo-inicial.db.gz` |
+| Regenerar las capturas del README, desde una instalación limpia | `cd web && node scripts/capturas.mjs` |
 | Paquete de Nix (en Linux con Nix) | `nix build` (compila el front y el back y corre `dotnet test`); `nix flake check` |
 | Probar en Linux | `nix build` y `OTTERETRO_CONFIG=/tmp/x/config.json ./result/bin/Otteretro servidor` (API) o `./result/bin/Otteretro` (ventana, con `DISPLAY`); `--fullscreen` simula la sesión Play |
 

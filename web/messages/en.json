@@ -291,7 +291,8 @@
       "failed": "Could not check for or download the update. The details are in the log.",
       "withSystem": "Updated with the system: it arrives with the next PlayOS or NixOS update."
     },
-    "withSystemBadge": "With the system"
+    "withSystemBadge": "With the system",
+    "attribution": "Game data: IGDB.com"
   },
   "errors": {
     "http": "The app responded with an error ({status}).",
@@ -840,7 +841,9 @@
         "extra": "Hack, beta or demo",
         "region": "Another version",
         "owned": "You already have it verified"
-      }
+      },
+      "noneTitle": "Nothing to show with this filter",
+      "noneText": "Import a folder, drop your games in Entrada or try another filter."
     },
     "game": {
       "noneTitle": "Pick a game",
@@ -933,7 +936,7 @@
     "title": "Notices",
     "missingKey": "The {service} key is missing: its data can't be loaded without it.",
     "openSettings": "Open Settings",
-    "missingKeys": "Keys are missing for {services}: their data can't be loaded without them.",
+    "missingKeys": "Otteretro already works. For covers and new data, add your keys for {services}.",
     "openCredentials": "Accounts and keys",
     "unidentified": "{count, plural, one {1 unidentified file} other {# unidentified files}}: pick its game in Review.",
     "openReview": "Open Review"

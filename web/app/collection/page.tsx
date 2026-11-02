@@ -57,7 +57,7 @@ function Collection() {
     onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
   });
   // Sin consola en la URL, la primera que tenga juegos.
-  const selected = useSearchParams().get("console") ?? consoles.data?.find((c) => Number(c.games) > 0)?.id ?? consoles.data?.[0]?.id;
+  const selected = useSearchParams().get("console") ?? consoles.data?.find((c) => countFor(c, filter) > 0)?.id ?? consoles.data?.find((c) => Number(c.games) > 0)?.id ?? consoles.data?.[0]?.id;
   const current = consoles.data?.find((c) => c.id === selected);
   // Por tramos al bajar (#177): PC tiene 20.000 juegos. Lo de Steam sin IGDB llega con el primero.
   const page = usePaged(["collection", selected, filter, sort], (offset) => `/api/collection/${selected}?${new URLSearchParams({ filter, sort, offset: String(offset) })}`,
@@ -129,7 +129,10 @@ function Collection() {
         {verify.isError && <p className="error small" role="alert">{describe(verify.error)}</p>}
         {page.isError && <p className="error small" role="alert">{describe(page.error)}</p>}
         {page.data && games.length === 0 && unlinked.length === 0 && (
-          <Empty title={t("collection.emptyTitle")} text={t("collection.emptyText", { console: selected ?? "" })}><Link className="ot-btn" href="/settings/?s=consoles">{t("openConsoles")}</Link></Empty>
+          // Con el catálogo incluido (#211), una consola sin resultados casi siempre es una consola de la que todavía no tienes nada.
+          Number(current?.games) > 0
+            ? <Empty title={t("collection.noneTitle")} text={t("collection.noneText")} />
+            : <Empty title={t("collection.emptyTitle")} text={t("collection.emptyText", { console: selected ?? "" })}><Link className="ot-btn" href="/settings/?s=consoles">{t("openConsoles")}</Link></Empty>
         )}
 
         {view === "grid" ? (

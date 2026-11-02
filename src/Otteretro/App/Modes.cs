@@ -65,6 +65,7 @@ public static class CliMode
             [--consola X]          una consola (snes, n64, switch, ps2…),
             [--saga X]             una saga (zelda, half-life…; PC se carga así)
             [--pc-populares]       o los 1.500 juegos de PC más calificados. Lo hace la app abierta.
+          catalogo exportar <archivo>  Escribe el catálogo que trae la app, sin nada tuyo (#211).
           catalogo depurar       Claude revisa las sagas dudosas del catálogo (repetidos, juegos que no son de la saga,
                                  sueltos que sí lo son) de noche y aplica los cambios solo; lo hace la app abierta.
             [--contar]             Solo cuenta los casos y estima el gasto, sin llamar a Claude.
@@ -113,6 +114,16 @@ public static class CliMode
                         ? $"Tarea {id} encolada; la app abierta la toma y Claude trabaja en su horario."
                         : $"Parte desconocida: {part}. Partes: {string.Join(", ", Claude.InitialLoad.Parts.Select(x => x.Id))}.");
                 });
+            case ["catalogo", "exportar", var file]:
+                // Solo lee el catálogo: no hace falta poner al día la base propia.
+                if (AppConfig.Load(AppConfig.DefaultPath).DataFolder is not { } folder || !DataFolder.IsReady(folder))
+                {
+                    output.WriteLine("Todavía no hay carpeta de datos: abre la app y elige una.");
+                    return 1;
+                }
+                Catalog.InitialCatalog.Export(DataFolder.Open(folder), Path.GetFullPath(file));
+                output.WriteLine($"Listo: {file}");
+                return 0;
             case ["catalogo", "depurar", "--contar"]:
                 return WithData(output, db =>
                 {
