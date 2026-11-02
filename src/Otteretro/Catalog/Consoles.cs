@@ -29,6 +29,7 @@ public static class Consoles
         using var c = db.Open();
         if (c.ExecuteScalar<long>("SELECT count(*) FROM console WHERE id = @id", new { id }) == 0) return false;
         c.Execute(visible ? "DELETE FROM console_hidden WHERE console_id = @id" : "INSERT OR IGNORE INTO console_hidden (console_id) VALUES (@id)", new { id });
+        SagaCache.Refresh(db); // se ve al instante (#225)
         return true;
     }
 }

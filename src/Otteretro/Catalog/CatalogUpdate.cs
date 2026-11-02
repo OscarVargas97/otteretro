@@ -175,6 +175,7 @@ public static class CatalogUpdate
             Save(c, AppliedVersion, pending.Tag);
         }
         Reject(db);
+        SagaCache.Refresh(db); // la versión aceptada se ve al instante (#225)
         return null;
     }
 
@@ -214,6 +215,7 @@ public static class CatalogUpdate
             ImageRefs.Forget(db, changed);
             MoveWhatIsYours(c);
             Steam.Link(c); // lo de Steam que recién ahora está en el catálogo
+            c.Execute("UPDATE cache_generation SET value = value + 1"); // Sagas guardado ya no vale (#225)
         }
         finally { c.Execute("DETACH DATABASE initial"); }
     }
