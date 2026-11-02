@@ -799,7 +799,7 @@
       "unlinked": "In your stores, not in the catalog yet",
       "unlinkedHint": "They show up anyway; once their series is loaded from IGDB they move to the grid.",
       "emptyTitle": "No games for this console",
-      "emptyText": "The catalog has no games for this console yet. They will come with a future version.",
+      "emptyText": "They are not in the catalog yet. They will come with a future version.",
       "name": "Game",
       "saga": "Series",
       "year": "Year",

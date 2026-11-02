@@ -799,7 +799,7 @@
       "unlinked": "En tus tiendas, todavía sin datos del catálogo",
       "unlinkedHint": "Aparecen igual; al cargar su saga desde IGDB pasan a la cuadrícula.",
       "emptyTitle": "No hay juegos de esta consola",
-      "emptyText": "El catálogo todavía no tiene juegos de esta consola. Llegarán con una próxima versión.",
+      "emptyText": "Todavía no están en el catálogo. Llegarán con una próxima versión.",
       "name": "Juego",
       "saga": "Saga",
       "year": "Año",
