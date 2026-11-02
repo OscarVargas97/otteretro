@@ -38,6 +38,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - La ficha de un juego muestra **dónde tienes sus archivos**, con BASE, UPD y DLC, tamaño y si están verificados.
 
 ### Cambios
+- **Descargas estables en discos lentos** (#202): lo que espera al disco ya no se acumula en memoria sin límite (llegó a 8 GB en un disco mecánico), la velocidad que se ve es la actual y una importación espera a que termine lo que se baja a su mismo disco.
 - **Generar el catálogo pasó a otro programa** (#214): cargar desde IGDB, depurar sagas, armar rutas, comparar versiones, Aprendizajes, habilitar consolas y sus claves ya no están en la app, sino en `otteretro-catalogo`. Revisar queda para tus archivos, y Claude, para identificarlos.
 - **Ya no se corrige a mano en la ficha** (#214): los cambios se proponen en el repo del catálogo.
 - **Avisos más claros** (#211): Inicio ya no dice que faltan claves como si la app no funcionara, y Colección abre en una consola de la que tienes juegos.
