@@ -144,6 +144,11 @@ public static class Identify
         }
         if (gameId is not null) AddAlias(c, t, Scan.AliasText(item.RelativePath), item.Console, gameId.Value, "manual", null);
         t.Commit();
+        // Lo que esperaba en `Entrada\` se ordena ya con el juego elegido (#237), sin esperar a que cambie algo en la carpeta.
+        if (gameId is not null && item.RelativePath.StartsWith(Libraries.Disk.EntryFolder + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+            && c.ExecuteScalar<string?>("SELECT library_id FROM source WHERE id = @SourceId", new { item.SourceId }) is { } library
+            && Libraries.Disk.Get(db, library) is { Connected: true } disk)
+            Libraries.Import.EnqueueEntry(db, disk);
         return null;
     }
 

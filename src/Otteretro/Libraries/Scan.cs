@@ -53,11 +53,20 @@ public static partial class Scan
             run.Report(i * 100 / Math.Max(1, folders.Count), ApiError.Of("scan.folder", ("path", Path.Combine(root, relative))));
             // PC (#182): cada carpeta de `Juegos\PC` es un juego, con su ejecutable.
             var found = console == "pc" ? PcGames(libraryId, root, relative, ct) : [];
+            // Switch y Switch 2 (#237): cada carpeta extraída (`exefs\main`, `romfs`) es un juego, por su TitleID; sus archivos no se cuentan sueltos.
+            var dumps = console is "switch" or "switch2" ? SwitchDump.Find(Path.Combine(root, relative)) : [];
+            foreach (var dump in dumps)
+            {
+                var title = dump.TitleId is null ? null : SwitchTitles.NameOf(run.Db, dump.TitleId, ct).GetAwaiter().GetResult();
+                found.Add(new(libraryId, Path.GetRelativePath(root, dump.Root), console, SwitchDump.SizeOf(dump.Root), "BASE", dump.TitleId,
+                    title ?? Path.GetFileName(dump.Root), Path.GetFileName(dump.Root)));
+            }
             if (console != "pc")
                 foreach (var file in Directory.EnumerateFiles(Path.Combine(root, relative), "*", new EnumerationOptions { RecurseSubdirectories = true }))
                 {
                     ct.ThrowIfCancellationRequested();
                     if (!GameExtensions.Contains(Path.GetExtension(file)) || file.Contains(".convirtiendo.", StringComparison.OrdinalIgnoreCase)) continue;
+                    if (dumps.Any(d => file.StartsWith(d.Root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))) continue;
                     var name = Path.GetFileNameWithoutExtension(file);
                     var parent = Path.GetDirectoryName(file)!;
                     var folder = Disk.Same(parent, Path.Combine(root, relative)) ? null : Path.GetFileName(parent);

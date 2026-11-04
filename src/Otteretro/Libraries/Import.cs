@@ -113,7 +113,9 @@ public static partial class Import
         if (job.EntryDisk is not null && entryDisk is not { Connected: true }) throw new TaskException(ApiError.Of("library.notConnected"));
         // Lo que dejó a medias una extracción cortada no se importa: esa extracción se repite.
         var files = Directory.EnumerateFiles(job.Path, "*", new EnumerationOptions { RecurseSubdirectories = true })
-            .Where(f => !f.Contains(Extracting + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)).ToList();
+            .Where(f => !f.Contains(Extracting + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            // Lo apartado (#237) no es juego: no se vuelve a importar.
+            .Where(f => !f.Contains(Path.DirectorySeparatorChar + SetAsideFolder + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)).ToList();
         if (job.Skip is { Count: > 0 } skip)
         {
             var skipped = skip.ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -169,6 +171,12 @@ public static partial class Import
         var parts = Archives.Parts(main);
         if (p.EntryDisk is not null && parts.Any(InUse)) return; // sigue llegando alguna parte
         var label = Label(main);
+        var size = parts.Sum(f => new FileInfo(f).Length);
+        if (p.EntryDisk is { } watched && AlreadyTried(p, watched, main, label, size))
+        {
+            p.Skipped++;
+            return;
+        }
         var target = p.EntryDisk is { } disk
             ? Path.Combine(disk.Path, Extracting, label)
             : Path.Combine(Path.GetDirectoryName(main)!, label + Extracting);
@@ -184,17 +192,33 @@ public static partial class Import
         }
         try
         {
-            var inner = Directory.EnumerateFiles(target, "*", new EnumerationOptions { RecurseSubdirectories = true }).ToList();
-            var games = inner.Where(f => Scan.GameExtensions.Contains(Path.GetExtension(f)) && !Archives.IsArchive(f)).ToList();
-            if (games.Count == 0)
+            var inner = Files(target);
+            bool HasGames() => inner.Any(f => Scan.GameExtensions.Contains(Path.GetExtension(f)) && !Archives.IsArchive(f)) || SwitchDump.Find(target).Count > 0;
+            // Un comprimido dentro del paquete (Mario Kart World: un zip de 23 GB dentro del rar) se abre ahí mismo, hasta dos niveles.
+            for (var level = 0; level < 2 && !HasGames(); level++)
+            {
+                var nested = inner.Where(Archives.IsMain).ToList();
+                if (nested.Count == 0) break;
+                foreach (var archive in nested)
+                    if (Archives.Extract(archive, Path.Combine(Path.GetDirectoryName(archive)!, Label(archive)), p.Passwords, ct) is null)
+                        foreach (var part in Archives.Parts(archive)) File.Delete(part);
+                inner = Files(target);
+            }
+            var dumps = SwitchDump.Find(target);
+            if (!HasGames())
             {
                 p.Run.Log(ApiError.Of("import.log.noGames", ("path", main)), "warn");
+                if (p.EntryDisk is { } tried) Tried(p.Db, tried, main, size);
                 p.Skipped++;
                 return;
             }
             var skipped = p.Skipped;
-            await Place(p, inner, target, new(main, label, Folders(Path.GetDirectoryName(main)!, p.Job.Path)), ct);
+            var from = new FromArchive(main, label, Folders(Path.GetDirectoryName(main)!, p.Job.Path));
+            var inDumps = inner.Where(f => dumps.Any(d => f.StartsWith(d.Root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            await Place(p, inner.Where(f => !inDumps.Contains(f)).ToList(), target, from, ct);
+            foreach (var dump in dumps) await PlaceDump(p, dump, from, ct);
             if (p.Skipped != skipped) return;
+            SetAside(p, target, label, main);
             foreach (var part in parts) File.Delete(part);
             if (p.EntryDisk is { } entry) RemoveRow(p.Db, entry, main);
             RemoveEmptyFolders(Path.GetDirectoryName(main)!, p.Job.Path);
@@ -206,6 +230,109 @@ public static partial class Import
             RemoveExtracting(p);
         }
     }
+
+    static List<string> Files(string folder) => Directory.EnumerateFiles(folder, "*", new EnumerationOptions { RecurseSubdirectories = true }).ToList();
+
+    /// <summary>
+    /// Ya se intentó (#237): se descomprimió sin juegos y no cambió, o espera en Revisar y nadie lo resolvió (sin alias para su nombre). Así
+    /// el vigilante de `Entrada\` no lo vuelve a descomprimir cada vez; «Importar carpeta» no pasa por acá.
+    /// </summary>
+    static bool AlreadyTried(Pass p, DiskInfo disk, string main, string label, long size)
+    {
+        var relative = Path.GetRelativePath(disk.Path, main);
+        using var c = p.Db.Open();
+        if (c.ExecuteScalar<long?>("SELECT size FROM entry_tried WHERE library_id = @Id AND relative_path = @relative", new { disk.Id, relative }) == size) return true;
+        var waiting = c.QueryFirstOrDefault<string?>("SELECT console FROM source WHERE kind = 'file' AND library_id = @Id AND relative_path = @relative AND version_id IS NULL",
+            new { disk.Id, relative });
+        if (waiting is null) return false;
+        var learned = p.Aliases.GetValueOrDefault(waiting) ?? [];
+        return Scan.Match(learned, label) is null && Scan.Match(learned, Path.GetFileNameWithoutExtension(main)) is null;
+    }
+
+    static void Tried(Database db, DiskInfo disk, string main, long size)
+    {
+        using var c = db.Open();
+        c.Execute("INSERT INTO entry_tried (library_id, relative_path, size) VALUES (@Id, @relative, @size) ON CONFLICT DO UPDATE SET size = excluded.size",
+            new { disk.Id, relative = Path.GetRelativePath(disk.Path, main), size });
+    }
+
+    /// <summary>
+    /// Una carpeta extraída de Switch o Switch 2 (#237) va entera a `Juegos\&lt;Consola&gt;\&lt;Juego&gt;`, con su estructura: es lo que carga el emulador.
+    /// El juego sale del TitleID (tabla de Switchbrew, sin IA), de un alias o del nombre del paquete; si no, espera en `Entrada\` para Revisar y Claude.
+    /// </summary>
+    static async Task PlaceDump(Pass p, SwitchDump dump, FromArchive archive, CancellationToken ct)
+    {
+        var (run, db) = (p.Run, p.Db);
+        if (dump.Console is not { } console)
+        {
+            run.Log(ApiError.Of("import.log.unknown", ("path", archive.Path)), "warn");
+            p.Skipped++;
+            return;
+        }
+        var title = dump.TitleId is null ? null : await SwitchTitles.NameOf(db, dump.TitleId, ct);
+        var versions = p.Catalog.GetValueOrDefault(console) ?? [];
+        var learned = p.Aliases.GetValueOrDefault(console) ?? [];
+        var names = new[] { archive.Label, Path.GetFileNameWithoutExtension(archive.Path), Path.GetFileName(dump.Root) };
+        var version = names.Select(n => Scan.Match(learned, n)).FirstOrDefault(v => v is not null)
+            ?? (title is null ? null : Scan.Match(versions, title))
+            ?? names.Select(n => Scan.Match(versions, n)).FirstOrDefault(v => v is not null)
+            ?? VersionOfGame(db, p.Job.GameId, console);
+        var item = new Item(archive.Path, console, dump.TitleId, "BASE");
+        var size = SwitchDump.SizeOf(dump.Root);
+
+        if (p.EntryDisk is { } entry && version is null)
+        {
+            var waiting = Path.GetRelativePath(entry.Path, archive.Path);
+            Register(db, entry.Id, waiting, console, item, null, null, false, new FileInfo(archive.Path).Length);
+            SetDownloadTask(db, entry.Id, waiting, p.Job.DownloadTask ?? DownloadTaskOf(db, entry.Id, waiting));
+            run.Log(ApiError.Of("import.log.waiting", ("path", archive.Path)));
+            p.Skipped++;
+            p.Waiting++;
+            return;
+        }
+
+        var disk = p.EntryDisk ?? DiskOf(db, console);
+        var relative = Path.Combine(ConsoleFolder(db, disk, console, p.Consoles), GameFolder(db, version, title, archive.Label));
+        var destination = Path.Combine(disk.Path, relative);
+        if (Directory.Exists(destination) && Directory.EnumerateFileSystemEntries(destination).Any())
+        {
+            run.Log(ApiError.Of("import.log.duplicate", ("path", archive.Path)));
+            p.Skipped++;
+            return;
+        }
+        if (!Mounts.Same(dump.Root, disk.Path) && disk.Free is { } free && free < size)
+        {
+            run.Log(ApiError.Of("import.log.noSpace", ("path", archive.Path), ("disk", disk.Name)), "warn");
+            p.Skipped++;
+            return;
+        }
+        // Archivo por archivo: copiar, verificar y recién entonces borrar (como todo lo que se mueve).
+        foreach (var file in Files(dump.Root)) MoveIn(file, Path.Combine(destination, Path.GetRelativePath(dump.Root, file)));
+        Register(db, disk.Id, relative, console, item, version, null, false, size);
+        SetDownloadTask(db, disk.Id, relative, p.Job.DownloadTask ?? (p.EntryDisk is { } origin ? DownloadTaskOf(db, origin.Id, Path.GetRelativePath(origin.Path, archive.Path)) : null));
+        if (p.EntryDisk is { } mine) RemoveRow(db, mine, archive.Path);
+        run.Log(ApiError.Of("import.log.moved", ("path", archive.Path), ("to", destination)));
+        p.Moved++;
+    }
+
+    /// <summary>
+    /// Lo que quedó del paquete y no es juego (un emulador, un léeme) va a `Entrada\Apartado\&lt;paquete&gt;` y se avisa, sin borrarlo (#237,
+    /// decisión 277): qué hacer con un emulador que viene con el juego se decide con los emuladores.
+    /// </summary>
+    static void SetAside(Pass p, string target, string label, string main)
+    {
+        var left = Files(target).Where(f => !Path.GetFileName(f).StartsWith('.')).ToList();
+        // Un léeme, una portada o una suma de verificación no hace falta guardarlos: se van con el temporal, como siempre.
+        if (left.All(f => Notes.Contains(Path.GetExtension(f)))) return;
+        var aside = Path.Combine(p.EntryDisk?.Path is { } disk ? Path.Combine(disk, Disk.EntryFolder) : Path.GetDirectoryName(main)!, SetAsideFolder, label);
+        foreach (var file in left) MoveIn(file, Path.Combine(aside, Path.GetRelativePath(target, file)));
+        p.Run.Log(ApiError.Of("import.log.setAside", ("path", main), ("to", aside)), "warn");
+    }
+
+    static readonly HashSet<string> Notes = new(StringComparer.OrdinalIgnoreCase) { ".txt", ".nfo", ".diz", ".url", ".html", ".htm", ".jpg", ".jpeg", ".png", ".sfv", ".md5", ".sha1" };
+
+    /// <summary>Dentro de `Entrada\`: lo que llegó con un juego y no es juego. El vigilante no lo vuelve a importar.</summary>
+    public const string SetAsideFolder = "Apartado";
 
     /// <summary>La carpeta de las extracciones de `Entrada\`, cuando ya no tiene nada.</summary>
     static void RemoveExtracting(Pass p)
