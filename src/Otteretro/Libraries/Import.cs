@@ -317,7 +317,7 @@ public static partial class Import
 
     /// <summary>
     /// Lo que quedó del paquete y no es juego (un emulador, un léeme) va a `Entrada\Apartado\&lt;paquete&gt;` y se avisa, sin borrarlo (#237,
-    /// decisión 270): qué hacer con un emulador que viene con el juego se decide con los emuladores.
+    /// decisión 277): qué hacer con un emulador que viene con el juego se decide con los emuladores.
     /// </summary>
     static void SetAside(Pass p, string target, string label, string main)
     {

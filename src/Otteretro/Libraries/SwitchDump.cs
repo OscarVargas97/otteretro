@@ -65,7 +65,7 @@ public record SwitchDump(string Root, string? TitleId, string? Console)
 }
 
 /// <summary>
-/// TitleID → nombre de los juegos de Switch 2, de la tabla pública de Switchbrew (#237, decisión 269): identificar sin IA. Se baja una vez
+/// TitleID → nombre de los juegos de Switch 2, de la tabla pública de Switchbrew (#237, decisión 276): identificar sin IA. Se baja una vez
 /// y se guarda en `cache\`; se renueva cada semana. Sin conexión se usa lo guardado; sin nada guardado, no hay nombres.
 /// </summary>
 public static partial class SwitchTitles
