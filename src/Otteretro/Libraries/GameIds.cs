@@ -202,7 +202,8 @@ public static partial class GameIds
     static GameId? WiiU(string xml)
     {
         var name = Tag(xml, "longname_en") ?? Tag(xml, "longname_es") ?? Tag(xml, "shortname_en");
-        return name is null ? null : new("wiiu", Tag(xml, "title_id"), name.Replace('\n', ' '));
+        // El nombre largo viene partido en líneas (con \r\n en Windows): una sola, con espacios simples.
+        return name is null ? null : new("wiiu", Tag(xml, "title_id"), string.Join(' ', name.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)));
     }
 
     static string? Tag(string xml, string tag) =>

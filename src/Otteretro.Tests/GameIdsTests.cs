@@ -212,6 +212,32 @@ public class GameIdsTests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) => throw new HttpRequestException("sin red");
     }
 
+    /// <summary>
+    /// #249 (decisión 278): el código que publica el catálogo va primero y no necesita tablas ni red: un .nsp de Switch y un ISO de PS2
+    /// con nombres que no dicen nada se reconocen por su TitleID y su serial.
+    /// </summary>
+    [Fact]
+    public async Task TheCatalogCodeComesFirstWithoutTablesOrNetwork()
+    {
+        await using var f = new Fixture();
+        Disk.Create(f.Db, f.Tmp["Otteretro"], "E:");
+        using (var c = f.Db.Open())
+            c.Execute("""
+                INSERT INTO game (id, name_es) VALUES (11, 'The Legend of Zelda: Breath of the Wild'), (30, 'Grand Theft Auto III');
+                INSERT INTO version (id, game_id, platform) VALUES (21, 11, 'switch'), (40, 30, 'ps2');
+                INSERT INTO version_code (version_id, code) VALUES (21, '01007EF00011E000'), (40, 'SLUS-20062');
+                """);
+        Save(f, @"Descargas\x [01007EF00011E000][v0].nsp", "juego"u8.ToArray());
+        Save(f, @"Descargas\disco.iso", Iso(("SYSTEM.CNF", "BOOT2 = cdrom0:\\SLUS_200.62;1\n"u8.ToArray())));
+        Dats.Handler = new NoNetwork();
+        try { Assert.Equal("done", (await f.Run(Import.Enqueue(f.Db, f.Tmp["Descargas"]).Task!.Value)).Status); }
+        finally { Dats.Handler = null; }
+
+        using var db = f.Db.Open();
+        Assert.Equal(21, db.ExecuteScalar<long>("SELECT version_id FROM source WHERE title_id = '01007EF00011E000'"));
+        Assert.Equal(40, db.ExecuteScalar<long>("SELECT version_id FROM source WHERE title_id = 'SLUS-20062'"));
+    }
+
     /// <summary>Un ISO de PS2 con un nombre que no dice nada se reconoce por su serial en el DAT, sin Claude.</summary>
     [Fact]
     public async Task ADiscIsRecognizedByItsSerialInTheDat()

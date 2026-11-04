@@ -298,7 +298,9 @@ public class CatalogUpdateTests
         };
         object Release(string tag, string letter, bool changes = false) => new
         {
-            tag_name = tag, draft = false, published_at = "2026-11-02T10:00:00Z",
+            tag_name = tag,
+            draft = false,
+            published_at = "2026-11-02T10:00:00Z",
             assets = new[]
             {
                 new { name = "catalogo.db.gz", browser_download_url = $"https://{letter}.test/catalogo.db.gz" },
@@ -335,6 +337,16 @@ public class CatalogUpdateTests
             Assert.Equal("catalog.versionGone", (await f.Run(CatalogUpdate.Enqueue(f.Db, "catalogo-20261030"))).Detail?.Code);
         }
         finally { CatalogUpdate.Handler = null; }
+    }
+
+    /// <summary>#249: los códigos de cada versión llegan con el catálogo.</summary>
+    [Fact]
+    public async Task TheVersionCodesArriveWithTheCatalog()
+    {
+        await using var f = new Fixture();
+        await Update(f, Answers(Compiled(f, Catalog2 + "INSERT INTO catalog.version_code (version_id, code) VALUES (20, 'AMFE'), (22, 'SNS-AQ-USA');")));
+        using var c = f.Db.Open();
+        Assert.Equal(["AMFE", "SNS-AQ-USA"], c.Query<string>("SELECT code FROM catalog.version_code ORDER BY code"));
     }
 
     /// <summary>#217: un repo por fork, con su versión publicada en `https://&lt;letra&gt;.test/`.</summary>

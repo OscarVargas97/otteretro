@@ -72,7 +72,7 @@ public static partial class Scan
                     var parent = Path.GetDirectoryName(file)!;
                     var folder = Disk.Same(parent, Path.Combine(root, relative)) ? null : Path.GetFileName(parent);
                     string? titleId = null, component = null;
-                    if (console == "switch")
+                    if (console is "switch" or "switch2")
                     {
                         titleId = TitleIdInName().Match(name) is { Success: true } m ? m.Groups[1].Value.ToUpperInvariant() : null;
                         component = titleId is null ? null : ComponentOf(titleId);
@@ -90,12 +90,16 @@ public static partial class Scan
                 .ToDictionary(r => r.Path, r => r, StringComparer.OrdinalIgnoreCase);
             // Por nombre, por el de su carpeta y, si no, por el nombre del DAT: con el hash ya calculado (#179) o con el serial.
             // Primero los alias (lo que corregiste o resolvió Claude, #181), después el catálogo.
-            var byName = found.ToDictionary(f => f, f => Match(learned, f.Name) ?? Match(versions, f.Name) ?? (f.Folder is null ? null : Match(versions, f.Folder))
+            var byName = found.ToDictionary(f => f, f => Match(learned, f.Name)
+                // El código que publica el catálogo (#249): un UPD o un DLC, por el de su base.
+                ?? (f.TitleId is { } code ? VersionByCode(run.Db, console, f.Component is null or "BASE" ? code : BaseOf(code)) : null)
+                ?? Match(versions, f.Name) ?? (f.Folder is null ? null : Match(versions, f.Folder))
                 // Switch (#241): el TitleID del nombre contra titledb, sin IA; un UPD o un DLC, por el de su base.
                 ?? (f.TitleId is { } tid && f.Console is "switch" or "switch2"
                     && SwitchTitles.NameOf(run.Db, f.Component is null or "BASE" ? tid : BaseOf(tid), ct).GetAwaiter().GetResult() is { } title ? Match(versions, title) : null)
                 ?? (f.Console is not ("switch" or "switch2") && f.TitleId is null && GameIds.FromFile(Path.Combine(root, f.Relative)) is { } own
-                    ? (own.Name is { } ownName ? Match(learned, ownName) ?? Match(versions, ownName) : null)
+                    ? (own.Serial is { } ownCode ? VersionByCode(run.Db, console, ownCode) : null)
+                      ?? (own.Name is { } ownName ? Match(learned, ownName) ?? Match(versions, ownName) : null)
                       ?? (own.Serial is { } ownSerial && DatBySerial(run.Db, console, ownSerial) is { } fromDat ? Match(versions, fromDat) : null)
                     : null)
                 ?? (DatName(c, f, hashes.TryGetValue(f.Relative, out var h) && h.Size == f.Size ? h.Sha1 : null) is { } dat ? Match(versions, dat) : null));
@@ -207,6 +211,22 @@ public static partial class Scan
             : null;
 
     /// <summary>
+    /// La versión con ese TitleID o serial en el catálogo (#249, decisión 278): lo publica el catálogo, así que va antes que el nombre y
+    /// que las tablas. Un serial de GameCube o Wii («GZLE01») busca su código de 4 letras; uno de PlayStation acepta un sufijo
+    /// («SLPM-65002-0»). Null si no está o si es de más de una versión.
+    /// </summary>
+    public static long? VersionByCode(Database db, string console, string code)
+    {
+        using var c = db.Open();
+        var like = code.Length == 6 && console is "gc" or "wii" ? $"%{code[..4]}%" : code + "-%";
+        var found = c.Query<long>("""
+            SELECT DISTINCT k.version_id FROM version_code k JOIN version v ON v.id = k.version_id
+            WHERE v.platform = @console AND (k.code = @code OR k.code LIKE @like)
+            """, new { console, code = code.ToUpperInvariant(), like }).ToList();
+        return found.Count == 1 ? found[0] : null;
+    }
+
+    /// <summary>
     /// El nombre del juego con ese serial en el DAT de su consola (#240): «SLUS-20062», «CTR-P-BP4J», «BKAJ». También con un sufijo
     /// de disco o revisión («SLPM-65002-0»). Null si no hay DAT bajado o no está.
     /// </summary>
@@ -298,7 +318,7 @@ public static partial class Scan
     static bool IsNintendoDisc(byte[] head) =>
         head.AsSpan(0x1C, 4).SequenceEqual(new byte[] { 0xC2, 0x33, 0x9F, 0x3D }) || head.AsSpan(0x18, 4).SequenceEqual(new byte[] { 0x5D, 0x1C, 0x9E, 0xA3 });
 
-    [GeneratedRegex(@"\[(0100[0-9A-Fa-f]{12})\]")]
+    [GeneratedRegex(@"\[(0[14]00[0-9A-Fa-f]{12})\]")]
     internal static partial Regex TitleIdInName();
 
     /// <summary>Como lo escriben No-Intro y Redump: «Legend of Zelda, The - Twilight Princess».</summary>
