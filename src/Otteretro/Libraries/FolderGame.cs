@@ -11,13 +11,14 @@ namespace Otteretro.Libraries;
 /// <param name="Root">La carpeta del juego: la que tiene `base\`/`updates\`, o la que tiene `exefs\` si no hay esas.</param>
 /// <param name="TitleId">El program id de `main.npdm`; null si no se pudo leer.</param>
 /// <param name="Console">switch2 si el TitleID empieza con 04, switch si empieza con 01; null si no se sabe.</param>
-public record SwitchDump(string Root, string? TitleId, string? Console)
+/// <param name="Name">El nombre que trae el juego (PARAM.SFO, param.json, meta.xml), si lo trae (#240).</param>
+public record FolderGame(string Root, string? TitleId, string? Console, string? Name = null)
 {
     /// <summary>Las carpetas extraídas que hay dentro de <paramref name="folder"/>, una por juego.</summary>
-    public static List<SwitchDump> Find(string folder)
+    public static List<FolderGame> Find(string folder)
     {
         if (!Directory.Exists(folder)) return [];
-        var byRoot = new Dictionary<string, SwitchDump>(StringComparer.OrdinalIgnoreCase);
+        var byRoot = new Dictionary<string, FolderGame>(StringComparer.OrdinalIgnoreCase);
         foreach (var exefs in Directory.EnumerateDirectories(folder, "exefs", new EnumerationOptions { RecurseSubdirectories = true, MatchCasing = MatchCasing.CaseInsensitive }))
         {
             if (!File.Exists(Path.Combine(exefs, "main"))) continue;
@@ -28,6 +29,9 @@ public record SwitchDump(string Root, string? TitleId, string? Console)
             byRoot[root] = new(root, titleId, ConsoleOf(titleId));
         }
         // Una carpeta dentro de otra ya encontrada no es otro juego.
+        // PS3, Vita, PS4, PS5 y Wii U (#240): su carpeta, con el id y el nombre de sus archivos de sistema.
+        foreach (var (root, id) in GameIds.Folders(folder))
+            byRoot.TryAdd(root, new(root, id.Serial, id.Console, id.Name));
         return byRoot.Values.Where(d => !byRoot.Keys.Any(r => !Disk.Same(r, d.Root) && d.Root.StartsWith(r + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)))
             .OrderBy(d => d.Root, StringComparer.OrdinalIgnoreCase).ToList();
     }

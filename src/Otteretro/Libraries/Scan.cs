@@ -22,7 +22,7 @@ public static partial class Scan
     {
         ".nsp", ".nsz", ".xci", ".xcz", ".iso", ".rvz", ".gcm", ".gcz", ".wbfs", ".wia", ".ciso", ".chd", ".cue", ".cso", ".pbp", ".m3u",
         ".nes", ".fds", ".sfc", ".smc", ".n64", ".z64", ".v64", ".gb", ".gbc", ".gba", ".vb", ".nds", ".3ds", ".cia", ".cci", ".wua", ".wux",
-        ".zip", ".7z",
+        ".zip", ".7z", ".pkg", ".vpk",
     };
 
     /// <summary>Encola un escaneo, salvo que ya haya uno esperando.</summary>
@@ -54,11 +54,12 @@ public static partial class Scan
             // PC (#182): cada carpeta de `Juegos\PC` es un juego, con su ejecutable.
             var found = console == "pc" ? PcGames(libraryId, root, relative, ct) : [];
             // Switch y Switch 2 (#237): cada carpeta extraída (`exefs\main`, `romfs`) es un juego, por su TitleID; sus archivos no se cuentan sueltos.
-            var dumps = console is "switch" or "switch2" ? SwitchDump.Find(Path.Combine(root, relative)) : [];
+            var dumps = console == "pc" ? [] : FolderGame.Find(Path.Combine(root, relative)).Where(d => d.Console is null || d.Console == console).ToList();
             foreach (var dump in dumps)
             {
-                var title = dump.TitleId is null ? null : SwitchTitles.NameOf(run.Db, dump.TitleId, ct).GetAwaiter().GetResult();
-                found.Add(new(libraryId, Path.GetRelativePath(root, dump.Root), console, SwitchDump.SizeOf(dump.Root), "BASE", dump.TitleId,
+                var title = dump.Name ?? (dump.TitleId is null ? null : console is "switch" or "switch2"
+                    ? SwitchTitles.NameOf(run.Db, dump.TitleId, ct).GetAwaiter().GetResult() : DatBySerial(run.Db, console, dump.TitleId));
+                found.Add(new(libraryId, Path.GetRelativePath(root, dump.Root), console, FolderGame.SizeOf(dump.Root), "BASE", dump.TitleId,
                     title ?? Path.GetFileName(dump.Root), Path.GetFileName(dump.Root)));
             }
             if (console != "pc")
@@ -93,6 +94,10 @@ public static partial class Scan
                 // Switch (#241): el TitleID del nombre contra titledb, sin IA; un UPD o un DLC, por el de su base.
                 ?? (f.TitleId is { } tid && f.Console is "switch" or "switch2"
                     && SwitchTitles.NameOf(run.Db, f.Component is null or "BASE" ? tid : BaseOf(tid), ct).GetAwaiter().GetResult() is { } title ? Match(versions, title) : null)
+                ?? (f.Console is not ("switch" or "switch2") && f.TitleId is null && GameIds.FromFile(Path.Combine(root, f.Relative)) is { } own
+                    ? (own.Name is { } ownName ? Match(learned, ownName) ?? Match(versions, ownName) : null)
+                      ?? (own.Serial is { } ownSerial && DatBySerial(run.Db, console, ownSerial) is { } fromDat ? Match(versions, fromDat) : null)
+                    : null)
                 ?? (DatName(c, f, hashes.TryGetValue(f.Relative, out var h) && h.Size == f.Size ? h.Sha1 : null) is { } dat ? Match(versions, dat) : null));
             var byBase = found.Where(f => f.Component is not null && byName[f] is not null)
                 .GroupBy(f => BaseOf(f.TitleId!)).ToDictionary(g => g.Key, g => byName[g.First()]);
@@ -113,7 +118,8 @@ public static partial class Scan
                     INSERT INTO source (kind, library_id, relative_path, console, size, component, title_id, version_id, executable)
                     VALUES ('file', @LibraryId, @Relative, @Console, @Size, @Component, @TitleId, @version, @executable)
                     ON CONFLICT (library_id, relative_path) WHERE kind = 'file' DO UPDATE SET
-                        console = excluded.console, size = excluded.size, component = excluded.component, title_id = excluded.title_id,
+                        console = excluded.console, size = excluded.size, component = excluded.component,
+                        title_id = coalesce(excluded.title_id, source.title_id), -- el serial que leyó la importación (#240) no se pierde
                         sha1 = CASE WHEN source.size = excluded.size THEN source.sha1 END,
                         verified = CASE WHEN source.size = excluded.size THEN source.verified ELSE 0 END,
                         version_id = coalesce(source.version_id, excluded.version_id), executable = excluded.executable
@@ -199,6 +205,17 @@ public static partial class Scan
         : f.Component is null && f.TitleId is { Length: 6 } serial
             ? c.QueryFirstOrDefault<string?>("SELECT name FROM dat_entry WHERE console = @Console AND serial LIKE @like", new { f.Console, like = $"%-{serial[..4]}-%" })
             : null;
+
+    /// <summary>
+    /// El nombre del juego con ese serial en el DAT de su consola (#240): «SLUS-20062», «CTR-P-BP4J», «BKAJ». También con un sufijo
+    /// de disco o revisión («SLPM-65002-0»). Null si no hay DAT bajado o no está.
+    /// </summary>
+    public static string? DatBySerial(Database db, string console, string serial)
+    {
+        using var c = db.Open();
+        return c.QueryFirstOrDefault<string?>("SELECT name FROM dat_entry WHERE console = @console AND (serial = @serial OR serial LIKE @like) ORDER BY length(serial)",
+            new { console, serial, like = serial + "-%" });
+    }
 
     /// <summary>La versión de <paramref name="console"/> cuyo juego se llama así, si hay una sola (para lo verificado por hash, #179).</summary>
     public static long? MatchName(Database db, string console, string name)

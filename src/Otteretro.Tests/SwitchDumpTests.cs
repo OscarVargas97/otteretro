@@ -46,7 +46,7 @@ public class SwitchDumpTests
         public int Calls;
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
-            Calls++;
+            if (request.RequestUri!.Host.Contains("switchbrew")) Interlocked.Increment(ref Calls);
             const string Wiki = """
                 {| class="wikitable"
                 |-
