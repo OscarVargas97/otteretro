@@ -3,14 +3,18 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useFormatter, useTranslations } from "next-intl";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Suspense, useState } from "react";
 import { GameTile, hours, useConsoles } from "@/components/Catalog";
+import { ImportFolder } from "@/components/ImportFolder";
 import { Empty } from "@/components/Shell";
 import { useDescribeError } from "@/lib/i18n";
 import { Rows, Tiles } from "@/components/Skeleton";
+import { request } from "@/lib/client";
 import { usePaged } from "@/lib/paged";
 import type { CollectionPage, ConsoleCount } from "@/lib/types";
 
+const CONVERTIBLE = ["gc", "wii", "ps1", "ps2"]; // las consolas con formato liviano (#196)
 const FILTERS = ["all", "owned", "missing", "pc"] as const;
 const SORTS = ["saga", "name", "year"] as const;
 
@@ -35,8 +39,25 @@ function Collection() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("owned"); // lo tuyo primero (F2.18)
   const [sort, setSort] = useState<(typeof SORTS)[number]>("saga");
   const [view, setView] = useState<"grid" | "list">("grid");
+  const cache = useQueryClient();
+  // «Escanear» (#178): la tarea que reconoce tus archivos; al terminar, el panel de tareas refresca Colección.
+  // «Importar carpeta» (#193, #197): cada juego de esa carpeta a su lugar, con una vista previa.
+  const [importing, setImporting] = useState(false);
+  const scan = useMutation({
+    mutationFn: () => request<number>("/api/collection/scan", { method: "POST" }),
+    onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+  // «Verificar» (#179): el hash de lo que tienes de esta consola contra No-Intro o Redump.
+  // «Convertir» (#233): lo que ya tienes de esta consola al formato liviano.
+  const convert = useMutation({
+    mutationFn: () => request<number>("/api/collection/convert", { method: "POST", body: JSON.stringify({ console: selected }) }),
+  });
+  const verify = useMutation({
+    mutationFn: () => request<number>("/api/collection/verify", { method: "POST", body: JSON.stringify({ console: selected }) }),
+    onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
+  });
   // Sin consola en la URL, la primera que tenga juegos.
-  const selected = useSearchParams().get("console") ?? consoles.data?.find((c) => Number(c.games) > 0)?.id ?? consoles.data?.[0]?.id;
+  const selected = useSearchParams().get("console") ?? consoles.data?.find((c) => countFor(c, filter) > 0)?.id ?? consoles.data?.find((c) => Number(c.games) > 0)?.id ?? consoles.data?.[0]?.id;
   const current = consoles.data?.find((c) => c.id === selected);
   // Por tramos al bajar (#177): PC tiene 20.000 juegos. Lo de Steam sin IGDB llega con el primero.
   const page = usePaged(["collection", selected, filter, sort], (offset) => `/api/collection/${selected}?${new URLSearchParams({ filter, sort, offset: String(offset) })}`,
@@ -72,6 +93,14 @@ function Collection() {
             ))}
           </div>
           <div className="toolbar-end">
+            <button className="ot-btn" type="button" title={t("collection.scanHelp")} disabled={scan.isPending} onClick={() => scan.mutate()}>{t("collection.scan")}</button>
+            <button className="ot-btn" type="button" title={t("collection.importHelp")} onClick={() => setImporting((v) => !v)}>{t("collection.import")}</button>
+            {selected && CONVERTIBLE.includes(selected) && Number(current?.owned ?? 0) > 0 && (
+              <button className="ot-btn" type="button" title={t("collection.convertHelp")} disabled={convert.isPending} onClick={() => convert.mutate()}>{t("collection.convert")}</button>
+            )}
+            {current?.hasDat && Number(current.owned) > 0 && (
+              <button className="ot-btn" type="button" title={t("collection.verifyHelp")} disabled={verify.isPending} onClick={() => verify.mutate()}>{t("collection.verify")}</button>
+            )}
             <select className="ot-btn" aria-label={t("collection.sortLabel")} value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
               {SORTS.map((s) => <option key={s} value={s}>{t(`collection.sort.${s}`)}</option>)}
             </select>
@@ -91,9 +120,19 @@ function Collection() {
             {t("collection.summary", { console: current.name, games: t("games", { count: Number(current.games) }), owned: t("ownedCount", { count: Number(current.owned) }) })}
           </div>
         )}
+        {importing && <ImportFolder onClose={() => setImporting(false)} />}
+        {scan.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("collection.scanQueued")}</p>}
+        {scan.isError && <p className="error small" role="alert">{describe(scan.error)}</p>}
+        {convert.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("collection.convertQueued")}</p>}
+        {convert.isError && <p className="error small" role="alert">{describe(convert.error)}</p>}
+        {verify.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("collection.verifyQueued")}</p>}
+        {verify.isError && <p className="error small" role="alert">{describe(verify.error)}</p>}
         {page.isError && <p className="error small" role="alert">{describe(page.error)}</p>}
         {page.data && games.length === 0 && unlinked.length === 0 && (
-          <Empty title={t("collection.emptyTitle")} text={t("collection.emptyText", { console: selected ?? "" })}><Link className="ot-btn" href="/settings/?s=consoles">{t("openConsoles")}</Link></Empty>
+          // Con el catálogo incluido (#211), una consola sin resultados casi siempre es una consola de la que todavía no tienes nada.
+          Number(current?.games) > 0
+            ? <Empty title={t("collection.noneTitle")} text={t("collection.noneText")} />
+            : <Empty title={t("collection.emptyTitle")} text={t("collection.emptyText", { console: selected ?? "" })}><Link className="ot-btn" href="/settings/?s=consoles">{t("openConsoles")}</Link></Empty>
         )}
 
         {view === "grid" ? (

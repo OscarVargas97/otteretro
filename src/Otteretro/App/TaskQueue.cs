@@ -26,22 +26,17 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
     public static readonly Dictionary<string, Handler> Handlers = new()
     {
         ["demo"] = Demo,
-        ["igdb.saga"] = Catalog.IgdbImport.Saga,
-        ["igdb.platform"] = Catalog.IgdbImport.Platform,
-        ["igdb.refresh"] = Catalog.IgdbImport.Refresh,
-        ["igdb.popular"] = Catalog.IgdbImport.Popular,
-        ["igdb.popularity"] = Catalog.IgdbImport.Popularity,
-        ["sgdb.images"] = Catalog.SteamGridDb.Images,
-        ["sgdb.webp"] = Catalog.SteamGridDb.Convert,
-        ["catalog.extra"] = Catalog.ExtraSources.Run,
+        [Catalog.CatalogUpdate.Kind] = Catalog.CatalogUpdate.Run,
         ["steam.sync"] = Catalog.Steam.Sync,
-        ["igdb.steam"] = Catalog.IgdbImport.FromSteam,
-        [Claude.CatalogCleanup.Kind] = Claude.CatalogCleanup.Run,
-        [Claude.SagaAnalysis.Kind] = Claude.SagaAnalysis.Run,
-        [Claude.InitialLoad.Kind] = Claude.InitialLoad.Run,
-        [Libraries.LibraryTasks.Move] = Libraries.LibraryTasks.RunMove,
-        [Libraries.LibraryTasks.Adopt] = Libraries.LibraryTasks.RunAdopt,
-        [Libraries.LibraryTasks.Migrate] = Libraries.LibraryTasks.RunMigrate,
+        [Claude.Identify.Kind] = Claude.Identify.Run,
+        [Libraries.DiskTasks.Move] = Libraries.DiskTasks.RunMove,
+        [Libraries.DiskTasks.Migrate] = Libraries.DiskTasks.RunMigrate,
+        [Libraries.Scan.Kind] = Libraries.Scan.Run,
+        [Libraries.Import.Kind] = Libraries.Import.Run,
+        [Libraries.Downloads.Kind] = Libraries.Downloads.Run,
+        [Libraries.Converter.Kind] = Libraries.Converter.RunTask,
+        [Libraries.Dats.UpdateKind] = Libraries.Dats.Update,
+        [Libraries.Dats.VerifyKind] = Libraries.Dats.Verify,
     };
 
     /// <summary>Tipos que no corren a la vez aunque sean distintos: mover y adoptar tocan las mismas carpetas (§5.3).</summary>
@@ -56,6 +51,15 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
     public static bool AutoClaude { get; set; } = Environment.GetEnvironmentVariable("OTTERETRO_E2E") is null;
 
     /// <summary>
+    /// Lo que pasa solo con la app abierta (#219, #223): al abrirla, pasar lo de antes al estándar o escanear, y vigilar `Juegos\`
+    /// de cada disco. Las pruebas lo apagan, como <see cref="AutoClaude"/>, y lo prueban por separado.
+    /// </summary>
+    public static bool OnOpen { get; set; } = Environment.GetEnvironmentVariable("OTTERETRO_E2E") is null;
+
+    readonly Libraries.GamesWatcher games = new();
+    ClipboardWatcher? clipboard;
+
+    /// <summary>
     /// Espera antes de cada reintento de un error pasajero (#59): se corta la red, vence el tiempo, o la fuente responde 429 o 5xx.
     /// La tarea vuelve a la cola con su punto de control; pasados estos intentos sin avanzar, queda en error.
     /// </summary>
@@ -66,7 +70,8 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
 
     const string Columns = "id, kind, status, progress, detail, data, created_at AS CreatedAt, finished_at AS FinishedAt";
 
-    readonly HashSet<string> running = [];
+    /// <summary>Lo que corre por grupo: cada tipo de tarea, y las descargas por sitio, que pueden ir varias a la vez (#202).</summary>
+    readonly Dictionary<string, int> running = [];
     readonly Lock gate = new();
     /// <summary>Las que corren, con su token y el estado al que pasan si se detienen a pedido (#146).</summary>
     readonly Dictionary<long, (CancellationTokenSource Token, string? StopAs)> live = [];
@@ -182,6 +187,16 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
                     {
                         using (var c = db.Open()) c.Execute("UPDATE task SET status = 'queued' WHERE status = 'running'");
                         recovered = db.FilePath;
+                        // El disco ★ se registra solo al abrir (#208): importar, descargar y escanear lo necesitan.
+                        if (OnOpen && session.Config.DataFolder is { } dataFolder) Libraries.Disk.EnsureDataDisk(db, dataFolder);
+                        // Al abrir la app, lo de antes pasa solo al estándar (#219), que al terminar escanea; si no, se escanea ya (#223).
+                        if (OnOpen && Libraries.DiskTasks.EnqueueMigrateIfPending(db) is null) Libraries.Scan.Enqueue(db);
+                    }
+                    if (OnOpen)
+                    {
+                        games.Tick(db);
+                        clipboard ??= new(notify: (found, added) => Notify.LinksCaptured(session.Config.EffectiveLanguage, found, added));
+                        clipboard.Tick(db, session.Config.ClipboardCapture ?? true);
                     }
                     if (AutoClaude) Claude.ClaudeBudget.AutoStart(db);
                     StartPending(db, ct);
@@ -206,18 +221,32 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
             """, new { now = Now() });
         foreach (var t in queued)
         {
+            if (t.Kind == Libraries.Import.Kind && Libraries.Downloads.WritingOn(db, t.Data)) continue;
+            var (key, limit) = SlotOf(db, t);
             lock (gate)
-                if (!running.Add(LockOf(t.Kind))) continue;
+            {
+                if (running.GetValueOrDefault(key) >= limit) continue;
+                running[key] = running.GetValueOrDefault(key) + 1;
+            }
             c.Execute("UPDATE task SET status = 'running', attempts = attempts + 1 WHERE id = @Id", t);
             Log(db, t.Id, ApiError.Of("tasks.log.started"));
             Publish(db, t.Id);
             var token = CancellationTokenSource.CreateLinkedTokenSource(ct);
             lock (gate) live[t.Id] = (token, null);
-            _ = Task.Run(() => Run(db, t, token.Token, ct), CancellationToken.None);
+            _ = Task.Run(() => Run(db, t, key, token.Token, ct), CancellationToken.None);
         }
     }
 
-    async Task Run(Database db, Row t, CancellationToken ct, CancellationToken app)
+    /// <summary>El grupo de una tarea y cuántas del grupo pueden correr a la vez.</summary>
+    (string Key, int Limit) SlotOf(Database db, Row t)
+    {
+        if (t.Kind != Libraries.Downloads.Kind) return (LockOf(t.Kind), 1);
+        var site = Libraries.Downloads.SiteOfJob(t.Data);
+        var limit = Libraries.Downloads.Limits(session.Config, new Credentials(db, session.Config.MachineId, box)).FirstOrDefault(l => l.Site == site)?.Value ?? 1;
+        return ("download:" + site, limit);
+    }
+
+    async Task Run(Database db, Row t, string key, CancellationToken ct, CancellationToken app)
     {
         var clock = Stopwatch.StartNew();
         try
@@ -244,7 +273,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         {
             lock (gate)
             {
-                running.Remove(LockOf(t.Kind));
+                if (--running[key] == 0) running.Remove(key);
                 if (live.Remove(t.Id, out var run)) run.Token.Dispose();
             }
         }
@@ -381,29 +410,41 @@ public sealed class TaskRun(TaskQueue queue, Database db, long id, string? data,
 /// <summary>Notificación del sistema (libnotify en Linux, aviso de Windows). Si falla, solo queda en el log.</summary>
 static class Notify
 {
-    public static void TaskFinished(string language, bool failed)
+    public static void TaskFinished(string language, bool failed) => Send((language, failed) switch
     {
-        var text = (language, failed) switch
-        {
-            ("en", false) => "A background task finished. See it in the tasks panel.",
-            ("en", true) => "A background task failed. See it in the tasks panel.",
-            (_, false) => "Terminó una tarea en segundo plano. Mírala en el panel de tareas.",
-            (_, true) => "Falló una tarea en segundo plano. Mírala en el panel de tareas.",
-        };
+        ("en", false) => "A background task finished. See it in the tasks panel.",
+        ("en", true) => "A background task failed. See it in the tasks panel.",
+        (_, false) => "Terminó una tarea en segundo plano. Mírala en el panel de tareas.",
+        (_, true) => "Falló una tarea en segundo plano. Mírala en el panel de tareas.",
+    });
+
+    /// <summary>Lo copiado entró al capturador (#210). Solo dice cuántos: lo que copias no sale a ninguna parte.</summary>
+    public static void LinksCaptured(string language, int found, int added) => Send((language, added) switch
+    {
+        ("en", 0) => found == 1 ? "That link was already in the link grabber." : "Those links were already in the link grabber.",
+        ("en", 1) => "Link added to the link grabber.",
+        ("en", _) => $"{added} links added to the link grabber.",
+        (_, 0) => found == 1 ? "Ese enlace ya estaba en el capturador." : "Esos enlaces ya estaban en el capturador.",
+        (_, 1) => "Enlace agregado al capturador.",
+        _ => $"{added} enlaces agregados al capturador.",
+    });
+
+    static void Send(string text)
+    {
         try
         {
             ProcessStartInfo start;
             if (OperatingSystem.IsWindows())
             {
-                // ponytail: usa el id de aplicación de PowerShell (el aviso dice «Windows PowerShell»); con el del acceso
-                // directo de Velopack diría Otteretro.
+                // Con el acceso directo de Velopack el aviso dice Otteretro; sin él (fuera de la app instalada), «Windows PowerShell».
                 start = new ProcessStartInfo("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", """
                     [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null
                     $x = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02)
                     $t = $x.GetElementsByTagName('text')
                     $t.Item(0).AppendChild($x.CreateTextNode('Otteretro')) > $null
                     $t.Item(1).AppendChild($x.CreateTextNode($env:OTTERETRO_TEXT)) > $null
-                    $id = '{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe'
+                    $app = Get-StartApps -Name Otteretro | Select-Object -First 1
+                    $id = if ($app) { $app.AppID } else { '{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe' }
                     [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($id).Show([Windows.UI.Notifications.ToastNotification]::new($x))
                     """]) { CreateNoWindow = true };
                 start.Environment["OTTERETRO_TEXT"] = text;

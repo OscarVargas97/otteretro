@@ -117,13 +117,15 @@ test("elegir la carpeta de datos lleva al paso de bibliotecas y, al saltarlo, al
   await expect(page.getByRole("heading", { name: en.welcome.librariesTitle })).toBeVisible();
   await expectNoRawKeys();
   await page.getByRole("button", { name: en.welcome.skip }).click();
+  await expect(page.getByRole("heading", { name: en.welcome.accountsTitle })).toBeVisible();
+  await page.getByRole("button", { name: en.welcome.done }).click();
   await expect(page).toHaveURL(`${base()}/`);
   await expect(page.getByRole("heading", { level: 1, name: en.nav.home })).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: en.home.next })).toBeVisible();
   // #169: un solo aviso con todos los servicios sin clave y el botón a Cuentas y claves.
   const notice = page.getByRole("note", { name: en.notices.title });
   await expect(notice).toHaveCount(1);
-  await expect(notice).toContainText(en.credentials.service.igdb);
+  await expect(notice).toContainText(en.credentials.service.steam);
   await expect(notice.getByRole("link", { name: en.notices.openCredentials })).toHaveAttribute("href", "/settings/?s=credentials");
   await expectNoRawKeys();
   await expectSearchFits();
@@ -138,13 +140,13 @@ test("todas las pantallas se ven en inglés", async () => {
     ["collection", en.catalog.collection.emptyTitle],
     ["game", en.catalog.game.noneTitle],
     ["saga", en.catalog.saga.noneTitle],
-    ["review", en.review.pendingEmptyTitle],
+    ["review", en.review.files.doubtfulEmptyTitle],
     ["tools", en.tools.emptyTitle],
-    ...(["discover", "downloads", "steam"] as const).map((s) => [s, en.comingSoon[s].title] as const),
+    ...(["discover", "steam"] as const).map((s) => [s, en.comingSoon[s].title] as const),
   ] as const;
   // #169: las de fases futuras se ven atenuadas con su fase y no se abren desde el menú.
   await page.goto(`${base()}/`);
-  for (const s of ["discover", "downloads", "steam"] as const) {
+  for (const s of ["discover", "steam"] as const) {
     await expect(page.locator(".sidebar").getByRole("link", { name: en.nav[s] })).toHaveCount(0);
     await expect(page.locator(".sidebar .is-future", { hasText: en.nav[s] })).toHaveAttribute("aria-disabled", "true");
   }
@@ -266,13 +268,69 @@ test("Ajustes › Consolas: el detalle de una consola, su destino y mover sus ju
   await expect.poll(() => existsSync(join(a, "Juegos", "Switch")), { timeout: 15_000 }).toBe(false);
   // Se limpian la tarea y los discos para no dejar estado a las demás pruebas (quitar no borra archivos).
   await page.getByRole("button", { name: en.topBar.tasks }).click();
-  await page.getByRole("dialog", { name: en.topBar.tasksPanel }).getByRole("button", { name: en.tasks.clear }).click();
-  await expect(page.getByText(en.topBar.noTasksTitle)).toBeVisible();
+  // Al terminar una mudanza se escanea solo (#212): se limpia cuando también terminó eso.
+  await expect(async () => {
+    await page.getByRole("dialog", { name: en.topBar.tasksPanel }).getByRole("button", { name: en.tasks.clear }).click({ timeout: 1000 });
+    await expect(page.getByText(en.topBar.noTasksTitle)).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 15_000 });
   await page.keyboard.press("Escape");
   await removeDisks();
 });
 
-test("Herramientas: pestañas por tipo y Sistema lleva a Almacenamiento (#154)", async () => {
+test("Descargas: el capturador guarda lo pegado, sobrevive a cambiar de pantalla y dice lo que respondió el sitio (#203, #204, #210)", async () => {
+  await page.goto(`${base()}/downloads/?tab=links`);
+  await expect(page.getByRole("tab", { name: en.downloads.tabLinks })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByText(en.downloads.captureEmpty)).toBeVisible();
+  // Se guarda sin consultar el sitio, y sigue ahí después de irse y volver.
+  await page.getByLabel(en.downloads.links).fill("https://1fichier.com/?abc123&af=9 https://sitio.test/juego.part1.rar https://sitio.test/juego.part2.rar");
+  await page.getByRole("button", { name: en.downloads.addLinks, exact: true }).click();
+  await expect(page.getByRole("checkbox", { name: /^abc123/ })).toBeVisible();
+  await expect(page.getByText(en.downloads.state.unchecked)).toHaveCount(3);
+  await page.goto(`${base()}/tools/`);
+  await page.goto(`${base()}/downloads/`);
+  await expect(page.getByRole("tab", { name: en.downloads.tabLinksCount.replace("{count}", "3") })).toBeVisible();
+  await page.getByRole("tab", { name: /Link grabber/ }).click();
+  await expect(page.getByRole("checkbox", { name: /^abc123/ })).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: /^juego/ })).toBeVisible();
+  await expect(page.getByText("juego.part2.rar")).toBeVisible();
+  // Lo que respondió el sitio, no un «falta tu cuenta» cualquiera.
+  await page.route("**/api/downloads/links/check", (route) => route.fulfill({ json: [
+    { name: "abc123", size: 0, links: [{ id: 1, url: "https://1fichier.com/?abc123", name: "abc123", size: null, site: "1fichier", state: "blocked", detail: { code: "download.siteSaid", params: { site: "1fichier", message: "Resource not found #644" } }, gameId: null, status: "captured" }] },
+  ] }));
+  await page.getByRole("button", { name: en.downloads.check, exact: true }).click();
+  await expect(page.getByText("Resource not found #644")).toBeVisible();
+  await page.unroute("**/api/downloads/links/check");
+  await expectNoRawKeys();
+  // Cada descarga se despliega en sus enlaces, y dice cómo va cada uno.
+  await page.route("**/api/downloads", (route) => route.fulfill({ json: [{ id: 999, name: "DKB ROM", disk: "D:", links: 3, done: 1, status: "paused", progress: 40, detail: null, createdAt: "2026-11-01T00:00:00Z",
+    items: [{ url: "https://1fichier.com/?parte1", name: "DKB ROM.part1.rar", size: 5242880, check: "crc32" }, { url: "https://1fichier.com/?parte2", name: "DKB ROM.part2.rar", size: null, check: null }, { url: "https://1fichier.com/?parte3", name: "DKB ROM.part3.rar", size: null, check: null }] }] }));
+  await page.goto(`${base()}/downloads/?tab=queue`);
+  await expect(page.getByText("DKB ROM.part1.rar")).toBeHidden();
+  await page.getByText("Show 3 links").click();
+  const items = page.locator(".download-item");
+  await expect(items).toHaveCount(3);
+  await expect(items.nth(0).getByText(en.downloads.status.done)).toBeVisible();
+  await expect(items.nth(1).getByText(en.downloads.status.paused)).toBeVisible();
+  await expect(items.nth(2).getByText(en.downloads.itemPending)).toBeVisible();
+  await expect(items.nth(0).getByText(en.downloads.verified.crc32)).toBeVisible();
+  // Cuántas a la vez por sitio: sin cuenta premium, 1fichier solo deja 1.
+  await page.getByText(en.downloads.parallelTitle).click();
+  await expect(page.getByText(en.downloads.parallelFree)).toBeVisible();
+  const direct = page.getByLabel(new RegExp(en.downloads.site.direct));
+  await direct.selectOption("3");
+  await page.reload();
+  await page.getByText(en.downloads.parallelTitle).click();
+  await expect(page.getByLabel(new RegExp(en.downloads.site.direct))).toHaveValue("3");
+  if (process.env.OTTERETRO_SHOT) await page.locator(".panel").first().screenshot({ path: process.env.OTTERETRO_SHOT });
+  await page.unroute("**/api/downloads");
+  // Quitar los deja fuera para siempre.
+  await page.goto(`${base()}/downloads/?tab=links`);
+  for (const name of ["abc123", "juego.part1.rar", "juego.part2.rar"])
+    await page.getByRole("button", { name: en.downloads.removeLink.replace("{name}", name) }).click();
+  await expect(page.getByText(en.downloads.captureEmpty)).toBeVisible();
+});
+
+test("Herramientas: pestañas por tipo y subir un archivo de sistema con versiones (#154, #199)", async () => {
   await page.goto(`${base()}/tools/`);
   for (const k of ["emulator", "port", "complement", "system"] as const) await expect(page.getByRole("tab", { name: en.tools.kind[k] })).toBeVisible();
   await expect(page.getByRole("tab", { name: en.tools.kind.emulator })).toHaveAttribute("aria-selected", "true");
@@ -281,8 +339,10 @@ test("Herramientas: pestañas por tipo y Sistema lleva a Almacenamiento (#154)",
   await expect(page.getByText(en.tools.systemHelp)).toBeVisible();
   await expectNoRawKeys();
   await expectTextFits();
-  await page.getByRole("link", { name: en.tools.openStorage }).click();
-  await expect(page.getByRole("tab", { name: en.settings.storage })).toHaveAttribute("aria-selected", "true");
+  await page.getByLabel(en.tools.systemConsole).selectOption("switch");
+  await page.getByLabel(en.tools.systemUpload).setInputFiles({ name: "prueba.bin", mimeType: "application/octet-stream", buffer: Buffer.from("archivo de prueba") });
+  await expect(page.getByText(/prueba\.bin/)).toBeVisible();
+  await expectNoRawKeys();
 });
 
 test("el panel de tareas y la búsqueda están traducidos", async () => {
@@ -354,17 +414,25 @@ test("Ajustes en inglés: carpeta, idioma y actualización", async () => {
   await page.reload();
   await expect(page.getByRole("group", { name: en.update.channel.title }).getByRole("button", { name: en.update.channel.custom })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByLabel(en.update.channel.origin)).toHaveValue(dataDir("paquetes"));
-  // #163: Local pide su carpeta la primera vez y la recuerda aparte de Otro origen: después, un clic.
+  // #230: el catálogo tiene su pestaña: el que usas arriba y el origen al final. #217: un nombre que no es dueño/repo se rechaza sin tocar el origen.
+  await page.goto(`${base()}/settings/?s=catalog`);
+  await expect(page.getByRole("heading", { name: en.update.catalogVersion.inUse })).toBeVisible();
+  await expect(page.getByText(en.update.catalogSource.official.replace("{repo}", "OscarVargas97/otteretro-catalogo"))).toBeVisible();
+  await page.getByLabel(en.update.catalogSource.repo).fill("esto no es un repo");
+  await page.getByRole("button", { name: en.update.catalogSource.use }).click();
+  await expect(page.getByRole("alert").filter({ hasText: en.errors.catalog.sourceName })).toBeVisible();
+  await expect(page.getByRole("button", { name: en.update.catalogSource.officialButton })).toHaveCount(0);
+  await page.goto(`${base()}/settings/?s=general`);
+  // #209: Local no pide nada: busca sus paquetes en tus discos y, sin paquetes, lo dice.
   const group = page.getByRole("group", { name: en.update.channel.title });
   await group.getByRole("button", { name: en.update.channel.local, exact: true }).click();
-  await page.getByLabel(en.update.channel.localFolder).fill(dataDir("locales"));
-  await page.getByRole("button", { name: en.update.channel.use, exact: true }).click();
   await expect(group.getByRole("button", { name: en.update.channel.local, exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText(en.update.channel.localNone)).toBeVisible();
+  await expect(page.getByLabel(en.update.channel.origin)).toHaveCount(0);
   await group.getByRole("button", { name: en.update.channel.stable }).click();
   await expect(group.getByRole("button", { name: en.update.channel.stable })).toHaveAttribute("aria-pressed", "true");
   await group.getByRole("button", { name: en.update.channel.local, exact: true }).click();
   await expect(group.getByRole("button", { name: en.update.channel.local, exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByLabel(en.update.channel.localFolder)).toHaveValue(dataDir("locales"));
   await group.getByRole("button", { name: en.update.channel.custom }).click();
   await expect(page.getByLabel(en.update.channel.origin)).toHaveValue(dataDir("paquetes"));
   await page.getByRole("group", { name: en.update.channel.title }).getByRole("button", { name: en.update.channel.stable }).click();
@@ -529,9 +597,15 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   // #96: con más de 60 sagas se dibujan de a 60 y al bajar aparecen las demás.
   const many = await openDb();
   many.exec(`WITH RECURSIVE n(i) AS (SELECT 1000 UNION ALL SELECT i + 1 FROM n WHERE i < 1099) INSERT INTO saga (id, name) SELECT i, 'Saga de prueba ' || i FROM n`);
+  // #225: la app rehace Sagas cuando cambia la generación (al aplicar un catálogo); acá el catálogo se escribe directo, así que se sube a mano.
+  many.exec("UPDATE cache_generation SET value = value + 1");
   await page.goto(`${base()}/sagas/`);
   const tiles = page.locator("a.ot-saga");
-  await expect(tiles).toHaveCount(60);
+  // Lo guardado se sirve al instante y se rehace aparte: la siguiente carga ya trae las sagas nuevas.
+  await expect(async () => {
+    await page.reload();
+    await expect(tiles).toHaveCount(60, { timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
   // #170: el total en la barra de filtros, y la tarjeta con sus insignias y «lo que tienes».
   await expect(page.locator(".toolbar-total")).toContainText("102");
   const zelda = tiles.filter({ hasText: "The Legend of Zelda" });
@@ -557,7 +631,7 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   await sagasLink.click();
   await expect(tiles).toHaveCount(102);
   await expect(page.locator("p.error")).toHaveCount(0);
-  many.exec("DELETE FROM saga WHERE id >= 1000");
+  many.exec("DELETE FROM saga WHERE id >= 1000; UPDATE cache_generation SET value = value + 1");
   many.close();
 
   await page.goto(`${base()}/sagas/`);
@@ -611,18 +685,6 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   await expect(page.getByRole("radio", { name: es.catalog.status.finished })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByLabel(es.catalog.game.rating)).toHaveValue("9");
 
-  // Corregir el nombre a mano gana sobre IGDB; volver al de las fuentes lo deshace.
-  await page.getByText(es.catalog.game.sources).click();
-  await page.getByRole("button", { name: `${es.catalog.game.fix}: ${es.catalog.game.field.name_es}` }).click();
-  await page.getByLabel(es.catalog.game.field.name_es).fill("La ocarina del tiempo");
-  await page.getByRole("button", { name: es.catalog.game.save }).click();
-  await expect(page.getByRole("heading", { level: 2, name: "La ocarina del tiempo" })).toBeVisible();
-  await expectNoRawKeys();
-  await expectTextFits();
-  await page.screenshot({ path: "e2e-results/9-ficha-es.png", fullPage: true });
-  await page.getByRole("button", { name: es.catalog.game.undoFix }).click();
-  await expect(page.getByRole("heading", { level: 2, name: "Ocarina of Time" })).toBeVisible();
-
   // F2.18: «Lo tengo» por defecto y el número de cada consola sigue al filtro.
   await page.goto(`${base()}/collection/?console=n64`);
   await expect(page.getByRole("button", { name: es.catalog.collection.filter.owned })).toHaveAttribute("aria-pressed", "true");
@@ -652,111 +714,15 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   await expect(page).toHaveURL(/\/saga\/\?id=1/);
 });
 
-test("Claude: aprobar en Revisar, la ruta en la saga, la comparativa en la ficha y el siguiente juego en Inicio", async () => {
-  // Lo que dejaría `claude cargar` (F2.5): las rutas de Zelda y la mejor versión de Ocarina, por aprobar.
-  const db = await openDb();
-  const criterion = { score: 4, text: "Bien" };
-  const items = [
-    ["saga", 1, { prompt: "ruta-saga", result: [
-      { kind: "release", rationale: "Por fecha de salida.", steps: [{ gameId: 10, versionId: null, reason: "El primero en 3D" }, { gameId: 11, versionId: null, reason: "El último" }], sources: [] },
-      { kind: "community", rationale: "Así se recomienda empezar.", steps: [{ gameId: 10, versionId: 101, reason: "El de 3DS se ve mejor" }, { gameId: 11, versionId: null, reason: "Después, el mundo abierto" }], sources: [{ title: "r/zelda", url: "https://reddit.com/r/zelda" }] },
-    ] }],
-    ["game", 10, { prompt: "mejor-version", result: { gameId: 10, bestVersionId: 101, reason: "Mejor hoy", versions: [
-      { versionId: 100, content: criterion, gameplay: { score: 3, text: "Controles de su época" }, technical: criterion, original: { score: 5, text: "Es el original" } },
-      { versionId: 101, content: criterion, gameplay: { score: 5, text: "Pantalla táctil para el inventario" }, technical: criterion, original: criterion },
-    ] } }],
-  ] as const;
-  for (const [entity, id, data] of items)
-    db.prepare("INSERT INTO review_item (kind, entity, entity_id, data, created_at) VALUES ('pending_approval', ?, ?, ?, '2026-10-31')").run(entity, id, JSON.stringify(data));
-  db.close();
-
-  await page.goto(`${base()}/review/`);
-  await expect(page.getByText("Así se recomienda empezar.")).toBeVisible();
-  // #171: la ruta por aprobar con sus portadas numeradas y la razón de cada paso.
-  const preview = page.locator(".timeline.is-plain").first();
-  await expect(preview.locator(".step-num").first()).toHaveText("1");
-  await expect(preview).toContainText("Ocarina of Time");
-  await expectNoRawKeys();
-  await expectTextFits();
-  await page.screenshot({ path: "e2e-results/11-revisar-es.png", fullPage: true });
-  // F2.21: el contador de Revisar en la barra lateral, y la ruta de la comunidad editada antes de aprobarla.
-  const reviewLink = page.getByRole("navigation", { name: es.nav.label }).getByRole("link", { name: new RegExp(es.nav.review) });
-  await expect(reviewLink).toContainText("2");
-  await page.getByRole("button", { name: es.review.edit }).click();
-  await page.getByRole("button", { name: es.review.stepUp.replace("{step}", "2") }).nth(1).click();
-  await page.getByRole("button", { name: es.review.approveEdited }).click();
-  await expect(reviewLink).toContainText("1");
-  await page.getByRole("button", { name: es.review.approve }).first().click();
-  await expect(page.getByText(es.review.pendingEmptyTitle)).toBeVisible();
-  await expect(reviewLink.locator(".ot-count")).toHaveCount(0);
-
-  await page.goto(`${base()}/saga/?id=1`);
-  await expect(page.getByText(es.catalog.saga.why)).toBeVisible();
-  await expect(page.getByText("El de 3DS se ve mejor")).toBeVisible();
-  // #170: la ruta se elige con pestañas junto al título; elegirla es seguirla.
-  await page.getByRole("tab", { name: es.catalog.route.community }).click();
-  await expect(page.getByRole("tab", { name: es.catalog.route.community })).toHaveAttribute("aria-selected", "true");
-  // Editada: Breath of the Wild quedó primero. Los pasos llevan su número y lo jugado (Ocarina) va a color.
-  await expect(page.locator(".timeline").first()).toContainText(/Breath of the Wild[\s\S]*Ocarina of Time/);
-  await expect(page.locator(".timeline li.is-played")).toContainText("Ocarina of Time");
-  await expect(page.locator(".timeline .step-num").first()).toHaveText("1");
-  // «Pedir a Claude que la recalcule» está en el menú «⋯» del encabezado (no se pulsa: encolaría una llamada real).
-  await page.getByRole("button", { name: es.catalog.saga.moreActions }).click();
-  await expect(page.getByRole("menuitem", { name: es.catalog.saga.recalculate })).toBeVisible();
-  await page.keyboard.press("Escape");
-  // Las consolas de la tabla, abreviadas: Ocarina está en N64 y 3DS.
-  await expect(page.getByRole("row", { name: /Ocarina of Time/ }).locator(".ot-console")).toHaveText(["N64", "3DS"]);
-  await expectNoRawKeys();
-  await expectTextFits();
-  await page.screenshot({ path: "e2e-results/12-saga-ruta-es.png", fullPage: true });
-
+test("la ficha muestra tus enlaces de ese juego, y se pueden quitar (#210)", async () => {
   await page.goto(`${base()}/game/?id=10`);
-  // #171: versiones y comparativa en una sola tabla, con barras de 5 y el mejor de cada columna resaltado.
-  await expect(page.getByRole("heading", { level: 2, name: es.catalog.game.versions })).toBeVisible();
-  await expect(page.getByText("Pantalla táctil para el inventario")).toBeVisible();
-  const ds = page.getByRole("row", { name: /Nintendo 3DS/ });
-  await expect(ds.getByRole("img", { name: "5/5" })).toHaveClass(/is-best/);
-  await expect(page.getByRole("row", { name: /Nintendo 64/ }).getByRole("img", { name: "3/5" })).not.toHaveClass(/is-best/);
-  await page.screenshot({ path: "e2e-results/13-comparativa-es.png", fullPage: true });
-
-  // Ocarina ya está terminado (prueba anterior): lo siguiente es Breath of the Wild.
-  await page.goto(`${base()}/`);
-  // #170: tarjeta horizontal con la ruta, el avance y «Ver ficha»; Revisar solo si hay algo (aquí ya se aprobó todo).
-  const card = page.locator(".next-card", { hasText: "Breath of the Wild" });
-  await expect(card.getByRole("link", { name: `${es.home.viewGame}: Breath of the Wild` })).toHaveAttribute("href", "/game/?id=11");
-  await expect(card).toContainText(es.catalog.ofTotal.replace("{done}", "1").replace("{total}", "2"));
-  await expect(page.getByRole("heading", { level: 2, name: es.home.review })).toHaveCount(0);
-  await page.screenshot({ path: "e2e-results/14-inicio-es.png", fullPage: true });
-
-  // F2.21: terminar Breath of the Wild completa la ruta que sigues: la nutria lo celebra.
-  await page.goto(`${base()}/game/?id=11`);
-  await page.getByRole("radio", { name: es.catalog.status.finished }).click();
-  await expect(page.getByRole("status").filter({ hasText: es.catalog.game.cheerRoute.replace("{saga}", "The Legend of Zelda") })).toBeVisible();
-  await page.screenshot({ path: "e2e-results/14b-nutria-es.png", fullPage: true });
-
-  // #95: el registro de uso va de a 10.
-  const usageDb = await openDb();
-  for (let i = 1; i <= 12; i++)
-    usageDb.exec(`INSERT INTO claude_usage (prompt, model, duration_ms, result, input_tokens, output_tokens, cost_usd, created_at)
-      VALUES ('uso-${i}', 'haiku', 1000, 'ok', 1, 1, 0, '2026-10-31T03:00:00Z')`);
-  usageDb.close();
-  await page.goto(`${base()}/settings/?s=claude`);
-  await expect(page.getByRole("button", { name: es.settings.claude.runNow })).toBeVisible();
-  // #110: tres bloques, el horario en una frase de una sola línea y el registro con su costo.
-  for (const h of [es.settings.claude.schedule, es.settings.claude.now, es.settings.claude.use])
-    await expect(page.locator("#settings-panel").getByRole("heading", { level: 2, name: h })).toBeVisible();
-  const scheduleRow = page.locator(".sentence").filter({ has: page.getByLabel(es.settings.claude.from) });
-  expect((await scheduleRow.boundingBox())!.height).toBeLessThan(48);
-  await expect(page.getByRole("columnheader", { name: es.settings.claude.cost })).toBeVisible();
-  const usageTable = page.locator("table").filter({ hasText: "uso-12" });
-  await expect(usageTable.locator("tbody tr")).toHaveCount(10);
-  // #172: el total de la página arriba del registro.
-  await expect(page.locator(".usage-total")).toContainText(/10/);
-  await page.getByRole("button", { name: es.settings.claude.next }).click();
-  await expect(page.getByRole("cell", { name: "uso-1", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: es.settings.claude.previous }).click();
-  await expect(page.getByRole("cell", { name: "uso-12" })).toBeVisible();
-  await expectNoRawKeys();
+  await expect(page.getByRole("heading", { name: es.downloads.gameLinks })).toHaveCount(0);
+  expect((await api("POST", "/api/downloads/links", { text: "https://sitio.test/fusion.zip", gameId: 10 })).ok).toBe(true);
+  await page.reload();
+  await expect(page.getByRole("heading", { name: es.downloads.gameLinks })).toBeVisible();
+  await expect(page.getByText("fusion.zip")).toBeVisible();
+  await page.getByRole("button", { name: es.downloads.removeLink.replace("{name}", "fusion.zip") }).click();
+  await expect(page.getByRole("heading", { name: es.downloads.gameLinks })).toHaveCount(0);
 });
 
 test("panel de tareas: terminadas por hora de término, registro al hacer clic y limpiar", async () => {
@@ -764,6 +730,7 @@ test("panel de tareas: terminadas por hora de término, registro al hacer clic y
   const now = new Date();
   const at = (minutes: number) => new Date(now.getTime() - minutes * 60_000).toISOString();
   db.exec(`
+    DELETE FROM task WHERE status NOT IN ('queued', 'running'); -- las de las pruebas anteriores (agregar un disco escanea, #212)
     INSERT INTO task (id, kind, status, progress, created_at, finished_at) VALUES
       (900, 'demo', 'done', 100, '${at(30)}', '${at(20)}'), (901, 'demo', 'error', 40, '${at(25)}', '${at(5)}');
     INSERT INTO task_log (task_id, at, level, message) VALUES
@@ -812,31 +779,6 @@ test("panel de tareas: pausar, reanudar y cancelar (#146)", async () => {
   await page.keyboard.press("Escape");
 });
 
-test("Aprendizajes: cada cambio en claro, filtros y corregir con una nota para Claude", async () => {
-  const db = await openDb();
-  const content = {
-    prompt: "depurar-sagas",
-    change: { kind: "move", reason: "No es de Zelda.", gameIds: [11], toSagaId: null, newSagaName: null },
-    before: { games: [{ item1: 11, item2: 1 }], createdSaga: null },
-  };
-  db.prepare("INSERT INTO learning (kind, content, created_at, task_id) VALUES ('rule', ?, '2026-10-31T15:00:00Z', 37)").run(JSON.stringify(content));
-  db.close();
-  await page.goto(`${base()}/review/`);
-  await page.getByRole("tab", { name: /Aprendizajes/ }).click();
-  await expect(page.getByRole("heading", { level: 2, name: "Tarea #37" })).toBeVisible();
-  await expect(page.getByText(/Breath of the Wild: de The Legend of Zelda a ninguna saga/)).toBeVisible();
-  await page.getByRole("button", { name: es.review.kindFilter.merge }).click();
-  await expect(page.getByText(/ninguna saga/)).toHaveCount(0);
-  await page.getByRole("button", { name: es.review.filterAll }).click();
-  await page.getByRole("button", { name: es.review.correct }).click();
-  await page.getByRole("textbox", { name: es.review.correct }).fill("Breath of the Wild sí es de Zelda");
-  await page.getByRole("button", { name: es.review.send }).click();
-  await expect(page.getByText("Tu corrección: Breath of the Wild sí es de Zelda")).toBeVisible();
-  await expect(page.getByText(es.review.undone)).toBeVisible();
-  await expectNoRawKeys();
-  await page.screenshot({ path: "e2e-results/16-aprendizajes-es.png", fullPage: true });
-});
-
 test("los cambios se ven al tocar y, si el guardado falla, vuelven y avisan", async () => {
   // #107: el servidor retiene el guardado; la estrella ya cambió y el botón sigue activo. Después responde con error.
   await page.goto(`${base()}/saga/?id=1`);
@@ -879,46 +821,13 @@ test("las pestañas nunca tienen barra: en una ventana angosta, lo que no cabe v
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${base()}/settings/`);
   await expect(more).toHaveCount(0);
-  await expect(page.getByRole("tab")).toHaveCount(5);
+  await expect(page.getByRole("tab")).toHaveCount(6); // con Catálogo (#230)
   await noScroll();
   // #200: una sola columna centrada con ancho máximo.
   const content = (await page.locator(".content").boundingBox())!;
   const column = (await page.locator(".centered").boundingBox())!;
   expect(column.width).toBeLessThanOrEqual(881);
   expect(Math.abs((column.x - content.x) - (content.x + content.width - column.x - column.width))).toBeLessThan(40);
-});
-
-test("Ajustes: consolas habilitadas, al día y reevaluar icónicas", async () => {
-  await page.goto(`${base()}/settings/?s=consoles`);
-  await expect(page.getByRole("tabpanel", { name: es.settings.consoles.title })).toBeVisible();
-  // #109: filas por empresa en una sola línea y la fecha de carga, a lo más, una vez.
-  const heights = await page.locator(".console-row").evaluateAll((rows) => rows.map((r) => r.getBoundingClientRect().height));
-  expect(heights.length).toBeGreaterThan(20);
-  expect(Math.max(...heights)).toBeLessThan(48);
-  expect(await page.getByText(/al día al/i).count()).toBeLessThanOrEqual(1);
-  await expect(page.getByRole("heading", { level: 3, name: es.settings.consoles.group.nintendo })).toBeVisible();
-  const vb = page.getByRole("switch", { name: /Virtual Boy/ });
-  await expect(vb).toBeChecked();
-  await vb.click(); // cambia al tocar (#107)
-  await expect(vb).not.toBeChecked();
-  await vb.click();
-  await expect(vb).toBeChecked();
-  // #94: la búsqueda en IGDB se cierra con el botón y con Escape.
-  const add = page.getByRole("button", { name: es.settings.consoles.add });
-  await add.click();
-  await page.getByRole("button", { name: es.settings.consoles.close }).click();
-  await expect(add).toBeVisible();
-  await add.click();
-  await page.getByRole("searchbox", { name: es.settings.consoles.search }).press("Escape");
-  await expect(add).toBeVisible();
-  await expect(page.getByRole("searchbox", { name: es.settings.consoles.search })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: es.settings.consoles.refreshNow })).toBeVisible();
-  await expectNoRawKeys();
-  await page.screenshot({ path: "e2e-results/17-consolas-es.png", fullPage: true });
-  await page.getByRole("tab", { name: es.settings.claude.title }).click();
-  await expect(page.getByRole("button", { name: es.settings.claude.iconic })).toBeVisible();
-  await expectNoRawKeys();
-  await page.screenshot({ path: "e2e-results/18-claude-es.png", fullPage: true });
 });
 
 test("Ajustes en una sola columna a cualquier ancho, y el menú se retrae, se recuerda y se expande", async () => {
@@ -952,23 +861,19 @@ test("Ajustes en una sola columna a cualquier ancho, y el menú se retrae, se re
   await expect(sidebar).not.toHaveClass(/is-collapsed/);
 });
 
-test("Ajustes › Consolas: portadas con su total, bajarlas a pedido y «En curso»", async () => {
-  // #132: sin clave de SteamGridDB, el bloque lleva a Cuentas y claves.
+test("Ajustes › Consolas: desactivar una consola la saca de lo que se muestra y activarla la devuelve", async () => {
+  // #224: sin bajar nada; la elección es tuya y queda guardada.
   await page.goto(`${base()}/settings/?s=consoles`);
-  const block = page.getByRole("region", { name: es.settings.consoles.covers.title });
-  await expect(block).toContainText(/\d+ de \d+ juegos con portada/);
-  await expect(block.getByRole("link", { name: es.settings.consoles.covers.noKey })).toHaveAttribute("href", "/settings/?s=credentials");
-  // Con clave (la descarga real se prueba en xUnit, sin red): el botón encola y queda «En curso».
-  let queued = 0;
-  await page.route("**/api/covers", (route) => {
-    if (route.request().method() === "POST") queued++;
-    return route.fulfill({ json: { have: 31967, total: 40210, running: queued > 0, hasKey: true } });
-  });
+  await expect(page.getByText(es.settings.consoles.help)).toBeVisible();
+  const nes = page.getByRole("switch", { name: es.settings.consoles.show.replace("{name}", "NES") });
+  await expect(nes).toBeChecked();
+  // Un clic y se espera: el interruptor es controlado y cambia cuando React vuelve a dibujar, no en el mismo instante del clic.
+  await nes.click();
+  await expect(nes).not.toBeChecked();
+  await expect.poll(async () => JSON.parse((await api("GET", "/api/consoles")).text).some((c: { id: string }) => c.id === "nes")).toBe(false);
   await page.reload();
-  await expect(block).toContainText("31.967 de 40.210 juegos con portada");
-  await block.getByRole("button", { name: es.settings.consoles.covers.download }).click();
-  await expect(block.getByRole("button", { name: es.settings.consoles.covers.running })).toBeDisabled();
-  expect(queued).toBe(1);
+  await expect(nes).not.toBeChecked();
+  await nes.click();
+  await expect(nes).toBeChecked();
   await expectNoRawKeys();
-  await page.unroute("**/api/covers");
 });

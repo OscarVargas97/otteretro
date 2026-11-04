@@ -82,14 +82,14 @@ public class FluidityTests(ITestOutputHelper output) : IAsyncLifetime
     /// <summary>Lo que piden Inicio, Sagas, una saga, una ficha, Colección, Revisar, la búsqueda, las tareas y cada pestaña de Ajustes.</summary>
     static readonly string[] Urls =
     [
-        "/api/state", "/api/notices", "/api/home/next", "/api/review", "/api/review/count", "/api/learnings", "/api/learnings?q=zelda", "/api/tasks",
+        "/api/state", "/api/notices", "/api/home/next", "/api/review", "/api/review/count", "/api/tasks",
         "/api/sagas", "/api/sagas?sort=recognized", "/api/sagas?filter=owned", "/api/sagas?filter=exclusive&company=Nintendo",
         "/api/sagas?platform=switch", "/api/consoles",
         "/api/sagas/1", "/api/sagas/1/routes", "/api/sagas/0", "/api/sagas/0/games?offset=600",
         "/api/games/1", "/api/games/1/compare",
         "/api/collection/pc", "/api/collection/pc?filter=owned", "/api/collection/switch?filter=missing&sort=name",
         "/api/search?q=juego%2012",
-        "/api/data-folder", "/api/locations", "/api/tools", "/api/credentials", "/api/consoles/settings", "/api/claude", "/api/claude/usage?page=1", "/api/claude/automation",
+        "/api/data-folder", "/api/locations", "/api/tools", "/api/system", "/api/downloads", "/api/credentials", "/api/consoles/settings", "/api/claude", "/api/claude/usage?page=1",
     ];
 
     [Fact]

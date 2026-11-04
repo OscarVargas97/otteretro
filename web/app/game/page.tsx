@@ -2,9 +2,11 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useFormatter, useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { Suspense, useEffect, useState } from "react";
-import { Cover, hours, Platforms, useConsoleName, useIdParam } from "@/components/Catalog";
+import { size } from "@/lib/format";
+import { Cover, hours, Platforms, useConsoleName, useConsoles, useIdParam } from "@/components/Catalog";
 import { useHeroArt } from "@/components/HeroArt";
 import { Empty } from "@/components/Shell";
 import { request } from "@/lib/client";
@@ -12,10 +14,9 @@ import { PageSkeleton } from "@/components/Skeleton";
 import { useDescribeError } from "@/lib/i18n";
 import { optimistic } from "@/lib/optimistic";
 import { compareQuery, gameQuery } from "@/lib/queries";
-import type { FieldRow, GameDetail, ProgressInfo, RoutesPage, VersionCompare } from "@/lib/types";
+import type { CapturedLink, FieldRow, GameDetail, ProgressInfo, RoutesPage, VersionCompare } from "@/lib/types";
 
 const STATUSES = ["pending", "playing", "finished", "completed", "dropped"] as const;
-const FIELDS = ["name_es", "original_name", "year"] as const;
 
 // La ficha de un juego se abre como /game/?id=…
 export default function GameScreen() {
@@ -43,7 +44,8 @@ function Game() {
   // La traducción aprobada (Claude, F2.5) o, mientras no la haya, la de IGDB.
   const description = (g.fields.find((f) => f.field === "summary_es") ?? g.fields.find((f) => f.field === "summary"))?.value;
   const stores = g.versions.flatMap((v) => v.stores.map((s) => ({ ...s, platform: v.platform })));
-  const owned = stores.length > 0;
+  const files = g.versions.flatMap((v) => v.files.map((f) => ({ ...f, platform: v.platform })));
+  const owned = stores.length > 0 || files.length > 0;
 
   return (
     <div className="accented" style={hero.style}>
@@ -84,6 +86,7 @@ function Game() {
               </div>
             </section>
           )}
+          {files.length > 0 && <Files gameId={Number(g.id)} files={files} />}
         </div>
 
         {description && (
@@ -95,9 +98,48 @@ function Game() {
 
         <Versions game={g} compare={compare.data ?? []} />
 
-        <Sources game={g} />
+        <GameLinks gameId={Number(g.id)} />
+
       </div>
     </div>
+  );
+}
+
+/** Tus enlaces de este juego (#210): datos privados, en tu base. Volver a bajar lo devuelve al capturador. */
+function GameLinks({ gameId }: { gameId: number }) {
+  const t = useTranslations("downloads");
+  const describe = useDescribeError();
+  const cache = useQueryClient();
+  const router = useRouter();
+  const links = useQuery({ queryKey: ["game-links", gameId], queryFn: () => request<CapturedLink[]>(`/api/games/${gameId}/links`) });
+  const again = useMutation({
+    mutationFn: (url: string) => request<number>("/api/downloads/links", { method: "POST", body: JSON.stringify({ text: url, gameId }) }),
+    onSuccess: () => router.push("/downloads/?tab=links"),
+  });
+  const open = useMutation({ mutationFn: (url: string) => request<void>("/api/downloads/open", { method: "POST", body: JSON.stringify({ url }) }) });
+  const remove = useMutation({
+    mutationFn: (id: number) => request<void>(`/api/downloads/links/${id}`, { method: "DELETE" }),
+    onSettled: () => cache.invalidateQueries({ queryKey: ["game-links", gameId] }),
+  });
+  if (!links.data?.length) return null;
+  const failure = again.error ?? open.error ?? remove.error;
+  return (
+    <section className="sec">
+      <div className="sec-h"><h2>{t("gameLinks")}</h2><span className="small muted">{t("gameLinksPrivate")}</span></div>
+      {failure && <p className="error small" role="alert">{describe(failure)}</p>}
+      <div className="panel" style={{ gap: 8 }}>
+        {links.data.map((l) => (
+          <div key={l.id} className="version-row small">
+            <span title={l.url}>{l.name}</span>
+            <span className="hero-actions">
+              <button className="ot-btn ot-btn-sm" type="button" onClick={() => again.mutate(l.url)}>{t("downloadAgain")}</button>
+              <button className="ot-btn ot-btn-sm" type="button" onClick={() => open.mutate(l.url)}>{t("openBrowser")}</button>
+              <button className="ot-btn ot-btn-sm" type="button" aria-label={t("removeLink", { name: l.name })} onClick={() => remove.mutate(Number(l.id))}>{t("remove")}</button>
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -124,6 +166,7 @@ function FavoriteButton({ game }: { game: GameDetail }) {
       <button className="ot-btn" type="button" aria-pressed={p.favorite} onClick={() => save.mutate({ ...p, favorite: !p.favorite })}>
         {t("game.favorite")}
       </button>
+      <Link className="ot-btn" href={`/downloads/?${new URLSearchParams({ game: String(game.id), name: game.nameEs })}`}>{t("game.download")}</Link>
     </div>
   );
 }
@@ -218,70 +261,9 @@ function Tracking({ game }: { game: GameDetail }) {
   );
 }
 
-/** Datos y fuentes (§6.8): cada campo con el valor de cada fuente. Lo corregido a mano gana; se puede volver al de las fuentes. */
-function Sources({ game }: { game: GameDetail }) {
-  const t = useTranslations("catalog");
-  const sources = [...new Set(game.fields.filter((f) => !f.manual).map((f) => t(`game.source.${f.source as "igdb"}`)))];
-  return (
-    <details className="fold">
-      <summary>{t("game.sources")} <span className="small muted">{sources.join(" · ")}</span></summary>
-      <div className="fold-body">
-        {FIELDS.map((field) => <FieldEditor key={field} game={game} field={field} rows={game.fields.filter((f) => f.field === field)} />)}
-        <p className="small muted" style={{ margin: 0 }}>{t("game.manualNote")}</p>
-      </div>
-    </details>
-  );
-}
-
-function FieldEditor({ game, field, rows }: { game: GameDetail; field: (typeof FIELDS)[number]; rows: FieldRow[] }) {
-  const t = useTranslations("catalog");
-  const describe = useDescribeError();
-  const cache = useQueryClient();
-  const current = field === "name_es" ? game.nameEs : field === "original_name" ? game.originalName : game.year;
-  const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState("");
-  const done = (data: GameDetail) => {
-    cache.setQueryData(["game", String(game.id)], data);
-    cache.invalidateQueries({ queryKey: ["collection"] });
-    setEditing(false);
-  };
-  const save = useMutation({ mutationFn: () => request<GameDetail>(`/api/games/${game.id}/fields/${field}`, { method: "PUT", body: JSON.stringify({ value }) }), onSuccess: done });
-  const undo = useMutation({ mutationFn: () => request<GameDetail>(`/api/games/${game.id}/fields/${field}`, { method: "DELETE" }), onSuccess: done });
-  const manual = rows.some((r) => r.manual);
-  const label = t(`game.field.${field}`);
-  const inputId = `field-${field}`;
-
-  return (
-    <div className="field-editor">
-      <div className="version-row">
-        <span className="field-line"><b>{label}</b>: {current ?? "—"} {!editing && <button className="ot-btn ot-btn-ghost ot-btn-icon" type="button" aria-label={`${t("game.fix")}: ${label}`} title={t("game.fix")} onClick={() => { setValue(String(current ?? "")); setEditing(true); save.reset(); }}>✎</button>}</span>
-        {manual && !editing && <button className="ot-btn ot-btn-ghost" type="button" disabled={undo.isPending} onClick={() => undo.mutate()}>{t("game.undoFix")}</button>}
-      </div>
-      {rows.length > 0 && (
-        <ul className="small muted source-list">
-          {rows.map((r) => (
-            <li key={r.source}>{t(`game.source.${r.source as "igdb"}`)}: {r.value ?? "—"}{r.winner && <span className="ot-badge ot-badge-have" style={{ marginLeft: 6 }}>{t("game.shown")}</span>}</li>
-          ))}
-        </ul>
-      )}
-      {editing && (
-        <form className="form-block" onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
-          <label className="small muted" htmlFor={inputId}>{label}</label>
-          <input id={inputId} value={value} inputMode={field === "year" ? "numeric" : undefined} onChange={(e) => setValue(e.target.value)} autoFocus />
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="ot-btn" type="button" onClick={() => setEditing(false)}>{t("game.cancel")}</button>
-            <button className="ot-btn ot-btn-primary" type="submit" disabled={save.isPending}>{t("game.save")}</button>
-          </div>
-        </form>
-      )}
-      {(save.error ?? undo.error) && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(save.error ?? undo.error)}</p>}
-    </div>
-  );
-}
-
+/** Puntaje de 1 a 5 como barra de 5 tramos (#171). */
 const CRITERIA = ["content", "gameplay", "technical", "original"] as const;
 
-/** Puntaje de 1 a 5 como barra de 5 tramos (#171). */
 function Score({ value, best }: { value: number; best: boolean }) {
   return (
     <span className={`score${best ? " is-best" : ""}`} role="img" aria-label={`${value}/5`}>
@@ -312,7 +294,7 @@ function Versions({ game, compare }: { game: GameDetail; compare: VersionCompare
               return (
                 <tr key={v.id}>
                   <td><b>{consoleName(v.platform)}</b> · {t(`kind.${v.kind as "original"}`)}{v.year ? ` · ${v.year}` : ""}{cmp?.best && <span className="ot-badge ot-badge-have" style={{ marginLeft: 6 }}>{t("game.best")}</span>}</td>
-                  <td>{v.stores.length ? <span className="ot-badge ot-badge-have">{v.stores.map((s) => t(`store.${s.store as "steam"}`)).join(" · ")}</span> : <span className="ot-badge">{t("missing")}</span>}</td>
+                  <td>{v.stores.length ? <span className="ot-badge ot-badge-have">{v.stores.map((s) => t(`store.${s.store as "steam"}`)).join(" · ")}</span> : v.files.length ? <span className="ot-badge ot-badge-have">{t("owned")}</span> : <span className="ot-badge">{t("missing")}</span>}</td>
                   {rated && CRITERIA.map((k) => {
                     const c = cmp?.criteria.find((x) => x.criterion === k);
                     const value = Number(c?.value ?? 0);
@@ -321,6 +303,94 @@ function Versions({ game, compare }: { game: GameDetail; compare: VersionCompare
                 </tr>
               );
             })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+/** Tus archivos de este juego (#178), con BASE, UPD y DLC, y «Verificar» por hash contra No-Intro o Redump (#179). */
+function Files({ gameId, files }: { gameId: number; files: (GameDetail["versions"][number]["files"][number] & { platform: string })[] }) {
+  const t = useTranslations("catalog");
+  const locale = useLocale();
+  const describe = useDescribeError();
+  const consoleName = useConsoleName();
+  const consoles = useConsoles().data;
+  const cache = useQueryClient();
+  // Solo si algún archivo es de una consola con DAT (#179): en PC o Switch no hay contra qué comparar.
+  const verifiable = files.some((f) => consoles?.find((c) => c.id === f.platform)?.hasDat);
+  // El ejecutable de un juego de PC suelto (#182).
+  const executable = useMutation({
+    mutationFn: ({ id, path }: { id: number; path: string }) => request<void>(`/api/sources/${id}/executable`, { method: "PUT", body: JSON.stringify({ path }) }),
+    onSuccess: () => cache.invalidateQueries({ queryKey: ["game", String(gameId)] }),
+  });
+  const verify = useMutation({
+    mutationFn: () => request<number>("/api/collection/verify", { method: "POST", body: JSON.stringify({ gameId }) }),
+    onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+  // Quitar del disco (#224): lo marcado va a la papelera. UPD y DLC vienen sin marcar: solo se van si los marcas (P7).
+  const [marked, setMarked] = useState<Set<string> | null>(null);
+  const trash = useMutation({
+    mutationFn: (ids: string[]) => request<void>("/api/sources/trash", { method: "POST", body: JSON.stringify({ ids: ids.map(Number) }) }),
+    onSuccess: () => {
+      setMarked(null);
+      cache.invalidateQueries({ queryKey: ["game", String(gameId)] });
+      cache.invalidateQueries({ queryKey: ["collection"] });
+      cache.invalidateQueries({ queryKey: ["consoles"] });
+    },
+  });
+  const startRemoving = () => setMarked(new Set(files.filter((f) => f.component !== "UPD" && f.component !== "DLC").map((f) => String(f.id))));
+  const toggle = (id: string) => setMarked((m) => {
+    const next = new Set(m);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  return (
+    <section className="sec column">
+      <div className="sec-h">
+        <h2>{t("game.where")}</h2>
+        <div className="hero-actions">
+          {verifiable && <button className="ot-btn ot-btn-sm" type="button" disabled={verify.isPending || verify.isSuccess} onClick={() => verify.mutate()}>{t("game.verify")}</button>}
+          {!marked && <button className="ot-btn ot-btn-sm" type="button" onClick={startRemoving}>{t("game.remove")}</button>}
+        </div>
+      </div>
+      {marked && (
+        <div className="panel" role="group" aria-label={t("game.remove")} style={{ display: "grid", gap: 8 }}>
+          <p className="small" style={{ margin: 0 }}>{t("game.removeHint")}</p>
+          <div className="hero-actions">
+            <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" disabled={marked.size === 0 || trash.isPending} onClick={() => trash.mutate([...marked])}>
+              {t("game.removeConfirm", { count: marked.size })}
+            </button>
+            <button className="ot-btn ot-btn-sm" type="button" disabled={trash.isPending} onClick={() => setMarked(null)}>{t("game.removeCancel")}</button>
+          </div>
+        </div>
+      )}
+      {trash.isError && <p className="error small" role="alert">{describe(trash.error)}</p>}
+      {verify.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("game.verifyQueued")}</p>}
+      {verify.isError && <p className="error small" role="alert">{describe(verify.error)}</p>}
+      {executable.isError && <p className="error small" role="alert">{describe(executable.error)}</p>}
+      <div className="panel table-wrap" style={{ padding: 0 }}>
+        <table className="t">
+          <thead><tr>{marked && <th><span className="sr-only">{t("game.remove")}</span></th>}<th>{t("game.file")}</th><th>{t("game.version")}</th><th>{t("game.size")}</th><th>{t("game.verified")}</th></tr></thead>
+          <tbody>
+            {files.map((f) => (
+              <tr key={f.id}>
+                {marked && <td><input type="checkbox" aria-label={f.path} checked={marked.has(String(f.id))} onChange={() => toggle(String(f.id))} /></td>}
+                <td>
+                  <span className="folder-path">{f.path}</span>{f.component && <span className="ot-badge" style={{ marginLeft: 6 }}>{f.component}</span>}
+                  {f.executable && (f.executables && f.executables.length > 1
+                    ? <select className="ot-btn ot-btn-sm" style={{ display: "block", marginTop: 4 }} aria-label={t("game.executable")} value={f.executable}
+                        disabled={executable.isPending} onChange={(e) => executable.mutate({ id: Number(f.id), path: e.target.value })}>
+                        {f.executables.map((x) => <option key={x} value={x}>{x}</option>)}
+                      </select>
+                    : <span className="small muted" style={{ display: "block" }}>{t("game.executable")}: {f.executable}</span>)}
+                </td>
+                <td>{consoleName(f.platform)}</td>
+                <td className="tabular">{f.size != null ? size(f.size, locale) : "—"}</td>
+                <td>{f.verified ? <span className="ot-badge ot-badge-have">{t("game.verified")}</span> : <span className="ot-badge">{f.executable ? "—" : t("game.notVerified")}</span>}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

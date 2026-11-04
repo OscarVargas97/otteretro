@@ -19,7 +19,8 @@ public record GameCard(long Id, string Name, int? Year, string[] Platforms, bool
 /// <param name="HeroGameId">De qué juego sale la imagen de la cabecera (#178): el icónico más reciente con héroe; si no hay, el más reciente con héroe.</param>
 public record SagaDetail(SagaCard Saga, List<GameCard> Games, long? HeroGameId);
 /// <param name="WithPc">Juegos de la consola que también tienen versión de PC (el filtro «Versión PC» de Colección).</param>
-public record ConsoleCount(string Id, string Name, string? Company, int Games, int Owned, int WithPc);
+/// <param name="HasDat">Tiene DAT de No-Intro o Redump: se puede verificar por hash (#179).</param>
+public record ConsoleCount(string Id, string Name, string? Company, int Games, int Owned, int WithPc, bool HasDat);
 
 /// <param name="Unlinked">Lo que tienes en una tienda y todavía no está en el catálogo (solo en PC): aparece igual.</param>
 /// <param name="Total">Cuántos juegos hay con ese filtro; <paramref name="Games"/> trae solo el tramo pedido (#177).</param>
@@ -31,7 +32,12 @@ public record SagaPage(List<SagaCard> Items, int Total);
 /// <summary>Un tramo de los juegos de una saga (#177).</summary>
 public record GamePage(List<GameCard> Items, int Total);
 public record StoreEntry(string Store, string? Name, long? Playtime, string? LastPlayed);
-public record VersionRow(long Id, string Platform, string Kind, int? Year, List<StoreEntry> Stores);
+/// <param name="Path">Ruta completa (en su última ubicación conocida).</param>
+/// <param name="Component">BASE, UPD o DLC (Switch); null en lo demás.</param>
+/// <param name="Verified">Su SHA-1 coincide con el DAT (#179).</param>
+/// <param name="Executable">PC (#182): el ejecutable principal, relativo a la carpeta; <paramref name="Executables"/>, los que hay para elegir.</param>
+public record FileEntry(long Id, string Path, string? Component, long? Size, bool Verified, string? Executable = null, List<string>? Executables = null);
+public record VersionRow(long Id, string Platform, string Kind, int? Year, List<StoreEntry> Stores, List<FileEntry> Files);
 
 /// <param name="Winner">Es el valor que se muestra (lo manual siempre gana).</param>
 public record FieldRow(string Field, string? Value, string Source, bool Manual, bool Winner);
@@ -94,8 +100,19 @@ public static class CatalogQueries
     static Dictionary<string, int> ConsoleOrder(SqliteConnection c) =>
         c.Query<string>("SELECT id FROM console ORDER BY rowid").Select((id, i) => (id, i)).ToDictionary(x => x.id, x => x.i);
 
-    static string[] Ordered(Dictionary<string, int> order, string? csv) =>
-        string.IsNullOrEmpty(csv) ? [] : csv.Split(',').OrderBy(p => order.GetValueOrDefault(p, int.MaxValue)).ToArray();
+    static string[] Ordered(Dictionary<string, int> order, string? csv, HashSet<string>? hidden = null) =>
+        string.IsNullOrEmpty(csv) ? [] : csv.Split(',').Where(p => hidden is null || !hidden.Contains(p)).OrderBy(p => order.GetValueOrDefault(p, int.MaxValue)).ToArray();
+
+    /// <summary>Las consolas que la persona desactivó en Ajustes › Consolas (#224): la app no las muestra.</summary>
+    static HashSet<string> Hidden(SqliteConnection c) => c.Query<string>("SELECT console_id FROM console_hidden").ToHashSet();
+
+    /// <summary>
+    /// Un juego se ve si tiene alguna versión en una consola que se muestra (#224). Sin consolas ocultas no hay condición: así no cuesta nada.
+    /// </summary>
+    static string Visible(HashSet<string> hidden) => hidden.Count == 0 ? ""
+        : "EXISTS (SELECT 1 FROM version vv WHERE vv.game_id = g.id AND vv.platform NOT IN (SELECT console_id FROM console_hidden))";
+
+    static string And(string where, HashSet<string> hidden) => Visible(hidden) is { Length: > 0 } v ? $"{where} AND {v}" : where;
 
     /// <summary>
     /// Los juegos con portada. Recorrer la carpeta (25.000 archivos) costaba ~100 ms por pedido (#106): se guarda y se vuelve a
@@ -106,15 +123,21 @@ public static class CatalogQueries
     /// <summary>Los juegos con una imagen de ese tipo (cover, hero o logo), recordados como <see cref="Covers"/>.</summary>
     internal static HashSet<long> Images(Database db, string kind)
     {
+        // Las que tienen referencia (#215) se bajan al mostrarse: cuentan como si ya estuvieran.
+        HashSet<long> Refs()
+        {
+            using var c = db.Open();
+            return c.Query<long>("SELECT game_id FROM catalog.image WHERE kind = @kind AND game_id IN (SELECT id FROM catalog.game)", new { kind }).ToHashSet();
+        }
         var folder = SteamGridDb.Folder(db);
-        if (!Directory.Exists(folder)) return [];
+        if (!Directory.Exists(folder)) return Refs();
         var stamp = Directory.GetLastWriteTimeUtc(folder);
         lock (imageCache)
-            if (imageCache.TryGetValue(kind, out var hit) && hit.Folder == folder && hit.Stamp == stamp) return hit.Ids;
+            if (imageCache.TryGetValue(kind, out var hit) && hit.Folder == folder && hit.Stamp == stamp) return [.. hit.Ids, .. Refs()];
         var ids = Directory.EnumerateFiles(folder, $"*-{kind}.*")
             .Select(f => long.TryParse(Path.GetFileName(f).Split('-')[0], out var id) ? id : 0).ToHashSet();
         lock (imageCache) imageCache[kind] = (folder, stamp, ids);
-        return ids;
+        return [.. ids, .. Refs()];
     }
 
     static readonly Dictionary<string, (string Folder, DateTime Stamp, HashSet<long> Ids)> imageCache = [];
@@ -131,61 +154,81 @@ public static class CatalogQueries
         if (ids.Count == 0) return [];
         var covers = Covers(db);
         var order = ConsoleOrder(c);
+        var hidden = Hidden(c);
         var rows = c.Query<GameRow>($"{GameSelect} WHERE g.id IN (SELECT value FROM json_each(@ids))", new { ids = JsonSerializer.Serialize(ids) })
             .ToDictionary(r => r.Id);
         return ids.Select(id => rows[id])
-            .Select(r => new GameCard(r.Id, r.Name, (int?)r.Year, Ordered(order, r.Platforms), r.Owned != 0, r.Status, r.Playtime,
+            .Select(r => new GameCard(r.Id, r.Name, (int?)r.Year, Ordered(order, r.Platforms, hidden), r.Owned != 0, r.Status, r.Playtime,
                 covers.Contains(r.Id), r.SagaId, r.SagaName, r.Stores?.Split(',') ?? []))
             .ToList();
     }
 
-    /// <param name="filter">favorite, following, iconic, exclusive, owned, missing o pc.</param>
-    /// <param name="sort">name, recognized, played o activity.</param>
-    /// <param name="only">Solo esa saga (la ficha de una saga, F2.19): no arma las demás.</param>
-    public static List<SagaCard> Sagas(Database db, string? filter = null, string? platform = null, string? company = null, string? sort = null,
-        long? only = null, long[]? ids = null)
+    /// <summary>
+    /// Todas las sagas como las muestra Sagas, sin filtrar (#225): lo arma <see cref="SagaCache"/> una vez por generación. Por partes (#106):
+    /// un solo JOIN de juegos × versiones × lo tuyo, agrupado, tardaba 150 ms con el catálogo real.
+    /// </summary>
+    internal static SagaCache.Data BuildSagas(Database db, long generation)
     {
         using var c = db.Open();
-        // Sin coalesce en el WHERE: así usa el índice.
-        var one = (only, ids) switch { (0, _) => "g.saga_id IS NULL", (not null, _) => "g.saga_id = @only", (_, not null) => "g.saga_id IN @ids", _ => "" };
-        var args = new { only, ids, platform };
-        // Por partes (#106): un solo JOIN de juegos × versiones × lo tuyo, agrupado, tardaba 150 ms con el catálogo real; así, ~70.
+        var hidden = Hidden(c);
+        var visible = Visible(hidden);
+        var shownPlatform = hidden.Count == 0 ? "" : "v.platform NOT IN (SELECT console_id FROM console_hidden)";
         var games = c.Query<(long SagaId, long Games, long Popularity)>(
-            $"SELECT coalesce(g.saga_id, 0), count(*), coalesce(sum(g.popularity), 0) FROM game g {Where(one)} GROUP BY coalesce(g.saga_id, 0)", args)
+            $"SELECT coalesce(g.saga_id, 0), count(*), coalesce(sum(g.popularity), 0) FROM game g {Where(visible)} GROUP BY coalesce(g.saga_id, 0)")
             .ToDictionary(x => x.SagaId);
         var platformsOf = c.Query<(long SagaId, string Platform)>(
-            $"SELECT DISTINCT coalesce(g.saga_id, 0), v.platform FROM version v JOIN game g ON g.id = v.game_id {Where(one)}", args)
+            $"SELECT DISTINCT coalesce(g.saga_id, 0), v.platform FROM version v JOIN game g ON g.id = v.game_id {Where(shownPlatform)}")
             .GroupBy(x => x.SagaId).ToDictionary(x => x.Key, x => string.Join(',', x.Select(p => p.Platform)));
         var mine = c.Query<SagaAgg>($"""
             SELECT coalesce(g.saga_id, 0) AS SagaId, count(DISTINCT g.id) AS Owned, coalesce(sum(o.playtime), 0) AS Playtime, max(o.last_played) AS LastPlayed
-            FROM source o JOIN version v ON v.id = o.version_id JOIN game g ON g.id = v.game_id {Where(one)}
+            FROM source o JOIN version v ON v.id = o.version_id JOIN game g ON g.id = v.game_id {Where(visible)}
             GROUP BY coalesce(g.saga_id, 0)
-            """, args).ToDictionary(a => a.SagaId);
-        // Con una consola elegida, la popularidad cuenta solo sus juegos (#166).
-        var popularity = string.IsNullOrEmpty(platform)
-            ? games.ToDictionary(x => x.Key, x => x.Value.Popularity)
-            : c.Query<(long SagaId, long Popularity)>($"""
-                SELECT coalesce(g.saga_id, 0), coalesce(sum(g.popularity), 0) FROM game g
-                {Where(one, "EXISTS (SELECT 1 FROM version v WHERE v.game_id = g.id AND v.platform = @platform)")}
-                GROUP BY coalesce(g.saga_id, 0)
-                """, args).ToDictionary(p => p.SagaId, p => p.Popularity);
+            """).ToDictionary(a => a.SagaId);
+        // Con una consola elegida, la popularidad cuenta solo sus juegos (#166): se guarda por consola.
+        var popularityOn = c.Query<(long SagaId, string Platform, long Popularity)>($"""
+            SELECT coalesce(g.saga_id, 0), v.platform, coalesce(sum(g.popularity), 0)
+            FROM (SELECT DISTINCT game_id, platform FROM version v {Where(shownPlatform)}) v JOIN game g ON g.id = v.game_id
+            GROUP BY coalesce(g.saga_id, 0), v.platform
+            """).GroupBy(x => x.SagaId).ToDictionary(x => x.Key, x => x.ToDictionary(p => p.Platform, p => p.Popularity));
 
-        var rows = c.Query<SagaRow>($"""
+        var rows = c.Query<SagaRow>("""
             SELECT s.id, s.name, coalesce(u.favorite, 0) AS Favorite, coalesce(u.following, 0) AS Following, s.iconic
-            FROM saga s LEFT JOIN saga_user u ON u.saga_id = s.id {(only is not null ? "WHERE s.id = @only" : ids is not null ? "WHERE s.id IN @ids" : "")}
-            """, args).ToList();
+            FROM saga s LEFT JOIN saga_user u ON u.saga_id = s.id
+            """).ToList();
         if (games.ContainsKey(0)) rows.Add(new SagaRow());
+        if (hidden.Count > 0) rows = rows.Where(s => games.ContainsKey(s.Id)).ToList(); // una saga sin juegos a la vista no se muestra
         var companies = c.Query<(string Id, string? Company)>("SELECT id, company FROM console").ToDictionary(x => x.Id, x => x.Company);
         var order = ConsoleOrder(c);
+        // La portada de cada saga: la del primer juego (por año) que la tenga. Se calcula aquí para no recorrer la carpeta de imágenes al abrir.
+        var covers = Covers(db);
+        var coverOf = c.Query<(long SagaId, long Id, long? Year)>($"SELECT coalesce(g.saga_id, 0), g.id, g.year FROM game g {Where(visible)}")
+            .Where(g => covers.Contains(g.Id)).GroupBy(g => g.SagaId)
+            .ToDictionary(g => g.Key, g => g.MinBy(x => (x.Year is null, x.Year ?? 0, x.Id)).Id);
 
         var cards = rows.Select(s =>
         {
             var a = mine.GetValueOrDefault(s.Id) ?? new SagaAgg { SagaId = s.Id };
             var platforms = Ordered(order, platformsOf.GetValueOrDefault(s.Id));
             return new SagaCard(s.Id, s.Name, s.Favorite != 0, s.Following != 0, s.Iconic != 0, platforms, (int)games.GetValueOrDefault(s.Id).Games, (int)a.Owned,
-                null, a.Playtime, a.LastPlayed,
-                s.Id == 0 ? null : ExclusiveOf(platforms, companies), popularity.GetValueOrDefault(s.Id));
-        });
+                coverOf.TryGetValue(s.Id, out var cover) ? cover : null, a.Playtime, a.LastPlayed, s.Id == 0 ? null : ExclusiveOf(platforms, companies), games.GetValueOrDefault(s.Id).Popularity);
+        }).ToList();
+        return new SagaCache.Data(generation, cards, popularityOn, companies);
+    }
+
+    /// <param name="filter">favorite, following, iconic, exclusive, owned, missing o pc.</param>
+    /// <param name="sort">name, recognized, played o activity.</param>
+    /// <param name="only">Solo esa saga (la ficha de una saga, F2.19).</param>
+    /// <remarks>Sale de lo guardado (#225): filtrar y ordenar se hace en memoria, sin consultar el catálogo.</remarks>
+    public static List<SagaCard> Sagas(Database db, string? filter = null, string? platform = null, string? company = null, string? sort = null,
+        long? only = null, long[]? ids = null)
+    {
+        var data = SagaCache.Get(db);
+        var companies = data.Companies;
+        IEnumerable<SagaCard> cards = data.Cards;
+        if (only is { } one) cards = cards.Where(s => s.Id == one);
+        else if (ids is not null) { var wanted = ids.ToHashSet(); cards = cards.Where(s => wanted.Contains(s.Id)); }
+        if (!string.IsNullOrEmpty(platform))
+            cards = cards.Select(s => s with { Popularity = data.PopularityOn.GetValueOrDefault(s.Id)?.GetValueOrDefault(platform) ?? 0 });
         cards = filter switch
         {
             "favorite" => cards.Where(s => s.Favorite),
@@ -209,30 +252,14 @@ public static class CatalogQueries
             "activity" => cards.OrderBy(s => s.Id == 0).ThenByDescending(s => s.LastPlayed ?? "").ThenBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase),
             _ => byName,
         }).ToList();
-        return only is not null || ids is not null ? WithCovers(db, c, sorted) : sorted;
+        return sorted;
     }
 
-    /// <summary>Un tramo de Sagas (#177): se filtran y ordenan todas, pero solo el tramo lleva portada y viaja a la pantalla.</summary>
+    /// <summary>Un tramo de Sagas (#177): se filtran y ordenan todas en memoria, y solo el tramo viaja a la pantalla.</summary>
     public static SagaPage SagasPage(Database db, string? filter, string? platform, string? company, string? sort, int offset, int limit)
     {
         var all = Sagas(db, filter, platform, company, sort);
-        using var c = db.Open();
-        return new SagaPage(WithCovers(db, c, all.Skip(offset).Take(limit).ToList()), all.Count);
-    }
-
-    /// <summary>La portada de cada saga: la del primer juego (por año) que la tenga. Solo de las que se muestran.</summary>
-    static List<SagaCard> WithCovers(Database db, SqliteConnection c, List<SagaCard> cards)
-    {
-        if (cards.Count == 0) return cards;
-        var covers = Covers(db);
-        var ids = JsonSerializer.Serialize(cards.Select(s => s.Id));
-        var coverOf = c.Query<(long SagaId, long Id, long? Year)>("""
-            SELECT coalesce(g.saga_id, 0), g.id, g.year FROM game g
-            WHERE g.saga_id IN (SELECT value FROM json_each(@ids)) OR (g.saga_id IS NULL AND 0 IN (SELECT value FROM json_each(@ids)))
-            """, new { ids })
-            .Where(g => covers.Contains(g.Id)).GroupBy(g => g.SagaId)
-            .ToDictionary(g => g.Key, g => g.MinBy(x => (x.Year is null, x.Year ?? 0, x.Id)).Id);
-        return cards.Select(s => s with { CoverGameId = coverOf.TryGetValue(s.Id, out var cover) ? cover : null }).ToList();
+        return new SagaPage(all.Skip(offset).Take(limit).ToList(), all.Count);
     }
 
     static string Where(params string[] conditions) =>
@@ -260,12 +287,13 @@ public static class CatalogQueries
     public static GamePage SagaGames(Database db, long id, int offset, int limit)
     {
         using var c = db.Open();
-        var total = c.ExecuteScalar<int>(id == 0 ? "SELECT count(*) FROM game WHERE saga_id IS NULL" : "SELECT count(*) FROM game WHERE saga_id = @id", new { id });
+        var where = And(id == 0 ? "WHERE g.saga_id IS NULL" : "WHERE g.saga_id = @id", Hidden(c));
+        var total = c.ExecuteScalar<int>($"SELECT count(*) FROM game g {where}", new { id });
         return new GamePage(SagaGames(db, c, id, offset, limit), total);
     }
 
     static List<GameCard> SagaGames(Database db, SqliteConnection c, long id, int offset, int limit) =>
-        Games(db, c, $"{(id == 0 ? "WHERE g.saga_id IS NULL" : "WHERE g.saga_id = @id")} ORDER BY g.year IS NULL, g.year, g.name_es LIMIT @limit OFFSET @offset",
+        Games(db, c, $"{And(id == 0 ? "WHERE g.saga_id IS NULL" : "WHERE g.saga_id = @id", Hidden(c))} ORDER BY g.year IS NULL, g.year, g.name_es LIMIT @limit OFFSET @offset",
             new { id, offset, limit });
 
     public static bool SetSagaFlags(Database db, long id, bool? favorite, bool? following)
@@ -276,6 +304,7 @@ public static class CatalogQueries
             INSERT INTO saga_user (saga_id, favorite, following) VALUES (@id, coalesce(@favorite, 0), coalesce(@following, 0))
             ON CONFLICT (saga_id) DO UPDATE SET favorite = coalesce(@favorite, favorite), following = coalesce(@following, following)
             """, new { id, favorite, following });
+        SagaCache.Refresh(db); // la ★ se ve al instante en Sagas (#225)
         return true;
     }
 
@@ -287,8 +316,9 @@ public static class CatalogQueries
             SELECT c.id, c.name, c.company, count(DISTINCT v.game_id), count(DISTINCT CASE WHEN o.id IS NOT NULL THEN v.game_id END),
                    count(DISTINCT CASE WHEN EXISTS (SELECT 1 FROM version p WHERE p.game_id = v.game_id AND p.platform = 'pc') THEN v.game_id END)
             FROM console c LEFT JOIN version v ON v.platform = c.id LEFT JOIN source o ON o.version_id = v.id
+            WHERE c.id NOT IN (SELECT console_id FROM console_hidden)
             GROUP BY c.id ORDER BY c.rowid
-            """).Select(r => new ConsoleCount(r.Id, r.Name, r.Company, (int)r.Games, (int)r.Owned, (int)r.WithPc)).ToList();
+            """).Select(r => new ConsoleCount(r.Id, r.Name, r.Company, (int)r.Games, (int)r.Owned, (int)r.WithPc, Libraries.Dats.Files.ContainsKey(r.Id))).ToList();
     }
 
     /// <param name="filter">owned, missing o pc (tiene versión de PC).</param>
@@ -332,17 +362,24 @@ public static class CatalogQueries
             SELECT o.version_id, o.store, o.name, o.playtime, o.last_played FROM source o JOIN version v ON v.id = o.version_id
             WHERE v.game_id = @id AND o.kind = 'store'
             """, new { id }).ToList();
+        var files = c.Query<(long Id, long VersionId, string Root, string Relative, string? Component, long? Size, bool Verified, string? Executable)>("""
+            SELECT o.id, o.version_id, l.path, o.relative_path, o.component, o.size, o.verified, o.executable FROM source o
+            JOIN version v ON v.id = o.version_id JOIN library l ON l.id = o.library_id
+            WHERE v.game_id = @id AND o.kind = 'file' ORDER BY o.relative_path
+            """, new { id }).ToList();
         var order = c.Query<string>("SELECT id FROM console ORDER BY rowid").ToList();
         var versions = c.Query<(long Id, string Platform, string Kind, long? Year)>("SELECT id, platform, kind, year FROM version WHERE game_id = @id", new { id })
             .OrderBy(v => order.IndexOf(v.Platform)).ThenBy(v => v.Year)
             .Select(v => new VersionRow(v.Id, v.Platform, v.Kind, (int?)v.Year,
-                stores.Where(s => s.VersionId == v.Id).Select(s => new StoreEntry(s.Store, s.Name, s.Playtime, s.LastPlayed)).ToList()))
+                stores.Where(s => s.VersionId == v.Id).Select(s => new StoreEntry(s.Store, s.Name, s.Playtime, s.LastPlayed)).ToList(),
+                files.Where(f => f.VersionId == v.Id).Select(f => new FileEntry(f.Id, Path.Combine(f.Root, f.Relative), f.Component, f.Size, f.Verified,
+                    f.Executable, f.Executable is null ? null : Libraries.Scan.Executables(Path.Combine(f.Root, f.Relative)))).ToList()))
             .ToList();
 
         var fields = c.Query<(string Field, string? Value, string Source, bool Manual)>(
                 "SELECT field, value, source, manual FROM field_value WHERE entity = 'game' AND entity_id = @id", new { id })
             .GroupBy(f => f.Field)
-            .SelectMany(group => group.OrderBy(f => f.Value is null && !f.Manual).ThenBy(f => FieldValues.Rank(f.Field, f.Source, f.Manual)).Select((f, i) => new FieldRow(f.Field, f.Value, f.Source, f.Manual, i == 0)))
+            .SelectMany(group => group.OrderBy(f => f.Value is null && !f.Manual).ThenBy(f => f.Manual ? 0 : f.Source == "claude" ? 1 : 2).Select((f, i) => new FieldRow(f.Field, f.Value, f.Source, f.Manual, i == 0)))
             .ToList();
 
         var p = c.QuerySingleOrDefault<(string Status, string? StartedAt, string? FinishedAt, long? Rating, string? Notes, long Favorite)?>(
@@ -376,9 +413,10 @@ public static class CatalogQueries
         // Solo las sagas que coinciden (#106): armar todas para filtrar después costaba lo mismo que la pantalla Sagas.
         var ids = c.Query<long>(@"SELECT id FROM saga WHERE name LIKE @like ESCAPE '\'", new { like }).ToArray();
         var sagas = ids.Length == 0 ? [] : Sagas(db, ids: ids).Where(s => s.Name.Contains(q, StringComparison.CurrentCultureIgnoreCase)).Take(8).ToList();
-        var games = Games(db, c, """
-            WHERE g.name_es LIKE @like ESCAPE '\' OR g.original_name LIKE @like ESCAPE '\'
-            ORDER BY g.name_es LIKE @start ESCAPE '\' DESC, g.year IS NULL, g.year LIMIT 20
+        var games = Games(db, c, And("""
+            WHERE (g.name_es LIKE @like ESCAPE '\' OR g.original_name LIKE @like ESCAPE '\')
+            """, Hidden(c)) + """
+             ORDER BY g.name_es LIKE @start ESCAPE '\' DESC, g.year IS NULL, g.year LIMIT 20
             """, new { like, start = like[1..] });
         return new SearchResults(sagas, games);
     }

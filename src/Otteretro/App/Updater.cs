@@ -40,7 +40,7 @@ public sealed class Updater(AppSession session, Events events)
         var downloading = false;
         try
         {
-            if (SourceFor(session.Config.EffectiveUpdateChannel, session.Config.EffectiveUpdateOrigin) is not { } found)
+            if (SourceFor(session.Config.EffectiveUpdateChannel, Origin(session)) is not { } found)
             {
                 Set(UpdatePhase.Unavailable, null, 0, "noSource");
                 return;
@@ -99,6 +99,10 @@ public sealed class Updater(AppSession session, Events events)
     }
 
     public const string Repo = "https://github.com/OscarVargas97/otteretro";
+
+    /// <summary>La carpeta del canal Local sale de tus discos (decisión 244); la de Otro origen, de lo que escribiste.</summary>
+    static string? Origin(AppSession session) => session.Config.EffectiveUpdateChannel != "local" ? session.Config.UpdateSource
+        : Api.CatalogEndpoints.Db(session) is { } db ? Libraries.Disk.NewestPackages(db) : null;
 
     /// <summary>
     /// El origen de cada canal (#180) y el canal de Velopack que busca: «win» las releases de main, «dev» las prereleases

@@ -7,5 +7,12 @@ static class Setup
 {
     // Ninguna cola de las pruebas lanza la carga de Claude por su cuenta: depende de la hora y del reloj falso compartido.
     [ModuleInitializer]
-    internal static void Init() => TaskQueue.AutoClaude = false;
+    internal static void Init()
+    {
+        TaskQueue.AutoClaude = false;
+        TaskQueue.OnOpen = false; // cada prueba lanza la migración, el escaneo o el vigilante cuando los quiere
+        Claude.Identify.AfterScan = false;
+        Catalog.InitialCatalog.BundledFile = null; // cada prueba empieza con el catálogo vacío
+        Libraries.Converter.BundledFolder = ""; // sin herramientas reales: la conversión se prueba con una falsa
+    }
 }

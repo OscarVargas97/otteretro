@@ -85,7 +85,7 @@ export function VersionAndUpdate({ version }: { version?: string }) {
   return (
     <div className="panel">
       <div className="version-row">
-        <span>Otteretro {version}</span>
+        <span>Otteretro {version} <span className="small muted">· {t("attribution")}</span></span>
         {u?.phase === "Ready" ? (
           <button className="ot-btn ot-btn-primary" type="button" disabled={restart.isPending} aria-busy={restart.isPending} onClick={() => restart.mutate()}>
             {restart.isPending && <span className="spinner" aria-hidden="true" />}
@@ -121,8 +121,6 @@ export function VersionAndUpdate({ version }: { version?: string }) {
 }
 
 const CHANNELS = ["stable", "testing", "local", "custom"] as const;
-/** Los canales que piden una ruta: Local (la carpeta de los paquetes de este equipo, #163) y Otro origen. */
-const WITH_ORIGIN: string[] = ["local", "custom"];
 
 /**
  * Ajustes › General › Actualizaciones (#180): Estable (releases de main), Pruebas (prereleases de dev) u Otro origen
@@ -135,21 +133,21 @@ export function UpdateChannel() {
   const u = useUpdate();
   const info = useQuery({ queryKey: ["update", "channel"], queryFn: () => request<UpdateChannelInfo>("/api/update/channel") });
   const [origin, setOrigin] = useState<string | null>(null);
-  const [editing, setEditing] = useState<"local" | "custom" | null>(null);
+  const [editing, setEditing] = useState<"custom" | null>(null);
   const save = useMutation({
     mutationFn: (body: UpdateChannelInfo) => request<UpdateChannelInfo>("/api/update/channel", { method: "PUT", body: JSON.stringify(body) }),
     onSuccess: (data) => { cache.setQueryData(["update", "channel"], data); setOrigin(null); setEditing(null); },
   });
   if (u?.message === "withSystem" || !info.data) return null;
   const current = (editing ?? info.data.channel) as (typeof CHANNELS)[number];
-  const saved = current === "local" ? info.data.local : info.data.origin;
+  const saved = info.data.origin;
   const text = origin ?? saved ?? "";
   const commit = () => { if (text.trim() && (text.trim() !== saved || info.data.channel !== current)) save.mutate({ channel: current, origin: text.trim() }); };
   const pick = (c: (typeof CHANNELS)[number]) => {
     setOrigin(null);
-    // Local con su carpeta ya guardada cambia de un clic; sin ella, o en Otro origen, primero se escribe la ruta.
-    if (c === "custom" || (c === "local" && !info.data.local)) return setEditing(c);
-    setEditing(c === "local" ? "local" : null);
+    // Solo Otro origen pide una ruta: Local encuentra sus paquetes en tus discos (decisión 244).
+    if (c === "custom") return setEditing(c);
+    setEditing(null);
     if (c !== info.data.channel) save.mutate({ channel: c, origin: null });
   };
   return (
@@ -164,10 +162,11 @@ export function UpdateChannel() {
         ))}
       </div>
       <p className="small muted" style={{ margin: 0 }}>{t(`${current}Hint` as "stableHint")}</p>
-      {WITH_ORIGIN.includes(current) && (
+      {current === "local" && <p className="small" style={{ margin: 0 }}>{info.data.local ? t("localFound", { path: info.data.local }) : t("localNone")}</p>}
+      {current === "custom" && (
         <form className="sentence" onSubmit={(e) => { e.preventDefault(); commit(); }}>
-          <input style={{ flex: 1 }} aria-label={t(current === "local" ? "localFolder" : "origin")}
-            placeholder={t(current === "local" ? "localPlaceholder" : "originPlaceholder")} value={text} onChange={(e) => setOrigin(e.target.value)} />
+          <input style={{ flex: 1 }} aria-label={t("origin")}
+            placeholder={t("originPlaceholder")} value={text} onChange={(e) => setOrigin(e.target.value)} />
           <button className="ot-btn" type="submit" disabled={save.isPending || !text.trim()}>{t("use")}</button>
         </form>
       )}

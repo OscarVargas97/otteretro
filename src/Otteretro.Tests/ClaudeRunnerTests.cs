@@ -289,27 +289,6 @@ public class ClaudeRunnerTests : IDisposable
     }
 
     /// <summary>F2.9: «Ejecutar ahora» lanza la carga; al empezar el horario se lanza sola, una vez por noche.</summary>
-    [Fact]
-    public void RunNowAndTheScheduleLaunchTheLoad()
-    {
-        now = Local(12);
-        Assert.Null(ClaudeBudget.AutoStart(db)); // fuera del horario
-        var load = ClaudeBudget.RunNow(db);
-        Assert.Equal((InitialLoad.Kind, "queued"), (ClaudeBudget.Status(db).Task!.Kind, ClaudeBudget.Status(db).Task!.Status));
-        Assert.Equal(load, ClaudeBudget.RunNow(db)); // no encola otra
-
-        using (var c = db.Open()) c.Execute("UPDATE task SET status = 'done'");
-        now = Local(0, days: 1).AddMinutes(1);
-        var night = ClaudeBudget.AutoStart(db);
-        Assert.NotNull(night);
-        Assert.NotEqual(load, night);
-        using (var c = db.Open()) c.Execute("UPDATE task SET status = 'done'");
-        now = now.AddHours(2);
-        Assert.Null(ClaudeBudget.AutoStart(db)); // ya se lanzó esta noche
-        now = now.AddDays(1);
-        Assert.NotNull(ClaudeBudget.AutoStart(db));
-    }
-
     /// <summary>F2.2: la cola devuelve la tarea a la espera con su punto de control y no le cuenta el intento.</summary>
     [Fact]
     public async Task QueuePutsAPausedTaskBackWithItsCheckpoint()

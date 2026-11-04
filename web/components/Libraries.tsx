@@ -7,10 +7,10 @@ import { DataMoveStatus, UseOtherFolder, useMove, useMoveData } from "@/componen
 import { request } from "@/lib/client";
 import { gb, size } from "@/lib/format";
 import { useDescribeError } from "@/lib/i18n";
-import type { DiskItem, Drive, FolderInfo, LibraryInfo, MigrationPlan, ToolInfo } from "@/lib/types";
+import type { DiskItem, Drive, FolderInfo, DiskInfo, MigrationPlan, ToolInfo } from "@/lib/types";
 
 /** Los discos y las ubicaciones de antes (#198, #201). La clave sigue siendo «libraries»: así se llaman en la base. */
-export const librariesQuery = { queryKey: ["libraries"], queryFn: () => request<LibraryInfo[]>("/api/locations") };
+export const librariesQuery = { queryKey: ["libraries"], queryFn: () => request<DiskInfo[]>("/api/locations") };
 export const toolsQuery = { queryKey: ["tools"], queryFn: () => request<ToolInfo[]>("/api/tools") };
 
 /** Lo que guarda cada disco, en sus carpetas fijas y en este orden (#201). */
@@ -35,7 +35,7 @@ export function StorageSettings() {
   const [picked, setPicked] = useState<string | null>(null);
   const addDialog = useRef<HTMLDialogElement>(null);
   const current = disks.find((d) => d.id === picked) ?? disks.find((d) => d.default) ?? disks[0];
-  const label = (d: LibraryInfo) => `${d.name}${d.default ? " ★" : ""} — ${!d.connected ? t("disconnected")
+  const label = (d: DiskInfo) => `${d.name}${d.default ? " ★" : ""} — ${!d.connected ? t("disconnected")
     : d.free != null && d.total != null ? t("free", { free: gb(d.free, locale), total: gb(d.total, locale) }) : d.path}`;
 
   return (
@@ -60,7 +60,7 @@ export function StorageSettings() {
 }
 
 /** «⋯» del disco elegido (#169), como en Steam: abrir su carpeta, reconectar, usar otra carpeta de datos (★) o quitarlo. */
-function DiskMenu({ disk, onRemoved }: { disk: LibraryInfo; onRemoved: () => void }) {
+function DiskMenu({ disk, onRemoved }: { disk: DiskInfo; onRemoved: () => void }) {
   const t = useTranslations("libraries");
   const describe = useDescribeError();
   const cache = useQueryClient();
@@ -71,8 +71,8 @@ function DiskMenu({ disk, onRemoved }: { disk: LibraryInfo; onRemoved: () => voi
     mutationFn: async (kind: "open" | "reconnect" | "remove") => {
       switch (kind) {
         case "open": await request(`/api/locations/${disk.id}/open`, { method: "POST" }); return null;
-        case "reconnect": return request<LibraryInfo[]>(`/api/locations/${disk.id}/reconnect`, post({ path: null }));
-        case "remove": return request<LibraryInfo[]>(`/api/locations/${disk.id}`, { method: "DELETE" });
+        case "reconnect": return request<DiskInfo[]>(`/api/locations/${disk.id}/reconnect`, post({ path: null }));
+        case "remove": return request<DiskInfo[]>(`/api/locations/${disk.id}`, { method: "DELETE" });
       }
     },
     onSuccess: (list, kind) => {
@@ -144,7 +144,7 @@ function Migration() {
 }
 
 /** Agregar un disco (#158): se elige la unidad y la app crea `Otteretro` con sus cinco carpetas. */
-function AddDisk({ disks, onDone, onCancel }: { disks: LibraryInfo[]; onDone: (id: string) => void; onCancel: () => void }) {
+function AddDisk({ disks, onDone, onCancel }: { disks: DiskInfo[]; onDone: (id: string) => void; onCancel: () => void }) {
   const t = useTranslations("libraries");
   const locale = useLocale();
   const describe = useDescribeError();
@@ -152,7 +152,7 @@ function AddDisk({ disks, onDone, onCancel }: { disks: LibraryInfo[]; onDone: (i
   const drives = useQuery({ queryKey: ["drives"], queryFn: () => request<Drive[]>("/api/drives") });
   const free = (drives.data ?? []).filter((d) => !disks.some((k) => k.path.toLowerCase() === d.folder.toLowerCase()));
   const add = useMutation({
-    mutationFn: (d: Drive) => request<LibraryInfo[]>("/api/disks", post({ path: d.folder, name: d.name.replace(/[\\/]+$/, "") || d.name })),
+    mutationFn: (d: Drive) => request<DiskInfo[]>("/api/disks", post({ path: d.folder, name: d.name.replace(/[\\/]+$/, "") || d.name })),
     onSuccess: (list, d) => {
       cache.setQueryData(["libraries"], list);
       cache.invalidateQueries({ queryKey: ["libraries", "migration"] });
@@ -185,7 +185,7 @@ function AddDisk({ disks, onDone, onCancel }: { disks: LibraryInfo[]; onDone: (i
  * de otro disco; una consola marcada entera va en una sola tarea. En el ★, la primera fila son los datos de la app, que se
  * mueven solos (con su progreso y el ★).
  */
-function DiskPanel({ disk, others }: { disk: LibraryInfo; others: LibraryInfo[] }) {
+function DiskPanel({ disk, others }: { disk: DiskInfo; others: DiskInfo[] }) {
   const t = useTranslations("libraries");
   const locale = useLocale();
   const describe = useDescribeError();

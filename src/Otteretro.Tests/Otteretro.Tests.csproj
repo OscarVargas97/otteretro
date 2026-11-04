@@ -23,4 +23,8 @@
     <ProjectReference Include="..\Otteretro\Otteretro.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="fixtures\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

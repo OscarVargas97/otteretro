@@ -68,7 +68,6 @@ function Saga() {
               <button className="ot-btn" type="button" aria-pressed={s.following} onClick={() => flags.mutate({ following: !s.following })}>
                 {s.following ? t("saga.following") : t("saga.follow")}
               </button>
-              <MoreActions sagaId={String(s.id)} />
             </div>
           )}
           {flags.error && <p className="error small" role="alert">{describe(flags.error)}</p>}
@@ -107,33 +106,9 @@ function Saga() {
 }
 
 /** «⋯» del encabezado (#170): por ahora, pedir a Claude que recalcule la ruta. */
-function MoreActions({ sagaId }: { sagaId: string }) {
-  const t = useTranslations("catalog");
-  const describe = useDescribeError();
-  const [open, setOpen] = useState(false);
-  const recalculate = useMutation({ mutationFn: () => request<number>(`/api/sagas/${sagaId}/recalculate`, { method: "POST" }) });
-  return (
-    <div className="tabs-more">
-      <button className="ot-btn ot-btn-icon" type="button" aria-label={t("saga.moreActions")} aria-haspopup="menu" aria-expanded={open}
-        onClick={() => setOpen(!open)} onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}>⋯</button>
-      {open && (
-        <>
-          <div className="tabs-more-scrim" onClick={() => setOpen(false)} />
-          <div className="tabs-more-menu" role="menu" onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}>
-            <button type="button" role="menuitem" className="tabs-more-item" autoFocus disabled={recalculate.isPending || recalculate.isSuccess}
-              onClick={() => { setOpen(false); recalculate.mutate(); }}>{t("saga.recalculate")}</button>
-          </div>
-        </>
-      )}
-      {recalculate.isSuccess && <span className="small muted" role="status">{t("saga.queued")}</span>}
-      {recalculate.error && <span className="error small" role="alert">{describe(recalculate.error)}</span>}
-    </div>
-  );
-}
-
+/** La ruta elegida (§3.2, #170): pestañas junto al título con el avance al lado, los pasos unidos por una línea y el porqué con fuentes. */
 const DONE = ["finished", "completed"];
 
-/** La ruta elegida (§3.2, #170): pestañas junto al título con el avance al lado, los pasos unidos por una línea y el porqué con fuentes. */
 function Routes({ sagaId }: { sagaId: string }) {
   const t = useTranslations("catalog");
   const describe = useDescribeError();

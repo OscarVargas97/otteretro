@@ -43,16 +43,6 @@ public class SteamTests
                         { "appid": 999, "name": "Algo que IGDB no tiene", "playtime_forever": 5, "rtime_last_played": 0 } ] } }
                     """;
             }
-            else if (url == Igdb.TokenUrl) json = """{ "access_token": "token", "expires_in": 3600 }""";
-            else if (url.EndsWith("/external_games") && body.Contains("\"70\""))
-                json = """[ { "id": 1, "game": 231, "uid": "70" }, { "id": 2, "game": 233, "uid": "220" } ]""";
-            else if (url.EndsWith("/games") && body.Contains("where id = (231,233)"))
-                json = """
-                    [ { "id": 231, "name": "Half-Life", "first_release_date": 910000000, "game_type": 0, "platforms": [6],
-                        "franchises": [ { "id": 50, "name": "Half-Life" } ], "external_games": [ { "id": 1, "uid": "70", "external_game_source": 1 } ] },
-                      { "id": 233, "name": "Half-Life 2", "first_release_date": 1100000000, "game_type": 0, "platforms": [6],
-                        "franchises": [ { "id": 50, "name": "Half-Life" } ], "external_games": [ { "id": 3, "uid": "220", "external_game_source": 1 } ] } ]
-                    """;
             return json is null
                 ? new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent("[]") }
                 : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json) };
@@ -64,10 +54,9 @@ public class SteamTests
     public SteamTests()
     {
         Steam.Handler = servers;
-        IgdbImport.Handler = servers;
     }
 
-    static readonly (string, string)[] Keys = [("steam.apiKey", "clave"), ("igdb.clientId", "id"), ("igdb.clientSecret", "secreto")];
+    static readonly (string, string)[] Keys = [("steam.apiKey", "clave")];
 
     /// <summary>Listo cuando de F1.8: después de sincronizar, Half-Life sale como «lo tengo» con sus horas.</summary>
     [Fact]
@@ -76,17 +65,18 @@ public class SteamTests
         await using var f = new Fixture(Keys);
         Steam.LoginUsersPath = f.Tmp["loginusers.vdf"];
         File.WriteAllText(Steam.LoginUsersPath, LoginUsers);
+        using (var c = f.Db.Open())
+            c.Execute("""
+                INSERT INTO catalog.saga (id, name) VALUES (1, 'Half-Life');
+                INSERT INTO catalog.game (id, saga_id, name_es) VALUES (1, 1, 'Half-Life'), (2, 1, 'Half-Life 2');
+                INSERT INTO catalog.version (id, game_id, platform, steam_app_id) VALUES (1, 1, 'pc', 70), (2, 2, 'pc', 220);
+                """);
 
         Assert.Equal("done", (await f.Run(Steam.EnqueueSync(f.Db))).Status);
         Assert.Contains("steamid=76561190000000002", servers.SteamQuery);
 
-        long link;
         using (var c = f.Db.Open())
-        {
             Assert.Equal(3, c.ExecuteScalar<int>("SELECT count(*) FROM source WHERE store = 'steam'"));
-            link = c.ExecuteScalar<long>("SELECT id FROM task WHERE kind = 'igdb.steam'");
-        }
-        Assert.Equal("done", (await f.Run(link)).Status);
 
         using var db = f.Db.Open();
         var halfLife = db.QuerySingle<(string Name, string Saga, long Playtime, string LastPlayed)>("""
