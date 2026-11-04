@@ -11,13 +11,14 @@ namespace Otteretro.Libraries;
 /// <param name="Root">La carpeta del juego: la que tiene `base\`/`updates\`, o la que tiene `exefs\` si no hay esas.</param>
 /// <param name="TitleId">El program id de `main.npdm`; null si no se pudo leer.</param>
 /// <param name="Console">switch2 si el TitleID empieza con 04, switch si empieza con 01; null si no se sabe.</param>
-public record SwitchDump(string Root, string? TitleId, string? Console)
+/// <param name="Name">El nombre que trae el juego (PARAM.SFO, param.json, meta.xml), si lo trae (#240).</param>
+public record FolderGame(string Root, string? TitleId, string? Console, string? Name = null)
 {
     /// <summary>Las carpetas extraídas que hay dentro de <paramref name="folder"/>, una por juego.</summary>
-    public static List<SwitchDump> Find(string folder)
+    public static List<FolderGame> Find(string folder)
     {
         if (!Directory.Exists(folder)) return [];
-        var byRoot = new Dictionary<string, SwitchDump>(StringComparer.OrdinalIgnoreCase);
+        var byRoot = new Dictionary<string, FolderGame>(StringComparer.OrdinalIgnoreCase);
         foreach (var exefs in Directory.EnumerateDirectories(folder, "exefs", new EnumerationOptions { RecurseSubdirectories = true, MatchCasing = MatchCasing.CaseInsensitive }))
         {
             if (!File.Exists(Path.Combine(exefs, "main"))) continue;
@@ -28,6 +29,9 @@ public record SwitchDump(string Root, string? TitleId, string? Console)
             byRoot[root] = new(root, titleId, ConsoleOf(titleId));
         }
         // Una carpeta dentro de otra ya encontrada no es otro juego.
+        // PS3, Vita, PS4, PS5 y Wii U (#240): su carpeta, con el id y el nombre de sus archivos de sistema.
+        foreach (var (root, id) in GameIds.Folders(folder))
+            byRoot.TryAdd(root, new(root, id.Serial, id.Console, id.Name));
         return byRoot.Values.Where(d => !byRoot.Keys.Any(r => !Disk.Same(r, d.Root) && d.Root.StartsWith(r + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)))
             .OrderBy(d => d.Root, StringComparer.OrdinalIgnoreCase).ToList();
     }
@@ -64,60 +68,3 @@ public record SwitchDump(string Root, string? TitleId, string? Console)
         Directory.EnumerateFiles(root, "*", new EnumerationOptions { RecurseSubdirectories = true }).Sum(f => new FileInfo(f).Length);
 }
 
-/// <summary>
-/// TitleID → nombre de los juegos de Switch 2, de la tabla pública de Switchbrew (#237, decisión 276): identificar sin IA. Se baja una vez
-/// y se guarda en `cache\`; se renueva cada semana. Sin conexión se usa lo guardado; sin nada guardado, no hay nombres.
-/// </summary>
-public static partial class SwitchTitles
-{
-    const string Source = "https://switchbrew.org/w/index.php?title=Switch_2:_Title_list/Games&action=raw";
-    static readonly TimeSpan MaxAge = TimeSpan.FromDays(7);
-
-    /// <summary>Para las pruebas: responde en lugar de Switchbrew.</summary>
-    public static HttpMessageHandler? Handler { get; set; }
-
-    static string FileOf(Database db) => Path.Combine(Path.GetDirectoryName(db.FilePath)!, "cache", "switch2-titulos.wiki");
-
-    /// <summary>El nombre del juego con ese TitleID (o el de su base), sin la marca «Nintendo Switch 2 Edition»; null si no está.</summary>
-    public static async Task<string?> NameOf(Database db, string titleId, CancellationToken ct = default)
-    {
-        var table = Parse(await Text(db, ct));
-        return table.GetValueOrDefault(titleId) ?? table.GetValueOrDefault(Scan.BaseOf(titleId));
-    }
-
-    static async Task<string> Text(Database db, CancellationToken ct)
-    {
-        var file = FileOf(db);
-        if (File.Exists(file) && DateTime.UtcNow - File.GetLastWriteTimeUtc(file) < MaxAge) return await File.ReadAllTextAsync(file, ct);
-        try
-        {
-            using var http = Handler is null ? new HttpClient() : new HttpClient(Handler);
-            http.Timeout = TimeSpan.FromSeconds(30);
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("Otteretro");
-            var text = await http.GetStringAsync(Source, ct);
-            Directory.CreateDirectory(Path.GetDirectoryName(file)!);
-            await File.WriteAllTextAsync(file, text, ct);
-            return text;
-        }
-        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException)
-        {
-            return File.Exists(file) ? await File.ReadAllTextAsync(file, ct) : "";
-        }
-    }
-
-    /// <summary>Las filas `| TitleID || Nombre || …` de la tabla.</summary>
-    public static Dictionary<string, string> Parse(string wiki)
-    {
-        var table = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (Match m in Row().Matches(wiki))
-            table.TryAdd(m.Groups[1].Value.ToUpperInvariant(), Edition().Replace(m.Groups[2].Value.Replace("™", "").Replace("®", ""), "").Trim());
-        return table;
-    }
-
-    [GeneratedRegex(@"^\|\s*(0[14][0-9A-Fa-f]{14})\s*\|\|\s*([^|\n]+?)\s*\|\|", RegexOptions.Multiline)]
-    private static partial Regex Row();
-
-    /// <summary>«… – Nintendo Switch 2 Edition» y «… for Nintendo Switch 2»: el juego del catálogo es el mismo.</summary>
-    [GeneratedRegex(@"\s*([-–:]\s*)?(Nintendo Switch 2 Edition|for Nintendo Switch 2)\s*$", RegexOptions.IgnoreCase)]
-    private static partial Regex Edition();
-}

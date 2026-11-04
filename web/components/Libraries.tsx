@@ -1,5 +1,6 @@
 "use client";
 
+import { RecognizeSettings } from "@/components/Recognize";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -55,6 +56,7 @@ export function StorageSettings() {
       </dialog>
       <DataMoveStatus />
       {current && <DiskPanel key={current.id} disk={current} others={disks.filter((d) => d.id !== current.id && d.connected)} />}
+      <RecognizeSettings />
     </div>
   );
 }

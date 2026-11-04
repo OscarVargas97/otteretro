@@ -3097,7 +3097,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ClaudeStatus"];
+                        "application/json": components["schemas"]["RecognizeStatus"];
                     };
                 };
                 /** @description Conflict */
@@ -3120,7 +3120,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["ClaudeSettingsRequest"];
+                    "application/json": components["schemas"]["RecognizeRequest"];
                 };
             };
             responses: {
@@ -3130,16 +3130,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ClaudeStatus"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["RecognizeStatus"];
                     };
                 };
                 /** @description Conflict */
@@ -3154,96 +3145,6 @@ export interface paths {
             };
         };
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/claude/usage": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: {
-                    page?: number | string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["UsagePage"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiError"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/claude/run-now": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ClaudeStatus"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiError"];
-                    };
-                };
-            };
-        };
         delete?: never;
         options?: never;
         head?: never;
@@ -4781,33 +4682,6 @@ export interface components {
             /** Format: int64 */
             routeId: null | number | string;
         };
-        ClaudeSettingsRequest: {
-            scheduleStart: null | string;
-            scheduleEnd: null | string;
-            /** Format: int32 */
-            windowShare: null | number | string;
-            capped?: null | boolean;
-        };
-        ClaudeStatus: {
-            scheduleStart: string;
-            scheduleEnd: string;
-            /** Format: int32 */
-            windowShare: number | string;
-            capped: boolean;
-            pausedUntil: null | string;
-            runNowUntil: null | string;
-            inSchedule: boolean;
-            task: null | components["schemas"]["ClaudeTask"];
-        };
-        ClaudeTask: {
-            /** Format: int64 */
-            id: number | string;
-            kind: string;
-            status: string;
-            /** Format: int64 */
-            progress: number | string;
-            resumeAt: null | string;
-        };
         ClipboardRequest: {
             enabled: boolean;
         };
@@ -5136,6 +5010,17 @@ export interface components {
             packages: string[];
             diskId: null | string;
         };
+        RecognizeRequest: {
+            useClaude: boolean;
+        };
+        RecognizeStatus: {
+            useClaude: boolean;
+            /** Format: int32 */
+            monthCalls: number | string;
+            /** Format: double */
+            monthCost: number | string;
+            pausedUntil: null | string;
+        };
         ReconnectRequest: {
             path?: null | string;
         };
@@ -5305,27 +5190,6 @@ export interface components {
             message: null | string;
             /** Format: date-time */
             checkedAt: null | string;
-        };
-        UsagePage: {
-            rows: components["schemas"]["UsageRow"][];
-            /** Format: int32 */
-            page: number | string;
-            /** Format: int32 */
-            pages: number | string;
-        };
-        UsageRow: {
-            prompt: string;
-            model: null | string;
-            /** Format: int64 */
-            durationMs: number | string;
-            result: string;
-            /** Format: int64 */
-            inputTokens: number | string;
-            /** Format: int64 */
-            outputTokens: number | string;
-            /** Format: double */
-            costUsd: number | string;
-            createdAt: string;
         };
         VerifyRequest: {
             console: null | string;

@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:50387/"
+      "url": "http://127.0.0.1:50957/"
     }
   ],
   "paths": {
@@ -2651,7 +2651,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ClaudeStatus"
+                  "$ref": "#/components/schemas/RecognizeStatus"
                 }
               }
             }
@@ -2676,7 +2676,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ClaudeSettingsRequest"
+                "$ref": "#/components/schemas/RecognizeRequest"
               }
             }
           },
@@ -2688,90 +2688,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ClaudeStatus"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/claude/usage": {
-      "get": {
-        "tags": [
-          "Otteretro"
-        ],
-        "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
-              "format": "int32",
-              "default": 1
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UsagePage"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/claude/run-now": {
-      "post": {
-        "tags": [
-          "Otteretro"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClaudeStatus"
+                  "$ref": "#/components/schemas/RecognizeStatus"
                 }
               }
             }
@@ -4438,140 +4355,6 @@
           }
         }
       },
-      "ClaudeSettingsRequest": {
-        "required": [
-          "scheduleStart",
-          "scheduleEnd",
-          "windowShare"
-        ],
-        "type": "object",
-        "properties": {
-          "scheduleStart": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "scheduleEnd": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "windowShare": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "capped": {
-            "type": [
-              "null",
-              "boolean"
-            ]
-          }
-        }
-      },
-      "ClaudeStatus": {
-        "required": [
-          "scheduleStart",
-          "scheduleEnd",
-          "windowShare",
-          "capped",
-          "pausedUntil",
-          "runNowUntil",
-          "inSchedule",
-          "task"
-        ],
-        "type": "object",
-        "properties": {
-          "scheduleStart": {
-            "type": "string"
-          },
-          "scheduleEnd": {
-            "type": "string"
-          },
-          "windowShare": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "capped": {
-            "type": "boolean"
-          },
-          "pausedUntil": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "runNowUntil": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "inSchedule": {
-            "type": "boolean"
-          },
-          "task": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/ClaudeTask"
-              }
-            ]
-          }
-        }
-      },
-      "ClaudeTask": {
-        "required": [
-          "id",
-          "kind",
-          "status",
-          "progress",
-          "resumeAt"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int64"
-          },
-          "kind": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "progress": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int64"
-          },
-          "resumeAt": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
       "ClipboardRequest": {
         "required": [
           "enabled"
@@ -6084,6 +5867,53 @@
           }
         }
       },
+      "RecognizeRequest": {
+        "required": [
+          "useClaude"
+        ],
+        "type": "object",
+        "properties": {
+          "useClaude": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RecognizeStatus": {
+        "required": [
+          "useClaude",
+          "monthCalls",
+          "monthCost",
+          "pausedUntil"
+        ],
+        "type": "object",
+        "properties": {
+          "useClaude": {
+            "type": "boolean"
+          },
+          "monthCalls": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "monthCost": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "pausedUntil": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "ReconnectRequest": {
         "type": "object",
         "properties": {
@@ -6875,100 +6705,6 @@
               "string"
             ],
             "format": "date-time"
-          }
-        }
-      },
-      "UsagePage": {
-        "required": [
-          "rows",
-          "page",
-          "pages"
-        ],
-        "type": "object",
-        "properties": {
-          "rows": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UsageRow"
-            }
-          },
-          "page": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          },
-          "pages": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          }
-        }
-      },
-      "UsageRow": {
-        "required": [
-          "prompt",
-          "model",
-          "durationMs",
-          "result",
-          "inputTokens",
-          "outputTokens",
-          "costUsd",
-          "createdAt"
-        ],
-        "type": "object",
-        "properties": {
-          "prompt": {
-            "type": "string"
-          },
-          "model": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "durationMs": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int64"
-          },
-          "result": {
-            "type": "string"
-          },
-          "inputTokens": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int64"
-          },
-          "outputTokens": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int64"
-          },
-          "costUsd": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
-            "format": "double"
-          },
-          "createdAt": {
-            "type": "string"
           }
         }
       },

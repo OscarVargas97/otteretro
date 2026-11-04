@@ -46,7 +46,7 @@ public class SwitchDumpTests
         public int Calls;
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
-            Calls++;
+            if (request.RequestUri!.Host.Contains("switchbrew")) Interlocked.Increment(ref Calls);
             const string Wiki = """
                 {| class="wikitable"
                 |-
@@ -55,13 +55,44 @@ public class SwitchDumpTests
                 | 0100C2500FC20000 || Splatoon™ 3 – Nintendo Switch 2 Edition || USA || || Digital || || || Game
                 |}
                 """;
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(Wiki, Encoding.UTF8) });
+            // titledb (#241): un objeto por juego, con muchos datos que no se usan.
+            const string Titledb = """
+                { "70010000000025": { "id": "01007EF00011E000", "name": "The Legend of Zelda™: Breath of the Wild", "description": "…", "languages": ["es"] },
+                  "70010000000026": { "id": null, "name": "Sin TitleID" } }
+                """;
+            var body = request.RequestUri!.Host.Contains("switchbrew") ? Wiki : Titledb;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8) });
         }
     }
 
     sealed class NoNetwork : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) => throw new HttpRequestException("sin red");
+    }
+
+    /// <summary>#241: un juego de Switch cuyo nombre de archivo no dice qué es se reconoce por su TitleID con titledb, sin Claude.</summary>
+    [Fact]
+    public async Task ASwitchFileIsRecognizedByItsTitleIdWithTitledb()
+    {
+        await using var f = new Fixture();
+        Disk.Create(f.Db, f.Tmp["Otteretro"], "E:");
+        using (var c = f.Db.Open())
+            c.Execute("INSERT INTO game (id, name_es) VALUES (11, 'The Legend of Zelda: Breath of the Wild'); INSERT INTO version (id, game_id, platform) VALUES (21, 11, 'switch');");
+        var from = f.Tmp["Descargas"];
+        Directory.CreateDirectory(from);
+        File.WriteAllText(Path.Combine(from, "botw-xyz [01007EF00011E000][v0].nsp"), "juego");
+        var switchbrew = new Switchbrew();
+        (Dats.Handler, SwitchTitles.Handler) = (new NoNetwork(), switchbrew);
+        try { Assert.Equal("done", (await f.Run(Import.Enqueue(f.Db, from).Task!.Value)).Status); }
+        finally { (Dats.Handler, SwitchTitles.Handler) = (null, null); }
+
+        Assert.True(File.Exists(f.Tmp[@"Otteretro\Juegos\Switch\The Legend of Zelda - Breath of the Wild\botw-xyz [01007EF00011E000][v0].nsp"]));
+        using var db = f.Db.Open();
+        Assert.Equal(21, db.ExecuteScalar<long>("SELECT version_id FROM source WHERE title_id = '01007EF00011E000'"));
+        // La tabla quedó guardada compacta, sin la descripción ni lo demás.
+        var saved = File.ReadAllText(Path.Combine(Path.GetDirectoryName(f.Db.FilePath)!, "cache", "switch-titulos.json"));
+        Assert.Contains("Breath of the Wild", saved);
+        Assert.DoesNotContain("languages", saved);
     }
 
     [Fact]

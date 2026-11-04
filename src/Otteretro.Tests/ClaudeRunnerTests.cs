@@ -203,92 +203,32 @@ public class ClaudeRunnerTests : IDisposable
         Assert.Equal(now.AddHours(1), e.Until);
     }
 
-    /// <summary>F2.2 y #154: fuera del horario no se llama a Claude, salvo con «Ejecutar ahora» hasta el próximo horario.</summary>
+    /// <summary>Decisión 280 (#252): no hay horario; a las 15:00 se llama a Claude como a las 03:00.</summary>
     [Fact]
-    public async Task OutsideTheScheduleWaitsUnlessRunNow()
+    public async Task ClaudeIsCalledAtAnyHour()
     {
         Fake(Ok);
-        now = Local(14);
+        now = Local(15);
 
-        var e = await Assert.ThrowsAsync<ClaudePausedException>(() => Run());
-        Assert.Equal("tasks.claude.schedule", e.Reason.Code);
-        Assert.Equal(Local(0, days: 1), e.Until);
-        Assert.Empty(calls);
-
-        ClaudeBudget.RunNow(db);
         Assert.Equal(4, (await Run()).Value.Value);
-        Assert.Equal(Local(0, days: 1), DateTime.Parse(ClaudeBudget.Status(db).RunNowUntil!, null, System.Globalization.DateTimeStyles.AdjustToUniversal));
     }
 
+    /// <summary>#254: el interruptor se guarda y el uso del mes cuenta solo identificar juegos.</summary>
     [Fact]
-    public async Task ScheduleCanCrossMidnight()
+    public void StatusCountsThisMonthsIdentifyCalls()
     {
         using (var c = db.Open())
-        {
-            ClaudeBudget.Set(c, ClaudeBudget.ScheduleStart, "22:00");
-            ClaudeBudget.Set(c, ClaudeBudget.ScheduleEnd, "06:00");
-        }
-        Fake(Ok, Ok);
-        now = Local(23);
-        await Run();
-        now = Local(7);
-        await Assert.ThrowsAsync<ClaudePausedException>(() => Run());
-        now = Local(5, days: 1);
-        await Run();
+            c.Execute("""
+                INSERT INTO claude_usage (task_id, prompt, model, duration_ms, result, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, created_at)
+                VALUES (1, 'identificar-juego', 'sonnet', 1, 'ok', 1, 1, 0, 0, 0.25, @now), (1, 'identificar-juego', 'sonnet', 1, 'ok', 1, 1, 0, 0, 0.5, @now),
+                       (1, 'mejor-version', 'sonnet', 1, 'ok', 1, 1, 0, 0, 9, @now), (1, 'identificar-juego', 'sonnet', 1, 'ok', 1, 1, 0, 0, 9, @old)
+                """, new { now = now.ToString("O"), old = now.AddMonths(-1).ToString("O") });
+
+        Assert.Equal(new RecognizeStatus(true, 2, 0.75, null), ClaudeBudget.Status(db));
+        ClaudeBudget.Save(db, new(false));
+        Assert.False(ClaudeBudget.Status(db).UseClaude);
     }
 
-    /// <summary>
-    /// F2.2 y #157: el límite de sesión enseña cuánto entra en una ventana (lo gastado en ella). De noche no hay tope;
-    /// de día, con «Ejecutar ahora», al llegar al 50 % de eso se espera a que termine la ventana.
-    /// </summary>
-    [Fact]
-    public async Task WindowCapOnlyAppliesToRunNowDuringTheDay()
-    {
-        var zone = TimeZoneInfo.Local.Id;
-        Fake(Reply(new { value = 4, note = "x" }, cost: 1), Reply(new { value = 4, note = "x" }, cost: 1),
-            Limit($"You've hit your session limit · resets 6am ({zone})"),
-            Reply(new { value = 4, note = "x" }, cost: 1.5), Ok, // de noche pasa del 50 % sin parar
-            Reply(new { value = 4, note = "x" }, cost: 1), Ok);
-
-        now = Local(2);
-        await Run();
-        await Run();
-        await Assert.ThrowsAsync<ClaudePausedException>(() => Run()); // entraron 2 USD en la ventana de 01:00 a 06:00
-
-        now = Local(6);
-        await Run();
-        await Run();
-
-        now = Local(12);
-        ClaudeBudget.RunNow(db);
-        await Run(); // 1 USD = 50 % de 2
-        var e = await Assert.ThrowsAsync<ClaudePausedException>(() => Run());
-        Assert.Equal("tasks.claude.windowCap", e.Reason.Code);
-        Assert.Equal(Local(17), e.Until);
-        Assert.Equal(6, calls.Count);
-    }
-
-    /// <summary>F2.9: sin tope marcado, «Ejecutar ahora» usa la ventana entera también de día.</summary>
-    [Fact]
-    public async Task WindowCapCanBeTurnedOff()
-    {
-        var zone = TimeZoneInfo.Local.Id;
-        Fake(Reply(new { value = 4, note = "x" }, cost: 2), Limit($"You've hit your session limit · resets 6am ({zone})"),
-            Reply(new { value = 4, note = "x" }, cost: 1.5), Ok);
-        now = Local(2);
-        await Run();
-        await Assert.ThrowsAsync<ClaudePausedException>(() => Run()); // entran 2 USD por ventana
-
-        Assert.Null(ClaudeBudget.Save(db, new(null, null, null, Capped: false)));
-        Assert.False(ClaudeBudget.Status(db).Capped);
-        now = Local(12);
-        ClaudeBudget.RunNow(db);
-        await Run(); // 1,5 USD: pasa del 50 % sin parar
-        await Run();
-        Assert.Equal(4, calls.Count);
-    }
-
-    /// <summary>F2.9: «Ejecutar ahora» lanza la carga; al empezar el horario se lanza sola, una vez por noche.</summary>
     /// <summary>F2.2: la cola devuelve la tarea a la espera con su punto de control y no le cuenta el intento.</summary>
     [Fact]
     public async Task QueuePutsAPausedTaskBackWithItsCheckpoint()

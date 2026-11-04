@@ -93,7 +93,6 @@ test("con un catálogo grande, cada pantalla aparece al instante y no salta", as
     ["Ajustes", '.sidebar a[href="/settings/"]', content, "#settings-panel .version-row"],
     ["Ajustes › Cuentas y claves", "#tab-credentials", panel, "#settings-panel .cred-line"],
     ["Ajustes › Consolas", "#tab-consoles", panel, "#settings-panel .console-row"],
-    ["Ajustes › Claude", "#tab-claude", panel, '#settings-panel input[type="time"]'],
     ["Ajustes › General", "#tab-general", panel, "#settings-panel .version-row"],
     // Almacenamiento es la primera pestaña (#208): se mide al volver a ella.
     ["Ajustes › Almacenamiento", "#tab-storage", panel, "#settings-panel .panel h2"],

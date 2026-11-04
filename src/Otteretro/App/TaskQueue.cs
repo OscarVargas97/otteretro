@@ -47,12 +47,9 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
 
     public TimeSpan Poll { get; init; } = TimeSpan.FromSeconds(2);
 
-    /// <summary>Lanza la carga de Claude al empezar su horario (F2.9). Las pruebas (y el servidor de los e2e, con OTTERETRO_E2E) lo apagan para no depender de la hora.</summary>
-    public static bool AutoClaude { get; set; } = Environment.GetEnvironmentVariable("OTTERETRO_E2E") is null;
-
     /// <summary>
     /// Lo que pasa solo con la app abierta (#219, #223): al abrirla, pasar lo de antes al estándar o escanear, y vigilar `Juegos\`
-    /// de cada disco. Las pruebas lo apagan, como <see cref="AutoClaude"/>, y lo prueban por separado.
+    /// de cada disco. Las pruebas (y el servidor de los e2e, con OTTERETRO_E2E) lo apagan y lo prueban por separado.
     /// </summary>
     public static bool OnOpen { get; set; } = Environment.GetEnvironmentVariable("OTTERETRO_E2E") is null;
 
@@ -198,7 +195,6 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
                         clipboard ??= new(notify: (found, added) => Notify.LinksCaptured(session.Config.EffectiveLanguage, found, added));
                         clipboard.Tick(db, session.Config.ClipboardCapture ?? true);
                     }
-                    if (AutoClaude) Claude.ClaudeBudget.AutoStart(db);
                     StartPending(db, ct);
                 }
             }

@@ -35,22 +35,14 @@ public static class ClaudeEndpoints
         api.MapGet("/home/next", Results<Ok<List<NextGame>>, Conflict<ApiError>> (AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(ClaudeReview.Next(db)) : NoData());
 
-        api.MapGet("/claude", Results<Ok<ClaudeStatus>, Conflict<ApiError>> (AppSession s) =>
+        // Almacenamiento › Reconocer juegos (#251).
+        api.MapGet("/claude", Results<Ok<RecognizeStatus>, Conflict<ApiError>> (AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(ClaudeBudget.Status(db)) : NoData());
 
-        api.MapGet("/claude/usage", Results<Ok<UsagePage>, Conflict<ApiError>> (AppSession s, int page = 1) =>
-            Db(s) is { } db ? TypedResults.Ok(ClaudeBudget.Usage(db, page)) : NoData());
-
-        api.MapPut("/claude", Results<Ok<ClaudeStatus>, BadRequest<ApiError>, Conflict<ApiError>> (ClaudeSettingsRequest request, AppSession s) =>
+        api.MapPut("/claude", Results<Ok<RecognizeStatus>, Conflict<ApiError>> (RecognizeRequest request, AppSession s) =>
         {
             if (Db(s) is not { } db) return NoData();
-            return ClaudeBudget.Save(db, request) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(ClaudeBudget.Status(db));
-        });
-
-        api.MapPost("/claude/run-now", Results<Ok<ClaudeStatus>, Conflict<ApiError>> (AppSession s) =>
-        {
-            if (Db(s) is not { } db) return NoData();
-            ClaudeBudget.RunNow(db);
+            ClaudeBudget.Save(db, request);
             return TypedResults.Ok(ClaudeBudget.Status(db));
         });
     }

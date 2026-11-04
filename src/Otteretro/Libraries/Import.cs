@@ -51,6 +51,7 @@ public static partial class Import
         [".gcz"] = "gc",
         [".cso"] = "psp",
         [".pbp"] = "psp",
+        [".vpk"] = "vita",
     };
 
     /// <summary>Valida la carpeta y encola. No se importa desde las carpetas de un disco ni desde una que contenga un disco.</summary>
@@ -97,7 +98,8 @@ public static partial class Import
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return true; }
     }
 
-    internal record Item(string Path, string? Console, string? TitleId, string? Component);
+    /// <param name="Title">El nombre que trae el juego en sus archivos de sistema (#240), si lo trae.</param>
+    internal record Item(string Path, string? Console, string? TitleId, string? Component, string? Title = null);
 
     public static async Task Run(TaskRun run, CancellationToken ct)
     {
@@ -193,7 +195,7 @@ public static partial class Import
         try
         {
             var inner = Files(target);
-            bool HasGames() => inner.Any(f => Scan.GameExtensions.Contains(Path.GetExtension(f)) && !Archives.IsArchive(f)) || SwitchDump.Find(target).Count > 0;
+            bool HasGames() => inner.Any(f => Scan.GameExtensions.Contains(Path.GetExtension(f)) && !Archives.IsArchive(f)) || FolderGame.Find(target).Count > 0;
             // Un comprimido dentro del paquete (Mario Kart World: un zip de 23 GB dentro del rar) se abre ahí mismo, hasta dos niveles.
             for (var level = 0; level < 2 && !HasGames(); level++)
             {
@@ -204,7 +206,7 @@ public static partial class Import
                         foreach (var part in Archives.Parts(archive)) File.Delete(part);
                 inner = Files(target);
             }
-            var dumps = SwitchDump.Find(target);
+            var dumps = FolderGame.Find(target);
             if (!HasGames())
             {
                 p.Run.Log(ApiError.Of("import.log.noGames", ("path", main)), "warn");
@@ -260,7 +262,7 @@ public static partial class Import
     /// Una carpeta extraída de Switch o Switch 2 (#237) va entera a `Juegos\&lt;Consola&gt;\&lt;Juego&gt;`, con su estructura: es lo que carga el emulador.
     /// El juego sale del TitleID (tabla de Switchbrew, sin IA), de un alias o del nombre del paquete; si no, espera en `Entrada\` para Revisar y Claude.
     /// </summary>
-    static async Task PlaceDump(Pass p, SwitchDump dump, FromArchive archive, CancellationToken ct)
+    static async Task PlaceDump(Pass p, FolderGame dump, FromArchive archive, CancellationToken ct)
     {
         var (run, db) = (p.Run, p.Db);
         if (dump.Console is not { } console)
@@ -269,16 +271,19 @@ public static partial class Import
             p.Skipped++;
             return;
         }
-        var title = dump.TitleId is null ? null : await SwitchTitles.NameOf(db, dump.TitleId, ct);
+        // Switch: la tabla de TitleID; PS3, Vita, PS4, PS5 y Wii U: su propio nombre o, si no, el de su serial en el DAT (#240).
+        var title = dump.Name ?? (dump.TitleId is null ? null
+            : console is "switch" or "switch2" ? await SwitchTitles.NameOf(db, dump.TitleId, ct) : Scan.DatBySerial(db, console, dump.TitleId));
         var versions = p.Catalog.GetValueOrDefault(console) ?? [];
         var learned = p.Aliases.GetValueOrDefault(console) ?? [];
         var names = new[] { archive.Label, Path.GetFileNameWithoutExtension(archive.Path), Path.GetFileName(dump.Root) };
         var version = names.Select(n => Scan.Match(learned, n)).FirstOrDefault(v => v is not null)
+            ?? (dump.TitleId is null ? null : Scan.VersionByCode(db, console, dump.TitleId)) // el código del catálogo (#249)
             ?? (title is null ? null : Scan.Match(versions, title))
             ?? names.Select(n => Scan.Match(versions, n)).FirstOrDefault(v => v is not null)
             ?? VersionOfGame(db, p.Job.GameId, console);
         var item = new Item(archive.Path, console, dump.TitleId, "BASE");
-        var size = SwitchDump.SizeOf(dump.Root);
+        var size = FolderGame.SizeOf(dump.Root);
 
         if (p.EntryDisk is { } entry && version is null)
         {
@@ -389,8 +394,20 @@ public static partial class Import
             var learned = p.Aliases.GetValueOrDefault(console) ?? [];
             var baseId = item.Component is null ? null : Scan.BaseOf(item.TitleId!);
             (long? Version, string Folder)? ofBase = baseId is not null && p.Bases.TryGetValue(baseId, out var b) ? b : null;
-            var version = Scan.Match(learned, name) ?? Scan.Match(versions, name) ?? (folder is null ? null : Scan.Match(learned, folder) ?? Scan.Match(versions, folder))
+            // Primero lo que corregiste (alias) y el código que publica el catálogo (#249); después, el nombre.
+            var byCode = item.TitleId is { } code ? Scan.VersionByCode(db, console, item.Component is null or "BASE" ? code : Scan.BaseOf(code)) : null;
+            var version = Scan.Match(learned, name) ?? byCode ?? Scan.Match(versions, name) ?? (folder is null ? null : Scan.Match(learned, folder) ?? Scan.Match(versions, folder))
                 ?? (datName is null ? null : Scan.Match(versions, datName)) ?? ofBase?.Version ?? VersionOfBase(db, baseId) ?? VersionOfGame(db, p.Job.GameId, console);
+
+            // Switch y Switch 2 (#241): el TitleID del nombre contra titledb o Switchbrew, sin IA. Un UPD o un DLC busca el nombre de su base.
+            if (version is null && item.TitleId is { } tid && console is "switch" or "switch2"
+                && await SwitchTitles.NameOf(db, item.Component is null ? tid : Scan.BaseOf(tid), ct) is { } title)
+                version = Scan.Match(learned, title) ?? Scan.Match(versions, title);
+
+            // El nombre o el serial que trae el juego (#240): el serial se busca en el DAT de su consola, sin IA.
+            if (version is null && item.Title is { } own) version = Scan.Match(learned, own) ?? Scan.Match(versions, own);
+            if (version is null && item.TitleId is { } serial && console is not ("switch" or "switch2") && Scan.DatBySerial(db, console, serial) is { } fromDat)
+                version = Scan.Match(versions, fromDat);
 
             // Lo que no coincide con nada se le pregunta a ScreenScraper, antes que a Claude (§9.6).
             if (version is null && item.Component is null)
@@ -534,9 +551,13 @@ public static partial class Import
         var serial = Scan.Serial(file);
         // El serial de un disco: G y D son de GameCube; R y S, de Wii.
         console ??= serial?[0] switch { 'G' or 'D' => "gc", 'R' or 'S' => "wii", _ => null };
+        // Lo que el juego dice de sí mismo (#240): PlayStation, 3DS, DS, GBA, N64. Una carpeta con nombre de consola sigue mandando.
+        if (serial is null && console is not ("switch" or "switch2") && GameIds.FromFile(file) is { } id)
+            return new(file, console ?? id.Console, id.Serial, null, id.Name);
         if (console != "switch") return new(file, console, serial, null);
         var name = Path.GetFileNameWithoutExtension(file);
         var titleId = Scan.TitleIdInName().Match(name) is { Success: true } m ? m.Groups[1].Value.ToUpperInvariant() : null;
+        if (titleId?.StartsWith("04") == true) console = "switch2"; // la misma extensión, otra consola (#249)
         return new(file, console, titleId, titleId is null ? null : Scan.ComponentOf(titleId));
     }
 

@@ -64,6 +64,12 @@ public static class Identify
     public static async Task Run(TaskRun run, CancellationToken ct)
     {
         var pending = Load(run.Db);
+        // Con Claude apagado (#251), lo que ningún script reconoció va directo a Revisar › Sin identificar.
+        if (!ClaudeBudget.Enabled(run.Db))
+        {
+            foreach (var p in pending) Apply(run, p, null);
+            return;
+        }
         var todo = pending.Where(p => ClaudeFingerprint.Changed(run.Db, Prompt, Key(p), Input(p) with { Id = 0 })).ToList();
         // Lo que Claude ya vio con los mismos datos y no pudo (o lo que deshiciste) vuelve a Sin identificar sin preguntarle otra vez.
         foreach (var p in pending.Except(todo)) Apply(run, p, null);
