@@ -110,55 +110,6 @@
     "later": "Backup and the remaining settings arrive with their phase.",
     "credentials": "Accounts and keys",
     "sections": "Settings sections",
-    "claude": {
-      "title": "Claude",
-      "schedule": "Schedule",
-      "runsFrom": "Runs from",
-      "runsTo": "to",
-      "dayCap": "During the day, stop at",
-      "dayCapOff": "During the day, no cap: it can use the whole 5 h window",
-      "dayCapEnd": "% of each 5 h window",
-      "now": "Now",
-      "use": "Usage",
-      "iconicScope": "Which sagas to re-evaluate",
-      "when": "When",
-      "input": "Input",
-      "output": "Output",
-      "cost": "Cost",
-      "resultCode": {
-        "limit": "subscription limit",
-        "invalid": "unexpected shape",
-        "failed": "failed"
-      },
-      "from": "From",
-      "to": "To",
-      "share": "% of each 5 h window",
-      "runNow": "Run now",
-      "runNowUntil": "It can work until {at}.",
-      "taskRunning": "Working: task #{id} ({progress} %).",
-      "taskWaiting": "Task #{id} waits until {at}.",
-      "taskQueued": "Task #{id} is queued.",
-      "paused": "Paused by the subscription limit until {at}.",
-      "inSchedule": "It's within its schedule now.",
-      "outSchedule": "Outside its schedule: waits until {start}.",
-      "prompt": "Task",
-      "model": "Model",
-      "duration": "Duration",
-      "noUsage": "Claude hasn't been used yet.",
-      "previous": "Previous",
-      "next": "Next",
-      "pageOf": "Page {page} of {pages}",
-      "iconic": "Re-evaluate iconic sagas",
-      "iconicAll": "Whole catalog",
-      "iconicQueued": "Queued: results go to Review.",
-      "iconicNone": "That console has no sagas.",
-      "automation": "Automation suggestions",
-      "noAutomation": "Nothing yet: it shows up when Claude makes the same change for the same reason {count} times.",
-      "automationTimes": "{count, plural, one {# time} other {# times}}",
-      "createIssue": "Create issue",
-      "issueCreated": "Issue created",
-      "pageTotal": "On this page: {calls, plural, one {# call} other {# calls}} · {input} in · {output} out · {cost}"
-    },
     "consoles": {
       "title": "Consoles",
       "help": "Turned-off consoles don't show in Sagas, Collection or search. Nothing is deleted: turn them back on and they return.",
@@ -414,8 +365,6 @@
         "failed": "Claude failed: {detail}",
         "invalidOutput": "Claude answered twice with something that doesn’t have the expected shape.",
         "limit": "You reached your Claude subscription limit: it resumes on its own on {at}.",
-        "schedule": "Waiting for Claude’s schedule: it starts on {at}.",
-        "windowCap": "It used {share}% of this Claude window: it resumes on its own on {at}.",
         "identify": "{done} of {total} files identified"
       },
       "log": {
@@ -455,8 +404,6 @@
       "badYear": "The year must be between 1970 and 2100."
     },
     "claude": {
-      "badTime": "The time must be HH:mm.",
-      "badShare": "The cap goes from 10 to 100%.",
       "badNote": "Write what is wrong (up to 500 characters).",
       "noLearning": "That change no longer exists or cannot be corrected."
     },
@@ -1123,7 +1070,15 @@
     "colSize": "Size",
     "appData": "Otteretro data",
     "appType": "App",
-    "things": "{count, plural, one {1 item} other {# items}}"
+    "things": "{count, plural, one {1 item} other {# items}}",
+    "recognize": {
+      "title": "Recognize games",
+      "text": "What no script recognizes (name, ID, tables, hash) can go to Claude, with your subscription, when a scan or import finishes.",
+      "useClaude": "Use Claude when no script recognizes it",
+      "off": "Off: what isn't recognized goes straight to Review › Unidentified.",
+      "month": "This month: {calls, plural, one {# call} other {# calls}} · {cost}",
+      "paused": "Your subscription hit its limit: it resumes on its own on {at}."
+    }
   },
   "tools": {
     "emptyTitle": "No emulators or ports yet",

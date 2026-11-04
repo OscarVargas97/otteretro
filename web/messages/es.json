@@ -110,55 +110,6 @@
     "later": "Respaldo y el resto de ajustes llegan con su fase.",
     "credentials": "Cuentas y claves",
     "sections": "Secciones de Ajustes",
-    "claude": {
-      "title": "Claude",
-      "schedule": "Horario",
-      "runsFrom": "Corre de",
-      "runsTo": "a",
-      "dayCap": "De día, parar al",
-      "dayCapOff": "De día, sin tope: puede usar toda la ventana de 5 h",
-      "dayCapEnd": "% de cada ventana de 5 h",
-      "now": "Ahora",
-      "use": "Uso",
-      "iconicScope": "Qué sagas reevaluar",
-      "when": "Cuándo",
-      "input": "Entrada",
-      "output": "Salida",
-      "cost": "Costo",
-      "resultCode": {
-        "limit": "límite de la suscripción",
-        "invalid": "respuesta con forma inesperada",
-        "failed": "falló"
-      },
-      "from": "Desde",
-      "to": "Hasta",
-      "share": "% de cada ventana de 5 h",
-      "runNow": "Ejecutar ahora",
-      "runNowUntil": "Puede trabajar hasta el {at}.",
-      "taskRunning": "Trabajando: tarea #{id} ({progress} %).",
-      "taskWaiting": "La tarea #{id} espera hasta el {at}.",
-      "taskQueued": "La tarea #{id} está en la cola.",
-      "paused": "En pausa por el límite de la suscripción hasta el {at}.",
-      "inSchedule": "Ahora está en su horario.",
-      "outSchedule": "Fuera de su horario: espera a las {start}.",
-      "prompt": "Tarea",
-      "model": "Modelo",
-      "duration": "Duración",
-      "noUsage": "Claude todavía no se usó.",
-      "previous": "Anterior",
-      "next": "Siguiente",
-      "pageOf": "Página {page} de {pages}",
-      "iconic": "Reevaluar sagas icónicas",
-      "iconicAll": "Todo el catálogo",
-      "iconicQueued": "Encolada: los resultados quedan en Revisar.",
-      "iconicNone": "Esa consola no tiene sagas.",
-      "automation": "Sugerencias de automatizar",
-      "noAutomation": "Nada por ahora: aparece cuando Claude hace {count} veces el mismo cambio por la misma razón.",
-      "automationTimes": "{count, plural, one {# vez} other {# veces}}",
-      "createIssue": "Crear issue",
-      "issueCreated": "Issue creado",
-      "pageTotal": "En esta página: {calls, plural, one {# llamada} other {# llamadas}} · {input} de entrada · {output} de salida · {cost}"
-    },
     "consoles": {
       "title": "Consolas",
       "help": "Las consolas desactivadas no aparecen en Sagas, Colección ni la búsqueda. No se borra nada: al activarlas vuelven.",
@@ -414,8 +365,6 @@
         "failed": "Claude falló: {detail}",
         "invalidOutput": "Claude respondió dos veces algo que no tiene la forma esperada.",
         "limit": "Llegaste al límite de tu suscripción de Claude: sigue sola el {at}.",
-        "schedule": "Espera el horario de Claude: empieza el {at}.",
-        "windowCap": "Usó el {share} % de esta ventana de Claude: sigue sola el {at}.",
         "identify": "{done} de {total} archivos identificados"
       },
       "log": {
@@ -455,8 +404,6 @@
       "badYear": "El año tiene que estar entre 1970 y 2100."
     },
     "claude": {
-      "badTime": "La hora tiene que ser HH:mm.",
-      "badShare": "El tope va de 10 a 100 %.",
       "badNote": "Escribe qué está mal (hasta 500 caracteres).",
       "noLearning": "Ese cambio ya no existe o no se puede corregir."
     },
@@ -1123,7 +1070,15 @@
     "colSize": "Tamaño",
     "appData": "Datos de Otteretro",
     "appType": "App",
-    "things": "{count, plural, one {1 cosa} other {# cosas}}"
+    "things": "{count, plural, one {1 cosa} other {# cosas}}",
+    "recognize": {
+      "title": "Reconocer juegos",
+      "text": "Lo que ningún script reconoce (nombre, ID, tablas, hash) puede ir a Claude, con tu suscripción, al terminar el escaneo o la importación.",
+      "useClaude": "Usar Claude cuando ningún script lo reconoce",
+      "off": "Apagado: lo que no se reconoce va directo a Revisar › Sin identificar.",
+      "month": "Este mes: {calls, plural, one {# llamada} other {# llamadas}} · {cost}",
+      "paused": "Tu suscripción llegó a su límite: sigue sola el {at}."
+    }
   },
   "tools": {
     "emptyTitle": "Aún no hay emuladores ni ports",

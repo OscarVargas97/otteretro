@@ -61,7 +61,6 @@ public static class CliMode
           version                Muestra la versión.
           openapi <archivo>      Escribe el contrato OpenAPI de la API (para generar los tipos del front).
           steam sincronizar      Lee lo que tienes en Steam (con sus horas) y lo enlaza con el catálogo; lo hace la app abierta.
-          claude ahora           Lanza ya la carga de Claude, fuera de su horario (00:00 a 08:00), hasta que empiece el siguiente.
                                  y después Claude prepara rutas, icónico y mejor versión para que las apruebes. Dura días.
             [--parte X]            Solo una parte (nintendo, sony, microsoft o pc).
           tareas prueba          Encola una tarea de prueba (10 pasos de 3 s) para ver el panel de tareas.
@@ -92,9 +91,6 @@ public static class CliMode
                 return Enqueue(output, db => [TaskQueue.Enqueue(db, "demo")]);
             case ["steam", "sincronizar"]:
                 return Enqueue(output, db => [Catalog.Steam.EnqueueSync(db)]);
-            case ["claude", "ahora"]:
-                return WithData(output, db =>
-                    output.WriteLine($"Claude corre ya (tarea {Claude.ClaudeBudget.RunNow(db)}) hasta que empiece su horario; el límite de la suscripción y el tope, si está marcado, siguen valiendo."));
             case ["servidor"]:
                 Serve(output);
                 return 0;

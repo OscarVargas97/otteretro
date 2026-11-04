@@ -9,7 +9,6 @@ static class Setup
     [ModuleInitializer]
     internal static void Init()
     {
-        TaskQueue.AutoClaude = false;
         TaskQueue.OnOpen = false; // cada prueba lanza la migración, el escaneo o el vigilante cuando los quiere
         Libraries.SwitchTitles.Download = false; // las tablas de TitleID no se bajan en las pruebas: cada una pone su respuesta (#240)
         Claude.Identify.AfterScan = false;

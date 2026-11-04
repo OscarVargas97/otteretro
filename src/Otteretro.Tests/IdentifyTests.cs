@@ -13,11 +13,9 @@ public class IdentifyTests : IAsyncDisposable
     readonly Fixture f = new();
     readonly List<string> inputs = [];
     readonly Func<ProcessStartInfo, string, CancellationToken, Task<ProcessOutput>> real = ClaudeRunner.Launch;
-    readonly Func<DateTime> realNow = ClaudeBudget.UtcNow;
 
     public IdentifyTests()
     {
-        ClaudeBudget.UtcNow = () => TimeZoneInfo.ConvertTimeToUtc(DateTime.Today.AddHours(3), TimeZoneInfo.Local); // de noche
         ClaudeRunner.Launch = (start, stdin, ct) =>
         {
             inputs.Add(stdin);
@@ -45,7 +43,6 @@ public class IdentifyTests : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         ClaudeRunner.Launch = real;
-        ClaudeBudget.UtcNow = realNow;
         await f.DisposeAsync();
     }
 
@@ -82,6 +79,22 @@ public class IdentifyTests : IAsyncDisposable
         Assert.Single(inputs);
         using (var c = f.Db.Open()) // pero vuelve a Sin identificar
             Assert.Equal(1, c.ExecuteScalar<long>("SELECT count(*) FROM review_item WHERE kind = 'unidentified' AND status = 'open'"));
+    }
+
+    /// <summary>#254 (decisión 281): con Claude apagado, lo que no se reconoce va directo a Sin identificar, sin llamarlo.</summary>
+    [Fact]
+    public async Task WithClaudeOffItGoesStraightToReview()
+    {
+        ClaudeBudget.Save(f.Db, new(false));
+        Disk.Adopt(f.Db, Directory.CreateDirectory(f.Tmp[@"e\Otteretro"]).FullName, "E:", "disk");
+        Write(f.Tmp[@"e\Otteretro\Juegos\GameCube\juego raro.iso"]);
+        Assert.Equal("done", (await f.Run(Scan.Enqueue(f.Db))).Status);
+
+        Assert.Equal("done", (await f.Run(Identify.EnqueueIfNeeded(f.Db)!.Value)).Status);
+
+        Assert.Empty(inputs);
+        using var c = f.Db.Open();
+        Assert.Equal("unidentified", c.ExecuteScalar<string>("SELECT kind FROM review_item WHERE entity = 'source' AND status = 'open'"));
     }
 
     /// <summary>#181: en Revisar se confirma lo de Claude o se elige el juego; la elección queda como alias y se puede deshacer.</summary>
