@@ -90,6 +90,9 @@ public static partial class Scan
             // Por nombre, por el de su carpeta y, si no, por el nombre del DAT: con el hash ya calculado (#179) o con el serial.
             // Primero los alias (lo que corregiste o resolvió Claude, #181), después el catálogo.
             var byName = found.ToDictionary(f => f, f => Match(learned, f.Name) ?? Match(versions, f.Name) ?? (f.Folder is null ? null : Match(versions, f.Folder))
+                // Switch (#241): el TitleID del nombre contra titledb, sin IA; un UPD o un DLC, por el de su base.
+                ?? (f.TitleId is { } tid && f.Console is "switch" or "switch2"
+                    && SwitchTitles.NameOf(run.Db, f.Component is null or "BASE" ? tid : BaseOf(tid), ct).GetAwaiter().GetResult() is { } title ? Match(versions, title) : null)
                 ?? (DatName(c, f, hashes.TryGetValue(f.Relative, out var h) && h.Size == f.Size ? h.Sha1 : null) is { } dat ? Match(versions, dat) : null));
             var byBase = found.Where(f => f.Component is not null && byName[f] is not null)
                 .GroupBy(f => BaseOf(f.TitleId!)).ToDictionary(g => g.Key, g => byName[g.First()]);
