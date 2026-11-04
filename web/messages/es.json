@@ -556,7 +556,8 @@
         "extra": "{path}: es un hack, beta o demo; no se importa solo.",
         "duplicate": "{path}: ya tienes ese juego; se salta.",
         "replaced": "{path}: reemplaza al tuyo, que no estaba verificado y fue a la papelera.",
-        "screenscraper": "ScreenScraper no respondió, rechazó tus cuentas o se acabó tu cuota: esta tarea sigue sin él."
+        "screenscraper": "ScreenScraper no respondió, rechazó tus cuentas o se acabó tu cuota: esta tarea sigue sin él.",
+        "setAside": "{path} traía cosas que no son juegos: quedaron en {to}."
       },
       "extracting": "Descomprimiendo {path}",
       "badRegions": "Ese orden de regiones no es válido."

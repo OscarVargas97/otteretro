@@ -4,7 +4,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.4.0 · Colección · en desarrollo
 
-`fix/230-version-en-uso`, `feat/230-pestana-catalogo`, `feat/228-versiones-catalogo`, `fix/225-sagas-al-abrir`, `docs/220-catalogo-versiones-manual`, `feat/215-imagenes-por-referencia`, `feat/217-catalogo-fork`, `feat/212-catalogo-aparte`, `feat/211-listo-al-descargar`, `fase/f4-coleccion` y `docs/encuesta-17-plan-dominios` · F4 (#176, tareas #178 a #182; encuesta 17, #185): tus archivos de juegos reconocidos, verificados y marcados como «lo tengo» · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+`fix/237-switch2-carpetas`, `fix/230-version-en-uso`, `feat/230-pestana-catalogo`, `feat/228-versiones-catalogo`, `fix/225-sagas-al-abrir`, `docs/220-catalogo-versiones-manual`, `feat/215-imagenes-por-referencia`, `feat/217-catalogo-fork`, `feat/212-catalogo-aparte`, `feat/211-listo-al-descargar`, `fase/f4-coleccion` y `docs/encuesta-17-plan-dominios` · F4 (#176, tareas #178 a #182; encuesta 17, #185): tus archivos de juegos reconocidos, verificados y marcados como «lo tengo» · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
 
 ### Nuevo
 - **Pestaña Catálogo en Ajustes** (#230): arriba ves el catálogo que usas, con su versión, fecha, origen y cuántas sagas, juegos y portadas trae, y si hay una más nueva. Debajo, las versiones disponibles con sus cambios (también cuántos juegos traen imágenes nuevas) y «Usar esta». Al final, de dónde sale: el oficial o un fork. Ya no está dentro de General.
@@ -56,6 +56,8 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **El plan va por dominios** (encuesta 17, #185): la F4 pasa a ser «Archivos de juegos» y suma todo lo que le pasa a un archivo: tus discos al estándar, importar carpetas, una carpeta `Entrada` por disco que se ordena sola, descargas como un JDownloader dentro de Otteretro (sin programas aparte), descomprimir, convertir sin perder lo verificado y subir BIOS y keys. Después siguen Herramientas, Jugar con Steam, Respaldo, Tiendas y Descubrir.
 
 ### Arreglos
+- **Juegos de Switch 2 que vienen extraídos** (#237): los paquetes que traen el juego como carpeta (`exefs`, `romfs`, `base`, `updates`), también dentro de otro comprimido, se ordenan en `Juegos\Switch 2\<Juego>` con su estructura, que es lo que cargan los emuladores de Switch 2. El juego se reconoce por su TitleID con la tabla pública de Switchbrew, sin gastar Claude. Lo que no se reconoce espera en Revisar y, al elegir el juego, se ordena solo. Un emulador que venga en el paquete queda en `Entrada\Apartado`, sin borrarse. El escaneo cuenta esas carpetas como «lo tengo».
+- **Entrada ya no descomprime en bucle** (#237): un paquete que se probó sin encontrar juegos, o que espera en Revisar, no se vuelve a descomprimir cada vez que cambia la carpeta; desde «Importar carpeta» se intenta igual.
 - **La pestaña Catálogo reconoce tu versión** (#230): si aplicaste el catálogo antes de poder elegir versiones, ya no dice «Versión sin identificar». Otteretro la encuentra entre las publicadas y la marca como la tuya. La tarjeta del origen pasa a llamarse «Origen del catálogo».
 - **Sagas abre al instante** (#225): las sagas se arman una vez y quedan guardadas en tu carpeta de datos. Al volver a abrir la app ya no se consulta el catálogo, aunque el escaneo esté usando el disco. Se rehacen solas cuando cambia algo tuyo (archivos, horas, favoritas, consolas que ves) o aceptas una versión del catálogo; lo que haces tú se ve al instante.
 

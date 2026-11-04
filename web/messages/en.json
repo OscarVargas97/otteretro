@@ -556,7 +556,8 @@
         "extra": "{path}: it is a hack, beta or demo; it is not imported automatically.",
         "duplicate": "{path}: you already have that game; skipped.",
         "replaced": "{path}: replaces yours, which was not verified and went to the recycle bin.",
-        "screenscraper": "ScreenScraper did not answer, rejected your accounts or your quota ran out: this task continues without it."
+        "screenscraper": "ScreenScraper did not answer, rejected your accounts or your quota ran out: this task continues without it.",
+        "setAside": "{path} came with things that are not games: they are in {to}."
       },
       "extracting": "Extracting {path}",
       "badRegions": "That region order is not valid."
