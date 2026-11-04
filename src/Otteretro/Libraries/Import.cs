@@ -392,6 +392,11 @@ public static partial class Import
             var version = Scan.Match(learned, name) ?? Scan.Match(versions, name) ?? (folder is null ? null : Scan.Match(learned, folder) ?? Scan.Match(versions, folder))
                 ?? (datName is null ? null : Scan.Match(versions, datName)) ?? ofBase?.Version ?? VersionOfBase(db, baseId) ?? VersionOfGame(db, p.Job.GameId, console);
 
+            // Switch y Switch 2 (#241): el TitleID del nombre contra titledb o Switchbrew, sin IA. Un UPD o un DLC busca el nombre de su base.
+            if (version is null && item.TitleId is { } tid && console is "switch" or "switch2"
+                && await SwitchTitles.NameOf(db, item.Component is null ? tid : Scan.BaseOf(tid), ct) is { } title)
+                version = Scan.Match(learned, title) ?? Scan.Match(versions, title);
+
             // Lo que no coincide con nada se le pregunta a ScreenScraper, antes que a Claude (§9.6).
             if (version is null && item.Component is null)
                 foreach (var known in await p.Scraper.NamesOf(console, item.Path, sha1, ct))
