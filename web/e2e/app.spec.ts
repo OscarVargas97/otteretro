@@ -809,10 +809,10 @@ test("las pestañas nunca tienen barra: en una ventana angosta, lo que no cabe v
     expect(height).toBeLessThan(50); // una sola línea
   };
   await page.setViewportSize({ width: 520, height: 900 });
-  await page.goto(`${base()}/settings/?s=claude`);
+  await page.goto(`${base()}/settings/?s=general`);
   const more = page.getByRole("button", { name: new RegExp(es.tabs.more) });
   await expect(more).toBeVisible();
-  await expect(page.locator("#tab-claude")).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#tab-general")).toHaveAttribute("aria-selected", "true");
   await noScroll();
   await more.click();
   await page.getByRole("menuitem").last().click();
@@ -821,7 +821,7 @@ test("las pestañas nunca tienen barra: en una ventana angosta, lo que no cabe v
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${base()}/settings/`);
   await expect(more).toHaveCount(0);
-  await expect(page.getByRole("tab")).toHaveCount(6); // con Catálogo (#230)
+  await expect(page.getByRole("tab")).toHaveCount(5); // con Catálogo (#230) y sin Claude (#251)
   await noScroll();
   // #200: una sola columna centrada con ancho máximo.
   const content = (await page.locator(".content").boundingBox())!;
@@ -833,12 +833,14 @@ test("las pestañas nunca tienen barra: en una ventana angosta, lo que no cabe v
 test("Ajustes en una sola columna a cualquier ancho, y el menú se retrae, se recuerda y se expande", async () => {
   // #200 (reemplaza a #130 y #196): los bloques van en una sola columna, también con 1920 px.
   await page.setViewportSize({ width: 1920, height: 1080 });
-  await page.goto(`${base()}/settings/?s=claude`);
-  const blocks = page.locator("#settings-panel .settings-blocks > .panel");
-  await expect(blocks).toHaveCount(3);
-  const columns = async () => new Set(await Promise.all([0, 1, 2].map(async (i) => Math.round((await blocks.nth(i).boundingBox())!.x)))).size;
+  await page.goto(`${base()}/settings/?s=claude`); // la pestaña Claude ya no está (#251): lleva a Almacenamiento
+  await expect(page.locator("#tab-storage")).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("heading", { name: es.libraries.recognize.title })).toBeVisible();
+  const blocks = page.locator("#settings-panel .settings-blocks > :is(.panel, .disk-select)");
+  await expect(blocks.nth(1)).toBeVisible();
+  const columns = async () => new Set(await Promise.all([0, 1].map(async (i) => Math.round((await blocks.nth(i).boundingBox())!.x)))).size;
   expect(await columns()).toBe(1);
-  await page.screenshot({ path: "e2e-results/19-claude-una-columna-es.png", fullPage: true });
+  await page.screenshot({ path: "e2e-results/19-almacenamiento-una-columna-es.png", fullPage: true });
   await page.setViewportSize({ width: 900, height: 900 });
   expect(await columns()).toBe(1);
   await page.setViewportSize({ width: 1440, height: 900 });
