@@ -5,147 +5,124 @@
 <h1 align="center">Otteretro</h1>
 
 <p align="center">
-  <b>Qué jugar, en qué orden y dónde lo tienes.</b>
+  <b>Ordena tu colección. Recorre tus sagas.</b>
 </p>
 
 <p align="center">
-  Una app de escritorio que junta las sagas que quieres jugar, la colección que tienes repartida entre discos y Steam, y los archivos que llegan a tus discos: los reconoce, los verifica y los deja en su lugar.
+  Para quien tiene juegos, ROMs y emuladores repartidos en varios discos y está cansado de ordenarlos a mano.<br>
+  Otteretro los encuentra, los reconoce y los deja en su lugar, y además te dice por dónde empezar cada saga.
 </p>
 
 <p align="center">
-  <a href="#empezar">Instalar</a> ·
-  <a href="#un-recorrido">Recorrido</a> ·
-  <a href="#en-qué-punto-está">Estado</a> ·
+  <a href="#instalar">Instalar</a> ·
+  <a href="#el-recorrido">El recorrido</a> ·
+  <a href="#el-catálogo-es-de-todos">El catálogo</a> ·
   <a href="docs/README.md">Documentación</a>
 </p>
 
-![Sagas en Otteretro: cada tarjeta con sus juegos, sus consolas y lo que ya tienes](docs/capturas/sagas.png)
+![Sagas en Otteretro, con sus portadas, sus consolas y cuántos juegos tienes de cada una](docs/capturas/sagas.png)
 
-## Por qué existe
+## Menos tiempo ordenando, más tiempo jugando
 
-Una colección de videojuegos suele estar por todas partes: cartuchos y discos en carpetas con nombres a medias, en dos o tres discos, juegos comprados en Steam, ports de PC, emuladores en versiones que nadie recuerda. Y encima está la pregunta de siempre: *si quiero jugar Final Fantasy, ¿por cuál empiezo?*
+Si emulas, conoces la rutina: carpetas con nombres a medias, el mismo juego en tres discos, versiones que no sabes si están completas y un rato largo cada vez que llega algo nuevo. Y cuando por fin está todo en orden, queda la otra pregunta: *¿por cuál Final Fantasy empiezo?*
 
-Otteretro parte de las **sagas**: qué juegos tiene cada una, en qué consolas salieron, en qué orden conviene jugarlos y cuáles ya tienes. Debajo se ocupa de los archivos: los identifica por nombre o por hash, los convierte al formato más liviano y los ordena en tus discos sin perder nada en el camino.
+Otteretro se encarga de las dos cosas. Revisa tus discos y te muestra lo que tienes, ordena solo lo que va llegando y trae un catálogo de casi 5.800 sagas con rutas para recorrerlas. No reemplaza a tus emuladores ni a Steam: les deja la colección en orden.
 
-No reemplaza a tus emuladores ni a Steam: les deja la colección en orden.
+## El recorrido
 
-## Un recorrido
+### 1 · Descubre por dónde empezar
 
-### Una saga, con su ruta
+![La saga Final Fantasy con la ruta de la comunidad, paso a paso](docs/capturas/saga.png)
 
-![La saga Final Fantasy con su ruta de la comunidad, paso a paso](docs/capturas/saga.png)
+Cada saga muestra sus juegos en orden, con las consolas donde salieron y los que ya tienes. Las más conocidas traen **rutas**: por fecha de lanzamiento, por orden de la historia o la que recomienda la comunidad, con la versión sugerida en cada paso y el porqué. Sigues una y Otteretro te va diciendo cuál es el siguiente.
 
-Cada saga muestra sus juegos en una línea de tiempo. Las más conocidas traen además **rutas**: por orden de lanzamiento, por orden de la historia o la que recomienda la comunidad, con la versión sugerida en cada paso y el porqué de ese orden. Sigues una y Otteretro te dice cuál es el siguiente juego.
+### 2 · Mira lo que ya tienes
 
-### Lo que tienes, por consola
+![La colección de SNES con Chrono Trigger y Super Metroid marcados como «Lo tengo»](docs/capturas/coleccion.png)
 
-![La colección filtrada por SNES, con los juegos que ya tienes](docs/capturas/coleccion.png)
+Le dices en qué discos están tus juegos y Otteretro los busca, los reconoce por su nombre o por su contenido y los marca como «lo tengo». Puedes comprobar que cada archivo esté sano comparándolo con las bases de datos de preservación, sin conexión. Si conectas tu cuenta de Steam, lo que compraste ahí también cuenta, con tus horas.
 
-**Escanear** recorre tus discos y marca como «lo tengo» lo que reconoce. **Verificar** calcula el hash de cada archivo y lo compara, sin conexión, con los DAT de No-Intro y Redump. Lo que el nombre y el hash no resuelven lo puede proponer Claude, y queda en **Revisar** para que lo confirmes. Los juegos que tienes en Steam cuentan también, con sus horas.
+### 3 · Deja que se ordene solo
 
-### Tus descargas, en la misma app
+Cada disco tiene una carpeta `Entrada`: lo que dejas ahí se descomprime, se reconoce, pasa al formato que menos espacio ocupa y queda en su carpeta, `Juegos\<Consola>\<Juego>`. Lo mismo al importar una carpeta entera o al terminar una descarga. Lo que Otteretro no reconoce con seguridad espera a que lo revises, y Claude puede proponerte qué juego es (opcional).
 
-![La cola de descargas con un paquete en partes, cada archivo con su verificación](docs/capturas/descargas.png)
+**No pierdes archivos.** Mover siempre es copiar, verificar y recién entonces borrar. Quitar un juego lo manda a la papelera.
 
-Un gestor de descargas dentro de Otteretro: enlaces directos, 1fichier, Mega, MediaFire y torrents en una sola cola, con pausa y reanudación aunque cierres la app. Cada archivo se compara con su tamaño y con los `.sfv` o `.md5` del paquete, y lo dañado se vuelve a bajar. Al terminar, el paquete se descomprime y se importa solo.
+### 4 · Lleva el registro de lo que juegas
 
-![El capturador de enlaces, con las partes de un mismo archivo agrupadas](docs/capturas/capturador.png)
+![La ficha de Final Fantasy IV, con su seguimiento y la comparación de versiones](docs/capturas/juego.png)
 
-El **capturador** guarda al instante lo que pegas o copias, junta las partes de un mismo archivo y comprueba que los enlaces estén en línea antes de empezar. Otteretro solo baja **los enlaces que le das**: nunca busca de dónde sacar un juego.
+Cada juego tiene su ficha: estado (pendiente, jugando, terminado, 100 %, abandonado), tu nota, tus apuntes y sus versiones lado a lado, para elegir cuál jugar. Las horas de Steam llegan solas.
 
-### Cada juego, con su seguimiento
+### 5 · Y después, jugar
 
-![La ficha de Final Fantasy X, con su seguimiento y sus versiones](docs/capturas/juego.png)
+Lanzar cada juego con su emulador desde Otteretro y llevarlo a Steam ordenado por saga es lo siguiente del plan. Hoy, Otteretro ordena y tus emuladores juegan.
 
-La ficha reúne las versiones de un juego (original, remaster, cada consola), cuáles tienes y dónde están sus archivos. Llevas su estado (pendiente, jugando, terminado, 100 %, abandonado), tu nota y tus apuntes.
+## Instalar
 
-> Las capturas salen de una instalación limpia con una biblioteca y descargas de ejemplo, sin portadas descargadas.
+1. Descarga `Otteretro-win-Setup.exe` desde la [última versión](https://github.com/OscarVargas97/otteretro/releases/latest).
+2. Ábrelo. El asistente te pide dónde guardar los datos de Otteretro y en qué discos están tus juegos. Si ya tenías una carpeta de juegos, la encuentra y te ofrece adoptarla.
+3. Listo: las sagas y las rutas ya vienen adentro, y las portadas se bajan solas a medida que las ves.
 
-## Cómo llega un juego a tu colección
+Otteretro se actualiza solo. En **Ajustes › General › Actualizaciones** puedes pasar al canal **Pruebas** para ver lo nuevo antes que nadie.
 
-Da igual de dónde venga, todo pasa por el mismo camino:
+### Qué necesitas
 
-```text
-descarga · carpeta que importas · Entrada\ de un disco · megapack
-        │
-        ▼
-descomprimir ─► identificar ─► convertir ─► ubicar ─► verificar ─► «lo tengo»
-```
-
-- **Identificar:** por nombre, TitleID o serial; después por hash contra los DAT; si no, con ScreenScraper o Claude. Lo dudoso espera a que lo revises.
-- **Convertir:** GameCube y Wii pasan a RVZ; PS1 y PS2, a CHD. El original se borra solo cuando la copia dio el mismo hash.
-- **Ubicar:** cada disco tiene una carpeta `Otteretro` con `Juegos`, `Emuladores`, `Ports`, `Complementos`, `Sistema` y `Entrada`. Lo que dejas en `Entrada` se ordena solo.
-- **Mover es copiar, verificar y recién entonces borrar.** Quitar un juego lo manda a la papelera.
-
-Los megapacks se importan con vista previa: una versión por juego, con tu orden de regiones (español primero), y las traducciones de fans sí; hacks, betas y demos, no.
-
-## Empezar
-
-1. Descarga el instalador desde [Releases](https://github.com/OscarVargas97/otteretro/releases).
-2. Ábrelo. El asistente te pide la **carpeta de datos** (elige un disco con espacio) y los **discos** donde guardar tus juegos.
-3. Listo. Si ya tenías una carpeta de juegos, el asistente la encuentra y ofrece adoptarla.
-
-La app se actualiza sola desde el canal que elijas en **Ajustes › General › Actualizaciones**:
-
-| Canal | Qué trae |
-|---|---|
-| **Estable** | La última release (hoy, 0.3.12: catálogo, sagas y rutas, seguimiento, discos y Steam). Es el canal por defecto |
-| **Pruebas** | Lo de la fase en curso (0.4): el catálogo incluido, Archivos de juegos y Descargas |
-
-> **El catálogo incluido llega con la 0.4.** Mientras siga en Pruebas, la versión Estable arranca sin sagas: para tenerlas desde el primer minuto, instala desde la última prerelease (`Otteretro-dev-Setup.exe`) o cambia a Pruebas.
-
-## Qué necesitas
-
-**Nada para empezar.** Sagas, rutas, seguimiento, colección, importar y convertir funcionan sin cuentas ni claves. Lo demás es opcional y se carga en **Ajustes › Cuentas y claves**:
+**Nada para empezar.** El catálogo, las rutas, el seguimiento, la colección y el orden de tus archivos funcionan sin cuentas ni claves. Lo demás es opcional y se configura en **Ajustes › Cuentas y claves**:
 
 | Para | Necesitas |
 |---|---|
-| Tus juegos y horas de Steam | Una clave gratuita de la [Steam Web API](https://steamcommunity.com/dev/apikey) |
-| Descargar con tu cuenta | Tu cuenta de 1fichier (premium) o Mega |
-| Identificar lo que no está en los DAT | Tu cuenta de [ScreenScraper](https://www.screenscraper.fr) |
+| Sumar tus juegos y horas de Steam | Una clave gratuita de la [Steam Web API](https://steamcommunity.com/dev/apikey) |
+| Reconocer más archivos | Tu cuenta de [ScreenScraper](https://www.screenscraper.fr) |
 | Que Claude proponga lo que nada reconoció | [Claude Code](https://claude.com/claude-code) instalado, con tu suscripción |
+| Bajar tus juegos desde donde los guardaste | Tu cuenta de ese servicio, si la pide |
 
-Las portadas y fondos no piden clave: llegan con el catálogo y se bajan a medida que aparecen en pantalla.
+**Otteretro no trae juegos, BIOS, keys ni firmware**, ni te dice de dónde sacarlos.
 
-**Otteretro no trae juegos, BIOS, keys ni firmware**, ni te dice de dónde sacarlos. Tus BIOS y keys las subes tú en **Herramientas › Sistema**.
+### Plataformas
 
-## Plataformas
-
-- **Windows:** instalador con actualizaciones automáticas. Es donde se usa y se prueba hoy.
-- **Linux:** hay un paquete de Nix (`flake.nix`, con módulo de NixOS) que compila y abre la app, pensado para **[PlayOS](https://github.com/OscarVargas97/playos)**. El soporte completo de Linux es la última fase del plan: no hay instalador para otras distribuciones.
+- **Windows:** con instalador y actualizaciones automáticas. Es donde se usa y se prueba hoy.
+- **Linux:** existe un paquete de Nix pensado para [PlayOS](https://github.com/OscarVargas97/playos), una distribución para jugar basada en NixOS. El soporte completo de Linux es la última fase del plan.
 
 Interfaz en español e inglés.
 
-## El catálogo
+## El catálogo es de todos
 
-Las sagas, los juegos y las rutas no los arma tu Otteretro: vienen hechos. El que trae la 0.4 cubre **5.795 sagas y 49.655 juegos** de 24 sistemas de Nintendo, Sony y Microsoft más PC, con **111 rutas** por ahora.
+Las sagas, los juegos, las rutas y las portadas no los arma cada instalación: vienen hechos, desde [otteretro-catalogo](https://github.com/OscarVargas97/otteretro-catalogo), un proyecto hermano y abierto. Hoy son **5.795 sagas y 49.655 juegos** de Nintendo, Sony, Microsoft y PC, con **111 rutas**, y crece con cada aporte.
 
-Detrás hay un proyecto hermano, [otteretro-catalogo](https://github.com/OscarVargas97/otteretro-catalogo). Ahí se generan los datos desde IGDB, Claude ayuda a depurar sagas y armar rutas, se eligen las imágenes y todo queda como un archivo por saga, que cualquiera puede corregir con un PR ([cómo](https://github.com/OscarVargas97/otteretro-catalogo/blob/main/CONTRIBUTING.md)). Cada versión se publica como una release. No necesitas instalar nada de ese repo: Otteretro ya trae una versión adentro.
+Cada saga es un archivo que cualquiera puede corregir: una ruta que falta, un juego mal ubicado, una versión mejor. Así se [propone un cambio](https://github.com/OscarVargas97/otteretro-catalogo/blob/main/CONTRIBUTING.md).
 
-Para pasar a una versión nueva, ve a **Ajustes › General › Catálogo**. Ahí ves las versiones publicadas con sus cambios y, antes de aplicar una, qué toca de tus datos. La aceptas o la rechazas entera, y se verifica su hash antes de aplicarla. También puedes volver a una anterior o seguir un fork.
+Cuando hay una versión nueva del catálogo, la eliges tú en **Ajustes › Catálogo**: ves qué cambia y qué toca de tus datos antes de aceptarla. Tu colección y tu progreso nunca se pierden.
 
 ## Tus datos
 
 | Qué | Dónde |
 |---|---|
-| Lo tuyo: colección, progreso, notas, enlaces, ajustes | En tu equipo, en la carpeta de datos que elegiste. No se publica |
-| El catálogo | Un archivo aparte, sin nada tuyo, que viene de otteretro-catalogo |
-| Tus claves y cuentas | En la carpeta de datos, cifradas por el sistema (DPAPI en Windows, el llavero en Linux). No pasan de un equipo a otro |
-| Respaldo | Todavía no existe. Está planeado como un repositorio privado tuyo en GitHub |
+| Tu colección, tu progreso, tus notas y tus enlaces | En tu equipo, en la carpeta que elegiste. No se publican |
+| El catálogo | Un archivo aparte, sin nada tuyo |
+| Tus claves y cuentas | Cifradas por el sistema (DPAPI en Windows, el llavero en Linux). No pasan de un equipo a otro |
+| Respaldo | Todavía no existe: está en la hoja de ruta |
 
-Otteretro se conecta a GitHub (actualizaciones y catálogo), a las fuentes de imágenes y de DAT, y a los servicios que configures. Cuando Claude identifica un archivo, recibe su nombre, su carpeta y su consola, a través de tu Claude Code.
+Otteretro se conecta a GitHub (actualizaciones y catálogo), a las fuentes de portadas y de bases de preservación, y a los servicios que configures. Cuando Claude ayuda a reconocer un archivo, recibe su nombre, su carpeta y su consola, a través de tu Claude Code.
 
-## En qué punto está
+## Aviso legal
 
-Otteretro es un proyecto personal en desarrollo activo, que se publica a medida que se termina cada fase.
+Otteretro es para **tus propios juegos**. El gestor de descargas sirve para bajar lo que ya es tuyo y guardaste en servicios de terceros, desde enlaces que tú le das: nunca busca de dónde sacar un juego. Este proyecto no promueve la piratería ni ofrece contenido protegido. Respeta las leyes de tu país y los términos de cada servicio que uses.
 
-| | |
-|---|---|
-| **Listo** | Catálogo, sagas y rutas, seguimiento, discos, lo que tienes en Steam |
-| **En Pruebas** | Archivos de juegos: escanear, verificar, importar, convertir y descargar |
-| **Lo que viene** | Emuladores y ports gestionados · jugar y exportar a Steam con Steam ROM Manager · respaldo · tiendas y precios · Descubrir · Linux y PlayOS |
+## Estado
 
-Todavía sin probar con cuentas y enlaces reales: Mega, MediaFire, ScreenScraper y torrents de internet. Si algo falla, abre un [issue](https://github.com/OscarVargas97/otteretro/issues). El plan vive en los [milestones](https://github.com/OscarVargas97/otteretro/milestones) y lo que cambia en cada versión, en el [CHANGELOG](CHANGELOG.md).
+Otteretro está en **acceso anticipado**: lo de arriba funciona, y cada fase nueva llega primero al canal Pruebas. Algunas conexiones todavía no se probaron con cuentas reales, como ScreenScraper y varios sitios de descarga. Si algo falla, abre un [issue](https://github.com/OscarVargas97/otteretro/issues).
+
+**Lo que viene:**
+
+1. Emuladores y ports instalados y al día desde Otteretro.
+2. Jugar desde Otteretro y llevar tus juegos a Steam, por saga.
+3. Respaldo de tus datos y partidas en un repositorio privado tuyo.
+4. Tus tiendas de PC, precios y ofertas.
+5. Descubrir sagas nuevas según lo que te gusta.
+6. Linux y PlayOS.
+
+Lo que trae cada versión está en el [CHANGELOG](CHANGELOG.md), y el plan, en los [milestones](https://github.com/OscarVargas97/otteretro/milestones).
 
 ## Desarrollar
 
@@ -157,12 +134,12 @@ npm --prefix web run e2e          # pruebas de interfaz
 ./scripts/empaquetar.ps1          # instalador local
 ```
 
-Empieza por [`AGENTS.md`](AGENTS.md). Los requisitos están en [`docs/REQUISITOS.md`](docs/REQUISITOS.md), la arquitectura en [`docs/arquitectura.md`](docs/arquitectura.md) y el resto, en el [índice de la documentación](docs/README.md), en español.
+Empieza por [`AGENTS.md`](AGENTS.md). Los requisitos están en [`docs/REQUISITOS.md`](docs/REQUISITOS.md), la arquitectura en [`docs/arquitectura.md`](docs/arquitectura.md) y el resto, en el [índice de la documentación](docs/README.md).
 
 ## Créditos y licencia
 
-- Datos de juegos: [IGDB.com](https://www.igdb.com).
-- Hashes: [No-Intro](https://no-intro.org) vía [libretro-database](https://github.com/libretro/libretro-database) y [Redump](http://redump.org).
+- Datos de juegos: [IGDB.com](https://www.igdb.com). Imágenes: [SteamGridDB](https://www.steamgriddb.com) e IGDB.
+- Bases de preservación: [No-Intro](https://no-intro.org), vía [libretro-database](https://github.com/libretro/libretro-database), y [Redump](http://redump.org).
 - [DolphinTool](https://dolphin-emu.org) y [chdman](https://www.mamedev.org) van incluidos con sus licencias, en `src/Otteretro/herramientas`.
 
 Otteretro se publica bajo la licencia [GPL-3.0](LICENSE). Los nombres y marcas de los juegos pertenecen a sus dueños.
