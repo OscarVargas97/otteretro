@@ -278,6 +278,7 @@ public static partial class Import
         var learned = p.Aliases.GetValueOrDefault(console) ?? [];
         var names = new[] { archive.Label, Path.GetFileNameWithoutExtension(archive.Path), Path.GetFileName(dump.Root) };
         var version = names.Select(n => Scan.Match(learned, n)).FirstOrDefault(v => v is not null)
+            ?? (dump.TitleId is null ? null : Scan.VersionByCode(db, console, dump.TitleId)) // el código del catálogo (#249)
             ?? (title is null ? null : Scan.Match(versions, title))
             ?? names.Select(n => Scan.Match(versions, n)).FirstOrDefault(v => v is not null)
             ?? VersionOfGame(db, p.Job.GameId, console);
@@ -393,7 +394,9 @@ public static partial class Import
             var learned = p.Aliases.GetValueOrDefault(console) ?? [];
             var baseId = item.Component is null ? null : Scan.BaseOf(item.TitleId!);
             (long? Version, string Folder)? ofBase = baseId is not null && p.Bases.TryGetValue(baseId, out var b) ? b : null;
-            var version = Scan.Match(learned, name) ?? Scan.Match(versions, name) ?? (folder is null ? null : Scan.Match(learned, folder) ?? Scan.Match(versions, folder))
+            // Primero lo que corregiste (alias) y el código que publica el catálogo (#249); después, el nombre.
+            var byCode = item.TitleId is { } code ? Scan.VersionByCode(db, console, item.Component is null or "BASE" ? code : Scan.BaseOf(code)) : null;
+            var version = Scan.Match(learned, name) ?? byCode ?? Scan.Match(versions, name) ?? (folder is null ? null : Scan.Match(learned, folder) ?? Scan.Match(versions, folder))
                 ?? (datName is null ? null : Scan.Match(versions, datName)) ?? ofBase?.Version ?? VersionOfBase(db, baseId) ?? VersionOfGame(db, p.Job.GameId, console);
 
             // Switch y Switch 2 (#241): el TitleID del nombre contra titledb o Switchbrew, sin IA. Un UPD o un DLC busca el nombre de su base.
@@ -554,6 +557,7 @@ public static partial class Import
         if (console != "switch") return new(file, console, serial, null);
         var name = Path.GetFileNameWithoutExtension(file);
         var titleId = Scan.TitleIdInName().Match(name) is { Success: true } m ? m.Groups[1].Value.ToUpperInvariant() : null;
+        if (titleId?.StartsWith("04") == true) console = "switch2"; // la misma extensión, otra consola (#249)
         return new(file, console, titleId, titleId is null ? null : Scan.ComponentOf(titleId));
     }
 
