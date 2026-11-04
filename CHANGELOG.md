@@ -4,7 +4,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.4.0 · Colección · en desarrollo
 
-`fix/230-version-en-uso`, `feat/230-pestana-catalogo`, `feat/228-versiones-catalogo`, `fix/225-sagas-al-abrir`, `docs/220-catalogo-versiones-manual`, `feat/215-imagenes-por-referencia`, `feat/217-catalogo-fork`, `feat/212-catalogo-aparte`, `feat/211-listo-al-descargar`, `fase/f4-coleccion` y `docs/encuesta-17-plan-dominios` · F4 (#176, tareas #178 a #182; encuesta 17, #185): tus archivos de juegos reconocidos, verificados y marcados como «lo tengo» · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+`docs/231-readme`, `fix/230-version-en-uso`, `feat/230-pestana-catalogo`, `feat/228-versiones-catalogo`, `fix/225-sagas-al-abrir`, `docs/220-catalogo-versiones-manual`, `feat/215-imagenes-por-referencia`, `feat/217-catalogo-fork`, `feat/212-catalogo-aparte`, `feat/211-listo-al-descargar`, `fase/f4-coleccion` y `docs/encuesta-17-plan-dominios` · F4 (#176, tareas #178 a #182; encuesta 17, #185): tus archivos de juegos reconocidos, verificados y marcados como «lo tengo» · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
 
 ### Nuevo
 - **Pestaña Catálogo en Ajustes** (#230): arriba ves el catálogo que usas, con su versión, fecha, origen y cuántas sagas, juegos y portadas trae, y si hay una más nueva. Debajo, las versiones disponibles con sus cambios (también cuántos juegos traen imágenes nuevas) y «Usar esta». Al final, de dónde sale: el oficial o un fork. Ya no está dentro de General.
@@ -44,6 +44,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - La ficha de un juego muestra **dónde tienes sus archivos**, con BASE, UPD y DLC, tamaño y si están verificados.
 
 ### Cambios
+- **README nuevo** (#231, encuesta 18): presenta Otteretro como un organizador de tu colección que además te dice por dónde empezar cada saga, con capturas con portadas, aviso legal sobre las descargas y una hoja de ruta breve.
 - **Sin portadas propias** (#221): Otteretro ya no busca ni baja portadas con tu clave de SteamGridDB, y la clave sale de Cuentas y claves y del aviso de Inicio. Las imágenes llegan solas con el catálogo, sin clave (#215).
 - **El catálogo ya no se actualiza al abrir** (#222): lo que buscaba solo al abrir ahora lo pides tú. Cambiar a un fork solo guarda el origen; su versión se busca y se confirma igual que cualquier otra. Sale el comando `catalogo actualizar`.
 - **Descargas estables en discos lentos** (#202): lo que espera al disco ya no se acumula en memoria sin límite (llegó a 8 GB en un disco mecánico), la velocidad que se ve es la actual y una importación espera a que termine lo que se baja a su mismo disco.
@@ -57,6 +58,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ### Arreglos
 - **La pestaña Catálogo reconoce tu versión** (#230): si aplicaste el catálogo antes de poder elegir versiones, ya no dice «Versión sin identificar». Otteretro la encuentra entre las publicadas y la marca como la tuya. La tarjeta del origen pasa a llamarse «Origen del catálogo».
+- **Portadas desde la instalación** (#231): el catálogo que trae la app ahora incluye las referencias de portadas, fondos y logos, y una instalación nueva las copia. Antes se quedaban afuera y las sagas se veían sin imágenes hasta cambiar de versión del catálogo.
 - **Sagas abre al instante** (#225): las sagas se arman una vez y quedan guardadas en tu carpeta de datos. Al volver a abrir la app ya no se consulta el catálogo, aunque el escaneo esté usando el disco. Se rehacen solas cuando cambia algo tuyo (archivos, horas, favoritas, consolas que ves) o aceptas una versión del catálogo; lo que haces tú se ve al instante.
 
 ## 0.3.12 · Carpetas y herramientas
