@@ -24,6 +24,9 @@ public static partial class SwitchTitles
     /// <summary>Para las pruebas: responde en lugar de Switchbrew y de titledb.</summary>
     public static HttpMessageHandler? Handler { get; set; }
 
+    /// <summary>Las pruebas lo apagan: sin <see cref="Handler"/> no se baja nada (titledb pesa 90 MB).</summary>
+    public static bool Download { get; set; } = true;
+
     /// <summary>Las tablas ya leídas, por archivo y fecha: se leen del disco una vez y no en cada juego.</summary>
     static readonly Dictionary<string, (DateTime Stamp, Dictionary<string, string> Table)> Loaded = [];
 
@@ -39,7 +42,7 @@ public static partial class SwitchTitles
     static async Task<Dictionary<string, string>> Table(Database db, Source source, CancellationToken ct)
     {
         var file = Path.Combine(Path.GetDirectoryName(db.FilePath)!, "cache", source.File);
-        if (!File.Exists(file) || DateTime.UtcNow - File.GetLastWriteTimeUtc(file) >= source.MaxAge)
+        if ((Download || Handler is not null) && (!File.Exists(file) || DateTime.UtcNow - File.GetLastWriteTimeUtc(file) >= source.MaxAge))
             try
             {
                 using var http = Handler is null ? new HttpClient() : new HttpClient(Handler);
