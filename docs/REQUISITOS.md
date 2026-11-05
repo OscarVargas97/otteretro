@@ -564,7 +564,7 @@ No son requisitos, pero siguen pendientes:
 | S4 | Todo el respaldo va a **un solo repositorio privado**, `otteretro-datos`, con una carpeta por tipo. Si quieres separar las BIOS y keys en otro repositorio, dímelo. |
 | S5 | **Game Pass** se muestra como "en Game Pass", no como "lo tengo", porque depende de tener la suscripción activa. |
 | S6 | Para saber cuándo se cierra un juego y respaldar sus partidas, los accesos de Steam lanzan **`otteretro jugar <id>`** y no el emulador directamente (§10). |
-| S7 | Dijiste que lo pesado debe ir donde tú elijas. Puse **todo lo que no es la app** en la misma carpeta de datos: la base de datos, `Herramientas\` y la caché de imágenes. Así migrar de equipo es mover una sola carpeta. La base de datos es liviana y podría quedarse en AppData, pero entonces habría dos sitios que respaldar. |
+| S7 | Dijiste que lo pesado debe ir donde tú elijas. Puse **todo lo que no es la app** en la misma carpeta de datos: la base de datos, `Herramientas\` y la caché de imágenes (*`Herramientas\` ya no es parte de los datos: #315*). Así migrar de equipo es mover una sola carpeta. La base de datos es liviana y podría quedarse en AppData, pero entonces habría dos sitios que respaldar. |
 
 **Pendiente de confirmar:**
 
