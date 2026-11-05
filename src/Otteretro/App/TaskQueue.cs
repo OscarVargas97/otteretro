@@ -37,6 +37,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         [Libraries.Converter.Kind] = Libraries.Converter.RunTask,
         [Libraries.Dats.UpdateKind] = Libraries.Dats.Update,
         [Libraries.Dats.VerifyKind] = Libraries.Dats.Verify,
+        [Libraries.ToolUpdates.Kind] = Libraries.ToolUpdates.Run,
         [Libraries.Installs.Kind] = Libraries.Installs.Run,
         [Libraries.Installs.BackupKind] = Libraries.Installs.RunBackup,
     };
@@ -191,10 +192,13 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
                         if (OnOpen && session.Config.DataFolder is { } dataFolder) Libraries.Disk.EnsureDataDisk(db, dataFolder);
                         // Al abrir la app, lo de antes pasa solo al estándar (#219), que al terminar escanea; si no, se escanea ya (#223).
                         if (OnOpen && Libraries.DiskTasks.EnqueueMigrateIfPending(db) is null) Libraries.Scan.Enqueue(db);
+                        // Versiones nuevas de emuladores y ports al abrir (decisión 294); después, una vez al día.
+                        if (OnOpen) Libraries.ToolUpdates.Enqueue(db);
                     }
                     if (OnOpen)
                     {
                         games.Tick(db);
+                        Libraries.ToolUpdates.EnqueueIfDue(db);
                         clipboard ??= new(notify: (found, added) => Notify.LinksCaptured(session.Config.EffectiveLanguage, found, added));
                         clipboard.Tick(db, session.Config.ClipboardCapture ?? true);
                         // La segunda copia de la librería se hace sola cuando se conecta su disco (decisión 303).

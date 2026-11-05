@@ -391,6 +391,10 @@
         "resumed": "Reanudada.",
         "canceled": "Cancelada.",
         "identify": "Dejó {doubtful} en Dudosas y {unidentified} en Sin identificar."
+      },
+      "tools": {
+        "checking": "Revisando {name}",
+        "sourceFailed": "No se pudo revisar {name}: {detail}"
       }
     },
     "progress": {
@@ -666,6 +670,7 @@
         "package": "Descargar un paquete"
       },
       "tools": {
+        "updates": "Revisar versiones de emuladores y ports",
         "install": "Instalar un emulador"
       }
     },
@@ -946,7 +951,9 @@
     "missingKeys": "Otteretro ya funciona. Si quieres portadas y datos nuevos, agrega tus claves de {services}.",
     "openCredentials": "Cuentas y claves",
     "unidentified": "{count, plural, one {1 archivo sin identificar} other {# archivos sin identificar}}: elige su juego en Revisar.",
-    "openReview": "Abrir Revisar"
+    "openReview": "Abrir Revisar",
+    "toolUpdate": "{name} {version} disponible{channel, select, dev { (desarrollo)} other {}}.",
+    "openTools": "Ver en Herramientas"
   },
   "review": {
     "tabs": "Secciones de Revisar",
@@ -1038,7 +1045,8 @@
     "nextEmptyTitle": "Todavía no sigues ninguna ruta",
     "viewGame": "Ver ficha",
     "routeOf": "{saga} · {route}",
-    "progress": "{done} de {total} jugados"
+    "progress": "{done} de {total} jugados",
+    "news": "Novedades"
   },
   "libraries": {
     "cancel": "Cancelar",
@@ -1138,7 +1146,26 @@
     "systemUploading": "Subiendo…",
     "systemEmptyTitle": "Sin archivos de sistema",
     "systemEmptyText": "Elige una consola y sube tu BIOS, keys o firmware.",
-    "systemMissing": "Falta {name}"
+    "systemMissing": "Falta {name}",
+    "updates": {
+      "title": "Versiones nuevas",
+      "count": "{count, plural, one {# versión nueva} other {# versiones nuevas}}",
+      "checkNow": "Revisar ahora",
+      "checking": "Revisando versiones nuevas: míralo en el panel de tareas.",
+      "none": "Todo al día. Se revisa al abrir la app y una vez al día.",
+      "dev": "Desarrollo",
+      "installed": "Tienes",
+      "published": "Publicada",
+      "games": "La usan",
+      "gamesUnknown": "Todavía no se sabe: llega con los perfiles por juego.",
+      "notes": "Notas de la versión",
+      "besideOld": "La nueva se instala al lado de la que tienes: la vieja no se toca y puedes volver a ella.",
+      "update": "Actualizar",
+      "skip": "Omitir esta versión",
+      "badge": "Versión nueva",
+      "notInstalled": "No lo tienes instalado",
+      "install": "Instalar"
+    }
   },
   "downloads": {
     "add": "Capturar enlaces",

@@ -10,6 +10,8 @@ import { useConsoles } from "@/components/Catalog";
 import { librariesQuery, toolsQuery } from "@/components/Libraries";
 import { Empty } from "@/components/Shell";
 import { Tabs } from "@/components/Tabs";
+import { ToolUpdates } from "@/components/ToolUpdates";
+import { toolUpdatesQuery } from "@/lib/queries";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
 import type { SystemConsole, ToolInfo } from "@/lib/types";
@@ -25,6 +27,7 @@ export function ToolsPage() {
   const kind: Kind = KINDS.find((k) => k === asked) ?? "emulator";
   return (
     <div className="centered">
+      <ToolUpdates />
       <Tabs tabs={KINDS.map((k) => ({ id: k, label: t(`kind.${k}`) }))} current={kind} label={t("sections")} panel="tools-panel"
         onSelect={(k) => router.push(`/tools/?k=${k}`)} />
       <section className="sec" id="tools-panel" role="tabpanel" aria-labelledby={`tab-${kind}`}>
@@ -89,6 +92,7 @@ function ToolList({ kind }: { kind: Exclude<Kind, "system"> }) {
   const t = useTranslations("tools");
   const describe = useDescribeError();
   const tools = useQuery(toolsQuery);
+  const updated = new Set((useQuery(toolUpdatesQuery).data ?? []).map((u) => u.recipeId));
   const [open, setOpen] = useState<string | null>(null);
   if (tools.isError) return <p className="error small" role="alert">{describe(tools.error)}</p>;
   if (!tools.data) return <div className="panel skeleton" style={{ height: 160 }} aria-busy="true" />;
@@ -107,6 +111,7 @@ function ToolList({ kind }: { kind: Exclude<Kind, "system"> }) {
               </button>
               <span style={{ display: "flex", gap: 6 }}>
                 <span className="ot-badge">{x.version}</span>
+                {x.recipeId && updated.has(x.recipeId) && <span className="ot-badge ot-badge-info">{t("updates.badge")}</span>}
                 {!x.recipeId && <span className="ot-badge ot-badge-info" title={t("noRecipeHelp")}>{t("noRecipe")}</span>}
               </span>
             </div>
