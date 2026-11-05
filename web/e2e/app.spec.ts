@@ -332,7 +332,7 @@ test("Descargas: el capturador guarda lo pegado, sobrevive a cambiar de pantalla
 
 test("Herramientas: pestañas por tipo y subir un archivo de sistema con versiones (#154, #199)", async () => {
   await page.goto(`${base()}/tools/`);
-  for (const k of ["emulator", "port", "complement", "system"] as const) await expect(page.getByRole("tab", { name: en.tools.kind[k] })).toBeVisible();
+  for (const k of ["emulator", "port", "complement", "tool", "system"] as const) await expect(page.getByRole("tab", { name: en.tools.kind[k] })).toBeVisible();
   await expect(page.getByRole("tab", { name: en.tools.kind.emulator })).toHaveAttribute("aria-selected", "true");
   await page.getByRole("tab", { name: en.tools.kind.system }).click();
   await expect(page).toHaveURL(/k=system/);
@@ -343,6 +343,66 @@ test("Herramientas: pestañas por tipo y subir un archivo de sistema con version
   await page.getByLabel(en.tools.systemUpload).setInputFiles({ name: "prueba.bin", mimeType: "application/octet-stream", buffer: Buffer.from("archivo de prueba") });
   await expect(page.getByText(/prueba\.bin/)).toBeVisible();
   await expectNoRawKeys();
+});
+
+test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería con la segunda copia y los avisos que instalan (#296)", async () => {
+  const src = dataDir("srm-a-mano");
+  mkdirSync(src, { recursive: true });
+  writeFileSync(join(src, "Steam-ROM-Manager.exe"), "srm");
+  await addDisk("Disco Copia");
+  // La pestaña Herramientas (decisión 311): instalar desde una carpeta de este equipo.
+  await page.goto(`${base()}/tools/?k=tool`);
+  await expect(page.getByRole("tab", { name: en.tools.kind.tool })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("button", { name: en.tools.install.open.tool }).click();
+  await page.getByLabel(en.tools.install.what).selectOption("steam-rom-manager");
+  await page.getByLabel(en.tools.install.fromKind.path).check();
+  await page.getByLabel(en.tools.install.path, { exact: true }).fill(src);
+  await page.getByLabel(en.tools.install.version, { exact: true }).fill("2.6.2");
+  await expectNoRawKeys();
+  await expectTextFits();
+  await page.locator("section[aria-labelledby=install-title]").getByRole("button", { name: en.tools.install.submit, exact: true }).click();
+  await expect(page.getByText(en.tools.install.queued)).toBeVisible();
+  // Al terminar: en la lista de su tipo y en la librería, con su origen y una sola copia todavía.
+  const panel = page.locator("#tools-panel");
+  await expect(panel.getByRole("button", { name: /Steam ROM Manager/ })).toBeVisible({ timeout: 15_000 });
+  const library = panel.locator("section", { has: page.getByRole("heading", { name: en.tools.library.title }) });
+  await expect(library.getByText(en.tools.library.origin.upload, { exact: false })).toBeVisible();
+  await expect(library.getByText(en.tools.library.oneCopy)).toBeVisible();
+  await page.screenshot({ path: "e2e-results/8-tools-install-en.png", fullPage: true });
+
+  // Ajustes › Almacenamiento: elegir el disco de la segunda copia la hace sola.
+  await page.goto(`${base()}/settings/?s=storage`);
+  const backup = page.getByLabel(en.libraries.backup.disk);
+  await expect(backup.locator("option", { hasText: "★" })).toHaveCount(0); // nunca el ★
+  await backup.selectOption({ label: "Disco Copia" });
+  await expect(page.getByText(en.libraries.backup.upToDate)).toBeVisible({ timeout: 15_000 });
+  await expectNoRawKeys();
+  await page.goto(`${base()}/tools/?k=tool`);
+  await expect(page.locator("#tools-panel").getByText(en.tools.library.twoCopies)).toBeVisible();
+
+  // Un aviso con su archivo: «Actualizar» lo instala al lado (con la API de instalar) y dice qué juegos lo usan.
+  const many = ["A", "B", "C", "D", "E", "F", "G", "H"];
+  await page.route("**/api/tools/updates", (route) => route.fulfill({ json: [{ recipeId: "steam-rom-manager", name: "Steam ROM Manager", kind: "tool", channel: "stable", version: "2.6.3",
+    notes: null, url: "https://github.com/SteamGridDB/steam-rom-manager/releases", publishedAt: null, installed: ["2.6.2"], games: many, download: "https://example.com/srm-2.6.3.exe" }] }));
+  let sent: unknown = null;
+  await page.route("**/api/emulators/install", (route) => { sent = route.request().postDataJSON(); return route.fulfill({ json: 1 }); });
+  await page.goto(`${base()}/tools/`);
+  await expect(page.getByText(en.tools.updates.gamesMore.replace("{list}", "A, B, C, D, E, F").replace(/\{count.*\}$/, "2 more"))).toBeVisible();
+  await page.getByRole("button", { name: en.tools.updates.update, exact: true }).click();
+  await expect(page.getByText(en.tools.updates.queued)).toBeVisible();
+  expect(sent).toEqual({ emulator: "steam-rom-manager", version: "2.6.3", url: "https://example.com/srm-2.6.3.exe" });
+  await expectNoRawKeys();
+  await page.unroute("**/api/tools/updates");
+  await page.unroute("**/api/emulators/install");
+  await api("PUT", "/api/library/backup", { diskId: null });
+  // Se limpian la instalación y la copia del panel de tareas, para las pruebas que siguen.
+  await page.getByRole("button", { name: en.topBar.tasks }).click();
+  await expect(async () => {
+    await page.getByRole("dialog", { name: en.topBar.tasksPanel }).getByRole("button", { name: en.tasks.clear }).click({ timeout: 1000 });
+    await expect(page.getByText(en.topBar.noTasksTitle)).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 15_000 });
+  await page.keyboard.press("Escape");
+  await removeDisks();
 });
 
 test("el panel de tareas y la búsqueda están traducidos", async () => {

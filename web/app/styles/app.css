@@ -321,6 +321,7 @@ a.ot-btn, a.chip { text-decoration: none; }
 .usage-emulator { background: var(--info); }
 .usage-port { background: var(--have); }
 .usage-complement { background: color-mix(in srgb, var(--info) 45%, transparent); }
+.usage-tool { background: color-mix(in srgb, var(--have) 45%, transparent); }
 .usage-system { background: var(--danger); }
 .usage-other { background: var(--ink-muted); }
 .usage-free { background: var(--surface-raised); border: 1px solid var(--line); }

@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:49467/"
+      "url": "http://127.0.0.1:61491/"
     }
   ],
   "paths": {
@@ -4014,6 +4014,73 @@
         }
       }
     },
+    "/api/recipes": {
+      "get": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RecipeSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recipes/{id}/releases": {
+      "get": {
+        "tags": [
+          "Otteretro"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RecipeRelease"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/emulators/reinstall": {
       "post": {
         "tags": [
@@ -6742,6 +6809,66 @@
           }
         }
       },
+      "RecipeRelease": {
+        "required": [
+          "version",
+          "channel",
+          "publishedAt",
+          "url",
+          "download"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "download": {
+            "type": "string"
+          }
+        }
+      },
+      "RecipeSummary": {
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "experimental",
+          "releases"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "experimental": {
+            "type": "boolean"
+          },
+          "releases": {
+            "type": "boolean"
+          }
+        }
+      },
       "RecognizeRequest": {
         "required": [
           "useClaude"
@@ -7570,7 +7697,8 @@
           "url",
           "publishedAt",
           "installed",
-          "games"
+          "games",
+          "download"
         ],
         "type": "object",
         "properties": {
@@ -7618,6 +7746,12 @@
             "items": {
               "type": "string"
             }
+          },
+          "download": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

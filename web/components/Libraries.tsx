@@ -8,15 +8,18 @@ import { DataMoveStatus, UseOtherFolder, useMove, useMoveData } from "@/componen
 import { request } from "@/lib/client";
 import { gb, size } from "@/lib/format";
 import { useDescribeError } from "@/lib/i18n";
-import type { DiskItem, Drive, FolderInfo, DiskInfo, MigrationPlan, ToolInfo } from "@/lib/types";
+import type { DiskItem, Drive, FolderInfo, DiskInfo, LibraryBackup, MigrationPlan, ToolInfo } from "@/lib/types";
 
 /** Los discos y las ubicaciones de antes (#198, #201). La clave sigue siendo «libraries»: así se llaman en la base. */
 export const librariesQuery = { queryKey: ["libraries"], queryFn: () => request<DiskInfo[]>("/api/locations") };
 export const toolsQuery = { queryKey: ["tools"], queryFn: () => request<ToolInfo[]>("/api/tools") };
 const contentsQuery = (id: string) => ({ queryKey: ["libraries", "contents", id], queryFn: () => request<DiskItem[]>(`/api/disks/${id}/contents`) });
 
-/** Lo que guarda cada disco, en sus carpetas fijas y en este orden (#201). */
-export const TYPES = ["game", "emulator", "port", "complement", "system"] as const;
+/**
+ * Lo que guarda cada disco, en sus carpetas fijas y en este orden (#201). Herramientas (Steam ROM Manager, decisión 311): en el ★
+ * esa carpeta es también la de antes, así que el backend solo cuenta ahí lo que tiene receta.
+ */
+export const TYPES = ["game", "emulator", "port", "complement", "tool", "system"] as const;
 export type LocationType = (typeof TYPES)[number];
 
 const post = (body: unknown) => ({ method: "POST", body: JSON.stringify(body) });
@@ -62,9 +65,47 @@ export function StorageSettings() {
         <>
           {current && <DiskPanel key={current.id} disk={current} others={disks.filter((d) => d.id !== current.id && d.connected)} />}
           <RecognizeSettings />
+          <LibraryBackupSettings disks={disks} />
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * El disco de la segunda copia de la librería (decisión 303): no puede ser el ★. Si falta copiar algo, cuántas versiones esperan y
+ * si se están copiando o esperan a que conectes el disco (la cola lo copia solo al conectarlo). Va al final: llega después y no mueve nada.
+ */
+function LibraryBackupSettings({ disks }: { disks: DiskInfo[] }) {
+  const t = useTranslations("libraries.backup");
+  const describe = useDescribeError();
+  const cache = useQueryClient();
+  const backup = useQuery({ queryKey: ["libraryBackup"], queryFn: () => request<LibraryBackup>("/api/library/backup") });
+  const save = useMutation({
+    mutationFn: (diskId: string | null) => request<LibraryBackup>("/api/library/backup", { method: "PUT", body: JSON.stringify({ diskId }) }),
+    onSuccess: (b) => { cache.setQueryData(["libraryBackup"], b); cache.invalidateQueries({ queryKey: ["tasks"] }); },
+  });
+  const b = backup.data;
+  const chosen = disks.find((d) => d.id === b?.diskId);
+  const pending = Number(b?.pending ?? 0);
+  return (
+    <section className="panel" style={{ display: "grid", gap: 8 }} aria-labelledby="library-backup">
+      <h2 id="library-backup" style={{ margin: 0 }}>{t("title")}</h2>
+      <p className="small" style={{ margin: 0 }}>{t("help")}</p>
+      <div className="sentence">
+        <select aria-label={t("disk")} value={b?.diskId ?? ""} disabled={!b || save.isPending} onChange={(e) => save.mutate(e.target.value || null)}>
+          <option value="">{t("none")}</option>
+          {disks.filter((d) => !d.default).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select>
+      </div>
+      {b && (
+        <p className={`small${chosen && pending === 0 ? " muted" : ""}`} role="status" style={{ margin: 0 }}>
+          {!chosen ? t("noDisk") : pending === 0 ? t("upToDate")
+            : chosen.connected ? t("pending", { count: pending }) : t("pendingDisconnected", { count: pending, name: chosen.name })}
+        </p>
+      )}
+      {(backup.isError || save.isError) && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(backup.error ?? save.error)}</p>}
+    </section>
   );
 }
 
