@@ -303,6 +303,41 @@ public class ProfileFilesTests
     }
 
     [Fact]
+    public async Task WithSeveralConsoleUsersTheSaveWaitsForTheChoice()
+    {
+        await using var f = Game("switch", Totk);
+        var eden = Install(f, "eden", "emulator", "Eden", "eden.exe");
+        var ryu = Install(f, "ryubing", "emulator", "Ryubing", "Ryujinx.exe");
+        Index(ryu, (Totk, 5));
+        Write(Path.Combine(ryu, @"portable\bis\user\save\0000000000000005\0\progress.sav"), "ryu");
+        var p = Create(f, "ryubing", "Ryubing");
+        Activate(f, p); // Eden no tenía partida
+        var users = Path.Combine(eden, @"user\nand\user\save\0000000000000000");
+        Directory.CreateDirectory(Path.Combine(users, "AAAA"));
+        Directory.CreateDirectory(Path.Combine(users, "BBBB"));
+
+        // Dos usuarios: pide elegir y no cambia nada.
+        var (error, notice) = Profiles.Switch(f.Db, 20, null);
+        Assert.Null(error);
+        Assert.Equal("saves.chooseUser", notice?.Code);
+        Assert.Equal(["AAAA", "BBBB"], notice!.Users!);
+        Assert.Equal(p, Profiles.Effective(f.Db, 20)!.Id);
+        Assert.Equal("saves.chooseUser", Profiles.Switch(f.Db, 20, null, "CCCC").Saves?.Code); // uno que no está
+
+        (error, notice) = Profiles.Switch(f.Db, 20, null, "BBBB");
+        Assert.Null(error);
+        Assert.Equal("saves.copied", notice?.Code);
+        Assert.Equal("ryu", File.ReadAllText(Path.Combine(users, $@"BBBB\{Totk}\progress.sav")));
+        Assert.False(Directory.Exists(Path.Combine(users, $@"AAAA\{Totk}")));
+        Assert.Null(Profiles.Effective(f.Db, 20)!.GameVersionId);
+
+        // Con un solo usuario va ahí sin preguntar.
+        Directory.Delete(Path.Combine(users, "AAAA"));
+        Activate(f, p);
+        Assert.Equal("saves.copied", Activate(f, null)?.Code);
+    }
+
+    [Fact]
     public async Task GameCubeSavesToDusklightAreOnlyAWarning()
     {
         await using var f = Game("gc", "GZ2E01", "The Legend of Zelda: Twilight Princess");

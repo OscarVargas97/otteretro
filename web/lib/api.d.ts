@@ -5200,6 +5200,7 @@ export interface components {
         ActiveProfileRequest: {
             /** Format: int64 */
             profileId: null | number | string;
+            saveUser?: null | string;
         };
         AdoptResult: {
             id: string;
@@ -5794,6 +5795,7 @@ export interface components {
         SaveNotice: {
             code: string;
             backup?: null | string;
+            users?: null | string[];
         };
         SearchResults: {
             sagas: components["schemas"]["SagaCard"][];

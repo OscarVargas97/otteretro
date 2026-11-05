@@ -6,10 +6,12 @@ namespace Otteretro.Libraries;
 
 /// <summary>Qué pasó con las partidas al cambiar de emulador (decisión 288).</summary>
 /// <param name="Code">saves.copied (llevadas, con respaldo de lo que había), saves.none (no hay partida que llevar),
-/// saves.needsFirstRun (el otro emulador todavía no tiene dónde ponerla: abrir el juego una vez ahí), saves.untested (el formato
+/// saves.needsFirstRun (el otro emulador todavía no tiene dónde ponerla: abrir el juego una vez ahí), saves.chooseUser (Eden o Citron
+/// tienen varios usuarios de consola: la persona elige a cuál, entre <paramref name="Users"/>; no se cambió nada), saves.untested (el formato
 /// parece el mismo pero no está probado: se avisa y no se copia) o saves.unknown (no hay forma conocida).</param>
 /// <param name="Backup">Dónde quedó lo que había en el emulador de destino antes de reemplazarlo.</param>
-public record SaveNotice(string Code, string? Backup = null);
+/// <param name="Users">Con saves.chooseUser: los usuarios de consola del emulador de destino.</param>
+public record SaveNotice(string Code, string? Backup = null, List<string>? Users = null);
 
 /// <summary>
 /// Las partidas de un juego al pasar de un emulador a otro (decisión 288): se copian si el formato es el mismo, se llevan a su
@@ -24,8 +26,12 @@ public static class SaveTransfer
     const string RyujinxSaves = "portable/bis/user/save";
     const string RyujinxIndex = "portable/bis/system/save/8000000000000000/0/imkvdb.arc";
 
-    /// <summary>Lleva la partida de <paramref name="titleId"/> de un emulador al otro. Null si no hay nada que decir (el mismo emulador).</summary>
-    public static SaveNotice? Transfer(Database db, string from, string? fromInstall, string to, string? toInstall, string? titleId)
+    /// <summary>
+    /// Lleva la partida de <paramref name="titleId"/> de un emulador al otro. Null si no hay nada que decir (el mismo emulador). Si Eden
+    /// o Citron tienen más de un usuario de consola y <paramref name="user"/> no es uno de ellos, no toca nada y pide elegir; con uno
+    /// solo, va ahí.
+    /// </summary>
+    public static SaveNotice? Transfer(Database db, string from, string? fromInstall, string to, string? toInstall, string? titleId, string? user = null)
     {
         if (from == to) return null;
         var gc = new[] { "dolphin", "dusklight" };
@@ -33,6 +39,11 @@ public static class SaveTransfer
         bool Switch(string e) => Yuzu.Contains(e) || Ryujinx.Contains(e);
         if (!Switch(from) || !Switch(to) || titleId is null) return new("saves.unknown");
         if (fromInstall is null || Find(from, fromInstall, titleId) is not { } source) return new("saves.none");
+        if (toInstall is not null && Yuzu.Contains(to) && Users(toInstall) is { Count: > 1 } users)
+        {
+            if (!users.Contains(user ?? "", StringComparer.OrdinalIgnoreCase)) return new("saves.chooseUser", Users: users);
+            source = source with { User = users.First(u => u.Equals(user, StringComparison.OrdinalIgnoreCase)) };
+        }
         if (toInstall is null || Place(to, toInstall, titleId, source.User) is not { } target) return new("saves.needsFirstRun");
         var backup = Directory.Exists(target) && Directory.EnumerateFiles(target, "*", SearchOption.AllDirectories).Any()
             ? Path.Combine(Profiles.Root(db), Profiles.BackupsFolder, "partidas", $"{DateTime.Now:yyyy-MM-dd-HHmmss}-{to}-{titleId}") : null;
@@ -65,17 +76,22 @@ public static class SaveTransfer
             && Directory.Exists(d) && Directory.EnumerateFiles(d, "*", SearchOption.AllDirectories).Any() ? (d, null) : null;
     }
 
+    /// <summary>Los usuarios de consola de Eden o Citron: las carpetas de su NAND con partidas.</summary>
+    static List<string> Users(string install) => Path.Combine(install, YuzuSaves) is var root && Directory.Exists(root)
+        ? Directory.GetDirectories(root).Select(d => Path.GetFileName(d)).Order().ToList() : [];
+
     /// <summary>
-    /// Dónde va la partida en el emulador de destino. Eden y Citron: con el mismo usuario si viene de yuzu; si no, el único usuario
-    /// que tenga. Ryubing: la carpeta que su índice le asignó al juego. Null si el emulador todavía no la creó (abrir el juego una vez).
+    /// Dónde va la partida en el emulador de destino. Eden y Citron: el usuario elegido o, si tiene uno solo, ese; sin ninguno, el
+    /// mismo de la partida si viene de yuzu. Ryubing: la carpeta que su índice le asignó al juego. Null si el emulador todavía no la
+    /// creó (abrir el juego una vez).
     /// </summary>
     static string? Place(string emulator, string install, string titleId, string? user)
     {
         if (Yuzu.Contains(emulator))
         {
-            var root = Path.Combine(install, YuzuSaves);
-            user ??= Directory.Exists(root) && Directory.GetDirectories(root) is [var only] ? Path.GetFileName(only) : null;
-            return user is null ? null : Path.Combine(root, user, titleId.ToUpperInvariant());
+            var users = Users(install);
+            if (users.Count == 1) user = users[0];
+            return user is null ? null : Path.Combine(install, YuzuSaves, user, titleId.ToUpperInvariant());
         }
         return SaveId(install, titleId) is { } id ? Path.Combine(install, RyujinxSaves, id, "0") : null;
     }

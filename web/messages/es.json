@@ -1279,7 +1279,9 @@
       "none": "No había partidas que llevar al otro emulador.",
       "needsFirstRun": "Las partidas no se llevaron: abre el juego una vez en el otro emulador, vuelve a «sin perfil» y activa este perfil de nuevo.",
       "untested": "Las partidas no se llevaron: el formato parece el mismo, pero todavía no está probado. Cópialas a mano si quieres.",
-      "unknown": "Las partidas no se pueden llevar a este emulador: no hay forma conocida. Siguen en el emulador de antes."
+      "unknown": "Las partidas no se pueden llevar a este emulador: no hay forma conocida. Siguen en el emulador de antes.",
+      "chooseUser": "Este emulador tiene varios usuarios de consola: ¿a cuál van las partidas?",
+      "chooseUserConfirm": "Llevarlas y activar"
     }
   }
 }

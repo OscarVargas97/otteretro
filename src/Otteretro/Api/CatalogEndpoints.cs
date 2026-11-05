@@ -40,7 +40,8 @@ public record CreateProfileRequest(long VersionId, string Emulator, string Name,
 /// <param name="SourceId">La ROM que usa; null: la base.</param>
 public record ProfileRequest(string Name, long? SourceId);
 /// <param name="ProfileId">null: sin perfil, con el por defecto del emulador base.</param>
-public record ActiveProfileRequest(long? ProfileId);
+/// <param name="SaveUser">El usuario de consola de destino, cuando la respuesta anterior pidió elegirlo (saves.chooseUser).</param>
+public record ActiveProfileRequest(long? ProfileId, string? SaveUser = null);
 public record ProfileSwitch(SaveNotice? Saves);
 
 /// <summary>Pantallas del catálogo (F1.9): sagas, colección, ficha, seguimiento, búsqueda y avisos de Inicio.</summary>
@@ -286,7 +287,7 @@ public static class CatalogEndpoints
         api.MapPut("/versions/{id:long}/profile", Results<Ok<ProfileSwitch>, BadRequest<ApiError>, Conflict<ApiError>> (long id, ActiveProfileRequest r, AppSession s) =>
         {
             if (Db(s) is not { } db) return NoData();
-            var (error, saves) = Profiles.Switch(db, id, r.ProfileId);
+            var (error, saves) = Profiles.Switch(db, id, r.ProfileId, r.SaveUser);
             return error is null ? TypedResults.Ok(new ProfileSwitch(saves)) : TypedResults.BadRequest(error);
         });
 

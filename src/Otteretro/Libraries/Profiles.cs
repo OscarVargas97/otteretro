@@ -190,9 +190,10 @@ public static class Profiles
     /// emulador, y carga el nuevo. Sin <paramref name="profile"/> (o con un perfil por defecto), el juego queda sin perfil: vuelve lo
     /// que tenía en el emulador base antes de su primer perfil. Antes de tocar nada comprueba que se pueda hacer entero; un archivo se
     /// borra del emulador solo después de copiarlo y verificarlo. Si el juego pasa a otro emulador, lleva sus partidas
-    /// (<see cref="SaveTransfer"/>, #270) y devuelve qué pasó con ellas.
+    /// (<see cref="SaveTransfer"/>, #270) y devuelve qué pasó con ellas. Si hay que elegir el usuario de consola de destino
+    /// (<paramref name="saveUser"/>), no cambia nada y lo pide (saves.chooseUser).
     /// </summary>
-    public static (ApiError? Error, SaveNotice? Saves) Switch(Database db, long version, long? profile)
+    public static (ApiError? Error, SaveNotice? Saves) Switch(Database db, long version, long? profile, string? saveUser = null)
     {
         using var c = db.Open();
         if (c.ExecuteScalar<string?>("SELECT platform FROM version WHERE id = @version", new { version }) is null) return (ApiError.Of("profile.notFound"), null);
@@ -229,7 +230,8 @@ public static class Profiles
             // Las partidas primero: si no se pueden llevar, se avisa, pero el perfil se cambia igual (la de origen no se toca).
             if (from is not null && to is not null && from.Emulator != to.Emulator)
                 saves = SaveTransfer.Transfer(db, from.Emulator, InstallOf(db, from.Emulator, from.Version), to.Emulator,
-                    InstallOf(db, to.Emulator, to.Version), GameKey(c, version, current?.SourceId));
+                    InstallOf(db, to.Emulator, to.Version), GameKey(c, version, current?.SourceId), saveUser);
+            if (saves?.Code == "saves.chooseUser") return (null, saves); // todavía no se movió nada
             if (from is not null)
             {
                 var unload = plan[0];

@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:57461/"
+      "url": "http://127.0.0.1:49467/"
     }
   ],
   "paths": {
@@ -4507,6 +4507,12 @@
               "string"
             ],
             "format": "int64"
+          },
+          "saveUser": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -7224,6 +7230,15 @@
               "null",
               "string"
             ]
+          },
+          "users": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
