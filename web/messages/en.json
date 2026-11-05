@@ -304,7 +304,8 @@
       "copyMismatch": "Nothing was moved; your data is still in {path}. The file {detail} was not copied correctly.",
       "failedDataAt": "The move was interrupted and your data ended up in {path}. Use “Use another folder” with that path. {detail}",
       "sourceNotDeleted": "Your data is already in the new folder, but {path} could not be fully deleted: {detail} You can delete it by hand.",
-      "tasksRunning": "Wait for the running tasks to finish before moving the data folder."
+      "tasksRunning": "Wait for the running tasks to finish before moving the data folder.",
+      "toolsNotStandard": "Before taking the data to another disk, move to the standard layout the emulators and ports left in Herramientas with the old layout: «Move to the standard layout», at the top of Settings › Storage."
     },
     "update": {
       "channel": "That channel does not exist.",

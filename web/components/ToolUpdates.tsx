@@ -69,7 +69,7 @@ export function ToolUpdates() {
           )}
           {u.installed.length > 0 && <p className="small muted" style={{ margin: 0 }}>{t("besideOld")}</p>}
           <div className="hero-actions">
-            {/* Con el archivo de la versión se instala al lado de la vieja (#296); sin él (Dolphin), se abre su página para bajarlo. */}
+            {/* Con el archivo de la versión se instala al lado de la vieja (#296); si la fuente no lo dio, se abre su página para bajarlo. */}
             {u.download ? (
               <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" disabled={install.isPending || queued.has(id(u))} onClick={() => install.mutate(u)}>
                 {t(u.installed.length > 0 ? "update" : "install")}

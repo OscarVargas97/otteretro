@@ -304,7 +304,8 @@
       "copyMismatch": "No se movió nada; tus datos siguen en {path}. El archivo {detail} no se copió bien.",
       "failedDataAt": "La mudanza se cortó y tus datos quedaron en {path}. Usa «Usar otra carpeta» con esa ruta. {detail}",
       "sourceNotDeleted": "Los datos ya están en la carpeta nueva, pero no se pudo borrar del todo {path}: {detail} Puedes borrarla a mano.",
-      "tasksRunning": "Espera a que terminen las tareas en curso antes de mover la carpeta de datos."
+      "tasksRunning": "Espera a que terminen las tareas en curso antes de mover la carpeta de datos.",
+      "toolsNotStandard": "Antes de llevar los datos a otro disco, pasa al estándar los emuladores y ports que quedaron en Herramientas con la estructura de antes: «Pasar al estándar», arriba en Ajustes › Almacenamiento."
     },
     "update": {
       "channel": "Ese canal no existe.",

@@ -53,7 +53,8 @@ public static class ToolUpdates
     static readonly JsonSerializerOptions Snake = new(JsonSerializerDefaults.Web) { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
     record GitAsset(string Name, string? BrowserDownloadUrl);
     record GitRelease(string TagName, string? Name, string? Body, bool Draft, bool Prerelease, string? PublishedAt, string? HtmlUrl, List<GitAsset>? Assets);
-    record DolphinBuild(string Shortrev, string? Date, string? ChangelogHtml);
+    record DolphinArtifact(string Url);
+    record DolphinBuild(string Shortrev, string? Date, string? ChangelogHtml, List<DolphinArtifact>? Artifacts);
 
     /// <param name="manual">«Revisar ahora»: sin el tope semanal de desarrollo.</param>
     public static long Enqueue(Database db, bool manual = false)
@@ -129,8 +130,9 @@ public static class ToolUpdates
             if (response.StatusCode == HttpStatusCode.NotFound) return [];
             response.EnsureSuccessStatusCode();
             var b = JsonSerializer.Deserialize<DolphinBuild>(await response.Content.ReadAsStringAsync(ct), Snake)!;
-            // ponytail: sin archivo; esta respuesta de Dolphin no lo trae, así que su aviso abre la página para bajarlo.
-            return [new(b.Shortrev, b.ChangelogHtml is null ? null : PlainText(b.ChangelogHtml), "https://dolphin-emu.org/download/", b.Date)];
+            // Su servidor da el archivo de cada sistema (`artifacts`): el de Windows es el que calza con el `asset` de la receta.
+            return [new(b.Shortrev, b.ChangelogHtml is null ? null : PlainText(b.ChangelogHtml), "https://dolphin-emu.org/download/", b.Date,
+                asset is null ? null : b.Artifacts?.FirstOrDefault(a => Regex.IsMatch(Path.GetFileName(new Uri(a.Url).AbsolutePath), asset))?.Url)];
         }
         // Con devRepo, todo lo de ese repositorio es de desarrollo; si no, las prereleases y lo que calce con devPattern.
         var fromDevRepo = channel == "dev" && u.DevRepo is not null;

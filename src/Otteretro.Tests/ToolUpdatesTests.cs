@@ -20,7 +20,7 @@ public class ToolUpdatesTests
     static string GitHub(string tag, string body = "Notas") =>
         $$"""[{"tag_name":"{{tag}}-rc","body":"rc","draft":false,"prerelease":true},{"tag_name":"{{tag}}","body":"{{body}}","draft":false,"prerelease":false,"published_at":"2026-09-30T07:06:44Z","html_url":"https://github.com/TwilitRealm/dusklight/releases/tag/{{tag}}"}]""";
 
-    static string Dolphin(string rev, string date) => $$"""{"shortrev":"{{rev}}","date":"{{date}}","changelog_html":"<p>Arreglos &amp; mejoras</p>"}""";
+    static string Dolphin(string rev, string date) => $$"""{"shortrev":"{{rev}}","date":"{{date}}","changelog_html":"<p>Arreglos &amp; mejoras</p>","artifacts":[{"system":"Windows arm64","url":"https://dl.dolphin-emu.org/releases/{{rev}}/dolphin-{{rev}}-arm64.7z"},{"system":"Windows x64","url":"https://dl.dolphin-emu.org/releases/{{rev}}/dolphin-{{rev}}-x64.7z"}]}""";
 
     static void Install(Fixture f, string group, string console, string name, string version) =>
         Directory.CreateDirectory(Path.Combine(DiskTasks.ToolsOf(f.Db), group, console, name, version));
@@ -79,6 +79,8 @@ public class ToolUpdatesTests
         var list = ToolUpdates.List(f.Db);
         Assert.Equal(["2609a", "2609-100"], list.Select(u => u.Version));
         Assert.Equal("Arreglos & mejoras", list[0].Notes);
+        // El archivo de Windows x64 de su servidor: «Actualizar» lo instala.
+        Assert.Equal("https://dl.dolphin-emu.org/releases/2609a/dolphin-2609a-x64.7z", list[0].Download);
 
         // Al día siguiente sale otra de desarrollo: sola no cambia el aviso dentro de la semana.
         fake.Answers["update/latest/dev"] = Dolphin("2609-120", "2026-11-02T00:00:00Z");
