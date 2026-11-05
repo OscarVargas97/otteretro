@@ -304,7 +304,8 @@
       "copyMismatch": "Nothing was moved; your data is still in {path}. The file {detail} was not copied correctly.",
       "failedDataAt": "The move was interrupted and your data ended up in {path}. Use “Use another folder” with that path. {detail}",
       "sourceNotDeleted": "Your data is already in the new folder, but {path} could not be fully deleted: {detail} You can delete it by hand.",
-      "tasksRunning": "Wait for the running tasks to finish before moving the data folder."
+      "tasksRunning": "Wait for the running tasks to finish before moving the data folder.",
+      "toolsNotStandard": "Before taking the data to another disk, move to the standard layout the emulators and ports left in Herramientas with the old layout: «Move to the standard layout», at the top of Settings › Storage."
     },
     "update": {
       "channel": "That channel does not exist.",
@@ -572,7 +573,8 @@
       },
       "notInstalled": "That version isn't registered: install it first.",
       "notInLibrary": "Version {version} isn't in your library: it can't be reinstalled without downloading it.",
-      "backupIsDefault": "The second copy has to go on another disk, not on the ★."
+      "backupIsDefault": "The second copy has to go on another disk, not on the ★.",
+      "sourceFailed": "Could not read the versions of {name}: {detail}"
     },
     "profile": {
       "notFound": "That profile doesn't exist or isn't for this version of the game.",
@@ -1084,6 +1086,9 @@
       },
       "system": {
         "title": "System"
+      },
+      "tool": {
+        "title": "Tools"
       }
     },
     "addDisk": "+ Add drive",
@@ -1121,6 +1126,16 @@
       "off": "Off: what isn't recognized goes straight to Review › Unidentified.",
       "month": "This month: {calls, plural, one {# call} other {# calls}} · {cost}",
       "paused": "Your subscription hit its limit: it resumes on its own on {at}."
+    },
+    "backup": {
+      "title": "Second copy of the library",
+      "help": "The original files of what you install are kept in Libreria on the ★ disk and also on this disk. If it is not connected, it is copied as soon as you connect it.",
+      "disk": "Second copy disk",
+      "none": "None",
+      "noDisk": "No second copy: choose a disk so you do not depend on the ★ alone.",
+      "pending": "{count, plural, one {# version is waiting} other {# versions are waiting}} for its second copy: it is being copied.",
+      "pendingDisconnected": "{count, plural, one {# version is waiting} other {# versions are waiting}} for its second copy: it is copied when you connect {name}.",
+      "upToDate": "Everything has its second copy."
     }
   },
   "tools": {
@@ -1130,7 +1145,8 @@
       "emulator": "Emulators",
       "port": "Ports",
       "complement": "Add-ons",
-      "system": "System"
+      "system": "System",
+      "tool": "Tools"
     },
     "noRecipe": "No recipe",
     "noRecipeHelp": "Otteretro does not know yet how to make it portable or rewrite its paths.",
@@ -1166,14 +1182,61 @@
       "installed": "You have",
       "published": "Released",
       "games": "Used by",
-      "gamesUnknown": "Not known yet: it comes with per-game profiles.",
+      "gamesUnknown": "None of your games yet.",
       "notes": "Release notes",
       "besideOld": "The new one is installed next to the one you have: the old one is left untouched and you can go back to it.",
       "update": "Update",
       "skip": "Skip this version",
       "badge": "New version",
       "notInstalled": "Not installed",
-      "install": "Install"
+      "install": "Install",
+      "gamesMore": "{list} and {count, plural, one {# more} other {# more}}",
+      "queued": "Installing next to the one you have: see it in the tasks panel."
+    },
+    "install": {
+      "open": {
+        "emulator": "Install an emulator",
+        "port": "Install a port",
+        "tool": "Install a tool"
+      },
+      "what": "What",
+      "pick": "Choose one",
+      "other": "Other, without a recipe",
+      "name": "Its name",
+      "experimental": "{name} (experimental)",
+      "from": "From where",
+      "fromKind": {
+        "recipe": "Its recipe",
+        "url": "A release URL",
+        "path": "A folder or zip on this computer"
+      },
+      "noReleases": "Its source does not publish a file to install: use a release URL or a folder or zip.",
+      "version": "Version",
+      "versionOptional": "Version (otherwise the executable's)",
+      "dev": "development",
+      "url": "Release URL",
+      "path": "Path of the folder or zip",
+      "pathHelp": "Type the full path on this computer, for example D:\\Downloads\\emulator.zip. It is copied: the original is left untouched.",
+      "adopt": "I installed it by hand (it is adopted by copying it)",
+      "beside": "Each version goes in its own folder, next to the others, and the original file stays in your library.",
+      "cancel": "Cancel",
+      "submit": "Install",
+      "queued": "Added to the tasks panel."
+    },
+    "library": {
+      "title": "Your library",
+      "help": "What you installed, with the original file kept in Libreria on the ★ disk and its second copy on the disk you chose in Settings › Storage.",
+      "origin": {
+        "recipe": "from its recipe",
+        "url": "from a URL",
+        "upload": "from a folder or zip",
+        "adopted": "adopted"
+      },
+      "twoCopies": "On two disks",
+      "oneCopy": "Only one copy",
+      "missing": "Folder missing",
+      "reinstall": "Reinstall",
+      "queued": "Added to the tasks panel: it comes back from your library, without downloading anything."
     }
   },
   "downloads": {
