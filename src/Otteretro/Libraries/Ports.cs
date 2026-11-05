@@ -132,7 +132,7 @@ public static class Ports
         var releases = JsonSerializer.Deserialize<List<GitRelease>>(await http.GetStringAsync($"https://api.github.com/repos/{repo}/releases?per_page=30", ct), Snake)!;
         var asset = new Regex(r.Asset);
         return releases.Where(x => !x.Draft && !x.Prerelease && x.Assets.Any(a => asset.IsMatch(a.Name))).MaxBy(x => x.PublishedAt ?? "") is { } g
-            ? (ToolUpdates.VersionOf(new(g.TagName, g.Name, null, g.Draft, g.Prerelease, g.PublishedAt, null)), g.Assets.First(a => asset.IsMatch(a.Name)).BrowserDownloadUrl)
+            ? (ToolUpdates.VersionOf(new(g.TagName, g.Name, null, g.Draft, g.Prerelease, g.PublishedAt, null, null)), g.Assets.First(a => asset.IsMatch(a.Name)).BrowserDownloadUrl)
             : null;
     }
 
