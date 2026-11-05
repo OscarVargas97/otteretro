@@ -4,7 +4,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.5.0 · Herramientas · en desarrollo
 
-`docs/encuesta-19-herramientas` · F5 (#263, encuesta 19, #264): emuladores, ports y herramientas instalados y al día, con perfiles por juego · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+`docs/283-ports-en-catalogo`, `docs/encuesta-19-herramientas` · F5 (#263, encuesta 19, #264): emuladores, ports y herramientas instalados y al día, con perfiles por juego · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
 
 ### Cambios
 - **Plan de la F5 decidido** (encuesta 19): emuladores compartidos por consola con perfiles por juego (configuración y mods, uno activo), tu librería privada en dos discos, avisos de versiones, UPD y DLC dentro del emulador, ports, compartir perfiles en un .zip y configurar el emulador desde la app.
