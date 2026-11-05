@@ -320,3 +320,8 @@ Los requisitos vigentes están en [../REQUISITOS.md](../REQUISITOS.md). Este reg
 | 312 | 2026-11-05 | **Dusklight ya instalado pasa solo a su carpeta `data`** (selector, #273): al abrir la app, una vez, sin perder partidas ni texturas | Decidido (persona) |
 | 313 | 2026-11-05 | **Ryubing avisa de las estables; Canary a pedido** (selector, #273) | Decidido (persona) |
 | 314 | 2026-11-05 | **Las versiones `-rc` de Eden cuentan como de desarrollo** (selector, #273): como mucho un aviso por semana y se pueden pedir a mano | Decidido (persona) |
+| 315 | 2026-11-05 | **`Herramientas\` deja de ser parte de los datos de Otteretro** (selector, #296; sigue la #311): queda solo para las herramientas. Un ★ con la estructura vieja se pasa al estándar (#219) antes de mover los datos | Decidido (persona) |
+| 316 | 2026-11-05 | **Novedades de ports, la primera vez** (selector, #286): si nunca se marcó «Visto», solo los ports de los últimos 30 días; después, lo nuevo desde el último «Visto» | Decidido (persona) |
+| 317 | 2026-11-05 | **Instalar un port siempre crea su perfil** (selector y aclaración de la persona, #287): aunque el juego ya tenga perfiles. Pasa a ser el activo solo si el port es 100 % jugable y el juego no tenía un perfil propio activo | Decidido (persona) |
+| 318 | 2026-11-05 | **Partida a un emulador con varios usuarios** (selector, #270): con un solo usuario de consola va ahí; con varios, la ficha pregunta a cuál | Decidido (persona) |
+| 319 | 2026-11-05 | **La licencia zRIF de Vita va en la ficha del juego** (selector, #280): en la versión de Vita, en la base privada, nunca en perfiles compartidos ni en el catálogo; con ella la app instala el .pkg sola. Lo de Wii U que no se instale solo, se avisa (#295) | Decidido (persona) |
