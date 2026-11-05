@@ -5,6 +5,8 @@
   "folder": "Dreamcast",
   "detect": "flycast.exe",
   "version": { "from": "date" },
+  "consoles": ["dc"],
+  "baseFor": ["dc"],
   "license": "GPL-2.0-only",
   "config": ["emu.cfg"],
   "perGame": { "config": "emu.cfg", "apply": "section", "mods": ["data/textures/{gameId}"] },

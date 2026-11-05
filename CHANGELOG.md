@@ -8,6 +8,9 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ### Nuevo
 - **Recetas de los emuladores base del resto de las consolas y de Steam ROM Manager** (#274): N64, 3DS, NES, SNES, Mega Drive, Game Boy y GBA, PS1 a PS5, PSP, Vita, DS, Wii U, Xbox, Xbox 360 y Dreamcast. Cada una dice de dónde baja su versión de Windows, cómo queda portable, dónde están sus partidas, su configuración y la de cada juego, sus mods por juego, cómo instala contenido por línea de comandos y sus ajustes más usados. La de PS5 (KytyPS5) va marcada como experimental, y las de RPCS3, Vita3K, Xenia Canary y KytyPS5, como solo de desarrollo.
+  - En SNES el base es Snes9x, y bsnes queda como alternativo.
+  - Mega Drive y Dreamcast ya tienen su emulador base, para cuando el catálogo sume esas consolas.
+- **Carpeta Herramientas en cada disco** (#274), junto a Emuladores, Ports y Complementos: ahí va lo que no es emulador ni port. Steam ROM Manager se instala en `Herramientas\Steam ROM Manager\<versión>`.
 
 ### Cambios
 - **Plan de la F5 decidido** (encuesta 19): emuladores compartidos por consola con perfiles por juego (configuración y mods, uno activo), tu librería privada en dos discos, avisos de versiones, UPD y DLC dentro del emulador, ports, compartir perfiles en un .zip y configurar el emulador desde la app.
