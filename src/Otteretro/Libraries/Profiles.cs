@@ -19,11 +19,11 @@ public static class Profiles
     static string Now() => DateTime.UtcNow.ToString("O");
 
     /// <summary>Registra un emulador (si no estaba) con su perfil por defecto.</summary>
-    public static void AddEmulator(Database db, string id, string kind, string name, string folder)
+    public static void AddEmulator(Database db, string id, string kind, string name)
     {
         using var c = db.Open();
         using var t = c.BeginTransaction();
-        if (c.Execute("INSERT OR IGNORE INTO emulator (id, kind, name, folder) VALUES (@id, @kind, @name, @folder)", new { id, kind, name, folder }, t) > 0)
+        if (c.Execute("INSERT OR IGNORE INTO emulator (id, kind, name) VALUES (@id, @kind, @name)", new { id, kind, name }, t) > 0)
             c.Execute("INSERT INTO profile (emulator_id, name, created_at) VALUES (@id, @name, @now)", new { id, name, now = Now() }, t);
         t.Commit();
     }

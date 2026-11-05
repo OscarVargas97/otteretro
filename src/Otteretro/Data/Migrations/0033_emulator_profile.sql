@@ -1,14 +1,13 @@
 -- #267 (§8.0, decisiones 286 y 290): emuladores compartidos, sus instalaciones por versión, el base de cada consola, los perfiles
 -- por juego y las ROMs modificadas. Dónde está cada instalación no se guarda: se encuentra en `Emuladores\` de los discos por
--- carpeta, nombre y versión (`Recipes.Installed`), así que mover un disco o una instalación no deja rutas viejas.
+-- nombre y versión (`Recipes.Installed`), así que mover un disco o una instalación no deja rutas viejas.
 
 -- Un emulador o port, instalado pocas veces y compartido entre consolas. id: el de su receta, o uno propio si no tiene.
--- folder y name: su carpeta en `Emuladores\<folder>\<name>\<versión>` (§5.1).
+-- name: su carpeta, `Emuladores\<name>\<versión>` (o `Ports\…`), una sola aunque sirva a varias consolas (decisión 302).
 CREATE TABLE emulator (
-    id     TEXT PRIMARY KEY,
-    kind   TEXT NOT NULL CHECK (kind IN ('emulator', 'port')),
-    name   TEXT NOT NULL,
-    folder TEXT NOT NULL
+    id   TEXT PRIMARY KEY,
+    kind TEXT NOT NULL CHECK (kind IN ('emulator', 'port')),
+    name TEXT NOT NULL
 );
 
 -- Cada versión instalada (§8.4: las versiones conviven, nunca se reemplaza una). origin: recipe (su receta), url (una release ya

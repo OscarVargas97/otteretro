@@ -15,8 +15,8 @@ public class ProfilesTests
                 INSERT INTO game (id, name_es) VALUES (10, 'Tears of the Kingdom'), (11, 'Age of Calamity');
                 INSERT INTO version (id, game_id, platform) VALUES (20, 10, 'switch'), (21, 11, 'switch');
                 """);
-        Profiles.AddEmulator(f.Db, "eden", "emulator", "Eden", "Switch");
-        Profiles.AddEmulator(f.Db, "ryubing", "emulator", "Ryubing", "Switch");
+        Profiles.AddEmulator(f.Db, "eden", "emulator", "Eden");
+        Profiles.AddEmulator(f.Db, "ryubing", "emulator", "Ryubing");
         Profiles.SetBase(f.Db, "switch", "ryubing");
         Profiles.SetBase(f.Db, "switch", "eden");
         return f;
