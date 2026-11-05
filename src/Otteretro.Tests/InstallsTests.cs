@@ -92,14 +92,14 @@ public class InstallsTests
         // Una versión que perdió su carpeta vuelve desde la librería, sin bajar nada.
         var reinstall = new InstallJob("eden", "0.1", Reinstall: true);
         Assert.Equal("install.exists", Installs.Enqueue(f.Db, reinstall).Error?.Code);
-        Directory.Delete(f.Tmp[@"E\Emuladores\Eden\0.1"], recursive: true);
+        Links.DeleteTree(f.Tmp[@"E\Emuladores\Eden\0.1"]); // con la NAND enlazada a lo común (#280)
         Assert.Null(Assert.Single(Installs.List(f.Db)).Path);
         Assert.Equal("done", (await Install(f, reinstall)).Status);
         Assert.Equal("uno", File.ReadAllText(f.Tmp[@"E\Emuladores\Eden\0.1\eden.exe"]));
         Assert.NotNull(Assert.Single(Installs.List(f.Db)).Path);
 
         // Si el archivo de la librería cambió, no se reinstala.
-        Directory.Delete(f.Tmp[@"E\Emuladores\Eden\0.1"], recursive: true);
+        Links.DeleteTree(f.Tmp[@"E\Emuladores\Eden\0.1"]);
         File.Copy(Zip(f.Tmp, "otro", "otro"), f.Tmp[@"E\Libreria\Emuladores\eden\0.1\v1.zip"], overwrite: true);
         var bad = await Install(f, reinstall);
         Assert.Equal(("error", "install.badHash"), (bad.Status, bad.Detail?.Code));

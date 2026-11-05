@@ -44,7 +44,8 @@
         "properties": {
           "file": { "type": "string" },
           "format": { "enum": ["ini", "json"] },
-          "key": { "type": "string", "description": "Clave; en ini, un * al final acepta cualquier sufijo (ISOPath*)" }
+          "key": { "type": "string", "description": "Clave; en ini, un * al final acepta cualquier sufijo (ISOPath*)" },
+          "section": { "type": "string", "description": "En ini: la sección donde se agregan las carpetas de contentPaths (una lista de Qt, <key>\\N\\path, como Eden)" }
         }
       }
     },

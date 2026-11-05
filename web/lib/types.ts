@@ -46,6 +46,7 @@ export type DownloadInfo = Schemas["DownloadInfo"];
 export type LinkPackage = Schemas["LinkPackage"];
 export type SiteLimit = Schemas["SiteLimit"];
 export type CapturedLink = Schemas["CapturedLink"];
+export type LicenseState = Schemas["LicenseState"];
 export type SystemConsole = Schemas["SystemConsole"];
 export type MegapackPreview = Schemas["MegapackPreview"];
 export type PreviewItem = Schemas["PreviewItem"];

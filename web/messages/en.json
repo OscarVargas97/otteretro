@@ -590,6 +590,22 @@
       "noPort": "There's no port of this game yet: there's a decompilation, but it can't be installed.",
       "needsUrl": "This port has no recipe with a download: give its release URL.",
       "sourceUnreachable": "Couldn't check the port's latest release: check the connection or use its URL."
+    },
+    "content": {
+      "unknownGame": "That game is not in the catalog.",
+      "noEmulator": "There is no emulator installed for this console yet.",
+      "notInstalled": "{name} is not installed (or its disk is not connected).",
+      "log": {
+        "pointed": "Pointed to without copying: {file}",
+        "installed": "Installed in the emulator: {file}",
+        "already": "Already installed: {file}",
+        "ps4": "Install it by hand in shadPS4 (Otteretro decrypts nothing): {file}",
+        "license": "Its license (zRIF) is missing: type it in the game page and prepare again, or install it by hand in Vita3K: {file}",
+        "manual": "This emulator does not pick it up on its own: install it by hand from its menu (in Cemu, File › Install game title, update or DLC): {file}",
+        "failed": "The emulator installer failed: install it by hand: {file}"
+      },
+      "badLicense": "That license does not look like a zRIF: copy the whole text, without spaces.",
+      "notVita": "The zRIF license is only for Vita games."
     }
   },
   "credentials": {
@@ -689,6 +705,9 @@
       "tools": {
         "updates": "Check emulator and port versions",
         "install": "Install an emulator"
+      },
+      "content": {
+        "prepare": "Prepare a game in its emulator"
       }
     },
     "status": {
@@ -941,7 +960,17 @@
       "removeHint": "What you mark goes to the recycle bin and stops counting as owned. Updates and DLC only go if you mark them.",
       "removeConfirm": "Send to recycle bin ({count})",
       "removeCancel": "Cancel",
-      "download": "Download"
+      "download": "Download",
+      "prepare": "Prepare in the emulator",
+      "prepareFor": "Prepare in the emulator ({console})",
+      "prepareHelp": "Makes its updates and DLC ready in the emulator you play it with, without copying them when the emulator allows it.",
+      "prepareQueued": "Preparing: follow it in the tasks panel.",
+      "license": "Vita license (zRIF)",
+      "licenseSaved": "Saved",
+      "licenseMissing": "Missing",
+      "licenseHelp": "With it, «Prepare in the emulator» installs the .pkg in Vita3K. It is kept only on this computer: never in the catalog or in a shared profile.",
+      "licenseSave": "Save",
+      "licenseDelete": "Delete"
     },
     "search": {
       "sagas": "Series",

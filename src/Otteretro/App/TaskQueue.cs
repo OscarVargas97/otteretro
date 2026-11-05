@@ -40,6 +40,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         [Libraries.ToolUpdates.Kind] = Libraries.ToolUpdates.Run,
         [Libraries.Installs.Kind] = Libraries.Installs.Run,
         [Libraries.Installs.BackupKind] = Libraries.Installs.RunBackup,
+        [Libraries.Content.Kind] = Libraries.Content.Run,
     };
 
     /// <summary>Tipos que no corren a la vez aunque sean distintos: mover y adoptar tocan las mismas carpetas (§5.3).</summary>

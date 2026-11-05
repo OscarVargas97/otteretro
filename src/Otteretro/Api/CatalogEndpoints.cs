@@ -19,6 +19,11 @@ public record FieldRequest(string? Value);
 
 /// <summary>Una consola o un juego (#179).</summary>
 public record VerifyRequest(string? Console, long? GameId);
+/// <param name="Emulator">Sin él, el emulador con el que se juega (su perfil o el base de la consola).</param>
+public record PrepareContentRequest(string? Emulator);
+/// <param name="Zrif">La licencia; vacía o null la borra.</param>
+public record LicenseRequest(string? Zrif);
+public record LicenseState(bool Saved);
 
 /// <summary>El ejecutable de un juego de PC suelto, relativo a su carpeta (#182).</summary>
 public record ExecutableRequest(string Path);
@@ -237,6 +242,25 @@ public static class CatalogEndpoints
             Db(s) is not { } db ? NoData()
             : request.Console is null == request.GameId is null ? TypedResults.BadRequest(ApiError.Of("dat.verifyWhat"))
             : TypedResults.Ok(Libraries.Dats.EnqueueVerify(db, request.Console, request.GameId)));
+
+        // «Preparar para el emulador» (#280): UPD, DLC y lo que se instala dentro del emulador con el que se juega, en una tarea.
+        api.MapPost("/versions/{id:long}/content", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (long id, PrepareContentRequest request, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var (task, error) = Libraries.Content.Enqueue(db, id, request.Emulator);
+            return error is null ? TypedResults.Ok(task!.Value) : TypedResults.BadRequest(error);
+        });
+
+        // La licencia (zRIF) de un juego de Vita, en la base privada: con ella, preparar el juego instala su .pkg en Vita3K. La licencia no
+        // vuelve al front: solo si está guardada.
+        api.MapGet("/versions/{id:long}/license", Results<Ok<LicenseState>, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(new LicenseState(Libraries.Content.HasLicense(db, id))) : NoData());
+
+        api.MapPut("/versions/{id:long}/license", Results<Ok<LicenseState>, BadRequest<ApiError>, Conflict<ApiError>> (long id, LicenseRequest request, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            return Libraries.Content.SetLicense(db, id, request.Zrif) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(new LicenseState(Libraries.Content.HasLicense(db, id)));
+        });
 
         // Cambiar el ejecutable de un juego de PC suelto (#182): uno de los .exe de su carpeta.
         // Quitar un juego del disco (#224): lo marcado va a la papelera y deja de contar como «lo tengo».
