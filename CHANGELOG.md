@@ -4,7 +4,8 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.5.0 · Herramientas · en desarrollo
 
-`feat/296-herramientas-pantalla`, `feat/278-avisos-versiones`, `docs/encuesta-19-herramientas`, `feat/273-recetas-switch-gc`, `docs/283-ports-en-catalogo`, `feat/274-recetas-resto`, `feat/268-instalar-libreria`, `feat/267-perfiles-modelo` y `docs/272-investigacion-emuladores` · F5 (#263, encuesta 19, #264): emuladores, ports y herramientas instalados y al día, con perfiles por juego · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+`feat/296-herramientas-pantalla`, `feat/278-avisos-versiones`, `docs/encuesta-19-herramientas`, `feat/273-recetas-switch-gc`, `docs/283-ports-en-catalogo`, `feat/274-recetas-resto`, `feat/268-instalar-libreria`, `feat/267-perfiles-modelo`, `docs/272-investigacion-emuladores` y `docs/263-decisiones-305-314` · F5 (#263, encuesta 19, #264): emuladores, ports y herramientas instalados y al día, con perfiles por juego · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+
 
 ### Nuevo
 - **Instalar desde Herramientas** (#296): en las pestañas Emuladores, Ports y la nueva **Herramientas** (donde está Steam ROM Manager) hay un botón para instalar. Eliges qué y desde dónde: su receta, con la lista de versiones publicadas (también las de desarrollo); la URL de una release; o una carpeta o un zip de este equipo, también uno que instalaste a mano. Debajo, **Tu librería**: lo instalado por emulador, cada versión con su origen, su fecha y si ya está en los dos discos; si una versión perdió su carpeta, «Reinstalar» la trae desde la librería sin bajar nada.
