@@ -1,4 +1,5 @@
 using System.Net;
+using Dapper;
 using Otteretro.Libraries;
 
 namespace Otteretro.Tests;
@@ -19,7 +20,7 @@ public class ToolUpdatesTests
     static string GitHub(string tag, string body = "Notas") =>
         $$"""[{"tag_name":"{{tag}}-rc","body":"rc","draft":false,"prerelease":true},{"tag_name":"{{tag}}","body":"{{body}}","draft":false,"prerelease":false,"published_at":"2026-09-30T07:06:44Z","html_url":"https://github.com/TwilitRealm/dusklight/releases/tag/{{tag}}"}]""";
 
-    static string Dolphin(string rev, string date) => $$"""{"shortrev":"{{rev}}","date":"{{date}}","changelog_html":"<p>Arreglos &amp; mejoras</p>"}""";
+    static string Dolphin(string rev, string date) => $$"""{"shortrev":"{{rev}}","date":"{{date}}","changelog_html":"<p>Arreglos &amp; mejoras</p>","artifacts":[{"system":"Windows arm64","url":"https://dl.dolphin-emu.org/releases/{{rev}}/dolphin-{{rev}}-arm64.7z"},{"system":"Windows x64","url":"https://dl.dolphin-emu.org/releases/{{rev}}/dolphin-{{rev}}-x64.7z"}]}""";
 
     static void Install(Fixture f, string group, string console, string name, string version) =>
         Directory.CreateDirectory(Path.Combine(DiskTasks.ToolsOf(f.Db), group, console, name, version));
@@ -78,6 +79,8 @@ public class ToolUpdatesTests
         var list = ToolUpdates.List(f.Db);
         Assert.Equal(["2609a", "2609-100"], list.Select(u => u.Version));
         Assert.Equal("Arreglos & mejoras", list[0].Notes);
+        // El archivo de Windows x64 de su servidor: «Actualizar» lo instala.
+        Assert.Equal("https://dl.dolphin-emu.org/releases/2609a/dolphin-2609a-x64.7z", list[0].Download);
 
         // Al día siguiente sale otra de desarrollo: sola no cambia el aviso dentro de la semana.
         fake.Answers["update/latest/dev"] = Dolphin("2609-120", "2026-11-02T00:00:00Z");
@@ -95,6 +98,34 @@ public class ToolUpdatesTests
         // Lo instalado más nuevo que lo publicado (por fecha) no avisa.
         Install(f, "Emuladores", "GameCube", "Dolphin", "2026.11.04");
         Assert.Empty(ToolUpdates.List(f.Db));
+    }
+
+    [Fact]
+    public async Task ANoticeCarriesItsDownloadAndTheGamesThatUseIt()
+    {
+        await using var f = new Fixture();
+        using (var c = f.Db.Open())
+            c.Execute("""
+                INSERT INTO game (id, name_es) VALUES (10, 'Metroid Fusion'), (11, 'Minish Cap'), (12, 'Sin ROM');
+                INSERT INTO version (id, game_id, platform) VALUES (20, 10, 'gba'), (21, 11, 'gba'), (22, 12, 'gba');
+                INSERT INTO source (kind, library_id, relative_path, version_id) VALUES ('file', 'd', 'a.gba', 20), ('file', 'd', 'b.gba', 21);
+                """);
+        // Minish Cap tiene un perfil activo en otro emulador: ya no usa el base de GBA.
+        Profiles.AddEmulator(f.Db, "otro", "emulator", "Otro");
+        Profiles.Activate(f.Db, Profiles.Add(f.Db, 21, "otro", "El suyo"));
+        const string releases = """[{"tag_name":"0.10.5","draft":false,"prerelease":false,"published_at":"2026-10-01T00:00:00Z","assets":[{"name":"mGBA-0.10.5-macos.dmg","browser_download_url":"https://x/mac.dmg"},{"name":"mGBA-0.10.5-win64.7z","browser_download_url":"https://x/mGBA-0.10.5-win64.7z"}]},{"tag_name":"0.10.4","draft":false,"prerelease":false,"published_at":"2025-10-01T00:00:00Z","assets":[]}]""";
+        var fake = new Fake(new() { ["repos/mgba-emu/mgba/releases"] = releases });
+        await Check(f, fake);
+
+        var u = Assert.Single(ToolUpdates.List(f.Db), x => x.RecipeId == "mgba");
+        Assert.Equal(("0.10.5", "https://x/mGBA-0.10.5-win64.7z"), (u.Version, u.Download));
+        Assert.Equal(["Metroid Fusion"], u.Games); // mGBA es el base de GBA (`baseFor`); el juego sin ROM no cuenta
+        Assert.Equal(["Minish Cap"], ToolUpdates.Games(f.Db)["otro"]);
+
+        // Para elegir la versión al instalar: solo las que traen el archivo de Windows.
+        ToolUpdates.Handler = fake;
+        try { Assert.Equal(["0.10.5"], (await ToolUpdates.Installable(Recipes.Find("mgba")!, default)).Select(r => r.Version)); }
+        finally { ToolUpdates.Handler = null; }
     }
 
     [Fact]

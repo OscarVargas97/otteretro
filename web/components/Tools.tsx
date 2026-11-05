@@ -14,12 +14,18 @@ import { ToolUpdates } from "@/components/ToolUpdates";
 import { toolUpdatesQuery } from "@/lib/queries";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
-import type { SystemConsole, ToolInfo } from "@/lib/types";
+import type { EmulatorInstall, RecipeRelease, RecipeSummary, SystemConsole, ToolInfo } from "@/lib/types";
 
-const KINDS = ["emulator", "port", "complement", "system"] as const;
+const KINDS = ["emulator", "port", "complement", "tool", "system"] as const;
 type Kind = (typeof KINDS)[number];
+/** Lo que se instala con su receta, una URL o un zip (#296): emuladores, ports y herramientas como Steam ROM Manager (decisión 311). */
+type Installable = "emulator" | "port" | "tool";
 
-/** Herramientas (§5.1, #193, #194, #200): el inventario por tipo, en pestañas y una sola columna centrada. Instalar y actualizar llegan en la F5. */
+const post = (body: unknown) => ({ method: "POST", body: JSON.stringify(body) });
+const recipesQuery = { queryKey: ["recipes"], queryFn: () => request<RecipeSummary[]>("/api/recipes"), staleTime: Infinity };
+const emulatorsQuery = { queryKey: ["emulators"], queryFn: () => request<EmulatorInstall[]>("/api/emulators") };
+
+/** Herramientas (§5.1, #193, #194, #200, #296): el inventario por tipo, en pestañas y una sola columna centrada, con instalar y la librería. */
 export function ToolsPage() {
   const t = useTranslations("tools");
   const router = useRouter();
@@ -31,7 +37,13 @@ export function ToolsPage() {
       <Tabs tabs={KINDS.map((k) => ({ id: k, label: t(`kind.${k}`) }))} current={kind} label={t("sections")} panel="tools-panel"
         onSelect={(k) => router.push(`/tools/?k=${k}`)} />
       <section className="sec" id="tools-panel" role="tabpanel" aria-labelledby={`tab-${kind}`}>
-        {kind === "system" ? <SystemPanel /> : <ToolList kind={kind} />}
+        {kind === "system" ? <SystemPanel /> : (
+          <div style={{ display: "grid", gap: 12 }}>
+            {kind !== "complement" && <InstallPanel key={kind} kind={kind} />}
+            <ToolList kind={kind} />
+            {kind !== "complement" && <Library kind={kind} />}
+          </div>
+        )}
       </section>
     </div>
   );
@@ -140,7 +152,7 @@ function ToolDetail({ tool }: { tool: ToolInfo }) {
   return (
     <div className="tool-detail">
       <dl className="facts small">
-        <dt>{t("console")}</dt><dd>{tool.folder}</dd>
+        {tool.kind !== "tool" && <><dt>{t("console")}</dt><dd>{tool.folder}</dd></>}
         {tool.game && <><dt>{t("covers")}</dt><dd>{tool.game}</dd></>}
         <dt>{t("version")}</dt><dd>{tool.version}</dd>
         <dt>{t("location")}</dt><dd>{where ?? t("dataFolder")}</dd>
@@ -162,5 +174,166 @@ function ToolDetail({ tool }: { tool: ToolInfo }) {
       )}
       {move.isError && <p className="error small" style={{ margin: 0 }}>{describe(move.error)}</p>}
     </div>
+  );
+}
+
+/** Un id propio para lo que no tiene receta, desde su nombre: «Mi Emulador» → mi-emulador. */
+const slug = (name: string) => name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const OTHER = ":other"; // «:» no va en un id de receta: no choca con ninguna
+
+/**
+ * Instalar (#268, #296): desde la receta eligiendo una versión publicada, desde la URL de una release o desde una carpeta o un
+ * zip de este equipo (o adoptando uno instalado a mano). Cada versión va al lado de las otras: nunca se reemplaza una.
+ */
+function InstallPanel({ kind }: { kind: Installable }) {
+  const t = useTranslations("tools.install");
+  const format = useFormatter();
+  const describe = useDescribeError();
+  const cache = useQueryClient();
+  const recipes = (useQuery(recipesQuery).data ?? []).filter((r) => r.kind === kind);
+  const [open, setOpen] = useState(false);
+  const [from, setFrom] = useState<"recipe" | "url" | "path">("recipe");
+  const [recipe, setRecipe] = useState("");
+  const [name, setName] = useState("");
+  const [release, setRelease] = useState("");
+  const [version, setVersion] = useState("");
+  const [url, setUrl] = useState("");
+  const [path, setPath] = useState("");
+  const [adopt, setAdopt] = useState(false);
+  const chosen = recipes.find((r) => r.id === recipe);
+  const releases = useQuery({
+    queryKey: ["recipes", recipe, "releases"],
+    queryFn: () => request<RecipeRelease[]>(`/api/recipes/${encodeURIComponent(recipe)}/releases`),
+    enabled: open && from === "recipe" && !!chosen?.releases,
+    staleTime: 5 * 60_000,
+  });
+  const key = (r: RecipeRelease) => `${r.channel}|${r.version}`;
+  const picked = releases.data?.find((r) => key(r) === release) ?? releases.data?.[0];
+  const install = useMutation({
+    mutationFn: (job: object) => request<number>("/api/emulators/install", post(job)),
+    onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+  // Sin receta: el id sale del nombre y la carpeta se llama como él.
+  const who = recipe === OTHER ? { emulator: slug(name), name: name.trim(), kind } : { emulator: recipe };
+  const ready = (recipe === OTHER ? slug(name) !== "" : !!chosen)
+    && (from === "recipe" ? !!picked : from === "url" ? url.trim().startsWith("https://") && version.trim() !== "" : path.trim() !== "");
+  const submit = () => install.mutate(
+    from === "recipe" ? { emulator: recipe, version: picked!.version, url: picked!.download }
+    : from === "url" ? { ...who, version: version.trim(), url: url.trim() }
+    : { ...who, version: version.trim() || null, path: path.trim(), adopt });
+  const pick = (id: string) => {
+    setRecipe(id);
+    setRelease("");
+    if (id === OTHER && from === "recipe") setFrom("url");
+  };
+
+  if (!open) return <div><button className="ot-btn ot-btn-primary ot-btn-sm" type="button" onClick={() => setOpen(true)}>{t(`open.${kind}`)}</button></div>;
+  return (
+    <section className="panel" style={{ display: "grid", gap: 8 }} aria-labelledby="install-title">
+      <h3 id="install-title" style={{ margin: 0 }}>{t(`open.${kind}`)}</h3>
+      <div className="sentence">
+        <label className="small muted" htmlFor="install-recipe">{t("what")}</label>
+        <select id="install-recipe" value={recipe} onChange={(e) => pick(e.target.value)}>
+          <option value="">{t("pick")}</option>
+          {recipes.map((r) => <option key={r.id} value={r.id}>{r.experimental ? t("experimental", { name: r.name }) : r.name}</option>)}
+          {kind !== "tool" && <option value={OTHER}>{t("other")}</option>}
+        </select>
+        {recipe === OTHER && <input aria-label={t("name")} placeholder={t("name")} value={name} onChange={(e) => setName(e.target.value)} />}
+      </div>
+      <div className="sentence" role="radiogroup" aria-label={t("from")}>
+        {(["recipe", "url", "path"] as const).filter((x) => x !== "recipe" || recipe !== OTHER).map((x) => (
+          <label key={x} className="small"><input type="radio" name="install-from" checked={from === x} onChange={() => setFrom(x)} /> {t(`fromKind.${x}`)}</label>
+        ))}
+      </div>
+      {from === "recipe" && chosen && (
+        !chosen.releases ? <p className="small muted" style={{ margin: 0 }}>{t("noReleases")}</p>
+        : releases.isPending ? <div className="skeleton" style={{ height: 32 }} aria-busy="true" />
+        : releases.isError ? <p className="error small" role="alert" style={{ margin: 0 }}>{describe(releases.error)}</p>
+        : releases.data.length === 0 ? <p className="small muted" style={{ margin: 0 }}>{t("noReleases")}</p>
+        : (
+          <div className="sentence">
+            <label className="small muted" htmlFor="install-version">{t("version")}</label>
+            <select id="install-version" value={picked ? key(picked) : ""} onChange={(e) => setRelease(e.target.value)}>
+              {releases.data.map((r) => (
+                <option key={key(r)} value={key(r)}>
+                  {[r.version, r.channel === "dev" ? t("dev") : null, r.publishedAt ? format.dateTime(new Date(r.publishedAt), { dateStyle: "medium" }) : null].filter(Boolean).join(" · ")}
+                </option>
+              ))}
+            </select>
+          </div>
+        )
+      )}
+      {from === "url" && (
+        <div className="sentence">
+          <input aria-label={t("url")} placeholder="https://…" value={url} onChange={(e) => setUrl(e.target.value)} style={{ flex: 1, minWidth: 240 }} />
+          <input aria-label={t("version")} placeholder={t("version")} value={version} onChange={(e) => setVersion(e.target.value)} />
+        </div>
+      )}
+      {from === "path" && (
+        <>
+          <p className="small muted" style={{ margin: 0 }}>{t("pathHelp")}</p>
+          <div className="sentence">
+            <input aria-label={t("path")} placeholder={t("path")} value={path} onChange={(e) => setPath(e.target.value)} style={{ flex: 1, minWidth: 240 }} />
+            <input aria-label={t("version")} placeholder={t("versionOptional")} value={version} onChange={(e) => setVersion(e.target.value)} />
+          </div>
+          <label className="small"><input type="checkbox" checked={adopt} onChange={(e) => setAdopt(e.target.checked)} /> {t("adopt")}</label>
+        </>
+      )}
+      <p className="small muted" style={{ margin: 0 }}>{t("beside")}</p>
+      <div className="hero-actions">
+        <button className="ot-btn ot-btn-sm" type="button" onClick={() => { setOpen(false); install.reset(); }}>{t("cancel")}</button>
+        <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" disabled={!ready || install.isPending} onClick={submit}>{t("submit")}</button>
+      </div>
+      {install.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("queued")}</p>}
+      {install.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(install.error)}</p>}
+    </section>
+  );
+}
+
+/**
+ * La librería (#268, decisiones 293 y 304): lo instalado por emulador, cada versión con su origen y si ya tiene la segunda copia.
+ * Una versión cuya carpeta ya no está vuelve con «Reinstalar», desde el archivo guardado y sin bajar nada.
+ */
+function Library({ kind }: { kind: Installable }) {
+  const t = useTranslations("tools.library");
+  const format = useFormatter();
+  const describe = useDescribeError();
+  const cache = useQueryClient();
+  const list = useQuery(emulatorsQuery);
+  const reinstall = useMutation({
+    mutationFn: (i: EmulatorInstall) => request<number>("/api/emulators/reinstall", post({ emulator: i.emulatorId, version: i.version })),
+    onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+  const rows = (list.data ?? []).filter((i) => i.kind === kind);
+  if (list.isError) return <p className="error small" role="alert">{describe(list.error)}</p>;
+  if (rows.length === 0) return null;
+  const names = [...new Set(rows.map((i) => i.name))];
+  return (
+    <section className="panel" style={{ display: "grid", gap: 8 }} aria-labelledby="library-title">
+      <h3 id="library-title" style={{ margin: 0 }}>{t("title")}</h3>
+      <p className="small muted" style={{ margin: 0 }}>{t("help")}</p>
+      {names.map((name) => (
+        <div key={name} style={{ display: "grid", gap: 4 }}>
+          <b>{name}</b>
+          {rows.filter((i) => i.name === name).map((i) => (
+            <div key={i.version} className="version-row small">
+              <span className="grow">
+                <span>{i.version} · {t(`origin.${i.origin as "recipe" | "url" | "upload" | "adopted"}`)} · {format.dateTime(new Date(i.installedAt), { dateStyle: "medium" })}</span>
+                {i.url && <span className="folder-path muted">{i.url}</span>}
+              </span>
+              <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <span className={`ot-badge${i.backupLibraryId ? "" : " ot-badge-review"}`}>{t(i.backupLibraryId ? "twoCopies" : "oneCopy")}</span>
+                {!i.path && <span className="ot-badge ot-badge-danger">{t("missing")}</span>}
+                {!i.path && (
+                  <button className="ot-btn ot-btn-sm" type="button" disabled={reinstall.isPending} onClick={() => reinstall.mutate(i)}>{t("reinstall")}</button>
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+      ))}
+      {reinstall.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("queued")}</p>}
+      {reinstall.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(reinstall.error)}</p>}
+    </section>
   );
 }

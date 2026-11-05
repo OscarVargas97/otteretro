@@ -304,7 +304,8 @@
       "copyMismatch": "No se movió nada; tus datos siguen en {path}. El archivo {detail} no se copió bien.",
       "failedDataAt": "La mudanza se cortó y tus datos quedaron en {path}. Usa «Usar otra carpeta» con esa ruta. {detail}",
       "sourceNotDeleted": "Los datos ya están en la carpeta nueva, pero no se pudo borrar del todo {path}: {detail} Puedes borrarla a mano.",
-      "tasksRunning": "Espera a que terminen las tareas en curso antes de mover la carpeta de datos."
+      "tasksRunning": "Espera a que terminen las tareas en curso antes de mover la carpeta de datos.",
+      "toolsNotStandard": "Antes de llevar los datos a otro disco, pasa al estándar los emuladores y ports que quedaron en Herramientas con la estructura de antes: «Pasar al estándar», arriba en Ajustes › Almacenamiento."
     },
     "update": {
       "channel": "Ese canal no existe.",
@@ -572,7 +573,8 @@
       },
       "notInstalled": "Esa versión no está registrada: instálala primero.",
       "notInLibrary": "La versión {version} no está en tu librería: no se puede reinstalar sin bajarla.",
-      "backupIsDefault": "La segunda copia tiene que ir en otro disco, no en el ★."
+      "backupIsDefault": "La segunda copia tiene que ir en otro disco, no en el ★.",
+      "sourceFailed": "No se pudo leer las versiones de {name}: {detail}"
     }
   },
   "credentials": {
@@ -1075,6 +1077,9 @@
       },
       "system": {
         "title": "Sistema"
+      },
+      "tool": {
+        "title": "Herramientas"
       }
     },
     "addDisk": "+ Agregar disco",
@@ -1112,6 +1117,16 @@
       "off": "Apagado: lo que no se reconoce va directo a Revisar › Sin identificar.",
       "month": "Este mes: {calls, plural, one {# llamada} other {# llamadas}} · {cost}",
       "paused": "Tu suscripción llegó a su límite: sigue sola el {at}."
+    },
+    "backup": {
+      "title": "Segunda copia de la librería",
+      "help": "Los archivos originales de lo que instalas se guardan en Libreria del disco ★ y, además, en este disco. Si no está conectado, se copia solo al conectarlo.",
+      "disk": "Disco de la segunda copia",
+      "none": "Ninguno",
+      "noDisk": "Sin segunda copia: elige un disco para no depender solo del ★.",
+      "pending": "{count, plural, one {# versión espera} other {# versiones esperan}} su segunda copia: se está copiando.",
+      "pendingDisconnected": "{count, plural, one {# versión espera} other {# versiones esperan}} su segunda copia: se copia sola al conectar {name}.",
+      "upToDate": "Todo tiene su segunda copia."
     }
   },
   "tools": {
@@ -1121,7 +1136,8 @@
       "emulator": "Emuladores",
       "port": "Ports",
       "complement": "Complementos",
-      "system": "Sistema"
+      "system": "Sistema",
+      "tool": "Herramientas"
     },
     "noRecipe": "Sin receta",
     "noRecipeHelp": "Otteretro todavía no sabe cómo dejarlo portable ni reescribir sus rutas.",
@@ -1157,14 +1173,61 @@
       "installed": "Tienes",
       "published": "Publicada",
       "games": "La usan",
-      "gamesUnknown": "Todavía no se sabe: llega con los perfiles por juego.",
+      "gamesUnknown": "Ninguno de tus juegos todavía.",
       "notes": "Notas de la versión",
       "besideOld": "La nueva se instala al lado de la que tienes: la vieja no se toca y puedes volver a ella.",
       "update": "Actualizar",
       "skip": "Omitir esta versión",
       "badge": "Versión nueva",
       "notInstalled": "No lo tienes instalado",
-      "install": "Instalar"
+      "install": "Instalar",
+      "gamesMore": "{list} y {count, plural, one {# más} other {# más}}",
+      "queued": "Instalando al lado de la que tienes: míralo en el panel de tareas."
+    },
+    "install": {
+      "open": {
+        "emulator": "Instalar un emulador",
+        "port": "Instalar un port",
+        "tool": "Instalar una herramienta"
+      },
+      "what": "Qué",
+      "pick": "Elige uno",
+      "other": "Otro, sin receta",
+      "name": "Su nombre",
+      "experimental": "{name} (experimental)",
+      "from": "Desde dónde",
+      "fromKind": {
+        "recipe": "Su receta",
+        "url": "La URL de una release",
+        "path": "Una carpeta o un zip de este equipo"
+      },
+      "noReleases": "Su fuente no publica el archivo para instalar: usa la URL de una release o una carpeta o un zip.",
+      "version": "Versión",
+      "versionOptional": "Versión (si no, la del ejecutable)",
+      "dev": "desarrollo",
+      "url": "URL de la release",
+      "path": "Ruta de la carpeta o del zip",
+      "pathHelp": "Escribe la ruta completa en este equipo, por ejemplo D:\\Descargas\\emulador.zip. Se copia: el original no se toca.",
+      "adopt": "Es uno que instalé a mano (se adopta copiándolo)",
+      "beside": "Cada versión va en su propia carpeta, al lado de las otras, y el archivo original queda en tu librería.",
+      "cancel": "Cancelar",
+      "submit": "Instalar",
+      "queued": "Quedó en el panel de tareas."
+    },
+    "library": {
+      "title": "Tu librería",
+      "help": "Lo que instalaste, con el archivo original guardado en Libreria del disco ★ y su segunda copia en el disco que elegiste en Ajustes › Almacenamiento.",
+      "origin": {
+        "recipe": "desde su receta",
+        "url": "desde una URL",
+        "upload": "desde una carpeta o un zip",
+        "adopted": "adoptado"
+      },
+      "twoCopies": "En dos discos",
+      "oneCopy": "Una sola copia",
+      "missing": "Sin su carpeta",
+      "reinstall": "Reinstalar",
+      "queued": "Quedó en el panel de tareas: vuelve desde tu librería, sin bajar nada."
     }
   },
   "downloads": {
