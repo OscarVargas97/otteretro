@@ -1,0 +1,400 @@
+using System.IO.Compression;
+using System.Security.Cryptography;
+using System.Text.Json;
+using Dapper;
+using Otteretro.Api;
+using Otteretro.App;
+using Otteretro.Data;
+
+namespace Otteretro.Libraries;
+
+/// <summary>
+/// Qué instalar (#268): de la receta de <paramref name="Emulator"/> con <paramref name="Version"/>, de una release ya compilada
+/// (<paramref name="Url"/>) o de una carpeta o un zip de este equipo (<paramref name="Path"/>; con <paramref name="Adopt"/>, uno
+/// instalado a mano). Sin receta, <paramref name="Name"/> dice cómo se llama su carpeta. <paramref name="Reinstall"/>: una versión
+/// registrada que perdió su carpeta vuelve desde la librería (decisión 304).
+/// </summary>
+public record InstallJob(string Emulator, string? Version = null, string? Url = null, string? Path = null, bool Adopt = false,
+    string? Name = null, string Kind = "emulator", bool Reinstall = false);
+
+/// <param name="Path">Dónde está instalada; null si su disco no está conectado o la carpeta ya no está (se puede reinstalar).</param>
+/// <param name="BackupLibraryId">El disco con la segunda copia en la librería; null si todavía no hay.</param>
+public record EmulatorInstall(string EmulatorId, string Name, string Kind, string Version, string Origin, string? Url, string? File,
+    string? Sha256, string? BackupLibraryId, string InstalledAt, string? Path);
+
+/// <param name="DiskId">El disco elegido para la segunda copia de la librería; null si no se eligió.</param>
+/// <param name="Pending">Versiones de la librería que todavía no tienen su copia en ese disco.</param>
+public record LibraryBackup(string? DiskId, int Pending);
+
+/// <summary>
+/// Instalar emuladores y ports (§8.0, decisiones 287, 293, 302 a 304). Cada versión va a `Emuladores\<Emulador>\<versión>` y nunca
+/// reemplaza otra. El archivo original queda en la librería privada, `Libreria\` del disco ★ (se muda con la carpeta de datos, que es
+/// lo que define el ★), con una segunda copia en el disco que elige la persona.
+/// </summary>
+public static class Installs
+{
+    public const string Kind = "tools.install";
+    /// <summary>Copiar a la segunda copia lo que le falta. Es de `library.`: no corre a la vez que una mudanza.</summary>
+    public const string BackupKind = "library.backup";
+    /// <summary>Nombre de carpeta de la persona: en español.</summary>
+    public const string LibraryFolder = "Libreria";
+    const string BackupSetting = "library.backupDisk";
+
+    /// <summary>Para las pruebas: responde en lugar de internet.</summary>
+    public static HttpMessageHandler? Handler { get; set; }
+
+    static readonly JsonSerializerOptions Json = JsonSerializerOptions.Web;
+
+    static string Os => OperatingSystem.IsWindows() ? "windows" : "linux";
+
+    record Target(Recipe? Recipe, string Kind, string Name);
+
+    record Row(string Kind, string Name, string? File, string? Sha256);
+
+    static Row? Registered(Database db, string emulator, string version)
+    {
+        using var c = db.Open();
+        return c.QuerySingleOrDefault<Row>("""
+            SELECT e.kind, e.name, i.file, i.sha256 FROM emulator_install i JOIN emulator e ON e.id = i.emulator_id
+            WHERE i.emulator_id = @emulator AND i.version = @version
+            """, new { emulator, version });
+    }
+
+    static Target? Resolve(Database db, InstallJob job)
+    {
+        if (Recipes.Find(job.Emulator) is { Kind: not "complement" } r) return new(r, r.Kind, r.Name);
+        using var c = db.Open();
+        if (c.QuerySingleOrDefault<Row>("SELECT kind, name, name AS file, name AS sha256 FROM emulator WHERE id = @Emulator", job) is { } e) return new(null, e.Kind, e.Name);
+        return job is { Name: { Length: > 0 } name, Kind: "emulator" or "port" } ? new(null, job.Kind, name) : null;
+    }
+
+    static bool BadName(string? s) => string.IsNullOrWhiteSpace(s) || s.Trim('.').Length == 0 || s.IndexOfAny(System.IO.Path.GetInvalidFileNameChars()) >= 0;
+
+    /// <summary>`Emuladores\<Emulador>\<versión>` (o `Ports\…`), una carpeta aunque sirva a varias consolas (decisión 302).</summary>
+    static string InstallPath(DiskInfo home, Target t, string version) =>
+        System.IO.Path.Combine(home.Path, Disk.DiskFolders[t.Kind], t.Name, version);
+
+    static string ShelfPath(string disk, string kind, string emulator, string version) =>
+        System.IO.Path.Combine(disk, LibraryFolder, Disk.DiskFolders[kind], emulator, version);
+
+    /// <summary>Valida y encola la instalación. Devuelve la tarea o el error.</summary>
+    public static (long? Task, ApiError? Error) Enqueue(Database db, InstallJob job)
+    {
+        if (BadName(job.Emulator) || Resolve(db, job) is not { } target || BadName(target.Name)) return (null, ApiError.Of("install.unknownEmulator"));
+        var home = Disk.DefaultDisk(db) is { Connected: true } d ? d : null;
+        if (job.Reinstall)
+        {
+            if (home is null) return (null, ApiError.Of("library.notConnected"));
+            if (BadName(job.Version) || Registered(db, job.Emulator, job.Version!) is not { File: { } file }) return (null, ApiError.Of("install.notInstalled"));
+            if (System.IO.Path.Exists(InstallPath(home, target, job.Version!))) return (null, ApiError.Of("install.exists", ("version", job.Version!)));
+            if (!File.Exists(System.IO.Path.Combine(ShelfPath(home.Path, target.Kind, job.Emulator, job.Version!), file)))
+                return (null, ApiError.Of("install.notInLibrary", ("version", job.Version!)));
+            return (TaskQueue.Enqueue(db, Kind, JsonSerializer.Serialize(new InstallJob(job.Emulator, job.Version, Reinstall: true), Json)), null);
+        }
+        if (job.Path is { } path)
+        {
+            if (!System.IO.Path.IsPathFullyQualified(path) || !System.IO.Path.Exists(path)) return (null, ApiError.Of("path.notFound"));
+            job = job with { Path = Disk.Normalize(path), Url = null, Version = job.Version ?? (Directory.Exists(path) ? Recipes.VersionOf(target.Recipe, path) : null) };
+        }
+        else if (job.Url is { } url)
+        {
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps) return (null, ApiError.Of("install.badUrl"));
+        }
+        else if (target.Recipe?.Downloads.Any(d => d.Version == job.Version && d.System == Os) != true)
+            return (null, ApiError.Of("install.noDownload"));
+        if (BadName(job.Version)) return (null, ApiError.Of("install.noVersion"));
+        if (home is null) return (null, ApiError.Of("library.notConnected"));
+        if (Registered(db, job.Emulator, job.Version!) is not null || System.IO.Path.Exists(InstallPath(home, target, job.Version!)))
+            return (null, ApiError.Of("install.exists", ("version", job.Version!)));
+        return (TaskQueue.Enqueue(db, Kind, JsonSerializer.Serialize(job, Json)), null);
+    }
+
+    /// <summary>Lo instalado con su origen, versión y hash, y dónde está.</summary>
+    public static List<EmulatorInstall> List(Database db)
+    {
+        var onDisk = Recipes.Installed(Disk.ToolRoots(db));
+        using var c = db.Open();
+        return c.Query<EmulatorInstall>("""
+            SELECT i.emulator_id AS EmulatorId, e.name, e.kind, i.version, i.origin, i.url, i.file, i.sha256, i.backup_library_id AS BackupLibraryId,
+                   i.installed_at AS InstalledAt, e.name AS Path
+            FROM emulator_install i JOIN emulator e ON e.id = i.emulator_id ORDER BY e.name, i.installed_at
+            """).Select(i => i with // Path: se reemplaza por la carpeta en disco (la columna solo le da el tipo a Dapper)
+        {
+            Path = onDisk.FirstOrDefault(t => t.Kind == i.Kind && t.Name == i.Name && t.Version == i.Version)?.Path,
+        }).ToList();
+    }
+
+    public static async Task Run(TaskRun run, CancellationToken ct)
+    {
+        var job = JsonSerializer.Deserialize<InstallJob>(run.Data!, Json)!;
+        var version = job.Version!;
+        var target = Resolve(run.Db, job) ?? throw new TaskException(ApiError.Of("install.unknownEmulator"));
+        if (Disk.DefaultDisk(run.Db) is not { Connected: true } home) throw new TaskException(ApiError.Of("library.notConnected"));
+        var install = InstallPath(home, target, version);
+        // Nunca se pisa una versión: ni la registrada (salvo al reinstalarla) ni una carpeta que ya esté ahí.
+        var registered = Registered(run.Db, job.Emulator, version);
+        if ((registered is not null && !job.Reinstall) || System.IO.Path.Exists(install)) throw new TaskException(ApiError.Of("install.exists", ("version", version)));
+        var download = job.Url is null && job.Path is null && !job.Reinstall ? target.Recipe!.Downloads.First(d => d.Version == version && d.System == Os) : null;
+        var origin = job.Path is not null ? (job.Adopt ? "adopted" : "upload") : download is not null ? "recipe" : "url";
+
+        var shelf = ShelfPath(home.Path, target.Kind, job.Emulator, version);
+        var work = System.IO.Path.Combine(home.Path, LibraryFolder, ".trabajo", run.Id.ToString());
+        Directory.CreateDirectory(work);
+        try
+        {
+            string stored, sha;
+            if (job.Reinstall)
+            {
+                // Desde la librería, sin bajar nada, y solo si sigue siendo el mismo archivo.
+                run.Report(10, ApiError.Of("install.library"));
+                stored = System.IO.Path.Combine(shelf, registered?.File ?? throw new TaskException(ApiError.Of("install.notInstalled")));
+                if (!File.Exists(stored)) throw new TaskException(ApiError.Of("install.notInLibrary", ("version", version)));
+                sha = await Sha256(stored, ct);
+                if (sha != registered.Sha256) throw new TaskException(ApiError.Of("install.badHash", ("version", version)));
+            }
+            else
+            {
+                // 1. El archivo original: primero la librería (decisión 292); si no está, la descarga, el zip o la carpeta hecha zip.
+                run.Report(5, ApiError.Of("install.fetching", ("version", version)));
+                string original;
+                if (Directory.Exists(shelf) && Directory.GetFiles(shelf) is [var kept]) original = kept;
+                else if (job.Path is { } path)
+                {
+                    original = System.IO.Path.Combine(work, File.Exists(path) ? System.IO.Path.GetFileName(path) : $"{target.Name}-{version}.zip");
+                    if (File.Exists(path)) File.Copy(path, original, overwrite: true);
+                    else ZipFile.CreateFromDirectory(path, original);
+                }
+                else original = await Download(job.Url ?? download!.Url, work, ct);
+
+                // 2. Hash: el de la receta tiene que coincidir.
+                sha = await Sha256(original, ct);
+                if (download is not null && !MatchesSri(sha, download.Hash))
+                    throw new TaskException(ApiError.Of("install.badHash", ("version", version)));
+
+                // 3. A la librería del ★: copiar, verificar y recién usarla.
+                run.Report(40, ApiError.Of("install.library"));
+                stored = Store(original, shelf);
+            }
+
+            // 4. A su carpeta: se extrae al lado y se renombra, así un corte no deja una versión a medias.
+            run.Report(60, ApiError.Of("install.extracting", ("path", install)));
+            var partial = install + ".parcial";
+            if (Directory.Exists(partial)) Directory.Delete(partial, recursive: true);
+            if (Archives.IsArchive(stored))
+            {
+                if (Archives.Extract(stored, partial, [], ct) is { } error) throw new TaskException(error);
+                // Una release que trae todo dentro de una carpeta: se usa esa carpeta.
+                if (Directory.GetFiles(partial).Length == 0 && Directory.GetDirectories(partial) is [var only])
+                {
+                    Directory.Move(only, partial + ".x");
+                    Directory.Delete(partial);
+                    Directory.Move(partial + ".x", partial);
+                }
+            }
+            else
+            {
+                Directory.CreateDirectory(partial);
+                File.Copy(stored, System.IO.Path.Combine(partial, System.IO.Path.GetFileName(stored)));
+            }
+            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(install)!);
+            Directory.Move(partial, install);
+            if (target.Recipe is { } recipe)
+            {
+                Recipes.MakePortable(recipe, install);
+                ShareSaves(recipe, install, version);
+            }
+
+            if (!job.Reinstall)
+            {
+                Profiles.AddEmulator(run.Db, job.Emulator, target.Kind, target.Name);
+                using (var c = run.Db.Open())
+                    c.Execute("""
+                        INSERT INTO emulator_install (emulator_id, version, origin, url, file, sha256, installed_at)
+                        VALUES (@Emulator, @version, @origin, @url, @file, @sha, @now)
+                        """, new { job.Emulator, version, origin, url = job.Url ?? download?.Url, file = System.IO.Path.GetFileName(stored), sha, now = DateTime.UtcNow.ToString("O") });
+                // 5. La segunda copia va aparte, al disco elegido; si no está, queda pendiente y se copia al conectarlo.
+                if (EnqueueBackupIfPending(run.Db) is null)
+                    run.Log(ApiError.Of(BackupDisk(run.Db) is null ? "install.log.noBackupDisk" : "install.log.backupPending"), "warn");
+            }
+            run.Log(ApiError.Of("install.log.done", ("name", target.Name), ("version", version), ("path", install)));
+        }
+        finally
+        {
+            Directory.Delete(work, recursive: true);
+        }
+    }
+
+    /// <summary>Lo común a todas las versiones de un emulador, junto a ellas (decisión 308). Con `_`: no es una versión.</summary>
+    public const string SharedFolder = "_compartido";
+    /// <summary>Las copias puntuales de lo común, antes de que lo use una versión nueva.</summary>
+    public const string SnapshotsFolder = "_respaldos";
+
+    /// <summary>
+    /// Las partidas son de todas las versiones (decisión 308): cada carpeta de partidas de la receta (`saves`) apunta, con un enlace,
+    /// a la misma en `Emuladores\<Emulador>\_compartido`. Antes, si ya hay algo en común, se hace una copia puntual. Nunca se borra
+    /// nada: lo que traiga la versión va a lo común si todavía no existe, y si ya existe queda al lado como `.antes-de-otteretro`.
+    /// </summary>
+    /// <remarks>ponytail: solo las carpetas `saves` de la receta; el contenido instalado (UPD, DLC) se suma cuando las recetas lo
+    /// describan (#273). Mover una versión a otro disco deja su enlace apuntando a lo común del disco de origen.</remarks>
+    public static void ShareSaves(Recipe recipe, string install, string version)
+    {
+        // Ya enlazada (se repite): no es una versión nueva para lo común.
+        if (recipe.Saves.All(save => Links.IsLink(System.IO.Path.Combine(install, save)))) return;
+        var root = System.IO.Path.GetDirectoryName(install)!;
+        var shared = System.IO.Path.Combine(root, SharedFolder);
+        if (Directory.Exists(shared) && Directory.EnumerateFiles(shared, "*", SearchOption.AllDirectories).Any())
+            Snapshot(shared, System.IO.Path.Combine(root, SnapshotsFolder, $"{DateTime.Now:yyyy-MM-dd-HHmmss}-antes-de-{version}"));
+        foreach (var save in recipe.Saves)
+        {
+            var inside = System.IO.Path.Combine(install, save);
+            var common = System.IO.Path.Combine(shared, save);
+            if (!Links.IsLink(inside) && Directory.Exists(inside))
+            {
+                if (!Directory.EnumerateFileSystemEntries(inside).Any()) Directory.Delete(inside);
+                else if (!Directory.Exists(common))
+                {
+                    Directory.CreateDirectory(System.IO.Path.GetDirectoryName(common)!);
+                    Directory.Move(inside, common); // la misma carpeta del emulador: se renombra
+                }
+                else Directory.Move(inside, inside + ".antes-de-otteretro");
+            }
+            Directory.CreateDirectory(common);
+            Links.Point(inside, common);
+        }
+    }
+
+    /// <summary>Copia toda la carpeta, forzando la escritura y verificando cada archivo.</summary>
+    static void Snapshot(string from, string to)
+    {
+        foreach (var file in Directory.EnumerateFiles(from, "*", SearchOption.AllDirectories))
+        {
+            var target = System.IO.Path.Combine(to, System.IO.Path.GetRelativePath(from, file));
+            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(target)!);
+            File.Copy(file, target);
+            FolderMove.FlushToDisk(target);
+            if (!FolderMove.SameContent(file, target)) throw new TaskException(ApiError.Of("move.copyMismatch", ("path", from), ("detail", file)));
+        }
+    }
+
+    /// <summary>El disco elegido para la segunda copia (decisión 303).</summary>
+    public static string? BackupDisk(Database db)
+    {
+        using var c = db.Open();
+        return c.ExecuteScalar<string?>("SELECT value FROM setting WHERE machine_id = '' AND name = @BackupSetting", new { BackupSetting });
+    }
+
+    public static LibraryBackup Backup(Database db)
+    {
+        var disk = BackupDisk(db);
+        using var c = db.Open();
+        return new(disk, c.ExecuteScalar<int>("SELECT count(*) FROM emulator_install WHERE backup_library_id IS NOT @disk", new { disk }));
+    }
+
+    /// <summary>Elige el disco de la segunda copia (null: ninguno) y, si le falta algo, lo copia. No puede ser el ★.</summary>
+    public static ApiError? SetBackupDisk(Database db, string? disk)
+    {
+        if (disk is not null)
+        {
+            if (Disk.Get(db, disk) is not { Type: "disk" } chosen) return ApiError.Of("library.notFound");
+            if (chosen.Default) return ApiError.Of("install.backupIsDefault");
+        }
+        using (var c = db.Open())
+            if (disk is null) c.Execute("DELETE FROM setting WHERE machine_id = '' AND name = @BackupSetting", new { BackupSetting });
+            else c.Execute("INSERT INTO setting (machine_id, name, value) VALUES ('', @BackupSetting, @disk) ON CONFLICT (name, machine_id) DO UPDATE SET value = excluded.value",
+                new { BackupSetting, disk });
+        EnqueueBackupIfPending(db);
+        return null;
+    }
+
+    /// <summary>
+    /// Si a la segunda copia le falta algo y su disco está conectado, encola copiarlo (salvo que ya esté en la cola). Devuelve la
+    /// tarea, o null si no hay nada que copiar o el disco no está. La cola lo mira cada tanto: así se copia sola al conectar el disco.
+    /// </summary>
+    public static long? EnqueueBackupIfPending(Database db)
+    {
+        if (BackupDisk(db) is not { } disk) return null;
+        using (var c = db.Open())
+        {
+            if (c.ExecuteScalar<long>("SELECT count(*) FROM emulator_install WHERE backup_library_id IS NOT @disk", new { disk }) == 0) return null;
+            if (c.ExecuteScalar<long?>("SELECT id FROM task WHERE kind = @BackupKind AND status IN ('queued', 'running') LIMIT 1", new { BackupKind }) is { } waiting)
+                return waiting;
+        }
+        if (Disk.Get(db, disk) is not { Connected: true, Default: false }) return null;
+        return TaskQueue.Enqueue(db, BackupKind);
+    }
+
+    /// <summary>Copia a la librería del disco elegido, verificado, lo que todavía no tiene. Nunca borra la copia de un disco anterior.</summary>
+    public static Task RunBackup(TaskRun run, CancellationToken ct)
+    {
+        if (Disk.DefaultDisk(run.Db) is not { Connected: true } home || BackupDisk(run.Db) is not { } id
+            || Disk.Get(run.Db, id) is not { Connected: true, Default: false } other) throw new TaskException(ApiError.Of("library.notConnected"));
+        using var c = run.Db.Open();
+        var pending = c.Query<(string Emulator, string Version, string Kind, string? File)>("""
+            SELECT i.emulator_id, i.version, e.kind, i.file FROM emulator_install i JOIN emulator e ON e.id = i.emulator_id
+            WHERE i.backup_library_id IS NOT @id
+            """, new { id }).ToList();
+        for (var i = 0; i < pending.Count; i++)
+        {
+            ct.ThrowIfCancellationRequested();
+            var (emulator, version, kind, file) = pending[i];
+            run.Report(i * 100 / pending.Count, ApiError.Of("install.backup"));
+            var original = System.IO.Path.Combine(ShelfPath(home.Path, kind, emulator, version), file ?? "");
+            if (file is null || !File.Exists(original))
+            {
+                run.Log(ApiError.Of("install.notInLibrary", ("version", $"{emulator} {version}")), "warn");
+                continue;
+            }
+            Store(original, ShelfPath(other.Path, kind, emulator, version));
+            c.Execute("UPDATE emulator_install SET backup_library_id = @id WHERE emulator_id = @emulator AND version = @version", new { id, emulator, version });
+        }
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Copia <paramref name="file"/> a la carpeta <paramref name="shelf"/> de la librería, fuerza la escritura y la verifica. Si ya hay
+    /// un archivo ahí, tiene que ser el mismo: la librería nunca se pisa. Devuelve la ruta en la librería.
+    /// </summary>
+    public static string Store(string file, string shelf)
+    {
+        var to = System.IO.Path.Combine(shelf, System.IO.Path.GetFileName(file));
+        if (Disk.Same(file, to)) return to;
+        if (Directory.Exists(shelf) && Directory.GetFiles(shelf) is { Length: > 0 } there)
+        {
+            if (there is [var same] && Disk.Same(same, to) && FolderMove.SameContent(file, to)) return to;
+            throw new TaskException(ApiError.Of("install.libraryTaken", ("path", shelf)));
+        }
+        Directory.CreateDirectory(shelf);
+        File.Copy(file, to + ".tmp", overwrite: true);
+        FolderMove.FlushToDisk(to + ".tmp");
+        if (!FolderMove.SameContent(file, to + ".tmp"))
+        {
+            File.Delete(to + ".tmp");
+            throw new TaskException(ApiError.Of("move.copyMismatch", ("path", file), ("detail", System.IO.Path.GetFileName(file))));
+        }
+        File.Move(to + ".tmp", to);
+        return to;
+    }
+
+    /// <summary>El SHA-256 en hexadecimal contra el hash SRI de la receta (`sha256-` y base64, como Nix).</summary>
+    public static bool MatchesSri(string sha256Hex, string sri) => "sha256-" + Convert.ToBase64String(Convert.FromHexString(sha256Hex)) == sri;
+
+    static async Task<string> Sha256(string file, CancellationToken ct)
+    {
+        await using var stream = File.OpenRead(file);
+        return Convert.ToHexStringLower(await SHA256.HashDataAsync(stream, ct));
+    }
+
+    static async Task<string> Download(string url, string folder, CancellationToken ct)
+    {
+        using var http = Handler is null ? new HttpClient() : new HttpClient(Handler, disposeHandler: false);
+        http.Timeout = TimeSpan.FromMinutes(30);
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("Otteretro");
+        using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
+        response.EnsureSuccessStatusCode();
+        var name = System.IO.Path.GetFileName(Uri.UnescapeDataString(new Uri(url).AbsolutePath));
+        var file = System.IO.Path.Combine(folder, BadName(name) ? "descarga" : name);
+        await using (var output = File.Create(file)) await response.Content.CopyToAsync(output, ct);
+        FolderMove.FlushToDisk(file);
+        return file;
+    }
+}
