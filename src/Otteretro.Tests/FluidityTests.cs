@@ -86,7 +86,7 @@ public class FluidityTests(ITestOutputHelper output) : IAsyncLifetime
         "/api/sagas", "/api/sagas?sort=recognized", "/api/sagas?filter=owned", "/api/sagas?filter=exclusive&company=Nintendo",
         "/api/sagas?platform=switch", "/api/consoles",
         "/api/sagas/1", "/api/sagas/1/routes", "/api/sagas/0", "/api/sagas/0/games?offset=600",
-        "/api/games/1", "/api/games/1/compare",
+        "/api/games/1", "/api/games/1/compare", "/api/versions/1/license",
         "/api/collection/pc", "/api/collection/pc?filter=owned", "/api/collection/switch?filter=missing&sort=name",
         "/api/search?q=juego%2012",
         "/api/data-folder", "/api/locations", "/api/tools", "/api/tools/updates", "/api/system", "/api/downloads", "/api/credentials", "/api/consoles/settings", "/api/claude", "/api/emulators", "/api/library/backup",

@@ -77,10 +77,13 @@ public static class Content
         Installs.ShareSaves(recipe, install, target.EmulatorVersion);
         var disks = Disk.List(db).Where(d => d.Connected).ToDictionary(d => d.Id, d => d.Path);
         using var c = db.Open();
-        var files = c.Query<(long Id, string LibraryId, string Relative, string? Component)>(
-                "SELECT id, library_id, relative_path, component FROM source WHERE kind = 'file' AND version_id = @version ORDER BY relative_path", new { version })
-            .Where(f => disks.ContainsKey(f.LibraryId)).Select(f => (f.Id, Path: System.IO.Path.Combine(disks[f.LibraryId], f.Relative), f.Component))
-            .Where(f => File.Exists(f.Path)).ToList();
+        // Wii U (decisión 295): sus UPD y DLC son carpetas (`meta\meta.xml`) que el escaneo cuenta como juego; los distingue su TitleID.
+        var files = c.Query<(long Id, string LibraryId, string Relative, string? Component, string? TitleId)>(
+                "SELECT id, library_id, relative_path, component, title_id FROM source WHERE kind = 'file' AND version_id = @version ORDER BY relative_path", new { version })
+            .Where(f => disks.ContainsKey(f.LibraryId))
+            .Select(f => (f.Id, Path: System.IO.Path.Combine(disks[f.LibraryId], f.Relative), Component: target.Console == "wiiu" ? WiiUComponent(f.TitleId) : f.Component))
+            .Where(f => System.IO.Path.Exists(f.Path)).ToList();
+        var zrif = c.ExecuteScalar<string?>("SELECT zrif FROM version_license WHERE version_id = @version", new { version });
         var steps = new List<ContentStep>();
         var pointed = new List<string>();
         foreach (var (id, file, component) in files)
@@ -100,10 +103,10 @@ public static class Content
                 steps.Add(new("pointed", file));
             }
             else if (installer is null) steps.Add(new("manual", file));
-            else if (installer.Args.Any(a => a.Contains("{zrif}"))) steps.Add(new("license", file)); // ponytail: sin dónde guardar zRIF, aviso
+            else if (zrif is null && installer.Args.Any(a => a.Contains("{zrif}"))) steps.Add(new("license", file)); // Vita sin la licencia de la ficha
             else if (c.ExecuteScalar<long>("SELECT count(*) FROM content_install WHERE emulator_id = @Id AND source_id = @id", new { recipe.Id, id }) > 0)
                 steps.Add(new("already", file));
-            else if (Execute(System.IO.Path.Combine(install, recipe.Detect), installer.Args.Select(a => a.Replace("{file}", file)).ToList(), install) == 0)
+            else if (Execute(System.IO.Path.Combine(install, recipe.Detect), installer.Args.Select(a => a.Replace("{file}", file).Replace("{zrif}", zrif)).ToList(), install) == 0)
             {
                 c.Execute("INSERT INTO content_install (emulator_id, source_id, installed_at) VALUES (@Id, @id, @now)", new { recipe.Id, id, now = DateTime.UtcNow.ToString("O") });
                 steps.Add(new("installed", file));
@@ -113,6 +116,37 @@ public static class Content
         if (pointed.Count > 0)
             foreach (var g in recipe.ContentPaths) AddFolders(System.IO.Path.Combine(install, g.File), g, pointed.Distinct(StringComparer.OrdinalIgnoreCase).ToList());
         return (steps, null);
+    }
+
+    /// <summary>`0005000E…` es una actualización y `0005000C…` un DLC; el resto, la base.</summary>
+    static string WiiUComponent(string? titleId) => titleId?.ToUpperInvariant() switch
+    {
+        { } t when t.StartsWith("0005000E", StringComparison.Ordinal) => "UPD",
+        { } t when t.StartsWith("0005000C", StringComparison.Ordinal) => "DLC",
+        _ => "BASE",
+    };
+
+    /// <summary>La licencia (zRIF) de un juego de Vita, solo en la base privada. Null o vacía la borra.</summary>
+    /// <remarks>ponytail: una por juego; un DLC con su propia licencia se instala a mano.</remarks>
+    public static ApiError? SetLicense(Database db, long version, string? zrif)
+    {
+        zrif = zrif?.Trim();
+        if (!string.IsNullOrEmpty(zrif) && (zrif.Length > 1024 || !Regex.IsMatch(zrif, "^[A-Za-z0-9+/=_-]+$"))) return ApiError.Of("content.badLicense");
+        using var c = db.Open();
+        if (c.ExecuteScalar<string?>("SELECT platform FROM version WHERE id = @version", new { version }) != "vita") return ApiError.Of("content.notVita");
+        if (string.IsNullOrEmpty(zrif)) c.Execute("DELETE FROM version_license WHERE version_id = @version", new { version });
+        else c.Execute("""
+            INSERT INTO version_license (version_id, zrif, updated_at) VALUES (@version, @zrif, @now)
+            ON CONFLICT (version_id) DO UPDATE SET zrif = excluded.zrif, updated_at = excluded.updated_at
+            """, new { version, zrif, now = DateTime.UtcNow.ToString("O") });
+        return null;
+    }
+
+    /// <summary>Si el juego tiene su licencia guardada (la licencia misma no vuelve al front).</summary>
+    public static bool HasLicense(Database db, long version)
+    {
+        using var c = db.Open();
+        return c.ExecuteScalar<long>("SELECT count(*) FROM version_license WHERE version_id = @version", new { version }) > 0;
     }
 
     static int Execute(string exe, List<string> args, string folder)

@@ -122,6 +122,55 @@ public class ContentTests
     }
 
     [Fact]
+    public async Task VitaInstallsThePkgWithTheLicenseFromTheGamePage()
+    {
+        var (f, install) = Setup("vita", "vita3k", "Vita3K", "Vita3K.exe", ("Juego.pkg", null));
+        await using var _ = f;
+        var calls = new List<IReadOnlyList<string>>();
+        Content.Runner = (_, args) =>
+        {
+            calls.Add(args);
+            return 0;
+        };
+        try
+        {
+            // Sin licencia: aviso, y no se ejecuta nada.
+            Assert.Equal("license", Assert.Single(Content.Prepare(f.Db, 21, "vita3k").Steps!).Action);
+            Assert.Empty(calls);
+            Assert.Equal("content.badLicense", Content.SetLicense(f.Db, 21, "no es; una licencia")?.Code);
+            Assert.Null(Content.SetLicense(f.Db, 21, " KO5ifR1dQ+eHBwcHB3ggAA== "));
+            Assert.True(Content.HasLicense(f.Db, 21));
+            Assert.Equal("installed", Assert.Single(Content.Prepare(f.Db, 21, "vita3k").Steps!).Action);
+        }
+        finally { Content.Runner = null; }
+        var pkg = f.Tmp[@"E\Juegos\vita\Age of Calamity\Juego.pkg"];
+        Assert.Equal(["--pkg", pkg, "--zrif", "KO5ifR1dQ+eHBwcHB3ggAA=="], Assert.Single(calls));
+        // Se borra con una vacía, y solo se guarda en juegos de Vita.
+        Assert.Null(Content.SetLicense(f.Db, 21, ""));
+        Assert.False(Content.HasLicense(f.Db, 21));
+        using (var c = f.Db.Open()) c.Execute("UPDATE version SET platform = 'ps3' WHERE id = 21");
+        Assert.Equal("content.notVita", Content.SetLicense(f.Db, 21, "KO5i")?.Code);
+    }
+
+    [Fact]
+    public async Task WiiUWarnsForEachUpdateAndDlc()
+    {
+        var (f, _) = Setup("wiiu", "cemu", "Cemu", "Cemu.exe");
+        await using var __ = f;
+        var disk = Disk.List(f.Db).Single().Id;
+        foreach (var (folder, titleId) in new[] { ("Juego", "00050000101C9500"), ("Juego [UPD]", "0005000E101C9500"), ("Juego [DLC]", "0005000C101C9500") })
+        {
+            var relative = Path.Combine("Juegos", "wiiu", folder);
+            Directory.CreateDirectory(f.Tmp[$@"E\{relative}\meta"]);
+            using var c = f.Db.Open();
+            c.Execute("INSERT INTO source (kind, library_id, relative_path, console, component, title_id, version_id) VALUES ('file', @disk, @relative, 'wiiu', 'BASE', @titleId, 21)",
+                new { disk, relative, titleId });
+        }
+        var steps = Content.Prepare(f.Db, 21, "cemu").Steps!;
+        Assert.Equal([("manual", "Juego [DLC]"), ("manual", "Juego [UPD]")], steps.Select(s => (s.Action, Path.GetFileName(s.File))));
+    }
+
+    [Fact]
     public async Task Ps4OnlyWarnsWhatToInstallInShadPs4()
     {
         var (f, _) = Setup("ps4", "shadps4", "shadPS4", "shadPS4.exe", ("CUSA00001-DLC.pkg", null));

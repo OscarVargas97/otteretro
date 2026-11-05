@@ -583,10 +583,12 @@
         "installed": "Instalado en el emulador: {file}",
         "already": "Ya estaba instalado: {file}",
         "ps4": "Instálalo a mano en shadPS4 (Otteretro no descifra nada): {file}",
-        "license": "Falta su licencia (zRIF): instálalo a mano en el emulador: {file}",
-        "manual": "Este emulador no lo toma solo: instálalo a mano desde su menú: {file}",
+        "license": "Falta su licencia (zRIF): escríbela en la ficha del juego y vuelve a preparar, o instálalo a mano en Vita3K: {file}",
+        "manual": "Este emulador no lo toma solo: instálalo a mano desde su menú (en Cemu, Archivo › Instalar título, actualización o DLC): {file}",
         "failed": "El instalador del emulador falló: instálalo a mano: {file}"
-      }
+      },
+      "badLicense": "Esa licencia no parece un zRIF: copia el texto completo, sin espacios.",
+      "notVita": "La licencia zRIF es solo para juegos de Vita."
     }
   },
   "credentials": {
@@ -945,7 +947,13 @@
       "prepare": "Preparar en el emulador",
       "prepareFor": "Preparar en el emulador ({console})",
       "prepareHelp": "Deja sus actualizaciones y DLC listos en el emulador con el que se juega, sin copiarlos si el emulador lo permite.",
-      "prepareQueued": "Preparando: míralo en el panel de tareas."
+      "prepareQueued": "Preparando: míralo en el panel de tareas.",
+      "license": "Licencia (zRIF) de Vita",
+      "licenseSaved": "Guardada",
+      "licenseMissing": "Falta",
+      "licenseHelp": "Con ella, «Preparar en el emulador» instala el .pkg en Vita3K. Se guarda solo en este equipo: nunca en el catálogo ni en un perfil compartido.",
+      "licenseSave": "Guardar",
+      "licenseDelete": "Borrar"
     },
     "search": {
       "sagas": "Sagas",

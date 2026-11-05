@@ -14,7 +14,7 @@ import { PageSkeleton } from "@/components/Skeleton";
 import { useDescribeError } from "@/lib/i18n";
 import { optimistic } from "@/lib/optimistic";
 import { compareQuery, gameQuery } from "@/lib/queries";
-import type { CapturedLink, FieldRow, GameDetail, ProgressInfo, RoutesPage, VersionCompare } from "@/lib/types";
+import type { CapturedLink, FieldRow, GameDetail, LicenseState, ProgressInfo, RoutesPage, VersionCompare } from "@/lib/types";
 
 const STATUSES = ["pending", "playing", "finished", "completed", "dropped"] as const;
 
@@ -380,6 +380,7 @@ function Files({ gameId, files }: { gameId: number; files: (GameDetail["versions
       {trash.isError && <p className="error small" role="alert">{describe(trash.error)}</p>}
       {verify.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("game.verifyQueued")}</p>}
       {verify.isError && <p className="error small" role="alert">{describe(verify.error)}</p>}
+      {versions.filter(([, platform]) => platform === "vita").map(([version]) => <VitaLicense key={version} version={version} />)}
       {prepare.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("game.prepareQueued")}</p>}
       {prepare.isError && <p className="error small" role="alert">{describe(prepare.error)}</p>}
       {executable.isError && <p className="error small" role="alert">{describe(executable.error)}</p>}
@@ -408,5 +409,37 @@ function Files({ gameId, files }: { gameId: number; files: (GameDetail["versions
         </table>
       </div>
     </section>
+  );
+}
+
+/** La licencia (zRIF) de un juego de Vita (#280): con ella, «Preparar en el emulador» instala su .pkg en Vita3K. Solo en tu base privada. */
+function VitaLicense({ version }: { version: number }) {
+  const t = useTranslations("catalog");
+  const describe = useDescribeError();
+  const cache = useQueryClient();
+  const [value, setValue] = useState("");
+  const key = ["version-license", version];
+  const state = useQuery({ queryKey: key, queryFn: () => request<LicenseState>(`/api/versions/${version}/license`) });
+  const save = useMutation({
+    mutationFn: (zrif: string) => request<LicenseState>(`/api/versions/${version}/license`, { method: "PUT", body: JSON.stringify({ zrif }) }),
+    onSuccess: (data) => {
+      setValue("");
+      cache.setQueryData(key, data);
+    },
+  });
+  const id = `zrif-${version}`;
+  return (
+    <form className="form-block" onSubmit={(e) => { e.preventDefault(); save.mutate(value); }}>
+      <label className="small muted" htmlFor={id}>
+        {t("game.license")} {state.data && <span className={state.data.saved ? "ot-badge ot-badge-have" : "ot-badge"}>{state.data.saved ? t("game.licenseSaved") : t("game.licenseMissing")}</span>}
+      </label>
+      <p className="small muted" style={{ margin: 0 }}>{t("game.licenseHelp")}</p>
+      <div style={{ display: "flex", gap: 8 }}>
+        <input id={id} type="password" autoComplete="off" spellCheck={false} value={value} onChange={(e) => setValue(e.target.value)} />
+        <button className="ot-btn ot-btn-sm" type="submit" disabled={!value.trim() || save.isPending}>{t("game.licenseSave")}</button>
+        {state.data?.saved && <button className="ot-btn ot-btn-sm" type="button" disabled={save.isPending} onClick={() => save.mutate("")}>{t("game.licenseDelete")}</button>}
+      </div>
+      {save.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(save.error)}</p>}
+    </form>
   );
 }

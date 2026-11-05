@@ -583,10 +583,12 @@
         "installed": "Installed in the emulator: {file}",
         "already": "Already installed: {file}",
         "ps4": "Install it by hand in shadPS4 (Otteretro decrypts nothing): {file}",
-        "license": "Its license (zRIF) is missing: install it by hand in the emulator: {file}",
-        "manual": "This emulator does not pick it up on its own: install it by hand from its menu: {file}",
+        "license": "Its license (zRIF) is missing: type it in the game page and prepare again, or install it by hand in Vita3K: {file}",
+        "manual": "This emulator does not pick it up on its own: install it by hand from its menu (in Cemu, File › Install game title, update or DLC): {file}",
         "failed": "The emulator installer failed: install it by hand: {file}"
-      }
+      },
+      "badLicense": "That license does not look like a zRIF: copy the whole text, without spaces.",
+      "notVita": "The zRIF license is only for Vita games."
     }
   },
   "credentials": {
@@ -945,7 +947,13 @@
       "prepare": "Prepare in the emulator",
       "prepareFor": "Prepare in the emulator ({console})",
       "prepareHelp": "Makes its updates and DLC ready in the emulator you play it with, without copying them when the emulator allows it.",
-      "prepareQueued": "Preparing: follow it in the tasks panel."
+      "prepareQueued": "Preparing: follow it in the tasks panel.",
+      "license": "Vita license (zRIF)",
+      "licenseSaved": "Saved",
+      "licenseMissing": "Missing",
+      "licenseHelp": "With it, «Prepare in the emulator» installs the .pkg in Vita3K. It is kept only on this computer: never in the catalog or in a shared profile.",
+      "licenseSave": "Save",
+      "licenseDelete": "Delete"
     },
     "search": {
       "sagas": "Series",
