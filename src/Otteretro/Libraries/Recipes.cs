@@ -12,6 +12,17 @@ public record PortableStep(string Type, string Path, string? Link = null, string
 public record GamePath(string File, string Format, string Key);
 public record RecipeSetting(string File, string Format, string Key, string Value, string? Section = null);
 public record RecipeDownload(string Version, string System, string Url, string Hash);
+/// <summary>Dónde publica sus versiones (decisión 294). El mismo que trae #278 en ToolUpdates.cs: al fusionar las dos ramas queda uno.</summary>
+public record RecipeUpdates(string Source, string? Repo = null, string? Host = null, bool Dev = false);
+/// <param name="Apply">file, section, swap o argument (ver el esquema).</param>
+public record RecipePerGame(string? Config = null, string? Apply = null)
+{
+    public List<string> Mods { get; init; } = [];
+    public List<string> Args { get; init; } = [];
+}
+public record ContentInstall(List<string> Formats, List<string> Args);
+/// <param name="Name">resolution, renderer, aspectRatio, filter, vsync, speed o anisotropy.</param>
+public record RecipeOption(string Name, string File, string Format, string Key, string? Section = null);
 
 /// <summary>Una receta de `recetas/` (§8.1, F3.3). El esquema está en `recetas/receta.schema.json`.</summary>
 public record Recipe(string Id, string Name, string Kind, string Folder, string Detect)
@@ -28,9 +39,26 @@ public record Recipe(string Id, string Name, string Kind, string Folder, string 
     public List<RecipeSetting> Settings { get; init; } = [];
     public List<string> Formats { get; init; } = [];
     public List<RecipeDownload> Downloads { get; init; } = [];
+    /// <summary>Ids del catálogo de las consolas que corre y de las que es el emulador base (decisiones 286 y 291).</summary>
+    public List<string> Consoles { get; init; } = [];
+    public List<string> BaseFor { get; init; } = [];
+    public string? License { get; init; }
+    public bool Experimental { get; init; }
+    /// <summary>Solo publica versiones de desarrollo: se instala la última con aviso (decisión 292).</summary>
+    public bool DevOnly { get; init; }
+    public RecipeUpdates? Updates { get; init; }
+    /// <summary>Expresión regular del archivo de Windows en cada release de <see cref="Updates"/>.</summary>
+    public string? Asset { get; init; }
+    public RecipePerGame? PerGame { get; init; }
+    /// <summary>Contenido instalado dentro del emulador; como las partidas, lo comparten todas sus versiones.</summary>
+    public List<string> Content { get; init; } = [];
+    public List<ContentInstall> Install { get; init; } = [];
+    public List<RecipeOption> Options { get; init; } = [];
+    /// <summary>Con qué nombre se guarda el archivo bajado cuando no es un zip (un .exe con la versión en el nombre), para que coincida con Detect (#268).</summary>
+    public string? SaveAs { get; init; }
 
     /// <summary>Emuladores, Ports o Complementos: el primer nivel de Herramientas (§5.1). Nombres de carpeta de la persona: en español.</summary>
-    public string Group => Kind switch { "emulator" => "Emuladores", "port" => "Ports", _ => "Complementos" };
+    public string Group => Kind switch { "emulator" => "Emuladores", "port" => "Ports", "tool" => "Herramientas", _ => "Complementos" };
 }
 
 /// <param name="Kind">emulator, port o complement.</param>
@@ -52,7 +80,7 @@ public static class Recipes
         RespectNullableAnnotations = true,
     };
 
-    static readonly string[] Kinds = ["emulator", "port", "complement"];
+    static readonly string[] Kinds = ["emulator", "port", "complement", "tool"];
 
     static List<Recipe>? all;
 
@@ -98,16 +126,17 @@ public static class Recipes
     }
 
     /// <summary>
-    /// Dónde va en Herramientas (§5.1): `Emuladores\<Emulador>\<versión>` y `Ports\<Port>\<versión>`, una carpeta aunque sirva a varias
-    /// consolas (decisión 302); `Complementos\<Emulador o port>\<Complemento>\<versión>`.
+    /// Dónde va (§5.1): `Emuladores\<Emulador>\<versión>` y `Ports\<Port>\<versión>`, una carpeta aunque sirva a varias consolas
+    /// (decisión 302); una herramienta, `Herramientas\<Nombre>\<versión>` (#274); `Complementos\<Emulador o port>\<Complemento>\<versión>`.
     /// </summary>
     public static string Target(string tools, Recipe recipe, string version) => recipe.Kind == "complement"
         ? Path.Combine(tools, recipe.Group, recipe.Folder, recipe.Name, version)
         : Path.Combine(tools, recipe.Group, recipe.Name, version);
 
-    /// <summary>Emuladores, Ports y Complementos de `Herramientas` (§5.1): la primera ubicación de cada tipo (#198).</summary>
+    /// <summary>Emuladores, Ports, Complementos y Herramientas (§5.1): la primera ubicación de cada tipo (#198).</summary>
     public static List<ToolRoot> DefaultRoots(string tools) =>
-        [new("emulator", Path.Combine(tools, "Emuladores")), new("port", Path.Combine(tools, "Ports")), new("complement", Path.Combine(tools, "Complementos"))];
+        [new("emulator", Path.Combine(tools, "Emuladores")), new("port", Path.Combine(tools, "Ports")), new("complement", Path.Combine(tools, "Complementos")),
+         new("tool", Path.Combine(tools, "Herramientas"))];
 
     /// <summary>Lo instalado en Herramientas: tres niveles bajo Emuladores, Ports y Complementos.</summary>
     public static List<ToolInfo> Installed(string tools) => Installed(DefaultRoots(tools));
@@ -119,6 +148,16 @@ public static class Recipes
         foreach (var (kind, root, locationId) in roots)
         {
             if (!Directory.Exists(root)) continue;
+            if (kind == "tool")
+            {
+                // Dos niveles, sin consola. Solo las que tienen receta: en el ★, `Herramientas\` es también la carpeta de antes con
+                // Emuladores, Ports y Complementos adentro (DiskTasks.ToolsOf), hasta que pasa al estándar.
+                foreach (var name in Directory.EnumerateDirectories(root))
+                    if (All.FirstOrDefault(r => r.Kind == kind && r.Name == Path.GetFileName(name)) is { } tool)
+                        foreach (var version in Directory.EnumerateDirectories(name))
+                            list.Add(new(kind, tool.Folder, tool.Name, Path.GetFileName(version), version, tool.Id, null, locationId));
+                continue;
+            }
             foreach (var folder in Directory.EnumerateDirectories(root))
             {
                 var named = kind == "complement" ? null : All.FirstOrDefault(r => r.Kind == kind && r.Name == Path.GetFileName(folder));

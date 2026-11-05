@@ -115,12 +115,86 @@ public class DiskTests
         Assert.True(Disk.List(f.Db).Single().Connected);
     }
 
+    /// <summary>
+    /// Los ids de consola del catálogo (tabla console). Mega Drive y Dreamcast se suman en la administración con el slug de IGDB
+    /// como id (otteretro-catalogo, Consoles.Enable): genesis-slash-megadrive y dc.
+    /// </summary>
+    static readonly string[] CatalogConsoles = ["nes", "gb", "snes", "vb", "n64", "gba", "gc", "ds", "wii", "3ds", "wiiu", "switch", "ps1", "ps2", "psp",
+        "ps3", "vita", "ps4", "ps5", "xbox", "x360", "xone", "xseries", "pc", "switch2", "pcvr", "genesis-slash-megadrive", "dc"];
+
+    static string RecipesFolder()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (!Directory.Exists(Path.Combine(dir.FullName, "recetas"))) dir = dir.Parent!;
+        return Path.Combine(dir.FullName, "recetas");
+    }
+
     [Fact]
     public void LoadsEveryRecipe()
     {
-        Assert.Equal(["dolphin", "dusklight", "dusklight-texturas", "ryujinx-ss4k", "ryujinx-ss4k-pack"], Recipes.All.Select(r => r.Id).Order());
+        var folder = RecipesFolder();
+        var files = Directory.GetFiles(folder, "*.json").Select(Path.GetFileNameWithoutExtension).Where(n => n != "receta.schema").Order();
+        Assert.Equal(files, Recipes.All.Select(r => r.Id).Order());
         foreach (var complement in Recipes.All.Where(r => r.Kind == "complement"))
             Assert.Equal(complement.Folder, Recipes.Find(complement.Parent!)!.Name);
+
+        // El esquema y el record dicen lo mismo: cada propiedad de uno está en el otro.
+        using var schema = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(folder, "receta.schema.json")));
+        var properties = typeof(Recipe).GetProperties().Where(p => p.Name != nameof(Recipe.Group)).Select(p => System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(p.Name)).Order();
+        Assert.Equal(schema.RootElement.GetProperty("properties").EnumerateObject().Select(p => p.Name).Order(), properties);
+    }
+
+    [Fact]
+    public void FindsToolsInHerramientasWithoutConsole()
+    {
+        using var tmp = new TempDir();
+        var srm = Recipes.Find("steam-rom-manager")!;
+        var target = Recipes.Target(tmp.Path, srm, "2.6.2");
+        Assert.Equal(Path.Combine(tmp.Path, "Herramientas", "Steam ROM Manager", "2.6.2"), target);
+        Directory.CreateDirectory(target);
+        // Lo de antes que vive en Herramientas de la carpeta de datos no se toma por una herramienta.
+        Directory.CreateDirectory(Path.Combine(tmp.Path, "Herramientas", "Emuladores", "GameCube", "Dolphin", "2509"));
+
+        var tool = Assert.Single(Recipes.Installed(tmp.Path), t => t.Kind == "tool");
+        Assert.Equal(("steam-rom-manager", "Steam ROM Manager", "2.6.2", target), (tool.RecipeId, tool.Name, tool.Version, tool.Path));
+    }
+
+    /// <summary>Lo que el deserializador no revisa: enums, consolas del catálogo, plantillas y rutas relativas.</summary>
+    [Fact]
+    public void RecipesFollowTheSchemaRules()
+    {
+        string[] placeholders = ["{titleId}", "{serial}", "{crc}", "{gameId}", "{rom}", "{game}", "{config}", "{file}", "{zrif}"];
+        void Relative(string recipe, string path)
+        {
+            Assert.False(Path.IsPathRooted(path) || path.Split('/', '\\').Contains(".."), $"{recipe}: {path}");
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(path, @"\{[^}]*\}"))
+                Assert.Contains(m.Value, placeholders);
+        }
+        foreach (var r in Recipes.All)
+        {
+            Assert.All(r.Consoles, c => Assert.Contains(c, CatalogConsoles));
+            Assert.All(r.BaseFor, c => Assert.Contains(c, r.Consoles));
+            if (r.Asset is not null)
+            {
+                Assert.NotNull(r.Updates);
+                _ = new System.Text.RegularExpressions.Regex(r.Asset);
+            }
+            if (r.Updates is { } u) Assert.Contains(u.Source, new[] { "github", "forgejo", "dolphin" });
+            foreach (var path in r.Saves.Concat(r.Config).Concat(r.Content).Append(r.Detect)) Relative(r.Id, path);
+            if (r.PerGame is { } g)
+            {
+                if (g.Apply is not null) Assert.Contains(g.Apply, new[] { "file", "section", "swap", "argument" });
+                Assert.Equal(g.Apply == "argument", g.Args.Count > 0);
+                foreach (var path in g.Mods.Concat(g.Args).Concat(g.Config is null ? [] : [g.Config])) Relative(r.Id, path);
+            }
+            Assert.All(r.Install, i => Assert.Contains("{file}", i.Args));
+            foreach (var o in r.Options)
+            {
+                Assert.Contains(o.Name, new[] { "resolution", "renderer", "aspectRatio", "filter", "vsync", "speed", "anisotropy" });
+                Assert.Contains(o.Format, new[] { "ini", "json", "toml", "yml", "cfg" });
+                Relative(r.Id, o.File);
+            }
+        }
     }
 
     [Fact]
