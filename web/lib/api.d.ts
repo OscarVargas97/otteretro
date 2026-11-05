@@ -2645,6 +2645,225 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/games/{id}/profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VersionProfiles"][];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateProfileRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": number | string;
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/profiles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ProfileRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/versions/{id}/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ActiveProfileRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProfileSwitch"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/search": {
         parameters: {
             query?: never;
@@ -4408,6 +4627,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/recipes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RecipeSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recipes/{id}/releases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RecipeRelease"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/emulators/reinstall": {
         parameters: {
             query?: never;
@@ -5176,6 +5483,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ActiveProfileRequest: {
+            /** Format: int64 */
+            profileId: null | number | string;
+            saveUser?: null | string;
+        };
         AdoptResult: {
             id: string;
             /** Format: int64 */
@@ -5322,6 +5634,16 @@ export interface components {
         };
         ConvertRequest: {
             console: string;
+        };
+        CreateProfileRequest: {
+            /** Format: int64 */
+            versionId: number | string;
+            emulator: string;
+            name: string;
+            /** @default empty */
+            from: string;
+            /** Format: int64 */
+            copy?: null | number | string;
         };
         CredentialRequest: {
             value: string;
@@ -5640,6 +5962,34 @@ export interface components {
         PreviewRequest: {
             path: string;
         };
+        ProfileEmulator: {
+            id: string;
+            name: string;
+            kind: string;
+            base: boolean;
+            /** Format: int64 */
+            defaultProfileId: number | string;
+            defaultName: string;
+            versions: string[];
+        };
+        ProfileRequest: {
+            name: string;
+            /** Format: int64 */
+            sourceId: null | number | string;
+        };
+        ProfileRow: {
+            /** Format: int64 */
+            id: number | string;
+            emulatorId: string;
+            emulatorVersion: null | string;
+            name: string;
+            /** Format: int64 */
+            sourceId: null | number | string;
+            active: boolean;
+        };
+        ProfileSwitch: {
+            saves: null | components["schemas"]["SaveNotice"];
+        };
         ProgressInfo: {
             status: string;
             startedAt: null | string;
@@ -5652,6 +6002,20 @@ export interface components {
         QueueLinksRequest: {
             packages: string[];
             diskId: null | string;
+        };
+        RecipeRelease: {
+            version: string;
+            channel: string;
+            publishedAt: null | string;
+            url: null | string;
+            download: string;
+        };
+        RecipeSummary: {
+            id: string;
+            name: string;
+            kind: string;
+            experimental: boolean;
+            releases: boolean;
         };
         RecognizeRequest: {
             useClaude: boolean;
@@ -5683,6 +6047,13 @@ export interface components {
         };
         ReviewPage: {
             files: components["schemas"]["FileReview"][];
+        };
+        RomEntry: {
+            /** Format: int64 */
+            id: number | string;
+            path: string;
+            modified: boolean;
+            label: null | string;
         };
         RouteInfo: {
             /** Format: int64 */
@@ -5748,6 +6119,11 @@ export interface components {
             items: components["schemas"]["SagaCard"][];
             /** Format: int32 */
             total: number | string;
+        };
+        SaveNotice: {
+            code: string;
+            backup?: null | string;
+            users?: null | string[];
         };
         SearchResults: {
             sagas: components["schemas"]["SagaCard"][];
@@ -5830,6 +6206,7 @@ export interface components {
             publishedAt: null | string;
             installed: string[];
             games: string[];
+            download: null | string;
         };
         TrashRequest: {
             ids: (number | string)[];
@@ -5882,6 +6259,14 @@ export interface components {
                 [key: string]: number | string;
             };
             changes: components["schemas"]["VersionChange"][];
+        };
+        VersionProfiles: {
+            /** Format: int64 */
+            versionId: number | string;
+            platform: string;
+            emulators: components["schemas"]["ProfileEmulator"][];
+            profiles: components["schemas"]["ProfileRow"][];
+            roms: components["schemas"]["RomEntry"][];
         };
         VersionRow: {
             /** Format: int64 */

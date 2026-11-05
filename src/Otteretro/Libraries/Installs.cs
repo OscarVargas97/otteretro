@@ -194,8 +194,9 @@ public static class Installs
             }
             else
             {
+                // Un .exe con la versión en el nombre (Steam ROM Manager) va con el nombre que busca la receta (`saveAs`, #274).
                 Directory.CreateDirectory(partial);
-                File.Copy(stored, System.IO.Path.Combine(partial, System.IO.Path.GetFileName(stored)));
+                File.Copy(stored, System.IO.Path.Combine(partial, target.Recipe?.SaveAs ?? System.IO.Path.GetFileName(stored)));
             }
             Directory.CreateDirectory(System.IO.Path.GetDirectoryName(install)!);
             Directory.Move(partial, install);

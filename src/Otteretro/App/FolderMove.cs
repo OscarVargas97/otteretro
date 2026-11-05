@@ -25,6 +25,9 @@ public sealed class FolderMoveService(AppSession session, Events events)
             source = current;
             var error = FolderMove.Validate(source, destination);
             if (error is not null) return error;
+            // `Herramientas` no se muda con los datos (decisión 311): lo de la estructura de antes (#204) tiene que pasar antes al estándar,
+            // o quedaría en el disco viejo sin que nadie lo busque.
+            if (Libraries.Recipes.Installed(Path.Combine(source, Libraries.Disk.DiskFolders["tool"])).Count > 0) return ApiError.Of("move.toolsNotStandard");
             destination = Path.TrimEndingDirectorySeparator(Path.GetFullPath(destination));
             Set(new("preparing", 0, 0, true, destination, null, null));
         }

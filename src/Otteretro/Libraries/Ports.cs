@@ -162,8 +162,8 @@ public static class Ports
     /// ya tenga otros (si ya tiene el del port, no se repite). Un port 100 % jugable queda como el activo, salvo que esa versión ya tenga
     /// uno propio activo: ese no se cambia.
     /// </summary>
-    /// <remarks>Activa con <see cref="Profiles.Activate"/>, que solo lo marca en la base. Al fusionar #297 (#269), pasar a su activación
-    /// que guarda y carga los archivos del perfil.</remarks>
+    /// <remarks>Activa con <see cref="Profiles.Switch"/> (#269): guarda el perfil que estaba y carga el del port. Si no se puede hacer
+    /// entero (o hay que elegir el usuario de consola de las partidas), el del port queda creado pero inactivo, y se activa desde la ficha.</remarks>
     public static void AddProfiles(Database db, long portId, string emulator, string name)
     {
         List<(long Version, bool Activate)> versions;
@@ -176,7 +176,7 @@ public static class Ports
         foreach (var (version, activate) in versions)
         {
             var profile = Profiles.Add(db, version, emulator, name);
-            if (activate) Profiles.Activate(db, profile);
+            if (activate) Profiles.Switch(db, version, profile);
         }
     }
 }

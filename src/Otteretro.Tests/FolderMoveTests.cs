@@ -6,7 +6,7 @@ namespace Otteretro.Tests;
 
 public class FolderMoveTests
 {
-    /// <summary>Una carpeta de datos con base de datos real y un archivo en Herramientas.</summary>
+    /// <summary>Una carpeta de datos con base de datos real y un archivo en su librería.</summary>
     static string CreateFolder(TempDir tmp)
     {
         var source = tmp["origen"];
@@ -14,8 +14,8 @@ public class FolderMoveTests
         var db = DataFolder.Open(source);
         Migrations.Apply(db);
         Migrations.RegisterMachine(db, "pc-prueba");
-        Directory.CreateDirectory(Path.Combine(source, "Herramientas"));
-        File.WriteAllBytes(Path.Combine(source, "Herramientas", "emulador.bin"), Enumerable.Range(0, 100_000).Select(i => (byte)i).ToArray());
+        Directory.CreateDirectory(Path.Combine(source, "Libreria"));
+        File.WriteAllBytes(Path.Combine(source, "Libreria", "emulador.bin"), Enumerable.Range(0, 100_000).Select(i => (byte)i).ToArray());
         return source;
     }
 
@@ -32,8 +32,8 @@ public class FolderMoveTests
         Assert.Contains("copying", steps);
         Assert.Contains("verifying", steps);
         Assert.True(DataFolder.IsReady(destination));
-        Assert.Equal(File.ReadAllBytes(Path.Combine(source, "Herramientas", "emulador.bin")),
-                     File.ReadAllBytes(Path.Combine(destination, "Herramientas", "emulador.bin")));
+        Assert.Equal(File.ReadAllBytes(Path.Combine(source, "Libreria", "emulador.bin")),
+                     File.ReadAllBytes(Path.Combine(destination, "Libreria", "emulador.bin")));
         using (var c = DataFolder.Open(destination).Open())
             Assert.Equal("pc-prueba", c.ExecuteScalar<string>("SELECT id FROM machine"));
         Assert.True(Directory.Exists(source)); // el origen no se toca hasta DeleteSource
@@ -142,17 +142,42 @@ public class FolderMoveTests
         File.WriteAllText(Path.Combine(Directory.CreateDirectory(Path.Combine(source, @"Juegos\Switch")).FullName, "zelda.nsp"), "juego");
         var other = tmp["otro-disco"];
         File.WriteAllText(Path.Combine(Directory.CreateDirectory(Path.Combine(other, @"Juegos\GBA")).FullName, "metroid.gba"), "otro");
+        // `Herramientas` es una carpeta del disco, como Juegos (decisión 311): no es dato, ni en el origen ni en el destino.
+        File.WriteAllText(Path.Combine(Directory.CreateDirectory(Path.Combine(source, @"Herramientas\Steam ROM Manager\2.6.2")).FullName, "srm.exe"), "srm");
+        File.WriteAllText(Path.Combine(Directory.CreateDirectory(Path.Combine(other, @"Herramientas\Steam ROM Manager\2.6.1")).FullName, "srm.exe"), "otro");
         Assert.Null(FolderMove.Validate(source, other));
 
         FolderMove.CopyAndVerify(source, other, _ => { }, forceCopy: copy);
         Assert.Null(FolderMove.DeleteSource(source));
 
         Assert.True(DataFolder.IsReady(other));
-        Assert.True(File.Exists(Path.Combine(other, @"Herramientas\emulador.bin")));
+        Assert.True(File.Exists(Path.Combine(other, @"Libreria\emulador.bin")));
+        Assert.True(File.Exists(Path.Combine(source, @"Herramientas\Steam ROM Manager\2.6.2\srm.exe")));
+        Assert.False(Directory.Exists(Path.Combine(other, @"Herramientas\Steam ROM Manager\2.6.2")));
+        Assert.Equal("otro", File.ReadAllText(Path.Combine(other, @"Herramientas\Steam ROM Manager\2.6.1\srm.exe")));
         Assert.True(File.Exists(Path.Combine(source, @"Juegos\Switch\zelda.nsp")));
         Assert.False(Directory.Exists(Path.Combine(source, "data")));
         Assert.False(Directory.Exists(Path.Combine(other, @"Juegos\Switch")));
         Assert.True(File.Exists(Path.Combine(other, @"Juegos\GBA\metroid.gba")));
         Assert.Equal(0, FolderMove.Size(source));
+    }
+
+    /// <summary>
+    /// Con la estructura de antes (`Herramientas\Emuladores\…` en la carpeta de datos, #204) no se mueven los datos: esos emuladores
+    /// se quedarían en el disco viejo sin pasar al estándar. Se pide «Pasar al estándar» primero (#219).
+    /// </summary>
+    [Fact]
+    public void OldToolsLayoutMustBeStandardBeforeMovingTheData()
+    {
+        using var tmp = new TempDir();
+        var source = CreateFolder(tmp);
+        Directory.CreateDirectory(Path.Combine(source, @"Herramientas\Emuladores\Switch\Eden\0.1"));
+        File.WriteAllText(Path.Combine(source, @"Herramientas\Emuladores\Switch\Eden\0.1\eden.exe"), "");
+        using var events = new Otteretro.Api.Events();
+        var service = new FolderMoveService(new AppSession(new AppConfig { DataFolder = source }, tmp["config.json"], "clave"), events);
+
+        Assert.Equal("move.toolsNotStandard", service.Start(tmp["destino"])?.Code);
+        Assert.False(service.State.Running);
+        Assert.False(Directory.Exists(tmp["destino"]));
     }
 }
