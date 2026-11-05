@@ -62,10 +62,10 @@ public class ConverterTests : IAsyncDisposable
         var sha1 = Convert.ToHexString(SHA1.HashData("disco"u8));
         Row(@"Juegos\GameCube\TP\tp.iso", "gc", sha1, true);
         var install = Path.Combine(f.Session.Config.DataFolder!, @"Herramientas\Ports\GameCube\Dusklight\1.0");
-        Directory.CreateDirectory(Path.Combine(install, "Datos"));
+        Directory.CreateDirectory(Path.Combine(install, "data"));
         File.WriteAllText(Path.Combine(install, "dusklight.exe"), "");
         var iso = f.Tmp[@"Otteretro\Juegos\GameCube\TP\tp.iso"];
-        File.WriteAllText(Path.Combine(install, @"Datos\config.json"), $$"""{ "backend.isoPath": {{System.Text.Json.JsonSerializer.Serialize(iso)}} }""");
+        File.WriteAllText(Path.Combine(install, @"data\config.json"), $$"""{ "backend.isoPath": {{System.Text.Json.JsonSerializer.Serialize(iso)}} }""");
 
         Assert.Equal("done", (await f.Run(Converter.Enqueue(f.Db, "gc").Task!.Value)).Status);
 
@@ -74,7 +74,7 @@ public class ConverterTests : IAsyncDisposable
         Assert.False(File.Exists(iso));
         using var c = f.Db.Open();
         Assert.Equal((@"Juegos\GameCube\TP\tp.rvz", sha1, true), c.QuerySingle<(string, string, bool)>("SELECT relative_path, sha1, verified FROM source"));
-        Assert.Contains("tp.rvz", File.ReadAllText(Path.Combine(install, @"Datos\config.json"))); // Dusklight apunta al archivo nuevo
+        Assert.Contains("tp.rvz", File.ReadAllText(Path.Combine(install, @"data\config.json"))); // Dusklight apunta al archivo nuevo
         Assert.Equal(["convert", "verify"], calls.Select(x => x[0]));
     }
 

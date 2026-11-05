@@ -441,6 +441,7 @@
       "log": {
         "moved": "Movida {from} a {to}; {paths} rutas de emuladores al día.",
         "tool": "{name} quedó en {path}.",
+        "updated": "{name} pasó a la estructura de su receta actual, en {path}.",
         "notEmpty": "{path} no quedó vacía y no se borró: revisa qué tiene.",
         "skipped": "{name} está desconectada: no se pasó al estándar."
       },

@@ -117,7 +117,7 @@ public class InstallsTests
             File.WriteAllText(tmp[exe], "");
         }
         var found = Recipes.Installed(tmp.Path).Select(t => (t.Folder, t.Name, t.Version, t.RecipeId)).ToList();
-        Assert.Equal([("GameCube", "Dolphin", "2506", "dolphin"), ("", "Eden", "0.1", null), ("Switch", "Viejo", "1.0", null)], found.OrderBy(t => t.Name));
+        Assert.Equal([("GameCube", "Dolphin", "2506", "dolphin"), ("Switch", "Eden", "0.1", "eden"), ("Switch", "Viejo", "1.0", null)], found.OrderBy(t => t.Name)); // Eden ya tiene receta (#273)
     }
 
     [Fact]

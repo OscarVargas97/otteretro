@@ -7,22 +7,37 @@ using System.Text.RegularExpressions;
 namespace Otteretro.Libraries;
 
 public record RecipeVersion(string From, string? Value = null);
-/// <param name="Type">file, folder o junction.</param>
-public record PortableStep(string Type, string Path, string? Link = null, string? System = null);
+/// <param name="Type">file, folder, junction o rename (<paramref name="From"/> pasa a <paramref name="Path"/>).</param>
+public record PortableStep(string Type, string Path, string? Link = null, string? System = null, string? From = null);
 public record GamePath(string File, string Format, string Key);
 public record RecipeSetting(string File, string Format, string Key, string Value, string? Section = null);
 public record RecipeDownload(string Version, string System, string Url, string Hash);
 /// <summary>Dónde publica sus versiones (decisión 294). El mismo que trae #278 en ToolUpdates.cs: al fusionar las dos ramas queda uno.</summary>
-public record RecipeUpdates(string Source, string? Repo = null, string? Host = null, bool Dev = false);
+/// <param name="DevRepo">Las versiones de desarrollo en otro repo del mismo servidor (Ryubing Canary); se piden a mano si no hay <paramref name="Dev"/>.</param>
+/// <param name="DevPattern">Tags que cuentan como de desarrollo aunque no sean prerelease (Eden: -rc).</param>
+public record RecipeUpdates(string Source, string? Repo = null, string? Host = null, bool Dev = false, string? DevRepo = null, string? DevPattern = null);
 /// <param name="Apply">file, section, swap o argument (ver el esquema).</param>
 public record RecipePerGame(string? Config = null, string? Apply = null)
 {
     public List<string> Mods { get; init; } = [];
     public List<string> Args { get; init; } = [];
+    /// <summary>{titleId} en mayúsculas (Eden) o en minúsculas (Ryubing), como lo escribe el emulador (#273).</summary>
+    public string? IdCase { get; init; }
+    /// <summary>La configuración del juego es una copia completa de la global (Ryubing): se crea desde ella, no vacía.</summary>
+    public bool Full { get; init; }
+    /// <summary>Otros archivos del juego que van con el perfil (mods activos, UPD y DLC elegidos).</summary>
+    public List<string> Files { get; init; } = [];
+    /// <summary>Argumento que apunta los mods a la carpeta del perfil al lanzar, en lugar del enlace (Dusklight, --mods).</summary>
+    public string? ModsArg { get; init; }
+    /// <summary>Valores que activan los mods (Dolphin, HiresTextures).</summary>
+    public List<RecipeSetting> ModsEnable { get; init; } = [];
 }
+/// <param name="Keys">Claves de la configuración del juego que eligen el perfil de mando o guardan los mandos.</param>
+public record RecipeInput(List<string>? Profiles = null, string? Arg = null, string? Section = null, List<string>? Keys = null);
 public record ContentInstall(List<string> Formats, List<string> Args);
 /// <param name="Name">resolution, renderer, aspectRatio, filter, vsync, speed o anisotropy.</param>
-public record RecipeOption(string Name, string File, string Format, string Key, string? Section = null);
+/// <param name="Since">La versión desde la que vale esa clave, cuando cambia de nombre entre versiones (decisión 298).</param>
+public record RecipeOption(string Name, string File, string Format, string Key, string? Section = null, string? Since = null);
 
 /// <summary>Una receta de `recetas/` (§8.1, F3.3). El esquema está en `recetas/receta.schema.json`.</summary>
 public record Recipe(string Id, string Name, string Kind, string Folder, string Detect)
@@ -54,6 +69,9 @@ public record Recipe(string Id, string Name, string Kind, string Folder, string 
     public List<string> Content { get; init; } = [];
     public List<ContentInstall> Install { get; init; } = [];
     public List<RecipeOption> Options { get; init; } = [];
+    /// <summary>Dónde se apuntan UPD y DLC sin copiarlos (decisión 295); se reescriben al mover, como <see cref="GamePaths"/>.</summary>
+    public List<GamePath> ContentPaths { get; init; } = [];
+    public RecipeInput? Input { get; init; }
     /// <summary>Con qué nombre se guarda el archivo bajado cuando no es un zip (un .exe con la versión en el nombre), para que coincida con Detect (#268).</summary>
     public string? SaveAs { get; init; }
 
@@ -104,9 +122,15 @@ public static class Recipes
         return list;
     }
 
-    /// <summary>La receta de una carpeta instalada (por su ejecutable) entre los emuladores y ports.</summary>
-    public static Recipe? Identify(string install) =>
-        All.FirstOrDefault(r => r.Kind != "complement" && File.Exists(Path.Combine(install, r.Detect)));
+    /// <summary>
+    /// La receta de una carpeta instalada (por su ejecutable) entre los emuladores y ports. Si varias tienen el mismo ejecutable
+    /// (Ryubing y Ryujinx SS4K), la que se llama como la carpeta.
+    /// </summary>
+    public static Recipe? Identify(string install)
+    {
+        var matches = All.Where(r => r.Kind != "complement" && File.Exists(Path.Combine(install, r.Detect))).ToList();
+        return matches.FirstOrDefault(r => r.Name == Path.GetFileName(Path.TrimEndingDirectorySeparator(install))) ?? matches.FirstOrDefault();
+    }
 
     /// <summary>La versión con la que se guarda en Herramientas: la del ejecutable, su fecha o la fija de la receta.</summary>
     public static string VersionOf(Recipe? recipe, string install)
@@ -182,6 +206,22 @@ public static class Recipes
         return list.OrderBy(t => t.Kind).ThenBy(t => t.Folder).ThenBy(t => t.Name).ThenBy(t => t.Version).ToList();
     }
 
+    /// <summary>
+    /// Con rename: el enlace de fuera (<see cref="PortableStep.Link"/>) que apuntaba a la carpeta vieja de esta instalación, si sigue ahí.
+    /// Uno que apunta a otra instalación no se toca.
+    /// </summary>
+    static string? OldLink(PortableStep step, string install)
+    {
+        if (step.Link is null) return null;
+        var link = Path.GetFullPath(Environment.ExpandEnvironmentVariables(step.Link.Replace('/', Path.DirectorySeparatorChar)));
+        return Links.IsLink(link) && new DirectoryInfo(link).LinkTarget is { } target
+            && Disk.Same(Path.TrimEndingDirectorySeparator(target.Replace(@"\??\", "")), Path.GetFullPath(Path.Combine(install, step.From!))) ? link : null;
+    }
+
+    /// <summary>Una instalación de una receta anterior que todavía tiene que pasar a la actual (la carpeta vieja o su enlace).</summary>
+    public static bool Outdated(Recipe recipe, string install) =>
+        recipe.Portable.Any(s => s.Type == "rename" && (Directory.Exists(Path.Combine(install, s.From!)) || OldLink(s, install) is not null));
+
     /// <summary>Deja la instalación portable y con los valores que necesita (pasos de la receta para este sistema).</summary>
     public static void MakePortable(Recipe recipe, string install)
     {
@@ -191,6 +231,12 @@ public static class Recipes
             var path = Path.Combine(install, step.Path);
             switch (step.Type)
             {
+                case "rename":
+                    var from = Path.Combine(install, step.From!);
+                    if (Directory.Exists(from) && !Links.IsLink(from) && !Path.Exists(path))
+                        Directory.Move(from, path); // dentro de la instalación: el mismo disco, se renombra
+                    if (OldLink(step, install) is { } old) Directory.Delete(old); // borra el enlace, no lo enlazado
+                    break;
                 case "file" when !File.Exists(path):
                     Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                     File.WriteAllText(path, "");
@@ -214,7 +260,7 @@ public static class Recipes
     public static int RewriteGamePaths(Recipe recipe, string install, string from, string to)
     {
         var changed = 0;
-        foreach (var g in recipe.GamePaths)
+        foreach (var g in recipe.GamePaths.Concat(recipe.ContentPaths))
         {
             var file = Path.Combine(install, g.File);
             if (!File.Exists(file)) continue;
