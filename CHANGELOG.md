@@ -4,13 +4,15 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.5.0 · Herramientas · en desarrollo
 
-`feat/268-instalar-libreria`, `feat/267-perfiles-modelo`, `docs/283-ports-en-catalogo`, `docs/encuesta-19-herramientas` · F5 (#263, encuesta 19, #264): emuladores, ports y herramientas instalados y al día, con perfiles por juego · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+`feat/268-instalar-libreria`, `feat/267-perfiles-modelo`, `docs/283-ports-en-catalogo`, `docs/encuesta-19-herramientas` y `docs/272-investigacion-emuladores` · F5 (#263, encuesta 19, #264): emuladores, ports y herramientas instalados y al día, con perfiles por juego · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+
 
 ### Nuevo
 - **Emuladores compartidos y perfiles por juego, en la base** (#267): Otteretro ya guarda cada emulador una sola vez con todas sus versiones instaladas, cuál es el base de cada consola, un perfil por defecto por emulador y los perfiles de cada juego con uno activo. Un juego sin perfil propio usa el por defecto del emulador base de su consola, y cada perfil puede elegir una ROM modificada (una traducción o un hack) en vez de la base. Las pantallas para usarlo llegan con las próximas tareas.
 - **Instalar emuladores y tu librería privada** (#268): un emulador se instala desde su receta eligiendo la versión, desde la dirección de una release ya compilada o desde una carpeta o un zip, y uno instalado a mano se adopta copiándolo. Cada emulador tiene una sola carpeta, `Emuladores\<Emulador>\<versión>`, aunque sirva a varias consolas, y cada versión queda al lado de las otras sin reemplazar ninguna. Las versiones de un mismo emulador comparten tus partidas, y antes de que una versión nueva las use se guarda una copia. El archivo original se guarda con su versión, hash y origen en `Otteretro\Libreria` de tu disco ★ (se muda con él) y se copia al disco que elijas para la segunda copia; si no está conectado, se copia solo cuando lo conectas. Una versión que perdió su carpeta se reinstala desde la librería, verificada, sin bajar nada.
 
 ### Cambios
+- **Investigación de emuladores** (#272): de dónde se baja cada emulador de la F5, cómo queda portable, dónde guarda la configuración y los mods de cada juego, sus partidas y su licencia, y qué se puede hacer con perfiles por juego sobre una instalación compartida. Incluye el estado de la emulación de PS5 y de los emuladores de Switch tras los avisos de Nintendo de 2026.
 - **Plan de la F5 decidido** (encuesta 19): emuladores compartidos por consola con perfiles por juego (configuración y mods, uno activo), tu librería privada en dos discos, avisos de versiones, UPD y DLC dentro del emulador, ports, compartir perfiles en un .zip y configurar el emulador desde la app.
 
 ## 0.4.22 · Archivos de juegos

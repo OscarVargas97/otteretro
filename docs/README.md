@@ -24,6 +24,7 @@
 | Documento | Para qué |
 |---|---|
 | [`investigacion.md`](investigacion.md) | Investigación técnica previa al desarrollo (T1 a T7), 2026-10-14 |
+| [`investigacion/emuladores.md`](investigacion/emuladores.md) | Emuladores y modding para la F5: descarga, portable, config y mods por juego, partidas, licencias y qué implica para los perfiles, 2026-11-04 (#272) |
 | [`viabilidad.md`](viabilidad.md) | Revisión de viabilidad de los requisitos, 2026-10-14 (encuesta 8) |
 
 ## Convenciones
