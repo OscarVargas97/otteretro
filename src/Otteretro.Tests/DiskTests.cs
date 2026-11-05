@@ -115,9 +115,12 @@ public class DiskTests
         Assert.True(Disk.List(f.Db).Single().Connected);
     }
 
-    /// <summary>Los ids de consola del catálogo (tabla console).</summary>
+    /// <summary>
+    /// Los ids de consola del catálogo (tabla console). Mega Drive y Dreamcast se suman en la administración con el slug de IGDB
+    /// como id (otteretro-catalogo, Consoles.Enable): genesis-slash-megadrive y dc.
+    /// </summary>
     static readonly string[] CatalogConsoles = ["nes", "gb", "snes", "vb", "n64", "gba", "gc", "ds", "wii", "3ds", "wiiu", "switch", "ps1", "ps2", "psp",
-        "ps3", "vita", "ps4", "ps5", "xbox", "x360", "xone", "xseries", "pc", "switch2", "pcvr"];
+        "ps3", "vita", "ps4", "ps5", "xbox", "x360", "xone", "xseries", "pc", "switch2", "pcvr", "genesis-slash-megadrive", "dc"];
 
     static string RecipesFolder()
     {
@@ -148,6 +151,21 @@ public class DiskTests
         using var schema = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(folder, "receta.schema.json")));
         var properties = typeof(Recipe).GetProperties().Where(p => p.Name != nameof(Recipe.Group)).Select(p => System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(p.Name)).Order();
         Assert.Equal(schema.RootElement.GetProperty("properties").EnumerateObject().Select(p => p.Name).Order(), properties);
+    }
+
+    [Fact]
+    public void FindsToolsInHerramientasWithoutConsole()
+    {
+        using var tmp = new TempDir();
+        var srm = Recipes.Find("steam-rom-manager")!;
+        var target = Recipes.Target(tmp.Path, srm, "2.6.2");
+        Assert.Equal(Path.Combine(tmp.Path, "Herramientas", "Steam ROM Manager", "2.6.2"), target);
+        Directory.CreateDirectory(target);
+        // Lo de antes que vive en Herramientas de la carpeta de datos no se toma por una herramienta.
+        Directory.CreateDirectory(Path.Combine(tmp.Path, "Herramientas", "Emuladores", "GameCube", "Dolphin", "2509"));
+
+        var tool = Assert.Single(Recipes.Installed(tmp.Path), t => t.Kind == "tool");
+        Assert.Equal(("steam-rom-manager", "Steam ROM Manager", "2.6.2", target), (tool.RecipeId, tool.Name, tool.Version, tool.Path));
     }
 
     /// <summary>Lo que el deserializador no revisa: enums, consolas del catálogo, plantillas y rutas relativas.</summary>
