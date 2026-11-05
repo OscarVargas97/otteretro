@@ -13,9 +13,9 @@ namespace Otteretro.Libraries;
 /// <param name="Dev">También avisa de las versiones de desarrollo (prereleases; en Dolphin, la pista dev).</param>
 public record RecipeUpdates(string Source, string? Repo = null, string? Host = null, bool Dev = false);
 
-/// <summary>Un aviso de versión nueva de algo instalado (§8.4).</summary>
+/// <summary>Un aviso de versión nueva (§8.4): de algo instalado, o la última de lo que no tienes.</summary>
 /// <param name="Channel">stable o dev.</param>
-/// <param name="Installed">Las versiones que ya tienes: la nueva se instala al lado.</param>
+/// <param name="Installed">Las versiones que ya tienes: la nueva se instala al lado. Vacío si no está instalado.</param>
 /// <param name="Games">Los juegos que usan ese emulador. Vacío hasta que existan los perfiles (#267).</param>
 public record ToolUpdate(string RecipeId, string Name, string Kind, string Channel, string Version, string? Notes, string? Url, string? PublishedAt,
     List<string> Installed, List<string> Games);
@@ -73,8 +73,8 @@ public static class ToolUpdates
     {
         var http = Handler is null ? Shared : NewClient(Handler);
         var manual = run.Data == "manual";
-        var installed = Recipes.Installed(Disk.ToolRoots(run.Db)).Select(t => t.RecipeId).ToHashSet();
-        var recipes = Recipes.All.Where(r => r.Updates is not null && installed.Contains(r.Id)).ToList();
+        // También lo que no tienes instalado: el aviso ofrece instalarlo (respuesta a la pregunta abierta de #278).
+        var recipes = Recipes.All.Where(r => r.Updates is not null).ToList();
         for (var i = 0; i < recipes.Count; i++)
         {
             var r = recipes[i];
@@ -124,12 +124,12 @@ public static class ToolUpdates
         Write(db, recipeId, channel, new(latest.Version, latest.Notes, latest.Url, latest.PublishedAt, now.ToString("O"), saved?.Skipped));
     }
 
-    /// <summary>Los avisos vigentes: de lo instalado, ni omitido ni ya instalado.</summary>
+    /// <summary>Los avisos vigentes, ni omitidos ni ya instalados. De lo que no tienes, la última versión (con `Installed` vacío).</summary>
     public static List<ToolUpdate> List(Database db)
     {
         var installed = Recipes.Installed(Disk.ToolRoots(db)).Where(t => t.RecipeId is not null).ToLookup(t => t.RecipeId!, t => t.Version);
         var list = new List<ToolUpdate>();
-        foreach (var r in Recipes.All.Where(r => r.Updates is not null && installed.Contains(r.Id)))
+        foreach (var r in Recipes.All.Where(r => r.Updates is not null))
             foreach (var channel in Channels)
             {
                 if (Read(db, r.Id, channel) is not { } s || s.Skipped == s.Version) continue;

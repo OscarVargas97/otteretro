@@ -51,7 +51,7 @@ export function Sidebar() {
   const configured = !!useAppState().data?.configured;
   const review = useQuery({ queryKey: ["review", "count"], queryFn: () => request<number>("/api/review/count"), refetchInterval: 60_000, retry: false, enabled: configured });
   // Versiones nuevas de emuladores y ports (decisión 294).
-  const updates = useQuery({ ...toolUpdatesQuery, refetchInterval: 60_000, retry: false, enabled: configured });
+  const updates = useQuery({ ...toolUpdatesQuery, retry: false, enabled: configured });
   const counts: Partial<Record<string, number>> = { review: Number(review.data ?? 0), tools: updates.data?.length ?? 0 };
   const current = normalizePath(usePathname());
   // Retraída a una franja de íconos (#130): se guarda en config.json y Ctrl+B la alterna.

@@ -98,11 +98,16 @@ public class ToolUpdatesTests
     }
 
     [Fact]
-    public async Task OnlyWhatIsInstalledIsChecked()
+    public async Task WhatIsNotInstalledShowsItsLatestVersion()
     {
         await using var f = new Fixture();
         var fake = new Fake(new() { ["repos/TwilitRealm/dusklight/releases"] = GitHub("v2.0.3") });
         await Check(f, fake);
-        Assert.Empty(ToolUpdates.List(f.Db));
+        var u = Assert.Single(ToolUpdates.List(f.Db), x => x.RecipeId == "dusklight");
+        Assert.Equal("2.0.3", u.Version);
+        Assert.Empty(u.Installed);
+
+        Assert.True(ToolUpdates.Skip(f.Db, "dusklight", "stable"));
+        Assert.DoesNotContain(ToolUpdates.List(f.Db), x => x.RecipeId == "dusklight");
     }
 }

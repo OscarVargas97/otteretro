@@ -7,9 +7,10 @@ import { useDescribeError } from "@/lib/i18n";
 import type { ToolUpdate } from "@/lib/types";
 
 /** Los avisos de versiones nuevas (decisión 294): Herramientas, el contador de la barra lateral e Inicio › Novedades. */
-export const toolUpdatesQuery = { queryKey: ["tools", "updates"], queryFn: () => request<ToolUpdate[]>("/api/tools/updates") };
+// Cambia solo con la revisión (diaria o a pedido), que la invalida al terminar: no hace falta volver a pedirla al pasar por las pantallas.
+export const toolUpdatesQuery = { queryKey: ["toolUpdates"], queryFn: () => request<ToolUpdate[]>("/api/tools/updates"), staleTime: 5 * 60_000 };
 
-/** Arriba de Herramientas: cada versión nueva con sus notas, quién la usa, Actualizar y «Omitir esta versión», más «Revisar ahora». */
+/** Arriba de Herramientas: cada versión nueva con sus notas, quién la usa, Actualizar (o Instalar, si no la tienes) y «Omitir esta versión», más «Revisar ahora». */
 export function ToolUpdates() {
   const t = useTranslations("tools.updates");
   const format = useFormatter();
@@ -22,7 +23,7 @@ export function ToolUpdates() {
   });
   const skip = useMutation({
     mutationFn: (u: ToolUpdate) => request<void>(`/api/tools/updates/${encodeURIComponent(u.recipeId)}/${u.channel}/skip`, { method: "POST" }),
-    onSettled: () => { cache.invalidateQueries({ queryKey: ["tools", "updates"] }); cache.invalidateQueries({ queryKey: ["notices"] }); },
+    onSettled: () => { cache.invalidateQueries({ queryKey: ["toolUpdates"] }); cache.invalidateQueries({ queryKey: ["notices"] }); },
   });
   const list = updates.data ?? [];
   return (
@@ -47,7 +48,7 @@ export function ToolUpdates() {
             </span>
           </div>
           <dl className="facts small">
-            <dt>{t("installed")}</dt><dd>{u.installed.join(", ")}</dd>
+            <dt>{t("installed")}</dt><dd>{u.installed.length > 0 ? u.installed.join(", ") : <span className="muted">{t("notInstalled")}</span>}</dd>
             {u.publishedAt && <><dt>{t("published")}</dt><dd>{format.dateTime(new Date(u.publishedAt), { dateStyle: "medium" })}</dd></>}
             <dt>{t("games")}</dt><dd>{u.games.length > 0 ? format.list(u.games) : <span className="muted">{t("gamesUnknown")}</span>}</dd>
           </dl>
@@ -57,10 +58,10 @@ export function ToolUpdates() {
               <p style={{ whiteSpace: "pre-wrap", margin: "6px 0 0" }}>{u.notes}</p>
             </details>
           )}
-          <p className="small muted" style={{ margin: 0 }}>{t("besideOld")}</p>
+          {u.installed.length > 0 && <p className="small muted" style={{ margin: 0 }}>{t("besideOld")}</p>}
           <div className="hero-actions">
             {/* Instalar desde la app llega con #268: mientras tanto abre la página de la versión para bajarla. */}
-            {u.url && <a className="ot-btn ot-btn-primary ot-btn-sm" href={u.url} target="_blank" rel="noreferrer">{t("update")}</a>}
+            {u.url && <a className="ot-btn ot-btn-primary ot-btn-sm" href={u.url} target="_blank" rel="noreferrer">{t(u.installed.length > 0 ? "update" : "install")}</a>}
             <button className="ot-btn ot-btn-sm" type="button" disabled={skip.isPending} onClick={() => skip.mutate(u)}>{t("skip")}</button>
           </div>
         </article>

@@ -26,7 +26,7 @@ export function upsertTask(cache: QueryClient, task: TaskInfo) {
   }
   // Una revisión de versiones cambia los avisos (decisión 294).
   if (task.kind === "tools.updates" && task.status === "done") {
-    cache.invalidateQueries({ queryKey: ["tools", "updates"] });
+    cache.invalidateQueries({ queryKey: ["toolUpdates"] });
     cache.invalidateQueries({ queryKey: ["notices"] });
   }
   // Un escaneo terminado cambia lo que tienes (#178).

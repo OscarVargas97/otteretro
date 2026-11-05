@@ -1138,7 +1138,9 @@
       "besideOld": "The new one is installed next to the one you have: the old one is left untouched and you can go back to it.",
       "update": "Update",
       "skip": "Skip this version",
-      "badge": "New version"
+      "badge": "New version",
+      "notInstalled": "Not installed",
+      "install": "Install"
     }
   },
   "downloads": {
