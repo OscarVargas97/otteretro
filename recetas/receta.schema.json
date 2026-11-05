@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/OscarVargas97/otteretro/recetas/receta.schema.json",
   "title": "Receta de Otteretro",
-  "description": "Cómo se instala, se deja portable y se mueve un emulador, port o complemento (REQUISITOS §8.1). La comparten Otteretro (Windows) y PlayOS (Nix, #135).",
+  "description": "Cómo se instala, se deja portable y se mueve un emulador, port o complemento (REQUISITOS §8.1). saves y content son del emulador, no de la versión: los comparten todas sus versiones (decisión 308). La comparten Otteretro (Windows) y PlayOS (Nix, #135).",
   "type": "object",
   "additionalProperties": false,
   "required": ["id", "name", "kind", "folder", "detect"],
@@ -61,6 +61,56 @@
       }
     },
     "formats": { "type": "array", "items": { "type": "string" } },
+    "consoles": { "type": "array", "items": { "type": "string" }, "description": "Emulador: las consolas que corre, con su id del catálogo (relación muchos a muchos, decisión 286)" },
+    "baseFor": { "type": "array", "items": { "type": "string" }, "description": "Las consolas de las que es el emulador base (decisión 291); salen de consoles" },
+    "license": { "type": "string", "description": "Licencia (SPDX; LicenseRef-<nombre> si no tiene). Las no comerciales se pueden usar, pero no redistribuir modificadas" },
+    "experimental": { "type": "boolean", "description": "Corre pocos juegos: se instala para probar (decisión 291, PS5)" },
+    "devOnly": { "type": "boolean", "description": "Solo publica versiones de desarrollo: se instala la última con aviso (decisión 292)" },
+    "updates": {
+      "type": "object", "additionalProperties": false, "required": ["source"],
+      "description": "Dónde publica sus versiones, para avisar de las nuevas (decisión 294)",
+      "properties": {
+        "source": { "enum": ["github", "forgejo", "dolphin"], "description": "github y forgejo: sus releases (las prereleases son de desarrollo); dolphin: su servidor de actualizaciones" },
+        "repo": { "type": "string", "pattern": "^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$" },
+        "host": { "type": "string", "description": "Con forgejo: el servidor (codeberg.org)" },
+        "dev": { "type": "boolean", "description": "También avisa de las versiones de desarrollo (como mucho una vez por semana)" }
+      }
+    },
+    "asset": { "type": "string", "format": "regex", "description": "El archivo de Windows de cada release de updates (expresión regular sobre su nombre)" },
+    "perGame": {
+      "type": "object", "additionalProperties": false,
+      "description": "Lo de un juego (perfiles, decisión 286). Plantillas: {titleId}, {serial}, {crc}, {gameId}, {rom} (nombre de la ROM sin extensión), {game} (carpeta del juego) y, en args, {config}",
+      "properties": {
+        "config": { "type": "string", "description": "Su configuración: el archivo por juego o, con section, el archivo compartido donde va su sección" },
+        "apply": { "enum": ["file", "section", "swap", "argument"], "description": "file: archivo por juego; section: solo su sección de un archivo compartido; swap: sin config por juego, se cambia la global al lanzar y se restaura al cerrar; argument: un archivo completo que se pasa con args" },
+        "mods": { "type": "array", "items": { "type": "string" }, "description": "Carpetas (o archivos) de mods de ese juego: se enlazan a las del perfil activo" },
+        "args": { "type": "array", "items": { "type": "string" }, "description": "Argumentos al lanzar el juego con su perfil" }
+      }
+    },
+    "content": { "type": "array", "items": { "type": "string" }, "description": "Contenido instalado dentro del emulador (NAND, dev_hdd0, mlc01). Como saves, es del emulador y no de la versión: lo comparten todas sus versiones" },
+    "install": {
+      "type": "array", "description": "Instalar contenido por línea de comandos (decisión 295); {file} es el archivo y {zrif} la licencia",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["formats", "args"],
+        "properties": {
+          "formats": { "type": "array", "items": { "type": "string" } },
+          "args": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "options": {
+      "type": "array", "description": "Los ajustes más usados, para cambiarlos desde la app (decisión 298). Son los de la versión investigada (2026-11); en toml y yml, key es la ruta con puntos",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["name", "file", "format", "key"],
+        "properties": {
+          "name": { "enum": ["resolution", "renderer", "aspectRatio", "filter", "vsync", "speed", "anisotropy"] },
+          "file": { "type": "string" },
+          "format": { "enum": ["ini", "json", "toml", "yml", "cfg"] },
+          "section": { "type": "string" },
+          "key": { "type": "string" }
+        }
+      }
+    },
     "downloads": {
       "type": "array", "description": "Por versión y sistema: URL y hash SRI (Nix las arma en PlayOS; Otteretro las descarga en Windows, F5)",
       "items": {

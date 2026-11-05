@@ -12,6 +12,17 @@ public record PortableStep(string Type, string Path, string? Link = null, string
 public record GamePath(string File, string Format, string Key);
 public record RecipeSetting(string File, string Format, string Key, string Value, string? Section = null);
 public record RecipeDownload(string Version, string System, string Url, string Hash);
+/// <summary>Dónde publica sus versiones (decisión 294). El mismo que trae #278 en ToolUpdates.cs: al fusionar las dos ramas queda uno.</summary>
+public record RecipeUpdates(string Source, string? Repo = null, string? Host = null, bool Dev = false);
+/// <param name="Apply">file, section, swap o argument (ver el esquema).</param>
+public record RecipePerGame(string? Config = null, string? Apply = null)
+{
+    public List<string> Mods { get; init; } = [];
+    public List<string> Args { get; init; } = [];
+}
+public record ContentInstall(List<string> Formats, List<string> Args);
+/// <param name="Name">resolution, renderer, aspectRatio, filter, vsync, speed o anisotropy.</param>
+public record RecipeOption(string Name, string File, string Format, string Key, string? Section = null);
 
 /// <summary>Una receta de `recetas/` (§8.1, F3.3). El esquema está en `recetas/receta.schema.json`.</summary>
 public record Recipe(string Id, string Name, string Kind, string Folder, string Detect)
@@ -28,6 +39,21 @@ public record Recipe(string Id, string Name, string Kind, string Folder, string 
     public List<RecipeSetting> Settings { get; init; } = [];
     public List<string> Formats { get; init; } = [];
     public List<RecipeDownload> Downloads { get; init; } = [];
+    /// <summary>Ids del catálogo de las consolas que corre y de las que es el emulador base (decisiones 286 y 291).</summary>
+    public List<string> Consoles { get; init; } = [];
+    public List<string> BaseFor { get; init; } = [];
+    public string? License { get; init; }
+    public bool Experimental { get; init; }
+    /// <summary>Solo publica versiones de desarrollo: se instala la última con aviso (decisión 292).</summary>
+    public bool DevOnly { get; init; }
+    public RecipeUpdates? Updates { get; init; }
+    /// <summary>Expresión regular del archivo de Windows en cada release de <see cref="Updates"/>.</summary>
+    public string? Asset { get; init; }
+    public RecipePerGame? PerGame { get; init; }
+    /// <summary>Contenido instalado dentro del emulador; como las partidas, lo comparten todas sus versiones.</summary>
+    public List<string> Content { get; init; } = [];
+    public List<ContentInstall> Install { get; init; } = [];
+    public List<RecipeOption> Options { get; init; } = [];
 
     /// <summary>Emuladores, Ports o Complementos: el primer nivel de Herramientas (§5.1). Nombres de carpeta de la persona: en español.</summary>
     public string Group => Kind switch { "emulator" => "Emuladores", "port" => "Ports", _ => "Complementos" };
