@@ -4,7 +4,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.5.0 · Herramientas · en desarrollo
 
-`feat/278-avisos-versiones`, `docs/encuesta-19-herramientas`, `feat/273-recetas-switch-gc`, `docs/283-ports-en-catalogo`, `feat/274-recetas-resto`, `feat/268-instalar-libreria`, `feat/267-perfiles-modelo` y `docs/272-investigacion-emuladores` · F5 (#263, encuesta 19, #264): emuladores, ports y herramientas instalados y al día, con perfiles por juego · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+`docs/263-decisiones-305-314`, `feat/278-avisos-versiones`, `docs/encuesta-19-herramientas`, `feat/273-recetas-switch-gc`, `docs/283-ports-en-catalogo`, `feat/274-recetas-resto`, `feat/268-instalar-libreria`, `feat/267-perfiles-modelo` y `docs/272-investigacion-emuladores` · F5 (#263, encuesta 19, #264): emuladores, ports y herramientas instalados y al día, con perfiles por juego · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
 
 ### Nuevo
 - **Avisos de versiones nuevas** (#278): Otteretro revisa al abrir, una vez al día y con «Revisar ahora» si hay versión nueva de los emuladores y ports con receta (por ahora Dolphin, también sus versiones de desarrollo, y Dusklight); de lo que no tienes, te muestra la última con «Instalar». Lo ves en Herramientas › Versiones nuevas, con un contador en la barra lateral y en Inicio › Novedades: las notas, qué tienes, «Actualizar» (por ahora abre la página de la versión para bajarla; la nueva siempre va al lado de la vieja) y «Omitir esta versión». De las de desarrollo llega como mucho un aviso por semana, salvo que lo pidas.
