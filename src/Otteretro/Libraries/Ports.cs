@@ -87,7 +87,8 @@ public static class Ports
             """, new { gameId });
 
     /// <summary>
-    /// Novedades (decisión 296): los ports que entraron al catálogo desde la última vez que se vieron, de juegos que tienes o de sagas que sigues.
+    /// Novedades (decisión 296): los ports que entraron al catálogo desde la última vez que se vieron (sin ningún «Visto», los de los últimos
+    /// 30 días), de juegos que tienes o de sagas que sigues.
     /// </summary>
     public static List<PortInfo> News(Database db)
     {
@@ -95,7 +96,7 @@ public static class Ports
         using (var c = db.Open())
             seen = c.ExecuteScalar<string?>("SELECT value FROM setting WHERE machine_id = '' AND name = @SeenSetting", new { SeenSetting });
         return Query(db, """
-            WHERE p.added > coalesce(@seen, '')
+            WHERE (@seen IS NULL AND p.added >= date('now', '-30 days') OR p.added > @seen)
               AND (EXISTS (SELECT 1 FROM source o JOIN version v ON v.id = o.version_id WHERE v.game_id = p.game_id)
                    OR EXISTS (SELECT 1 FROM saga_user u WHERE u.saga_id = g.saga_id AND u.following))
             ORDER BY p.added DESC, g.name_es, p.project
@@ -157,17 +158,25 @@ public static class Ports
     }
 
     /// <summary>
-    /// Sus juegos tienen perfil con el port, como con cualquier emulador (§8.0): uno por versión del juego en la consola del port, inactivo
-    /// (cuál se usa lo elige la persona o la regla de cómo jugar). Si ya lo tiene, no se repite.
+    /// Sus juegos tienen perfil con el port, como con cualquier emulador (§8.0): uno por versión del juego en la consola del port, aunque
+    /// ya tenga otros (si ya tiene el del port, no se repite). Un port 100 % jugable queda como el activo, salvo que esa versión ya tenga
+    /// uno propio activo: ese no se cambia.
     /// </summary>
+    /// <remarks>Activa con <see cref="Profiles.Activate"/>, que solo lo marca en la base. Al fusionar #297 (#269), pasar a su activación
+    /// que guarda y carga los archivos del perfil.</remarks>
     public static void AddProfiles(Database db, long portId, string emulator, string name)
     {
-        List<long> versions;
+        List<(long Version, bool Activate)> versions;
         using (var c = db.Open())
-            versions = c.Query<long>("""
-                SELECT v.id FROM port p JOIN version v ON v.game_id = p.game_id AND v.platform = p.console
+            versions = c.Query<(long, bool)>("""
+                SELECT v.id, p.status = 'complete' AND NOT EXISTS (SELECT 1 FROM profile a WHERE a.game_version_id = v.id AND a.active)
+                FROM port p JOIN version v ON v.game_id = p.game_id AND v.platform = p.console
                 WHERE p.id = @portId AND NOT EXISTS (SELECT 1 FROM profile f WHERE f.game_version_id = v.id AND f.emulator_id = @emulator)
                 """, new { portId, emulator }).ToList();
-        foreach (var v in versions) Profiles.Add(db, v, emulator, name);
+        foreach (var (version, activate) in versions)
+        {
+            var profile = Profiles.Add(db, version, emulator, name);
+            if (activate) Profiles.Activate(db, profile);
+        }
     }
 }

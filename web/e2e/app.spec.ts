@@ -726,12 +726,14 @@ test("la ficha muestra tus enlaces de ese juego, y se pueden quitar (#210)", asy
 });
 
 test("ports: Novedades con los nuevos de lo que sigues, la ficha separa los 100 % jugables e instalar pide la URL (#286, #287)", async () => {
+  // Sin ningún «Visto», Novedades muestra lo de los últimos 30 días.
+  const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
   const db = await openDb();
   db.exec(`
     INSERT INTO saga_user (saga_id, favorite, following) VALUES (1, 0, 1) ON CONFLICT (saga_id) DO UPDATE SET following = 1;
     INSERT INTO port (id, console, game, project, kind, status, delisted, link, source, added, game_id) VALUES
-      (1, 'n64', 'Ocarina of Time', 'Ship of Harkinian', 'decomp', 'complete', 0, 'https://sitio.test/soh', 'recompendium', '2026-11-01', 10),
-      (2, 'n64', 'Ocarina of Time', 'Viejo port', 'port', 'beta', 1, 'https://sitio.test/viejo', 'extra', '2026-10-01', 10);
+      (1, 'n64', 'Ocarina of Time', 'Ship of Harkinian', 'decomp', 'complete', 0, 'https://sitio.test/soh', 'recompendium', '${daysAgo(4)}', 10),
+      (2, 'n64', 'Ocarina of Time', 'Viejo port', 'port', 'beta', 1, 'https://sitio.test/viejo', 'extra', '${daysAgo(20)}', 10);
   `);
   db.close();
   await page.goto(`${base()}/`);
@@ -746,7 +748,7 @@ test("ports: Novedades con los nuevos de lo que sigues, la ficha separa los 100 
   const ports = page.getByRole("region", { name: es.ports.title });
   await expect(ports.getByRole("heading", { name: es.ports.fullyPlayable })).toBeVisible();
   await expect(ports.getByText(es.ports.status.complete, { exact: true })).toBeVisible();
-  await expect(ports.getByText(es.ports.added.replace("{date}", "1 nov 2026"))).toBeVisible();
+  await expect(ports.getByText(es.ports.added.replace("{date}", new Intl.DateTimeFormat("es", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(daysAgo(4)))))).toBeVisible();
   await expect(ports.getByText(es.ports.status.beta, { exact: true })).toBeVisible();
   // Sin receta: con la URL de su release; si el archivo no dice la versión, se pide.
   await ports.getByRole("button", { name: es.ports.installFromUrl }).first().click();

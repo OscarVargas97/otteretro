@@ -21,11 +21,12 @@ public class PortsTests
             INSERT INTO source (kind, library_id, relative_path, console, version_id) VALUES ('file', NULL, 'mario.z64', 'n64', 22);
             INSERT INTO saga_user (saga_id, favorite, following) VALUES (1, 0, 1);
             INSERT INTO port (id, console, game, project, kind, status, delisted, link, source, added, game_id) VALUES
-              (1, 'gc', 'Twilight Princess', 'Dusklight', 'decomp', 'complete', 0, 'https://github.com/TwilitRealm/dusklight', 'recompendium', '2026-10-01', 10),
-              (2, 'n64', 'Mario 64', 'Ship', 'decomp', 'playable', 0, 'https://example.com/ship', 'extra', '2026-11-01', 11),
-              (3, 'n64', 'Mario 64', 'Viejo', 'port', 'beta', 1, 'https://example.com/viejo', 'extra', '2026-09-01', 11),
-              (4, 'n64', 'Mario 64', 'Solo decomp', 'decomp', 'no-port', 0, 'https://example.com/decomp', 'extra', '2026-11-02', 11),
-              (5, 'n64', 'Otro', 'Ajeno', 'port', 'complete', 0, 'https://example.com/ajeno', 'extra', '2026-11-03', 12);
+              (1, 'gc', 'Twilight Princess', 'Dusklight', 'decomp', 'complete', 0, 'https://github.com/TwilitRealm/dusklight', 'recompendium', date('now', '-20 days'), 10),
+              (2, 'n64', 'Mario 64', 'Ship', 'decomp', 'playable', 0, 'https://example.com/ship', 'extra', date('now', '-4 days'), 11),
+              (3, 'n64', 'Mario 64', 'Viejo', 'port', 'beta', 1, 'https://example.com/viejo', 'extra', date('now', '-25 days'), 11),
+              (4, 'n64', 'Mario 64', 'Solo decomp', 'decomp', 'no-port', 0, 'https://example.com/decomp', 'extra', date('now', '-3 days'), 11),
+              (5, 'n64', 'Otro', 'Ajeno', 'port', 'complete', 0, 'https://example.com/ajeno', 'extra', date('now', '-2 days'), 12),
+              (7, 'n64', 'Mario 64', 'Viejísimo', 'port', 'complete', 0, 'https://example.com/v', 'extra', date('now', '-40 days'), 11);
             """);
         return f;
     }
@@ -36,19 +37,19 @@ public class PortsTests
         await using var f = Catalog();
         var mario = Ports.OfGame(f.Db, 11);
         // Los ya no listados al final; «sin port todavía» después de los que se juegan.
-        Assert.Equal(["Ship", "Solo decomp", "Viejo"], mario.Select(p => p.Project));
+        Assert.Equal(["Viejísimo", "Ship", "Solo decomp", "Viejo"], mario.Select(p => p.Project));
         Assert.True(mario.Single(p => p.Project == "Viejo").Delisted);
         var tp = Assert.Single(Ports.OfGame(f.Db, 10));
         Assert.True(tp.FullyPlayable);
         Assert.Equal("dusklight", tp.RecipeId); // por su repositorio
-        Assert.False(mario[0].FullyPlayable);
+        Assert.False(mario[1].FullyPlayable);
 
-        // Lo de un juego que no tienes ni sigues no es novedad.
+        // Lo de un juego que no tienes ni sigues no es novedad, y sin ningún «Visto» solo cuentan los últimos 30 días.
         Assert.Equal([4L, 2L, 1L, 3L], Ports.News(f.Db).Select(p => p.Id));
         Ports.MarkSeen(f.Db);
         Assert.Empty(Ports.News(f.Db));
         using (var c = f.Db.Open())
-            c.Execute("INSERT INTO port (id, console, game, project, kind, status, link, source, added, game_id) VALUES (6, 'n64', 'Mario 64', 'Nuevo', 'recomp', 'experimental', 'https://example.com/n', 'extra', '2026-11-04', 11)");
+            c.Execute("INSERT INTO port (id, console, game, project, kind, status, link, source, added, game_id) VALUES (6, 'n64', 'Mario 64', 'Nuevo', 'recomp', 'experimental', 'https://example.com/n', 'extra', date('now', '+1 day'), 11)");
         Assert.Equal([6L], Ports.News(f.Db).Select(p => p.Id));
     }
 
@@ -85,10 +86,33 @@ public class PortsTests
 
         Assert.Equal("binario", File.ReadAllText(f.Tmp[@"E\Ports\Ship\1.4.2\ship-1.4.2.exe"]));
         Assert.Equal(["1.4.2"], Ports.OfGame(f.Db, 11).Single(p => p.Id == 2).Installed);
-        // Su juego tiene perfil con el port, inactivo, como con cualquier emulador; repetir no lo duplica.
+        // Su juego tiene perfil con el port, como con cualquier emulador; no al 100 %: no se activa. Repetir no lo duplica.
         Ports.AddProfiles(f.Db, 2, "port-2", "Ship");
-        using (var c = f.Db.Open())
-            Assert.Equal([(22L, "Ship", 0L)], c.Query<(long, string, long)>("SELECT game_version_id, name, active FROM profile WHERE emulator_id = 'port-2' AND game_version_id IS NOT NULL"));
+        Assert.Equal([(22L, "Ship", 0L)], PortProfiles(f, "port-2"));
+    }
+
+    static List<(long, string, long)> PortProfiles(Fixture f, string emulator)
+    {
+        using var c = f.Db.Open();
+        return c.Query<(long, string, long)>("SELECT game_version_id, name, active FROM profile WHERE emulator_id = @emulator AND game_version_id IS NOT NULL", new { emulator }).ToList();
+    }
+
+    [Fact]
+    public async Task FullyPlayablePortBecomesActiveUnlessTheGameAlreadyHasOne()
+    {
+        await using var f = Catalog();
+        Profiles.AddEmulator(f.Db, "dusklight", "port", "Dusklight");
+        Ports.AddProfiles(f.Db, 1, "dusklight", "Dusklight");
+        Assert.Equal([(20L, "Dusklight", 1L)], PortProfiles(f, "dusklight"));
+
+        // Mario 64 ya tiene un perfil propio activo: el del port se crea igual, pero no lo reemplaza.
+        Profiles.AddEmulator(f.Db, "rmg", "emulator", "RMG");
+        var mine = Profiles.Add(f.Db, 22, "rmg", "El mío");
+        Assert.True(Profiles.Activate(f.Db, mine));
+        Profiles.AddEmulator(f.Db, "port-7", "port", "Viejísimo");
+        Ports.AddProfiles(f.Db, 7, "port-7", "Viejísimo");
+        Assert.Equal([(22L, "Viejísimo", 0L)], PortProfiles(f, "port-7"));
+        Assert.Equal(mine, Profiles.Effective(f.Db, 22)!.Id);
     }
 
     sealed class Fake(string releases, string body) : HttpMessageHandler
