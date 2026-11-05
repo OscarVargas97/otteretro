@@ -182,6 +182,54 @@ public class InstallsTests
     }
 
     [Fact]
+    public async Task ToolGoesToHerramientasWithTheNameItsRecipeLooksFor()
+    {
+        await using var f = new Fixture();
+        Disk.Create(f.Db, f.Tmp["E"], "E:");
+        Installs.Handler = new Fake("srm"u8.ToArray());
+        try
+        {
+            var job = new InstallJob("steam-rom-manager", "2.6.2", Url: "https://example.com/Steam-ROM-Manager-portable-2.6.2.exe");
+            Assert.Equal("done", (await Install(f, job)).Status);
+        }
+        finally { Installs.Handler = null; }
+        // `saveAs`: el .exe queda como lo busca `detect`; la librería guarda el original con su nombre.
+        Assert.Equal("srm", File.ReadAllText(f.Tmp[@"E\Herramientas\Steam ROM Manager\2.6.2\Steam-ROM-Manager.exe"]));
+        Assert.True(File.Exists(f.Tmp[@"E\Libreria\Herramientas\steam-rom-manager\2.6.2\Steam-ROM-Manager-portable-2.6.2.exe"]));
+        var tool = Assert.Single(Installs.List(f.Db));
+        Assert.Equal(("tool", "url"), (tool.Kind, tool.Origin));
+        Assert.NotNull(tool.Path);
+        Assert.Contains(Recipes.Installed(Disk.ToolRoots(f.Db)), t => t is { Kind: "tool", RecipeId: "steam-rom-manager", Version: "2.6.2" });
+    }
+
+    [Fact]
+    public void ToolKindMigrationKeepsEmulatorsTheirBaseAndProfiles()
+    {
+        using var tmp = new TempDir();
+        var folder = tmp["datos"];
+        DataFolder.Prepare(folder);
+        var db = DataFolder.Open(folder);
+        Otteretro.Data.Migrations.Apply(db, until: "0033_emulator_profile.sql");
+        using (var c = db.Open())
+            c.Execute("""
+                INSERT INTO emulator (id, kind, name) VALUES ('eden', 'emulator', 'Eden');
+                INSERT INTO emulator_install (emulator_id, version, origin, installed_at) VALUES ('eden', '0.1', 'upload', 'hoy');
+                INSERT INTO console_emulator (console_id, emulator_id, is_base) VALUES ('switch', 'eden', 1);
+                INSERT INTO profile (emulator_id, name, created_at) VALUES ('eden', 'Eden', 'hoy');
+                """);
+        Assert.True(Otteretro.Data.Migrations.Apply(db) > 0);
+        using var after = db.Open();
+        Assert.Equal(1, after.ExecuteScalar<long>("SELECT count(*) FROM console_emulator WHERE emulator_id = 'eden' AND is_base = 1"));
+        Assert.Equal(1, after.ExecuteScalar<long>("SELECT count(*) FROM emulator_install WHERE emulator_id = 'eden'"));
+        Assert.Equal(1, after.ExecuteScalar<long>("SELECT count(*) FROM profile WHERE emulator_id = 'eden'"));
+        Assert.Empty(after.Query("PRAGMA main.foreign_key_check"));
+        after.Execute("INSERT INTO emulator (id, kind, name) VALUES ('steam-rom-manager', 'tool', 'Steam ROM Manager')");
+        // La cascada sigue: quitar el emulador quita sus consolas.
+        after.Execute("DELETE FROM profile; DELETE FROM emulator_install; DELETE FROM emulator WHERE id = 'eden'");
+        Assert.Equal(0, after.ExecuteScalar<long>("SELECT count(*) FROM console_emulator"));
+    }
+
+    [Fact]
     public void LibraryIsNeverOverwrittenAndRecipeHashIsSri()
     {
         using var tmp = new TempDir();

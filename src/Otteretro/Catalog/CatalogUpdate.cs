@@ -93,7 +93,7 @@ public static class CatalogUpdate
     }
 
     /// <summary>Con cada tabla antes de las que apuntan a ella. `claude_fingerprint` y lo de Claude no: esos quedaron en el generador.</summary>
-    static readonly string[] Published = ["saga", "game", "version", "version_criterion", "field_value", "route", "route_step", "image", "version_code"];
+    static readonly string[] Published = ["saga", "game", "version", "version_criterion", "field_value", "route", "route_step", "image", "version_code", "port"];
 
     record Asset(string Name, string BrowserDownloadUrl);
     record Release(string TagName, bool Draft, List<Asset> Assets, string? PublishedAt = null);

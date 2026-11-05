@@ -304,7 +304,8 @@
       "copyMismatch": "No se movió nada; tus datos siguen en {path}. El archivo {detail} no se copió bien.",
       "failedDataAt": "La mudanza se cortó y tus datos quedaron en {path}. Usa «Usar otra carpeta» con esa ruta. {detail}",
       "sourceNotDeleted": "Los datos ya están en la carpeta nueva, pero no se pudo borrar del todo {path}: {detail} Puedes borrarla a mano.",
-      "tasksRunning": "Espera a que terminen las tareas en curso antes de mover la carpeta de datos."
+      "tasksRunning": "Espera a que terminen las tareas en curso antes de mover la carpeta de datos.",
+      "toolsNotStandard": "Antes de llevar los datos a otro disco, pasa al estándar los emuladores y ports que quedaron en Herramientas con la estructura de antes: «Pasar al estándar», arriba en Ajustes › Almacenamiento."
     },
     "update": {
       "channel": "Ese canal no existe.",
@@ -572,7 +573,23 @@
       },
       "notInstalled": "Esa versión no está registrada: instálala primero.",
       "notInLibrary": "La versión {version} no está en tu librería: no se puede reinstalar sin bajarla.",
-      "backupIsDefault": "La segunda copia tiene que ir en otro disco, no en el ★."
+      "backupIsDefault": "La segunda copia tiene que ir en otro disco, no en el ★.",
+      "sourceFailed": "No se pudo leer las versiones de {name}: {detail}"
+    },
+    "profile": {
+      "notFound": "Ese perfil no existe o no es de esta versión del juego.",
+      "noGameKey": "Falta el TitleID o el serial del juego: identifícalo para poder aplicar su perfil.",
+      "notInstalled": "{emulator} no está instalado o su disco no está conectado.",
+      "badName": "El perfil necesita un nombre.",
+      "badFrom": "No se puede crear el perfil desde ahí.",
+      "badRom": "Esa ROM no es de esta versión del juego.",
+      "switchFailed": "No se pudo cambiar el perfil; lo movido quedó guardado y el perfil activo no cambió: {detail}"
+    },
+    "ports": {
+      "notFound": "Ese port ya no está en el catálogo.",
+      "noPort": "Todavía no hay port de este juego: hay una decompilación, pero no se puede instalar.",
+      "needsUrl": "Este port no tiene receta con descarga: indica la URL de su release.",
+      "sourceUnreachable": "No se pudo consultar la última release del port: revisa la conexión o usa su URL."
     },
     "content": {
       "unknownGame": "Ese juego no está en el catálogo.",
@@ -1104,6 +1121,9 @@
       },
       "system": {
         "title": "Sistema"
+      },
+      "tool": {
+        "title": "Herramientas"
       }
     },
     "addDisk": "+ Agregar disco",
@@ -1141,6 +1161,16 @@
       "off": "Apagado: lo que no se reconoce va directo a Revisar › Sin identificar.",
       "month": "Este mes: {calls, plural, one {# llamada} other {# llamadas}} · {cost}",
       "paused": "Tu suscripción llegó a su límite: sigue sola el {at}."
+    },
+    "backup": {
+      "title": "Segunda copia de la librería",
+      "help": "Los archivos originales de lo que instalas se guardan en Libreria del disco ★ y, además, en este disco. Si no está conectado, se copia solo al conectarlo.",
+      "disk": "Disco de la segunda copia",
+      "none": "Ninguno",
+      "noDisk": "Sin segunda copia: elige un disco para no depender solo del ★.",
+      "pending": "{count, plural, one {# versión espera} other {# versiones esperan}} su segunda copia: se está copiando.",
+      "pendingDisconnected": "{count, plural, one {# versión espera} other {# versiones esperan}} su segunda copia: se copia sola al conectar {name}.",
+      "upToDate": "Todo tiene su segunda copia."
     }
   },
   "tools": {
@@ -1150,7 +1180,8 @@
       "emulator": "Emuladores",
       "port": "Ports",
       "complement": "Complementos",
-      "system": "Sistema"
+      "system": "Sistema",
+      "tool": "Herramientas"
     },
     "noRecipe": "Sin receta",
     "noRecipeHelp": "Otteretro todavía no sabe cómo dejarlo portable ni reescribir sus rutas.",
@@ -1186,14 +1217,61 @@
       "installed": "Tienes",
       "published": "Publicada",
       "games": "La usan",
-      "gamesUnknown": "Todavía no se sabe: llega con los perfiles por juego.",
+      "gamesUnknown": "Ninguno de tus juegos todavía.",
       "notes": "Notas de la versión",
       "besideOld": "La nueva se instala al lado de la que tienes: la vieja no se toca y puedes volver a ella.",
       "update": "Actualizar",
       "skip": "Omitir esta versión",
       "badge": "Versión nueva",
       "notInstalled": "No lo tienes instalado",
-      "install": "Instalar"
+      "install": "Instalar",
+      "gamesMore": "{list} y {count, plural, one {# más} other {# más}}",
+      "queued": "Instalando al lado de la que tienes: míralo en el panel de tareas."
+    },
+    "install": {
+      "open": {
+        "emulator": "Instalar un emulador",
+        "port": "Instalar un port",
+        "tool": "Instalar una herramienta"
+      },
+      "what": "Qué",
+      "pick": "Elige uno",
+      "other": "Otro, sin receta",
+      "name": "Su nombre",
+      "experimental": "{name} (experimental)",
+      "from": "Desde dónde",
+      "fromKind": {
+        "recipe": "Su receta",
+        "url": "La URL de una release",
+        "path": "Una carpeta o un zip de este equipo"
+      },
+      "noReleases": "Su fuente no publica el archivo para instalar: usa la URL de una release o una carpeta o un zip.",
+      "version": "Versión",
+      "versionOptional": "Versión (si no, la del ejecutable)",
+      "dev": "desarrollo",
+      "url": "URL de la release",
+      "path": "Ruta de la carpeta o del zip",
+      "pathHelp": "Escribe la ruta completa en este equipo, por ejemplo D:\\Descargas\\emulador.zip. Se copia: el original no se toca.",
+      "adopt": "Es uno que instalé a mano (se adopta copiándolo)",
+      "beside": "Cada versión va en su propia carpeta, al lado de las otras, y el archivo original queda en tu librería.",
+      "cancel": "Cancelar",
+      "submit": "Instalar",
+      "queued": "Quedó en el panel de tareas."
+    },
+    "library": {
+      "title": "Tu librería",
+      "help": "Lo que instalaste, con el archivo original guardado en Libreria del disco ★ y su segunda copia en el disco que elegiste en Ajustes › Almacenamiento.",
+      "origin": {
+        "recipe": "desde su receta",
+        "url": "desde una URL",
+        "upload": "desde una carpeta o un zip",
+        "adopted": "adoptado"
+      },
+      "twoCopies": "En dos discos",
+      "oneCopy": "Una sola copia",
+      "missing": "Sin su carpeta",
+      "reinstall": "Reinstalar",
+      "queued": "Quedó en el panel de tareas: vuelve desde tu librería, sin bajar nada."
     }
   },
   "downloads": {
@@ -1268,6 +1346,76 @@
       "size": "Solo tamaño",
       "site": "Verificado por el sitio",
       "none": "Sin verificar"
+    }
+  },
+  "ports": {
+    "title": "Ports",
+    "news": "Ports nuevos",
+    "fullyPlayable": "100 % jugables",
+    "others": "Otros ports: no están al 100 %",
+    "newFullyPlayable": "Ports nuevos 100 % jugables",
+    "newOthers": "Ports nuevos que no están al 100 %",
+    "status": {
+      "complete": "100 % jugable",
+      "playable": "Jugable con fallos",
+      "beta": "Beta",
+      "experimental": "Experimental",
+      "no-port": "Sin port todavía"
+    },
+    "kind": {
+      "decomp": "Decompilación",
+      "recomp": "Recompilación",
+      "remake": "Remake",
+      "port": "Port",
+      "native-layer": "Capa nativa",
+      "engine": "Motor"
+    },
+    "abandoned": "Abandonado",
+    "delisted": "Ya no listado",
+    "installed": "Instalado: {versions}",
+    "added": "En el catálogo desde el {date}",
+    "open": "Ver el proyecto",
+    "install": "Instalar",
+    "installFromUrl": "Instalar desde una URL",
+    "url": "URL de la release de {name}",
+    "version": "Versión",
+    "versionOptional": "Versión (opcional)",
+    "installConfirm": "Instalar",
+    "queued": "Instalación en cola: la sigues en Tareas.",
+    "seen": "Visto"
+  },
+  "profiles": {
+    "title": "Perfiles",
+    "active": "Activo: {name} ({emulator})",
+    "noneActive": "Sin perfil: usa «{name}» de {emulator}",
+    "noEmulator": "Sin emulador para esta consola",
+    "noEmulatorHint": "Instala un emulador de esta consola en Herramientas para crear perfiles.",
+    "name": "Nombre",
+    "emulator": "Emulador",
+    "rom": "ROM",
+    "activate": "Activar",
+    "isActive": "Activo",
+    "rename": "Nombre de {name}",
+    "romOf": "ROM de {name}",
+    "baseRom": "{file}",
+    "baseRomDefault": "La base",
+    "useDefault": "Sin perfil: el por defecto, «{name}» de {emulator}",
+    "defaults": "Perfil por defecto de cada emulador",
+    "base": "base",
+    "newName": "Nombre del perfil nuevo",
+    "from": "Crear desde",
+    "fromEmpty": "Vacío",
+    "fromDefault": "El perfil por defecto",
+    "fromCopy": "Duplicar «{name}»",
+    "create": "Crear",
+    "saves": {
+      "copied": "Las partidas se llevaron al otro emulador. Lo que había ahí quedó respaldado en {backup}.",
+      "none": "No había partidas que llevar al otro emulador.",
+      "needsFirstRun": "Las partidas no se llevaron: abre el juego una vez en el otro emulador, vuelve a «sin perfil» y activa este perfil de nuevo.",
+      "untested": "Las partidas no se llevaron: el formato parece el mismo, pero todavía no está probado. Cópialas a mano si quieres.",
+      "unknown": "Las partidas no se pueden llevar a este emulador: no hay forma conocida. Siguen en el emulador de antes.",
+      "chooseUser": "Este emulador tiene varios usuarios de consola: ¿a cuál van las partidas?",
+      "chooseUserConfirm": "Llevarlas y activar"
     }
   }
 }

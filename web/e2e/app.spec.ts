@@ -332,7 +332,7 @@ test("Descargas: el capturador guarda lo pegado, sobrevive a cambiar de pantalla
 
 test("Herramientas: pestañas por tipo y subir un archivo de sistema con versiones (#154, #199)", async () => {
   await page.goto(`${base()}/tools/`);
-  for (const k of ["emulator", "port", "complement", "system"] as const) await expect(page.getByRole("tab", { name: en.tools.kind[k] })).toBeVisible();
+  for (const k of ["emulator", "port", "complement", "tool", "system"] as const) await expect(page.getByRole("tab", { name: en.tools.kind[k] })).toBeVisible();
   await expect(page.getByRole("tab", { name: en.tools.kind.emulator })).toHaveAttribute("aria-selected", "true");
   await page.getByRole("tab", { name: en.tools.kind.system }).click();
   await expect(page).toHaveURL(/k=system/);
@@ -343,6 +343,66 @@ test("Herramientas: pestañas por tipo y subir un archivo de sistema con version
   await page.getByLabel(en.tools.systemUpload).setInputFiles({ name: "prueba.bin", mimeType: "application/octet-stream", buffer: Buffer.from("archivo de prueba") });
   await expect(page.getByText(/prueba\.bin/)).toBeVisible();
   await expectNoRawKeys();
+});
+
+test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería con la segunda copia y los avisos que instalan (#296)", async () => {
+  const src = dataDir("srm-a-mano");
+  mkdirSync(src, { recursive: true });
+  writeFileSync(join(src, "Steam-ROM-Manager.exe"), "srm");
+  await addDisk("Disco Copia");
+  // La pestaña Herramientas (decisión 311): instalar desde una carpeta de este equipo.
+  await page.goto(`${base()}/tools/?k=tool`);
+  await expect(page.getByRole("tab", { name: en.tools.kind.tool })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("button", { name: en.tools.install.open.tool }).click();
+  await page.getByLabel(en.tools.install.what).selectOption("steam-rom-manager");
+  await page.getByLabel(en.tools.install.fromKind.path).check();
+  await page.getByLabel(en.tools.install.path, { exact: true }).fill(src);
+  await page.getByLabel(en.tools.install.version, { exact: true }).fill("2.6.2");
+  await expectNoRawKeys();
+  await expectTextFits();
+  await page.locator("section[aria-labelledby=install-title]").getByRole("button", { name: en.tools.install.submit, exact: true }).click();
+  await expect(page.getByText(en.tools.install.queued)).toBeVisible();
+  // Al terminar: en la lista de su tipo y en la librería, con su origen y una sola copia todavía.
+  const panel = page.locator("#tools-panel");
+  await expect(panel.getByRole("button", { name: /Steam ROM Manager/ })).toBeVisible({ timeout: 15_000 });
+  const library = panel.locator("section", { has: page.getByRole("heading", { name: en.tools.library.title }) });
+  await expect(library.getByText(en.tools.library.origin.upload, { exact: false })).toBeVisible();
+  await expect(library.getByText(en.tools.library.oneCopy)).toBeVisible();
+  await page.screenshot({ path: "e2e-results/8-tools-install-en.png", fullPage: true });
+
+  // Ajustes › Almacenamiento: elegir el disco de la segunda copia la hace sola.
+  await page.goto(`${base()}/settings/?s=storage`);
+  const backup = page.getByLabel(en.libraries.backup.disk);
+  await expect(backup.locator("option", { hasText: "★" })).toHaveCount(0); // nunca el ★
+  await backup.selectOption({ label: "Disco Copia" });
+  await expect(page.getByText(en.libraries.backup.upToDate)).toBeVisible({ timeout: 15_000 });
+  await expectNoRawKeys();
+  await page.goto(`${base()}/tools/?k=tool`);
+  await expect(page.locator("#tools-panel").getByText(en.tools.library.twoCopies)).toBeVisible();
+
+  // Un aviso con su archivo: «Actualizar» lo instala al lado (con la API de instalar) y dice qué juegos lo usan.
+  const many = ["A", "B", "C", "D", "E", "F", "G", "H"];
+  await page.route("**/api/tools/updates", (route) => route.fulfill({ json: [{ recipeId: "steam-rom-manager", name: "Steam ROM Manager", kind: "tool", channel: "stable", version: "2.6.3",
+    notes: null, url: "https://github.com/SteamGridDB/steam-rom-manager/releases", publishedAt: null, installed: ["2.6.2"], games: many, download: "https://example.com/srm-2.6.3.exe" }] }));
+  let sent: unknown = null;
+  await page.route("**/api/emulators/install", (route) => { sent = route.request().postDataJSON(); return route.fulfill({ json: 1 }); });
+  await page.goto(`${base()}/tools/`);
+  await expect(page.getByText(en.tools.updates.gamesMore.replace("{list}", "A, B, C, D, E, F").replace(/\{count.*\}$/, "2 more"))).toBeVisible();
+  await page.getByRole("button", { name: en.tools.updates.update, exact: true }).click();
+  await expect(page.getByText(en.tools.updates.queued)).toBeVisible();
+  expect(sent).toEqual({ emulator: "steam-rom-manager", version: "2.6.3", url: "https://example.com/srm-2.6.3.exe" });
+  await expectNoRawKeys();
+  await page.unroute("**/api/tools/updates");
+  await page.unroute("**/api/emulators/install");
+  await api("PUT", "/api/library/backup", { diskId: null });
+  // Se limpian la instalación y la copia del panel de tareas, para las pruebas que siguen.
+  await page.getByRole("button", { name: en.topBar.tasks }).click();
+  await expect(async () => {
+    await page.getByRole("dialog", { name: en.topBar.tasksPanel }).getByRole("button", { name: en.tasks.clear }).click({ timeout: 1000 });
+    await expect(page.getByText(en.topBar.noTasksTitle)).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 15_000 });
+  await page.keyboard.press("Escape");
+  await removeDisks();
 });
 
 test("el panel de tareas y la búsqueda están traducidos", async () => {
@@ -723,6 +783,62 @@ test("la ficha muestra tus enlaces de ese juego, y se pueden quitar (#210)", asy
   await expect(page.getByText("fusion.zip")).toBeVisible();
   await page.getByRole("button", { name: es.downloads.removeLink.replace("{name}", "fusion.zip") }).click();
   await expect(page.getByRole("heading", { name: es.downloads.gameLinks })).toHaveCount(0);
+});
+
+test("ports: Novedades con los nuevos de lo que sigues, la ficha separa los 100 % jugables e instalar pide la URL (#286, #287)", async () => {
+  // Sin ningún «Visto», Novedades muestra lo de los últimos 30 días.
+  const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
+  const db = await openDb();
+  db.exec(`
+    INSERT INTO saga_user (saga_id, favorite, following) VALUES (1, 0, 1) ON CONFLICT (saga_id) DO UPDATE SET following = 1;
+    INSERT INTO port (id, console, game, project, kind, status, delisted, link, source, added, game_id) VALUES
+      (1, 'n64', 'Ocarina of Time', 'Ship of Harkinian', 'decomp', 'complete', 0, 'https://sitio.test/soh', 'recompendium', '${daysAgo(4)}', 10),
+      (2, 'n64', 'Ocarina of Time', 'Viejo port', 'port', 'beta', 1, 'https://sitio.test/viejo', 'extra', '${daysAgo(20)}', 10);
+  `);
+  db.close();
+  await page.goto(`${base()}/`);
+  const news = page.getByLabel(es.ports.news);
+  await expect(news.getByRole("heading", { name: es.ports.newFullyPlayable })).toBeVisible();
+  await expect(news.getByRole("heading", { name: es.ports.newOthers })).toBeVisible();
+  await expect(news.getByText(es.ports.delisted)).toBeVisible();
+  await news.getByRole("button", { name: es.ports.seen }).click();
+  await expect(page.getByLabel(es.ports.news)).toHaveCount(0);
+
+  await page.goto(`${base()}/game/?id=10`);
+  const ports = page.getByRole("region", { name: es.ports.title });
+  await expect(ports.getByRole("heading", { name: es.ports.fullyPlayable })).toBeVisible();
+  await expect(ports.getByText(es.ports.status.complete, { exact: true })).toBeVisible();
+  await expect(ports.getByText(es.ports.added.replace("{date}", new Intl.DateTimeFormat("es", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(daysAgo(4)))))).toBeVisible();
+  await expect(ports.getByText(es.ports.status.beta, { exact: true })).toBeVisible();
+  // Sin receta: con la URL de su release; si el archivo no dice la versión, se pide.
+  await ports.getByRole("button", { name: es.ports.installFromUrl }).first().click();
+  await ports.getByLabel(es.ports.url.replace("{name}", "Ship of Harkinian")).fill("https://sitio.test/descarga");
+  await ports.getByRole("button", { name: es.ports.installConfirm, exact: true }).click();
+  await expect(ports.getByRole("alert")).toHaveText(es.errors.install.noVersion);
+  await expectTextFits();
+});
+
+test("la ficha: perfiles de cada versión, crear, activar y volver al por defecto (#269)", async () => {
+  // Un emulador sin receta, base de Switch: sus perfiles no mueven archivos, así que no hace falta instalarlo.
+  const db = await openDb();
+  db.exec(`
+    INSERT INTO emulator (id, kind, name) VALUES ('mi-emu', 'emulator', 'MiEmu');
+    INSERT INTO profile (emulator_id, name, created_at) VALUES ('mi-emu', 'MiEmu', '');
+    INSERT INTO console_emulator (console_id, emulator_id, is_base) VALUES ('switch', 'mi-emu', 1);
+  `);
+  db.close();
+  await page.goto(`${base()}/game/?id=11`);
+  await expect(page.getByRole("heading", { name: es.profiles.title })).toBeVisible();
+  await expect(page.getByText(es.profiles.noneActive.replace("{name}", "MiEmu").replace("{emulator}", "MiEmu"))).toBeVisible();
+  await page.getByRole("textbox", { name: es.profiles.newName }).fill("2x");
+  await page.getByRole("button", { name: es.profiles.create }).click();
+  await expect(page.getByRole("textbox", { name: es.profiles.rename.replace("{name}", "2x") })).toBeVisible();
+  await page.getByRole("button", { name: es.profiles.activate }).click();
+  await expect(page.getByText(es.profiles.active.replace("{name}", "2x").replace("{emulator}", "MiEmu"))).toBeVisible();
+  await expectNoRawKeys();
+  await page.screenshot({ path: "e2e-results/12-perfiles-es.png", fullPage: true });
+  await page.getByRole("button", { name: es.profiles.activate }).click(); // la fila «sin perfil»
+  await expect(page.getByText(es.profiles.noneActive.replace("{name}", "MiEmu").replace("{emulator}", "MiEmu"))).toBeVisible();
 });
 
 test("panel de tareas: terminadas por hora de término, registro al hacer clic y limpiar", async () => {

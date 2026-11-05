@@ -89,7 +89,7 @@ public class FluidityTests(ITestOutputHelper output) : IAsyncLifetime
         "/api/games/1", "/api/games/1/compare", "/api/versions/1/license",
         "/api/collection/pc", "/api/collection/pc?filter=owned", "/api/collection/switch?filter=missing&sort=name",
         "/api/search?q=juego%2012",
-        "/api/data-folder", "/api/locations", "/api/tools", "/api/tools/updates", "/api/system", "/api/downloads", "/api/credentials", "/api/consoles/settings", "/api/claude", "/api/emulators", "/api/library/backup",
+        "/api/data-folder", "/api/locations", "/api/tools", "/api/tools/updates", "/api/system", "/api/downloads", "/api/credentials", "/api/consoles/settings", "/api/claude", "/api/emulators", "/api/library/backup", "/api/recipes",
     ];
 
     [Fact]

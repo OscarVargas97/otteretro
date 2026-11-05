@@ -8,6 +8,8 @@ import { Suspense, useEffect, useState } from "react";
 import { size } from "@/lib/format";
 import { Cover, hours, Platforms, useConsoleName, useConsoles, useIdParam } from "@/components/Catalog";
 import { useHeroArt } from "@/components/HeroArt";
+import { GamePorts } from "@/components/Ports";
+import { GameProfiles } from "@/components/GameProfiles";
 import { Empty } from "@/components/Shell";
 import { request } from "@/lib/client";
 import { PageSkeleton } from "@/components/Skeleton";
@@ -97,6 +99,9 @@ function Game() {
         )}
 
         <Versions game={g} compare={compare.data ?? []} />
+
+        <GamePorts gameId={Number(g.id)} />
+        <GameProfiles gameId={Number(g.id)} />
 
         <GameLinks gameId={Number(g.id)} />
 

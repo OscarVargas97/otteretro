@@ -19,6 +19,8 @@ public record MoveFolderRequest(string Relative, string? ToLibrary = null, strin
 public record MoveToolRequest(string Path, string? ToLocation = null);
 public record ReinstallRequest(string Emulator, string Version);
 public record BackupDiskRequest(string? DiskId);
+/// <param name="Releases">Su fuente publica el archivo para instalar: se puede elegir la versión.</param>
+public record RecipeSummary(string Id, string Name, string Kind, bool Experimental, bool Releases);
 public record DestinationRequest(string? LocationId);
 /// <param name="Path">La carpeta Otteretro del disco (la `folder` de /drives).</param>
 /// <param name="Name">Lo que ve la persona: la unidad (E:).</param>
@@ -236,12 +238,52 @@ public static class DiskEndpoints
             return error is null ? TypedResults.Ok(task!.Value) : error.Code is "install.exists" or "library.notConnected" ? TypedResults.Conflict(error) : TypedResults.BadRequest(error);
         });
 
+        // Las recetas que se instalan (emuladores, ports y herramientas) y las versiones publicadas de una, para elegir cuál (#296).
+        api.MapGet("/recipes", () => TypedResults.Ok(Recipes.All.Where(r => r.Kind != "complement")
+            .Select(r => new RecipeSummary(r.Id, r.Name, r.Kind, r.Experimental, r.Updates is not null && r.Asset is not null)).OrderBy(r => r.Name).ToList()));
+
+        api.MapGet("/recipes/{id}/releases", async Task<Results<Ok<List<RecipeRelease>>, NotFound, Conflict<ApiError>>> (string id, CancellationToken ct) =>
+        {
+            if (Recipes.Find(id) is not { Kind: not "complement" } recipe) return TypedResults.NotFound();
+            try { return TypedResults.Ok(await ToolUpdates.Installable(recipe, ct)); }
+            catch (Exception e) when (e is HttpRequestException or System.Text.Json.JsonException or TaskCanceledException && !ct.IsCancellationRequested)
+            {
+                return TypedResults.Conflict(ApiError.Of("install.sourceFailed", ("name", recipe.Name), ("detail", e.Message)));
+            }
+        });
+
         // Reinstalar una versión que perdió su carpeta, desde la librería y verificada por hash (decisión 304).
         api.MapPost("/emulators/reinstall", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (ReinstallRequest request, AppSession s) =>
         {
             if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
             var (task, error) = Installs.Enqueue(db, new InstallJob(request.Emulator, request.Version, Reinstall: true));
             return error is null ? TypedResults.Ok(task!.Value) : error.Code is "install.exists" or "library.notConnected" ? TypedResults.Conflict(error) : TypedResults.BadRequest(error);
+        });
+
+        // Ports (#286, #287): los de un juego, los nuevos para Inicio › Novedades, «Visto» e instalar uno con su receta o con la URL de su release.
+        api.MapGet("/games/{id:long}/ports", Results<Ok<List<PortInfo>>, Conflict<ApiError>> (long id, AppSession s) =>
+            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Ports.OfGame(db, id)) : CatalogEndpoints.NoData());
+
+        api.MapGet("/ports/news", Results<Ok<List<PortInfo>>, Conflict<ApiError>> (AppSession s) =>
+            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Ports.News(db)) : CatalogEndpoints.NoData());
+
+        api.MapPost("/ports/news/seen", Results<NoContent, Conflict<ApiError>> (AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            Ports.MarkSeen(db);
+            return TypedResults.NoContent();
+        });
+
+        api.MapPost("/ports/{id:long}/install", async Task<Results<Ok<long>, BadRequest<ApiError>, NotFound, Conflict<ApiError>>> (long id, PortInstallRequest request, AppSession s, CancellationToken ct) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            var (task, error) = await Ports.Install(db, id, request, ct);
+            return error is null ? TypedResults.Ok(task!.Value) : error.Code switch
+            {
+                "ports.notFound" => TypedResults.NotFound(),
+                "install.exists" or "library.notConnected" => TypedResults.Conflict(error),
+                _ => TypedResults.BadRequest(error),
+            };
         });
 
         // El disco de la segunda copia de la librería (Ajustes › Almacenamiento, decisión 303).
