@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:52706/"
+      "url": "http://127.0.0.1:54725/"
     }
   ],
   "paths": {
@@ -7017,6 +7017,20 @@
             ]
           },
           "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PrepareContentRequest": {
+        "required": [
+          "emulator"
+        ],
+        "type": "object",
+        "properties": {
+          "emulator": {
             "type": [
               "null",
               "string"

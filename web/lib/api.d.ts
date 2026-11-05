@@ -6100,6 +6100,9 @@ export interface components {
             url?: null | string;
             version?: null | string;
         };
+        PrepareContentRequest: {
+            emulator: null | string;
+        };
         PreviewItem: {
             path: string;
             console: null | string;
