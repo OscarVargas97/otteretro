@@ -35,6 +35,12 @@ public record RegionsRequest(List<string> Order);
 public record ConvertRequest(string Console);
 /// <param name="Ids">Las filas de <c>source</c> que se quitan del disco (#224).</param>
 public record TrashRequest(List<long> Ids);
+/// <param name="From">empty, default (los valores del perfil por defecto del emulador) o copy (duplicar <paramref name="Copy"/>).</param>
+public record CreateProfileRequest(long VersionId, string Emulator, string Name, string From = "empty", long? Copy = null);
+/// <param name="SourceId">La ROM que usa; null: la base.</param>
+public record ProfileRequest(string Name, long? SourceId);
+/// <param name="ProfileId">null: sin perfil, con el por defecto del emulador base.</param>
+public record ActiveProfileRequest(long? ProfileId);
 
 /// <summary>Pantallas del catálogo (F1.9): sagas, colección, ficha, seguimiento, búsqueda y avisos de Inicio.</summary>
 public static class CatalogEndpoints
@@ -263,6 +269,20 @@ public static class CatalogEndpoints
             if (request.Notes?.Length > 10_000) return TypedResults.BadRequest(ApiError.Of("progress.notesTooLong"));
             return CatalogQueries.SaveProgress(db, id, request) ? TypedResults.Ok(CatalogQueries.Game(db, id)!) : TypedResults.NotFound();
         });
+
+        // Perfiles de cada versión del juego (#269): crearlos, renombrarlos, elegir su ROM y activar uno con sus archivos.
+        api.MapGet("/games/{id:long}/profiles", Results<Ok<List<VersionProfiles>>, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(Profiles.OfGame(db, id)) : NoData());
+        api.MapPost("/profiles", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (CreateProfileRequest r, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var (created, error) = Profiles.Create(db, r.VersionId, r.Emulator, r.Name, r.From, r.Copy);
+            return error is null ? TypedResults.Ok(created!.Value) : TypedResults.BadRequest(error);
+        });
+        api.MapPut("/profiles/{id:long}", Results<Ok, BadRequest<ApiError>, Conflict<ApiError>> (long id, ProfileRequest r, AppSession s) =>
+            Db(s) is not { } db ? NoData() : Profiles.Update(db, id, r.Name, r.SourceId) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok());
+        api.MapPut("/versions/{id:long}/profile", Results<Ok, BadRequest<ApiError>, Conflict<ApiError>> (long id, ActiveProfileRequest r, AppSession s) =>
+            Db(s) is not { } db ? NoData() : Profiles.Switch(db, id, r.ProfileId) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok());
 
         api.MapGet("/search", Results<Ok<SearchResults>, Conflict<ApiError>> (AppSession s, string? q) =>
         {

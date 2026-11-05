@@ -785,6 +785,29 @@ test("la ficha muestra tus enlaces de ese juego, y se pueden quitar (#210)", asy
   await expect(page.getByRole("heading", { name: es.downloads.gameLinks })).toHaveCount(0);
 });
 
+test("la ficha: perfiles de cada versión, crear, activar y volver al por defecto (#269)", async () => {
+  // Un emulador sin receta, base de Switch: sus perfiles no mueven archivos, así que no hace falta instalarlo.
+  const db = await openDb();
+  db.exec(`
+    INSERT INTO emulator (id, kind, name) VALUES ('mi-emu', 'emulator', 'MiEmu');
+    INSERT INTO profile (emulator_id, name, created_at) VALUES ('mi-emu', 'MiEmu', '');
+    INSERT INTO console_emulator (console_id, emulator_id, is_base) VALUES ('switch', 'mi-emu', 1);
+  `);
+  db.close();
+  await page.goto(`${base()}/game/?id=11`);
+  await expect(page.getByRole("heading", { name: es.profiles.title })).toBeVisible();
+  await expect(page.getByText(es.profiles.noneActive.replace("{name}", "MiEmu").replace("{emulator}", "MiEmu"))).toBeVisible();
+  await page.getByRole("textbox", { name: es.profiles.newName }).fill("2x");
+  await page.getByRole("button", { name: es.profiles.create }).click();
+  await expect(page.getByRole("textbox", { name: es.profiles.rename.replace("{name}", "2x") })).toBeVisible();
+  await page.getByRole("button", { name: es.profiles.activate }).click();
+  await expect(page.getByText(es.profiles.active.replace("{name}", "2x").replace("{emulator}", "MiEmu"))).toBeVisible();
+  await expectNoRawKeys();
+  await page.screenshot({ path: "e2e-results/12-perfiles-es.png", fullPage: true });
+  await page.getByRole("button", { name: es.profiles.activate }).click(); // la fila «sin perfil»
+  await expect(page.getByText(es.profiles.noneActive.replace("{name}", "MiEmu").replace("{emulator}", "MiEmu"))).toBeVisible();
+});
+
 test("panel de tareas: terminadas por hora de término, registro al hacer clic y limpiar", async () => {
   const db = await openDb();
   const now = new Date();

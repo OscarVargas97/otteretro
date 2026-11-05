@@ -575,6 +575,15 @@
       "notInLibrary": "La versión {version} no está en tu librería: no se puede reinstalar sin bajarla.",
       "backupIsDefault": "La segunda copia tiene que ir en otro disco, no en el ★.",
       "sourceFailed": "No se pudo leer las versiones de {name}: {detail}"
+    },
+    "profile": {
+      "notFound": "Ese perfil no existe o no es de esta versión del juego.",
+      "noGameKey": "Falta el TitleID o el serial del juego: identifícalo para poder aplicar su perfil.",
+      "notInstalled": "{emulator} no está instalado o su disco no está conectado.",
+      "badName": "El perfil necesita un nombre.",
+      "badFrom": "No se puede crear el perfil desde ahí.",
+      "badRom": "Esa ROM no es de esta versión del juego.",
+      "switchFailed": "No se pudo cambiar el perfil; lo movido quedó guardado y el perfil activo no cambió: {detail}"
     }
   },
   "credentials": {
@@ -1303,5 +1312,30 @@
       "site": "Verificado por el sitio",
       "none": "Sin verificar"
     }
+  },
+  "profiles": {
+    "title": "Perfiles",
+    "active": "Activo: {name} ({emulator})",
+    "noneActive": "Sin perfil: usa «{name}» de {emulator}",
+    "noEmulator": "Sin emulador para esta consola",
+    "noEmulatorHint": "Instala un emulador de esta consola en Herramientas para crear perfiles.",
+    "name": "Nombre",
+    "emulator": "Emulador",
+    "rom": "ROM",
+    "activate": "Activar",
+    "isActive": "Activo",
+    "rename": "Nombre de {name}",
+    "romOf": "ROM de {name}",
+    "baseRom": "{file}",
+    "baseRomDefault": "La base",
+    "useDefault": "Sin perfil: el por defecto, «{name}» de {emulator}",
+    "defaults": "Perfil por defecto de cada emulador",
+    "base": "base",
+    "newName": "Nombre del perfil nuevo",
+    "from": "Crear desde",
+    "fromEmpty": "Vacío",
+    "fromDefault": "El perfil por defecto",
+    "fromCopy": "Duplicar «{name}»",
+    "create": "Crear"
   }
 }
