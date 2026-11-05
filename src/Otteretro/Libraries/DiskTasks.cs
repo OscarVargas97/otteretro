@@ -59,7 +59,11 @@ public static class DiskTasks
     public record MigrationPlan(List<DiskInfo> Locations, bool Tools);
 
     public static MigrationPlan Pending(Database db) =>
-        new(Disk.List(db).Where(l => l.Type != "disk").ToList(), Recipes.Installed(ToolsOf(db)).Count > 0);
+        new(Disk.List(db).Where(l => l.Type != "disk").ToList(), Recipes.Installed(ToolsOf(db)).Count > 0 || Outdated(db).Count > 0);
+
+    /// <summary>Lo instalado con una receta anterior (#273: Dusklight con `Datos` y su enlace en AppData).</summary>
+    static List<ToolInfo> Outdated(Database db) =>
+        Recipes.Installed(Disk.ToolRoots(db)).Where(t => t.RecipeId is not null && Recipes.Outdated(Recipes.Find(t.RecipeId)!, t.Path)).ToList();
 
     /// <summary>
     /// Pasa todo al estándar (#159, #202, #204). Cada ubicación de un solo tipo va a la carpeta fija del disco donde está (en el
@@ -120,6 +124,12 @@ public static class DiskTasks
                 Relink(Recipes.Installed(Disk.ToolRoots(run.Db)), tool.Path, to);
                 run.Log(ApiError.Of("library.log.tool", ("name", tool.Name), ("path", to)));
             }
+        // Lo instalado con una receta anterior pasa a la actual (#273): se renombra dentro de la instalación, sin copiar nada.
+        foreach (var tool in Outdated(run.Db))
+        {
+            Recipes.MakePortable(Recipes.Find(tool.RecipeId!)!, tool.Path);
+            run.Log(ApiError.Of("library.log.updated", ("name", tool.Name), ("path", tool.Path)));
+        }
         Scan.Enqueue(run.Db); // los juegos cambiaron de lugar (#212)
         return Task.CompletedTask;
     }

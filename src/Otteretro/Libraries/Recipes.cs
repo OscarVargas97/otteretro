@@ -13,7 +13,9 @@ public record GamePath(string File, string Format, string Key);
 public record RecipeSetting(string File, string Format, string Key, string Value, string? Section = null);
 public record RecipeDownload(string Version, string System, string Url, string Hash);
 /// <summary>Dónde publica sus versiones (decisión 294). El mismo que trae #278 en ToolUpdates.cs: al fusionar las dos ramas queda uno.</summary>
-public record RecipeUpdates(string Source, string? Repo = null, string? Host = null, bool Dev = false);
+/// <param name="DevRepo">Las versiones de desarrollo en otro repo del mismo servidor (Ryubing Canary); se piden a mano si no hay <paramref name="Dev"/>.</param>
+/// <param name="DevPattern">Tags que cuentan como de desarrollo aunque no sean prerelease (Eden: -rc).</param>
+public record RecipeUpdates(string Source, string? Repo = null, string? Host = null, bool Dev = false, string? DevRepo = null, string? DevPattern = null);
 /// <param name="Apply">file, section, swap o argument (ver el esquema).</param>
 public record RecipePerGame(string? Config = null, string? Apply = null)
 {
@@ -145,9 +147,13 @@ public static class Recipes
         return date.ToString("yyyy.MM.dd");
     }
 
-    /// <summary>Dónde va en Herramientas: `Emuladores\<Consola>\<Instalación>\<versión>` (§5.1).</summary>
-    public static string Target(string tools, Recipe recipe, string version) =>
-        Path.Combine(tools, recipe.Group, recipe.Folder, recipe.Name, version);
+    /// <summary>
+    /// Dónde va en Herramientas (§5.1): `Emuladores\<Emulador>\<versión>` y `Ports\<Port>\<versión>`, una carpeta aunque sirva a varias
+    /// consolas (decisión 302); `Complementos\<Emulador o port>\<Complemento>\<versión>`.
+    /// </summary>
+    public static string Target(string tools, Recipe recipe, string version) => recipe.Kind == "complement"
+        ? Path.Combine(tools, recipe.Group, recipe.Folder, recipe.Name, version)
+        : Path.Combine(tools, recipe.Group, recipe.Name, version);
 
     /// <summary>Emuladores, Ports y Complementos de `Herramientas` (§5.1): la primera ubicación de cada tipo (#198).</summary>
     public static List<ToolRoot> DefaultRoots(string tools) =>
@@ -156,7 +162,7 @@ public static class Recipes
     /// <summary>Lo instalado en Herramientas: tres niveles bajo Emuladores, Ports y Complementos.</summary>
     public static List<ToolInfo> Installed(string tools) => Installed(DefaultRoots(tools));
 
-    /// <summary>Lo instalado en esas carpetas: tres niveles bajo cada una (#198).</summary>
+    /// <summary>Lo instalado en esas carpetas: dos niveles bajo cada una, o tres en lo de antes y en los complementos (#198).</summary>
     public static List<ToolInfo> Installed(IEnumerable<ToolRoot> roots)
     {
         var list = new List<ToolInfo>();
@@ -164,15 +170,44 @@ public static class Recipes
         {
             if (!Directory.Exists(root)) continue;
             foreach (var folder in Directory.EnumerateDirectories(root))
+            {
+                var named = kind == "complement" ? null : All.FirstOrDefault(r => r.Kind == kind && r.Name == Path.GetFileName(folder));
                 foreach (var name in Directory.EnumerateDirectories(folder))
+                {
+                    // `Emuladores\<Emulador>\<versión>` (decisión 302): el segundo nivel ya es la versión, con sus archivos. Lo de antes,
+                    // `Emuladores\<Consola>\<Instalación>\<versión>`, se sigue leyendo; Folder es la consola de su receta, si la tiene.
+                    if (kind != "complement" && Path.GetFileName(name).StartsWith('_')) continue; // `_compartido`, `_respaldos` (decisión 308)
+                    if (kind != "complement" && (named is not null || Directory.EnumerateFiles(name).Any()))
+                    {
+                        list.Add(new(kind, named?.Folder ?? "", Path.GetFileName(folder), Path.GetFileName(name), name, named?.Id, named?.Game, locationId));
+                        continue;
+                    }
                     foreach (var version in Directory.EnumerateDirectories(name))
                     {
                         var recipe = All.FirstOrDefault(r => r.Kind == kind && r.Name == Path.GetFileName(name) && r.Folder == Path.GetFileName(folder));
                         list.Add(new(kind, Path.GetFileName(folder), Path.GetFileName(name), Path.GetFileName(version), version, recipe?.Id, recipe?.Game, locationId));
                     }
+                }
+            }
         }
         return list.OrderBy(t => t.Kind).ThenBy(t => t.Folder).ThenBy(t => t.Name).ThenBy(t => t.Version).ToList();
     }
+
+    /// <summary>
+    /// Con rename: el enlace de fuera (<see cref="PortableStep.Link"/>) que apuntaba a la carpeta vieja de esta instalación, si sigue ahí.
+    /// Uno que apunta a otra instalación no se toca.
+    /// </summary>
+    static string? OldLink(PortableStep step, string install)
+    {
+        if (step.Link is null) return null;
+        var link = Path.GetFullPath(Environment.ExpandEnvironmentVariables(step.Link.Replace('/', Path.DirectorySeparatorChar)));
+        return Links.IsLink(link) && new DirectoryInfo(link).LinkTarget is { } target
+            && Disk.Same(Path.TrimEndingDirectorySeparator(target.Replace(@"\??\", "")), Path.GetFullPath(Path.Combine(install, step.From!))) ? link : null;
+    }
+
+    /// <summary>Una instalación de una receta anterior que todavía tiene que pasar a la actual (la carpeta vieja o su enlace).</summary>
+    public static bool Outdated(Recipe recipe, string install) =>
+        recipe.Portable.Any(s => s.Type == "rename" && (Directory.Exists(Path.Combine(install, s.From!)) || OldLink(s, install) is not null));
 
     /// <summary>Deja la instalación portable y con los valores que necesita (pasos de la receta para este sistema).</summary>
     public static void MakePortable(Recipe recipe, string install)
@@ -183,8 +218,11 @@ public static class Recipes
             var path = Path.Combine(install, step.Path);
             switch (step.Type)
             {
-                case "rename" when Directory.Exists(Path.Combine(install, step.From!)) && !Path.Exists(path):
-                    Directory.Move(Path.Combine(install, step.From!), path); // dentro de la instalación: el mismo disco, se renombra
+                case "rename":
+                    var from = Path.Combine(install, step.From!);
+                    if (Directory.Exists(from) && !Links.IsLink(from) && !Path.Exists(path))
+                        Directory.Move(from, path); // dentro de la instalación: el mismo disco, se renombra
+                    if (OldLink(step, install) is { } old) Directory.Delete(old); // borra el enlace, no lo enlazado
                     break;
                 case "file" when !File.Exists(path):
                     Directory.CreateDirectory(Path.GetDirectoryName(path)!);

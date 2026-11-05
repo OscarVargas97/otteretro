@@ -7,7 +7,7 @@
   "detect": "dusklight.exe",
   "version": { "from": "exe" },
   "license": "CC0-1.0",
-  "portable": [{ "type": "rename", "from": "Datos", "path": "data" }, { "type": "folder", "path": "data" }],
+  "portable": [{ "type": "rename", "from": "Datos", "path": "data", "link": "%APPDATA%/TwilitRealm/Dusklight" }, { "type": "folder", "path": "data" }],
   "saves": ["data/EUR", "data/USA", "data/JAP"],
   "config": ["data/config.json"],
   "gamePaths": [{ "file": "data/config.json", "format": "json", "key": "backend.isoPath" }],

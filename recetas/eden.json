@@ -27,7 +27,7 @@
     { "name": "anisotropy", "file": "user/config/qt-config.ini", "format": "ini", "section": "Renderer", "key": "max_anisotropy" },
     { "name": "speed", "file": "user/config/qt-config.ini", "format": "ini", "section": "Core", "key": "speed_limit" }
   ],
-  "updates": { "source": "forgejo", "repo": "eden-emu/eden", "host": "git.eden-emu.dev" },
+  "updates": { "source": "forgejo", "repo": "eden-emu/eden", "host": "git.eden-emu.dev", "devPattern": "-rc[0-9]*$" },
   "asset": "^Eden-Windows-v.*-amd64-clang-pgo\\.zip$",
   "formats": ["nsp", "xci", "nca", "nro"]
 }

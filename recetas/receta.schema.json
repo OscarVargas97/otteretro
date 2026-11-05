@@ -29,7 +29,7 @@
           "type": { "enum": ["file", "folder", "junction", "rename"], "description": "file: crea path vacío si falta; folder: crea la carpeta path; junction: enlaza link (fuera de la instalación) a path; rename: si existe from y no path, renombra from a path (la carpeta de una receta anterior)" },
           "path": { "type": "string" },
           "from": { "type": "string", "description": "Con rename: la ruta vieja dentro de la instalación" },
-          "link": { "type": "string", "description": "Con junction: ruta con variables de entorno (%APPDATA%)" },
+          "link": { "type": "string", "description": "Con junction: ruta con variables de entorno (%APPDATA%). Con rename: el enlace viejo de fuera que apuntaba a from; se quita" },
           "system": { "enum": ["windows", "linux"] }
         }
       }
@@ -74,7 +74,9 @@
         "source": { "enum": ["github", "forgejo", "dolphin"], "description": "github y forgejo: sus releases (las prereleases son de desarrollo); dolphin: su servidor de actualizaciones" },
         "repo": { "type": "string", "pattern": "^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$" },
         "host": { "type": "string", "description": "Con forgejo: el servidor (codeberg.org)" },
-        "dev": { "type": "boolean", "description": "También avisa de las versiones de desarrollo (como mucho una vez por semana)" }
+        "dev": { "type": "boolean", "description": "También avisa de las versiones de desarrollo (como mucho una vez por semana)" },
+        "devRepo": { "type": "string", "pattern": "^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$", "description": "Las versiones de desarrollo están en otro repo del mismo servidor (Ryubing Canary). Sin dev, no se avisa de ellas: se piden a mano" },
+        "devPattern": { "type": "string", "format": "regex", "description": "Los tags que cuentan como de desarrollo aunque no vengan marcados como prerelease (Eden: -rc)" }
       }
     },
     "asset": { "type": "string", "format": "regex", "description": "El archivo de Windows de cada release de updates (expresión regular sobre su nombre)" },

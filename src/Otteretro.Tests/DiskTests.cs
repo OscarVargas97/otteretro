@@ -171,6 +171,7 @@ public class DiskTests
                 _ = new System.Text.RegularExpressions.Regex(r.Asset);
             }
             if (r.Updates is { } u) Assert.Contains(u.Source, new[] { "github", "forgejo", "dolphin" });
+            if (r.Updates?.DevPattern is { } dev) _ = new System.Text.RegularExpressions.Regex(dev);
             foreach (var path in r.Saves.Concat(r.Config).Concat(r.Content).Append(r.Detect)) Relative(r.Id, path);
             if (r.PerGame is { } g)
             {
@@ -201,18 +202,51 @@ public class DiskTests
         Assert.Equal("ryubing", Recipes.Identify(tmp["Ryubing"])?.Id);
     }
 
-    /// <summary>#273: Dusklight deja la carpeta Datos enlazada desde AppData y usa su carpeta portable data, con todo adentro.</summary>
+    /// <summary>
+    /// #273: el Dusklight que ya estaba instalado (con `Datos` enlazada desde AppData) pasa solo, al abrir la app, a su carpeta portable
+    /// `data`: sin perder partidas ni texturas, sin el enlace viejo, con registro en la tarea; y la vez siguiente no queda nada pendiente.
+    /// </summary>
     [Fact]
-    public void DusklightMovesItsOldFolderToData()
+    public async Task InstalledDusklightMovesToDataOnOpen()
     {
-        using var tmp = new TempDir();
-        Write(tmp[@"Datos\EUR\save.gci"]);
+        await using var f = new Fixture();
+        Assert.Null(Disk.Create(f.Db, f.Tmp["disco"], null).Error);
+        var install = f.Tmp[@"disco\Ports\GameCube\Dusklight\1.0"];
+        var textures = f.Tmp[@"disco\Complementos\Dusklight\Texturas\original"];
+        Write(Path.Combine(install, "dusklight.exe"));
+        Write(Path.Combine(install, @"Datos\EUR\save.gci"));
+        Write(Path.Combine(textures, "link.png"));
+        Links.Point(Path.Combine(install, @"Datos\texture_replacements"), textures);
+        var appData = f.Tmp["appdata"];
+        var other = f.Tmp["otra-instalacion"];
+        Directory.CreateDirectory(other);
+        var before = Environment.GetEnvironmentVariable("APPDATA");
+        Environment.SetEnvironmentVariable("APPDATA", appData);
+        try
+        {
+            Links.Point(Path.Combine(appData, @"TwilitRealm\Dusklight"), Path.Combine(install, "Datos"));
 
-        Recipes.MakePortable(Recipes.Find("dusklight")!, tmp.Path);
-        Recipes.MakePortable(Recipes.Find("dusklight")!, tmp.Path); // otra vez no rompe nada
+            var task = DiskTasks.EnqueueMigrateIfPending(f.Db);
+            Assert.NotNull(task);
+            var result = await f.Run(task!.Value);
+            Assert.True(result.Status == "done", System.Text.Json.JsonSerializer.Serialize(result.Detail));
 
-        Assert.True(File.Exists(tmp[@"data\EUR\save.gci"]));
-        Assert.False(Directory.Exists(tmp["Datos"]));
+            Assert.True(File.Exists(Path.Combine(install, @"data\EUR\save.gci")));
+            Assert.True(File.Exists(Path.Combine(install, @"data\texture_replacements\link.png")));
+            Assert.False(Directory.Exists(Path.Combine(install, "Datos")));
+            Assert.False(Path.Exists(Path.Combine(appData, @"TwilitRealm\Dusklight")));
+            Assert.True(File.Exists(Path.Combine(textures, "link.png"))); // borrar el enlace no toca lo enlazado
+            using (var c = f.Db.Open())
+                Assert.Contains(c.Query<string>("SELECT message FROM task_log WHERE task_id = @task", new { task }), m => m.Contains("library.log.updated"));
+            Assert.Null(DiskTasks.EnqueueMigrateIfPending(f.Db));
+
+            // Un enlace de AppData que apunta a otra instalación no se toca.
+            Links.Point(Path.Combine(appData, @"TwilitRealm\Dusklight"), other);
+            Assert.Null(DiskTasks.EnqueueMigrateIfPending(f.Db));
+            Recipes.MakePortable(Recipes.Find("dusklight")!, install);
+            Assert.True(Links.IsLink(Path.Combine(appData, @"TwilitRealm\Dusklight")));
+        }
+        finally { Environment.SetEnvironmentVariable("APPDATA", before); }
     }
 
     [Fact]

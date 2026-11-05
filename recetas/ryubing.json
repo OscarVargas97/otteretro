@@ -29,7 +29,7 @@
     { "name": "anisotropy", "file": "portable/Config.json", "format": "json", "key": "max_anisotropy" },
     { "name": "vsync", "file": "portable/Config.json", "format": "json", "key": "vsync_mode" }
   ],
-  "updates": { "source": "forgejo", "repo": "projects/Ryubing", "host": "git.ryujinx.app" },
-  "asset": "^ryujinx-[0-9.]+-win_x64\\.zip$",
+  "updates": { "source": "forgejo", "repo": "projects/Ryubing", "host": "git.ryujinx.app", "devRepo": "Ryubing/Canary" },
+  "asset": "^ryujinx-(canary-)?[0-9.]+-win_x64\\.zip$",
   "formats": ["nsp", "xci", "nca", "nro"]
 }
