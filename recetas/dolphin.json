@@ -19,6 +19,7 @@
     "config": "User/GameSettings/{gameId}.ini",
     "apply": "file",
     "mods": ["User/Load/Textures/{gameId}"],
+    "args": ["-e", "{rom}"],
     "modsEnable": [{ "file": "User/Config/GFX.ini", "format": "ini", "section": "Settings", "key": "HiresTextures", "value": "True" }]
   },
   "input": {
@@ -27,12 +28,12 @@
     "keys": ["PadProfile1", "PadProfile2", "PadProfile3", "PadProfile4", "WiimoteProfile1", "WiimoteProfile2", "WiimoteProfile3", "WiimoteProfile4"]
   },
   "options": [
-    { "name": "resolution", "file": "User/Config/GFX.ini", "format": "ini", "section": "Settings", "key": "InternalResolution" },
-    { "name": "aspectRatio", "file": "User/Config/GFX.ini", "format": "ini", "section": "Settings", "key": "AspectRatio" },
-    { "name": "antialiasing", "file": "User/Config/GFX.ini", "format": "ini", "section": "Settings", "key": "MSAA" },
-    { "name": "vsync", "file": "User/Config/GFX.ini", "format": "ini", "section": "Hardware", "key": "VSync" },
-    { "name": "anisotropy", "file": "User/Config/GFX.ini", "format": "ini", "section": "Enhancements", "key": "MaxAnisotropy" },
-    { "name": "filter", "file": "User/Config/GFX.ini", "format": "ini", "section": "Enhancements", "key": "OutputResampling" },
+    { "name": "resolution", "file": "User/Config/GFX.ini", "format": "ini", "section": "Settings", "gameSection": "Video_Settings", "key": "InternalResolution" },
+    { "name": "aspectRatio", "file": "User/Config/GFX.ini", "format": "ini", "section": "Settings", "gameSection": "Video_Settings", "key": "AspectRatio" },
+    { "name": "antialiasing", "file": "User/Config/GFX.ini", "format": "ini", "section": "Settings", "gameSection": "Video_Settings", "key": "MSAA" },
+    { "name": "vsync", "file": "User/Config/GFX.ini", "format": "ini", "section": "Hardware", "gameSection": "Video_Hardware", "key": "VSync" },
+    { "name": "anisotropy", "file": "User/Config/GFX.ini", "format": "ini", "section": "Enhancements", "gameSection": "Video_Enhancements", "key": "MaxAnisotropy" },
+    { "name": "filter", "file": "User/Config/GFX.ini", "format": "ini", "section": "Enhancements", "gameSection": "Video_Enhancements", "key": "OutputResampling" },
     { "name": "renderer", "file": "User/Config/Dolphin.ini", "format": "ini", "section": "Core", "key": "GFXBackend" },
     { "name": "speed", "file": "User/Config/Dolphin.ini", "format": "ini", "section": "Core", "key": "EmulationSpeed" }
   ],

@@ -194,7 +194,7 @@ public class DiskTests
             if (r.PerGame is { } g)
             {
                 if (g.Apply is not null) Assert.Contains(g.Apply, new[] { "file", "section", "swap", "argument" });
-                Assert.Equal(g.Apply == "argument", g.Args.Count > 0);
+                if (g.Apply == "argument") Assert.NotEmpty(g.Args); // las demás los usan para abrir el emulador en el juego (#276)
                 foreach (var path in g.Mods.Concat(g.Args).Concat(g.Files).Concat(g.ModsEnable.Select(s => s.File)).Concat(g.Config is null ? [] : [g.Config])) Relative(r.Id, path);
                 if (g.IdCase is not null) Assert.Contains(g.IdCase, new[] { "upper", "lower" });
             }

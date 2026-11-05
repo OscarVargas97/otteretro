@@ -307,6 +307,17 @@ public static class CatalogEndpoints
         });
         api.MapPut("/profiles/{id:long}", Results<Ok, BadRequest<ApiError>, Conflict<ApiError>> (long id, ProfileRequest r, AppSession s) =>
             Db(s) is not { } db ? NoData() : Profiles.Update(db, id, r.Name, r.SourceId) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok());
+        // Ajustes y mandos del perfil según la versión del emulador que usa (#276), y abrir el emulador en ese juego.
+        api.MapGet("/profiles/{id:long}/settings", Results<Ok<ProfileSettings>, NotFound, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is not { } db ? NoData() : EmulatorSettings.View(db, id) is { } view ? TypedResults.Ok(view) : TypedResults.NotFound());
+        api.MapPut("/profiles/{id:long}/settings", Results<Ok, BadRequest<ApiError>, Conflict<ApiError>> (long id, ProfileSettingsRequest r, AppSession s) =>
+            Db(s) is not { } db ? NoData() : EmulatorSettings.Save(db, id, r) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok());
+        api.MapPost("/profiles/{id:long}/open", Results<Ok<ApiError>, BadRequest<ApiError>, Conflict<ApiError>> (long id, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var (code, error) = EmulatorSettings.Open(db, id);
+            return error is null ? TypedResults.Ok(ApiError.Of(code!)) : TypedResults.BadRequest(error);
+        });
         // Con las partidas si cambia de emulador (#270): qué pasó con ellas, o null.
         api.MapPut("/versions/{id:long}/profile", Results<Ok<ProfileSwitch>, BadRequest<ApiError>, Conflict<ApiError>> (long id, ActiveProfileRequest r, AppSession s) =>
         {
