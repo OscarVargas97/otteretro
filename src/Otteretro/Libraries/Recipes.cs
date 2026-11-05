@@ -125,9 +125,13 @@ public static class Recipes
         return date.ToString("yyyy.MM.dd");
     }
 
-    /// <summary>Dónde va: `Emuladores\<Consola>\<Instalación>\<versión>`; una herramienta, `Herramientas\<Nombre>\<versión>` (§5.1).</summary>
-    public static string Target(string tools, Recipe recipe, string version) =>
-        recipe.Kind == "tool" ? Path.Combine(tools, recipe.Group, recipe.Name, version) : Path.Combine(tools, recipe.Group, recipe.Folder, recipe.Name, version);
+    /// <summary>
+    /// Dónde va (§5.1): `Emuladores\<Emulador>\<versión>` y `Ports\<Port>\<versión>`, una carpeta aunque sirva a varias consolas
+    /// (decisión 302); una herramienta, `Herramientas\<Nombre>\<versión>` (#274); `Complementos\<Emulador o port>\<Complemento>\<versión>`.
+    /// </summary>
+    public static string Target(string tools, Recipe recipe, string version) => recipe.Kind == "complement"
+        ? Path.Combine(tools, recipe.Group, recipe.Folder, recipe.Name, version)
+        : Path.Combine(tools, recipe.Group, recipe.Name, version);
 
     /// <summary>Emuladores, Ports, Complementos y Herramientas (§5.1): la primera ubicación de cada tipo (#198).</summary>
     public static List<ToolRoot> DefaultRoots(string tools) =>
@@ -137,7 +141,7 @@ public static class Recipes
     /// <summary>Lo instalado en Herramientas: tres niveles bajo Emuladores, Ports y Complementos.</summary>
     public static List<ToolInfo> Installed(string tools) => Installed(DefaultRoots(tools));
 
-    /// <summary>Lo instalado en esas carpetas: tres niveles bajo cada una (#198).</summary>
+    /// <summary>Lo instalado en esas carpetas: dos niveles bajo cada una, o tres en lo de antes y en los complementos (#198).</summary>
     public static List<ToolInfo> Installed(IEnumerable<ToolRoot> roots)
     {
         var list = new List<ToolInfo>();
@@ -155,12 +159,25 @@ public static class Recipes
                 continue;
             }
             foreach (var folder in Directory.EnumerateDirectories(root))
+            {
+                var named = kind == "complement" ? null : All.FirstOrDefault(r => r.Kind == kind && r.Name == Path.GetFileName(folder));
                 foreach (var name in Directory.EnumerateDirectories(folder))
+                {
+                    // `Emuladores\<Emulador>\<versión>` (decisión 302): el segundo nivel ya es la versión, con sus archivos. Lo de antes,
+                    // `Emuladores\<Consola>\<Instalación>\<versión>`, se sigue leyendo; Folder es la consola de su receta, si la tiene.
+                    if (kind != "complement" && Path.GetFileName(name).StartsWith('_')) continue; // `_compartido`, `_respaldos` (decisión 308)
+                    if (kind != "complement" && (named is not null || Directory.EnumerateFiles(name).Any()))
+                    {
+                        list.Add(new(kind, named?.Folder ?? "", Path.GetFileName(folder), Path.GetFileName(name), name, named?.Id, named?.Game, locationId));
+                        continue;
+                    }
                     foreach (var version in Directory.EnumerateDirectories(name))
                     {
                         var recipe = All.FirstOrDefault(r => r.Kind == kind && r.Name == Path.GetFileName(name) && r.Folder == Path.GetFileName(folder));
                         list.Add(new(kind, Path.GetFileName(folder), Path.GetFileName(name), Path.GetFileName(version), version, recipe?.Id, recipe?.Game, locationId));
                     }
+                }
+            }
         }
         return list.OrderBy(t => t.Kind).ThenBy(t => t.Folder).ThenBy(t => t.Name).ThenBy(t => t.Version).ToList();
     }

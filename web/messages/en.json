@@ -547,6 +547,27 @@
       "corrupt": "{file} arrived damaged three times: the link may be bad. Download it again or find it elsewhere.",
       "archiveBroken": "{file} arrived damaged: it failed its CRC when extracting. Nothing was deleted; download it again.",
       "badParallel": "That number is over the site's limit for your account."
+    },
+    "install": {
+      "unknownEmulator": "It's not clear which emulator this is: pick one with a recipe or give its name and console.",
+      "badUrl": "The release address has to start with https://.",
+      "noDownload": "The recipe doesn't have that version for this system.",
+      "noVersion": "Enter the version you are installing.",
+      "exists": "Version {version} is already installed: versions are never replaced.",
+      "badHash": "The download of version {version} doesn't match the recipe's hash: it wasn't installed.",
+      "libraryTaken": "Your library already has another file in {path}: it is not replaced.",
+      "fetching": "Getting version {version}",
+      "library": "Saving to your library",
+      "extracting": "Installing to {path}",
+      "backup": "Copying to your second disk",
+      "log": {
+        "done": "{name} {version} installed to {path}",
+        "noBackupDisk": "You haven't picked a disk for the library's second copy (Settings › Storage): it has only one copy.",
+        "backupPending": "The second copy's disk isn't connected: it's copied as soon as you connect it."
+      },
+      "notInstalled": "That version isn't registered: install it first.",
+      "notInLibrary": "Version {version} isn't in your library: it can't be reinstalled without downloading it.",
+      "backupIsDefault": "The second copy has to go on another disk, not on the ★."
     }
   },
   "credentials": {
@@ -631,7 +652,8 @@
         "scan": "Scan your drives",
         "verify": "Verify files by hash",
         "import": "Import a folder",
-        "convert": "Convert to the light format"
+        "convert": "Convert to the light format",
+        "backup": "Copy the library to its second disk"
       },
       "disk": {
         "migrate": "Move to the standard drive layout"
@@ -641,6 +663,9 @@
       },
       "download": {
         "package": "Download a package"
+      },
+      "tools": {
+        "install": "Install an emulator"
       }
     },
     "status": {
