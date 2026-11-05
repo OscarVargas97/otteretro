@@ -68,7 +68,7 @@ function PortRow({ port, withGame }: { port: PortInfo; withGame?: boolean }) {
           <b>{withGame ? <Link href={`/game/?id=${port.gameId}`}>{port.gameName}</Link> : port.project}</b>
           <span className="small muted">
             {[withGame && port.project, consoleName(port.console), t(`kind.${port.kind as "decomp"}`), port.toolchain,
-              t("added", { date: format.dateTime(new Date(port.added), { dateStyle: "medium" }) })].filter(Boolean).join(" · ")}
+              t("added", { date: format.dateTime(new Date(port.added), { dateStyle: "medium", timeZone: "UTC" }) })].filter(Boolean).join(" · ")}
           </span>
         </span>
         <Status port={port} />

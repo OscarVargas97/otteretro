@@ -745,8 +745,9 @@ test("ports: Novedades con los nuevos de lo que sigues, la ficha separa los 100 
   await page.goto(`${base()}/game/?id=10`);
   const ports = page.getByRole("region", { name: es.ports.title });
   await expect(ports.getByRole("heading", { name: es.ports.fullyPlayable })).toBeVisible();
-  await expect(ports.getByText(es.ports.status.complete)).toBeVisible();
-  await expect(ports.getByText(es.ports.status.beta)).toBeVisible();
+  await expect(ports.getByText(es.ports.status.complete, { exact: true })).toBeVisible();
+  await expect(ports.getByText(es.ports.added.replace("{date}", "1 nov 2026"))).toBeVisible();
+  await expect(ports.getByText(es.ports.status.beta, { exact: true })).toBeVisible();
   // Sin receta: con la URL de su release; si el archivo no dice la versión, se pide.
   await ports.getByRole("button", { name: es.ports.installFromUrl }).first().click();
   await ports.getByLabel(es.ports.url.replace("{name}", "Ship of Harkinian")).fill("https://sitio.test/descarga");
