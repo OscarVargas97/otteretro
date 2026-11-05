@@ -56,3 +56,4 @@ export type ConsoleFolder = Schemas["ConsoleFolder"];
 export type ConsoleDetail = Schemas["ConsoleDetail"];
 export type DiskItem = Schemas["DiskItem"];
 export type MigrationPlan = Schemas["MigrationPlan"];
+export type VersionProfiles = Schemas["VersionProfiles"];

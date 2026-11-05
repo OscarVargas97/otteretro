@@ -321,7 +321,7 @@ public static class Recipes
         return count == 0 ? (text, 0) : (root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), count);
     }
 
-    static void Set(string file, RecipeSetting s)
+    internal static void Set(string file, RecipeSetting s)
     {
         if (s.Format == "json")
         {
