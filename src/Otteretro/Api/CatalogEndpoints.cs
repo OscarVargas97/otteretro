@@ -44,6 +44,8 @@ public record TrashRequest(List<long> Ids);
 public record CreateProfileRequest(long VersionId, string Emulator, string Name, string From = "empty", long? Copy = null);
 /// <param name="SourceId">La ROM que usa; null: la base.</param>
 public record ProfileRequest(string Name, long? SourceId);
+/// <param name="Path">El .zip del perfil compartido, en este equipo (#282).</param>
+public record ProfilePackageRequest(string Path);
 /// <param name="ProfileId">null: sin perfil, con el por defecto del emulador base.</param>
 /// <param name="SaveUser">El usuario de consola de destino, cuando la respuesta anterior pidió elegirlo (saves.chooseUser).</param>
 public record ActiveProfileRequest(long? ProfileId, string? SaveUser = null);
@@ -307,6 +309,16 @@ public static class CatalogEndpoints
         });
         api.MapPut("/profiles/{id:long}", Results<Ok, BadRequest<ApiError>, Conflict<ApiError>> (long id, ProfileRequest r, AppSession s) =>
             Db(s) is not { } db ? NoData() : Profiles.Update(db, id, r.Name, r.SourceId) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok());
+        // Compartir un perfil en un .zip y cargar uno (#282): rutas de este equipo, el servidor es local.
+        api.MapPost("/profiles/{id:long}/share", Results<Ok, BadRequest<ApiError>, Conflict<ApiError>> (long id, ProfilePackageRequest r, AppSession s) =>
+            Db(s) is not { } db ? NoData() : ProfileShare.Export(db, id, r.Path) is { } error
+                ? error.Code is "library.notConnected" or "profile.share.exists" ? TypedResults.Conflict(error) : TypedResults.BadRequest(error) : TypedResults.Ok());
+        api.MapPost("/profiles/load", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (ProfilePackageRequest r, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var (task, error) = ProfileShare.EnqueueImport(db, r.Path);
+            return error is null ? TypedResults.Ok(task!.Value) : error.Code is "library.notConnected" ? TypedResults.Conflict(error) : TypedResults.BadRequest(error);
+        });
         // Con las partidas si cambia de emulador (#270): qué pasó con ellas, o null.
         api.MapPut("/versions/{id:long}/profile", Results<Ok<ProfileSwitch>, BadRequest<ApiError>, Conflict<ApiError>> (long id, ActiveProfileRequest r, AppSession s) =>
         {

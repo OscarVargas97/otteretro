@@ -583,7 +583,25 @@
       "badName": "El perfil necesita un nombre.",
       "badFrom": "No se puede crear el perfil desde ahí.",
       "badRom": "Esa ROM no es de esta versión del juego.",
-      "switchFailed": "No se pudo cambiar el perfil; lo movido quedó guardado y el perfil activo no cambió: {detail}"
+      "switchFailed": "No se pudo cambiar el perfil; lo movido quedó guardado y el perfil activo no cambió: {detail}",
+      "share": {
+        "badPath": "Indica la ruta completa del .zip nuevo, en una carpeta que exista.",
+        "exists": "Ya hay un archivo en {path}: no se reemplaza.",
+        "notInLibrary": "{emulator} no está en tu librería: sin su archivo original no se puede compartir.",
+        "private": "El perfil no se compartió: {path} tiene la licencia del juego, que nunca sale de tu equipo."
+      },
+      "import": {
+        "notFound": "Ese archivo no existe en este equipo.",
+        "badPackage": "Ese archivo no es un perfil compartido de Otteretro.",
+        "noGame": "«{name}» no está en tu catálogo: no se instaló nada.",
+        "badHash": "El paquete llegó dañado: algún archivo no coincide con su hash. No se instaló nada.",
+        "checking": "Comprobando el paquete",
+        "creating": "Creando el perfil",
+        "log": {
+          "notOwned": "Todavía no tienes «{name}» en tus discos: el perfil queda listo para cuando lo tengas.",
+          "done": "Perfil «{name}» de {game} cargado con {emulator} {version}."
+        }
+      }
     },
     "ports": {
       "notFound": "Ese port ya no está en el catálogo.",
@@ -708,6 +726,9 @@
       },
       "content": {
         "prepare": "Preparar un juego en su emulador"
+      },
+      "profiles": {
+        "import": "Cargar un perfil compartido"
       }
     },
     "status": {
@@ -1416,6 +1437,16 @@
       "unknown": "Las partidas no se pueden llevar a este emulador: no hay forma conocida. Siguen en el emulador de antes.",
       "chooseUser": "Este emulador tiene varios usuarios de consola: ¿a cuál van las partidas?",
       "chooseUserConfirm": "Llevarlas y activar"
-    }
+    },
+    "share": "Compartir",
+    "shareOf": "Compartir {name}",
+    "sharePath": "Dónde guardar el .zip de {name}",
+    "sharePlaceholder": "Ruta del .zip nuevo, p. ej. D:\\perfil.zip",
+    "shareConfirm": "Guardar el .zip",
+    "shared": "Listo: {path}. Lleva el emulador, los mods y la configuración; nunca keys, BIOS, firmware, juegos ni partidas.",
+    "load": "Cargar perfil",
+    "loadPath": "Ruta del .zip del perfil",
+    "loadConfirm": "Cargar",
+    "loaded": "Cargando el perfil: lo sigues en Tareas."
   }
 }
