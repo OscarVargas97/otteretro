@@ -12,6 +12,10 @@ public record PortableStep(string Type, string Path, string? Link = null, string
 public record GamePath(string File, string Format, string Key);
 public record RecipeSetting(string File, string Format, string Key, string Value, string? Section = null);
 public record RecipeDownload(string Version, string System, string Url, string Hash);
+/// <summary>Dónde publica sus versiones (decisión 294). El mismo que trae #278 en ToolUpdates.cs: al fusionar las dos ramas queda uno.</summary>
+/// <param name="DevRepo">Repositorio aparte con las de desarrollo (el Canary de Ryubing): se revisa a pedido.</param>
+/// <param name="DevPattern">Expresión regular sobre el tag que marca una release como de desarrollo (los -rc de Eden).</param>
+public record RecipeUpdates(string Source, string? Repo = null, string? Host = null, bool Dev = false, string? DevRepo = null, string? DevPattern = null);
 
 /// <summary>Una receta de `recetas/` (§8.1, F3.3). El esquema está en `recetas/receta.schema.json`.</summary>
 public record Recipe(string Id, string Name, string Kind, string Folder, string Detect)

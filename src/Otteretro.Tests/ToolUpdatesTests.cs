@@ -110,4 +110,43 @@ public class ToolUpdatesTests
         Assert.True(ToolUpdates.Skip(f.Db, "dusklight", "stable"));
         Assert.DoesNotContain(ToolUpdates.List(f.Db), x => x.RecipeId == "dusklight");
     }
+
+    [Fact]
+    public async Task FixedTagsAndUnorderedListsUseTheTitleOrTheDate()
+    {
+        await using var f = new Fixture();
+        // Como RPCS3: tags build-<hash> sin orden; la versión está en el título y la última es la de fecha más nueva.
+        var rpcs3 = """[{"tag_name":"build-fff0c96","name":"0.0.18-12817","draft":false,"prerelease":false,"published_at":"2021-09-24T18:32:52Z"},{"tag_name":"build-ffeb16f","name":"0.0.37-18146","draft":false,"prerelease":false,"published_at":"2025-09-19T09:11:48Z"},{"tag_name":"build-ffea52d","name":"0.0.12-10987","draft":false,"prerelease":false,"published_at":"2020-10-08T16:42:34Z"}]""";
+        var fake = new Fake(new() { ["repos/TwilitRealm/dusklight/releases"] = rpcs3 });
+        await Check(f, fake);
+        Assert.Equal("0.0.37-18146", Assert.Single(ToolUpdates.List(f.Db), x => x.RecipeId == "dusklight").Version);
+
+        // Como DuckStation o Vita3K: un tag fijo que se vuelve a publicar; sin versión en el tag ni en el título, vale la fecha.
+        fake.Answers["repos/TwilitRealm/dusklight/releases"] = """[{"tag_name":"v0.1-12083","name":"v0.1-12083","draft":false,"prerelease":false,"published_at":"2026-10-13T05:31:37Z"},{"tag_name":"latest","name":"Latest Rolling Release","draft":false,"prerelease":false,"published_at":"2026-10-25T02:59:23Z"}]""";
+        await Check(f, fake);
+        Assert.Equal("2026.10.25", Assert.Single(ToolUpdates.List(f.Db), x => x.RecipeId == "dusklight").Version);
+    }
+
+    [Fact]
+    public async Task DevPatternAndDevRepoMarkDevelopmentVersions()
+    {
+        var fake = new Fake(new()
+        {
+            // Como Eden: un -rc publicado como release normal es de desarrollo.
+            ["repos/eden-emu/eden/releases"] = """[{"tag_name":"v0.2.0-rc1","draft":false,"prerelease":false,"published_at":"2026-11-01T00:00:00Z"},{"tag_name":"v0.1.0","draft":false,"prerelease":false,"published_at":"2026-10-01T00:00:00Z"}]""",
+            // Como Ryubing: las Canary viven en otro repositorio.
+            ["repos/projects/Ryubing/releases"] = """[{"tag_name":"1.3.3","draft":false,"prerelease":false,"published_at":"2026-10-01T00:00:00Z"}]""",
+            ["repos/projects/Ryubing-Canary/releases"] = """[{"tag_name":"1.3.200","draft":false,"prerelease":false,"published_at":"2026-11-03T00:00:00Z"}]""",
+        });
+        using var http = new HttpClient(fake);
+        var eden = new RecipeUpdates("forgejo", "eden-emu/eden", "git.eden-emu.dev", DevPattern: "-rc");
+        Assert.Equal("0.1.0", (await ToolUpdates.Latest(http, eden, "stable", default))!.Version);
+        Assert.Equal("0.2.0-rc1", (await ToolUpdates.Latest(http, eden, "dev", default))!.Version);
+
+        var ryubing = new RecipeUpdates("forgejo", "projects/Ryubing", "git.ryujinx.app", DevRepo: "projects/Ryubing-Canary");
+        Assert.Equal(["stable"], ToolUpdates.ChannelsOf(ryubing, manual: false)); // la Canary se pide a mano
+        Assert.Equal(["stable", "dev"], ToolUpdates.ChannelsOf(ryubing, manual: true));
+        Assert.Equal("1.3.3", (await ToolUpdates.Latest(http, ryubing, "stable", default))!.Version);
+        Assert.Equal("1.3.200", (await ToolUpdates.Latest(http, ryubing, "dev", default))!.Version);
+    }
 }

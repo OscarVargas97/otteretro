@@ -4,11 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFormatter, useTranslations } from "next-intl";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
+import { toolUpdatesQuery } from "@/lib/queries";
 import type { ToolUpdate } from "@/lib/types";
-
-/** Los avisos de versiones nuevas (decisión 294): Herramientas, el contador de la barra lateral e Inicio › Novedades. */
-// Cambia solo con la revisión (diaria o a pedido), que la invalida al terminar: no hace falta volver a pedirla al pasar por las pantallas.
-export const toolUpdatesQuery = { queryKey: ["toolUpdates"], queryFn: () => request<ToolUpdate[]>("/api/tools/updates"), staleTime: 5 * 60_000 };
 
 /** Arriba de Herramientas: cada versión nueva con sus notas, quién la usa, Actualizar (o Instalar, si no la tienes) y «Omitir esta versión», más «Revisar ahora». */
 export function ToolUpdates() {

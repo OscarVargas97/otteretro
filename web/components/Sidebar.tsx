@@ -6,9 +6,9 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { request } from "@/lib/client";
+import { toolUpdatesQuery } from "@/lib/queries";
 import type { AppState } from "@/lib/types";
 import { normalizePath, useAppState } from "./Shell";
-import { toolUpdatesQuery } from "./ToolUpdates";
 
 // Clave en nav.* de cada entrada; `phase`, la fase en que llega: hasta entonces se ve atenuada y no se abre (#169).
 type Entry = { href: string; key: "home" | "sagas" | "collection" | "discover" | "review" | "downloads" | "tools" | "steam" | "settings"; phase?: number };

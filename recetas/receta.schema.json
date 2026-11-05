@@ -68,7 +68,9 @@
         "source": { "enum": ["github", "forgejo", "dolphin"], "description": "github y forgejo: sus releases (las prereleases son de desarrollo); dolphin: su servidor de actualizaciones" },
         "repo": { "type": "string", "pattern": "^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$" },
         "host": { "type": "string", "description": "Con forgejo: el servidor (codeberg.org)" },
-        "dev": { "type": "boolean", "description": "También avisa de las versiones de desarrollo (como mucho una vez por semana)" }
+        "dev": { "type": "boolean", "description": "También avisa de las versiones de desarrollo (como mucho una vez por semana)" },
+        "devRepo": { "type": "string", "pattern": "^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$", "description": "Repositorio aparte con las de desarrollo (en el mismo servidor), como el Canary de Ryubing: se revisa a pedido, o solo con dev" },
+        "devPattern": { "type": "string", "format": "regex", "description": "Expresión regular sobre el tag: lo que calza es de desarrollo aunque no sea prerelease (los -rc de Eden)" }
       }
     },
     "downloads": {

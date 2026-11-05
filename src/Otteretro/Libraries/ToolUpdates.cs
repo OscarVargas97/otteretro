@@ -8,11 +8,6 @@ using Otteretro.Data;
 
 namespace Otteretro.Libraries;
 
-/// <summary>Dónde publica sus versiones una receta (decisión 294).</summary>
-/// <param name="Source">github, forgejo (con <paramref name="Host"/>) o dolphin (su servidor de actualizaciones).</param>
-/// <param name="Dev">También avisa de las versiones de desarrollo (prereleases; en Dolphin, la pista dev).</param>
-public record RecipeUpdates(string Source, string? Repo = null, string? Host = null, bool Dev = false);
-
 /// <summary>Un aviso de versión nueva (§8.4): de algo instalado, o la última de lo que no tienes.</summary>
 /// <param name="Channel">stable o dev.</param>
 /// <param name="Installed">Las versiones que ya tienes: la nueva se instala al lado. Vacío si no está instalado.</param>
@@ -51,7 +46,7 @@ public static class ToolUpdates
     }
 
     static readonly JsonSerializerOptions Snake = new(JsonSerializerDefaults.Web) { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
-    record GitRelease(string TagName, string? Body, bool Draft, bool Prerelease, string? PublishedAt, string? HtmlUrl);
+    record GitRelease(string TagName, string? Name, string? Body, bool Draft, bool Prerelease, string? PublishedAt, string? HtmlUrl);
     record DolphinBuild(string Shortrev, string? Date, string? ChangelogHtml);
 
     /// <param name="manual">«Revisar ahora»: sin el tope semanal de desarrollo.</param>
@@ -78,11 +73,12 @@ public static class ToolUpdates
         for (var i = 0; i < recipes.Count; i++)
         {
             var r = recipes[i];
+            var u = r.Updates!;
             run.Report(i * 100 / recipes.Count, ApiError.Of("tasks.tools.checking", ("name", r.Name)));
-            foreach (var channel in r.Updates!.Dev ? Channels : ["stable"])
+            foreach (var channel in ChannelsOf(u, manual))
                 try
                 {
-                    if (await Latest(http, r.Updates, channel, ct) is { } latest) Remember(run.Db, r.Id, channel, latest, manual, DateTime.UtcNow);
+                    if (await Latest(http, u, channel, ct) is { } latest) Remember(run.Db, r.Id, channel, latest, manual, DateTime.UtcNow);
                 }
                 // Una fuente caída no frena a las demás: se vuelve a mirar mañana o con «Revisar ahora».
                 catch (Exception e) when (e is HttpRequestException or JsonException or TaskCanceledException && !ct.IsCancellationRequested)
@@ -93,8 +89,15 @@ public static class ToolUpdates
         Save(run.Db, Checked, DateTime.UtcNow.ToString("O"));
     }
 
+    /// <summary>
+    /// Qué canales se revisan: el estable siempre; el de desarrollo, solo (con <c>dev</c>) o a pedido si la receta tiene de dónde sacarlo
+    /// (<c>devRepo</c>, como el Canary de Ryubing, o <c>devPattern</c>, como los -rc de Eden).
+    /// </summary>
+    public static string[] ChannelsOf(RecipeUpdates u, bool manual) =>
+        u.Dev || manual && (u.DevRepo is not null || u.DevPattern is not null) ? Channels : ["stable"];
+
     /// <summary>Lo último de un canal; null si la fuente no publica en él.</summary>
-    static async Task<Release?> Latest(HttpClient http, RecipeUpdates u, string channel, CancellationToken ct)
+    public static async Task<Release?> Latest(HttpClient http, RecipeUpdates u, string channel, CancellationToken ct)
     {
         if (u.Source == "dolphin")
         {
@@ -104,13 +107,30 @@ public static class ToolUpdates
             var b = JsonSerializer.Deserialize<DolphinBuild>(await response.Content.ReadAsStringAsync(ct), Snake)!;
             return new(b.Shortrev, b.ChangelogHtml is null ? null : PlainText(b.ChangelogHtml), "https://dolphin-emu.org/download/", b.Date);
         }
-        var url = u.Source == "forgejo" ? $"https://{u.Host}/api/v1/repos/{u.Repo}/releases?limit=30" : $"https://api.github.com/repos/{u.Repo}/releases?per_page=30";
+        // Con devRepo, todo lo de ese repositorio es de desarrollo; si no, las prereleases y lo que calce con devPattern.
+        var fromDevRepo = channel == "dev" && u.DevRepo is not null;
+        var repo = fromDevRepo ? u.DevRepo : u.Repo;
+        var url = u.Source == "forgejo" ? $"https://{u.Host}/api/v1/repos/{repo}/releases?limit=30" : $"https://api.github.com/repos/{repo}/releases?per_page=30";
         var list = JsonSerializer.Deserialize<List<GitRelease>>(await http.GetStringAsync(url, ct), Snake)!;
-        var g = list.FirstOrDefault(x => !x.Draft && x.Prerelease == (channel == "dev"));
-        return g is null ? null : new(Normalize(g.TagName), g.Body, g.HtmlUrl, g.PublishedAt);
+        bool IsDev(GitRelease x) => fromDevRepo || x.Prerelease || u.DevPattern is not null && Regex.IsMatch(x.TagName, u.DevPattern);
+        // Por fecha: RPCS3 no las lista en orden, y DuckStation o Vita3K reusan tags fijos (latest, preview, continuous).
+        var g = list.Where(x => !x.Draft && IsDev(x) == (channel == "dev")).MaxBy(x => x.PublishedAt ?? "");
+        return g is null ? null : new(VersionOf(g), g.Body, g.HtmlUrl, g.PublishedAt);
     }
 
     static string Normalize(string tag) => tag.TrimStart('v', 'V');
+
+    static readonly Regex VersionText = new(@"\d+(\.\d+)+(-\d+)?");
+
+    /// <summary>
+    /// La versión de una release: la del tag si empieza por un número (v2.0.3, v0.1-12083, v0.2.0-rc1), si no la del título (RPCS3: tag build-&lt;hash&gt;, título 0.0.37-18146) y, si
+    /// ninguno la dice (latest, preview, continuous), la fecha de publicación (aaaa.MM.dd), como las recetas que versionan por fecha.
+    /// </summary>
+    static string VersionOf(GitRelease g) =>
+        Regex.IsMatch(g.TagName, @"^[vV]?\d") ? Normalize(g.TagName)
+        : VersionText.Match(g.TagName) is { Success: true } t ? t.Value
+        : VersionText.Match(g.Name ?? "") is { Success: true } n ? n.Value
+        : g.PublishedAt is { Length: >= 10 } p ? p[..10].Replace('-', '.') : Normalize(g.TagName);
 
     static string PlainText(string html) =>
         WebUtility.HtmlDecode(Regex.Replace(Regex.Replace(html, @"<br\s*/?>|</p>", "\n", RegexOptions.IgnoreCase), "<[^>]+>", "")).Trim();
