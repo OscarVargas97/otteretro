@@ -127,15 +127,15 @@ public class ProfileFilesTests
     }
 
     [Fact]
-    public async Task DolphinTurnsOnHiresTexturesWhenTheProfileHasMods()
+    public async Task DolphinTurnsOnHiresTexturesWhenTheProfileHasModsAndRestoresItWhenItLeaves()
     {
         await using var f = Game("gc", "GZ2E01", "The Legend of Zelda: Twilight Princess");
         var dolphin = Install(f, "dolphin", "emulator", "Dolphin", "Dolphin.exe");
         var gfx = Path.Combine(dolphin, @"User\Config\GFX.ini");
-        Write(gfx, "[Settings]\nInternalResolution = 3\n");
+        Write(gfx, "[Settings]\nInternalResolution = 3\nHiresTextures = False\n");
         var plain = Create(f, "dolphin", "Sin texturas");
         Activate(f, plain);
-        Assert.DoesNotContain("HiresTextures", File.ReadAllText(gfx));
+        Assert.Contains("HiresTextures = False", File.ReadAllText(gfx));
 
         var hd = Create(f, "dolphin", "Texturas HD");
         Write(Path.Combine(Profiles.StoreOf(f.Db, hd), @"User\Load\Textures\GZ2E01\link.png"), "png");
@@ -145,9 +145,37 @@ public class ProfileFilesTests
         Assert.Contains("InternalResolution = 3", File.ReadAllText(gfx));
         Assert.Equal("png", File.ReadAllText(Path.Combine(dolphin, @"User\Load\Textures\GZ2E01\link.png")));
         Assert.Equal("[Video_Settings]", File.ReadAllText(Path.Combine(dolphin, @"User\GameSettings\GZ2E01.ini")));
+        var copy = Create(f, "dolphin", "Copia HD", "copy", hd); // duplicar el activo no se lleva lo que hay que restaurar
         Activate(f, plain);
+        Assert.Contains("HiresTextures = False", File.ReadAllText(gfx)); // vuelve tal cual
+        Assert.DoesNotContain("HiresTextures = True", File.ReadAllText(gfx));
+        Assert.Contains("InternalResolution = 3", File.ReadAllText(gfx));
         Assert.False(File.Exists(Path.Combine(dolphin, @"User\GameSettings\GZ2E01.ini")));
         Assert.Empty(Directory.EnumerateFileSystemEntries(Path.Combine(dolphin, @"User\Load\Textures\GZ2E01")));
+
+        // Sin la clave antes: al quitar el perfil, la clave se va.
+        Write(gfx, "[Settings]\nInternalResolution = 3\n");
+        Activate(f, copy);
+        Assert.Contains("HiresTextures = True", File.ReadAllText(gfx));
+        Activate(f, null);
+        Assert.DoesNotContain("HiresTextures", File.ReadAllText(gfx));
+        Assert.Contains("InternalResolution = 3", File.ReadAllText(gfx));
+    }
+
+    [Fact]
+    public void JsonSettingsComeBackWithTheirType()
+    {
+        using var tmp = new TempDir();
+        var file = tmp["config.json"];
+        File.WriteAllText(file, """{"hires":false,"other":1}""");
+        var s = new RecipeSetting("config.json", "json", "hires", "True");
+        var before = Recipes.Get(file, s);
+        Recipes.Set(file, s);
+        Recipes.Restore(file, s, before);
+        Assert.Contains("\"hires\": false", File.ReadAllText(file));
+        Recipes.Restore(file, s, null);
+        Assert.DoesNotContain("hires", File.ReadAllText(file));
+        Assert.Contains("\"other\": 1", File.ReadAllText(file));
     }
 
     [Fact]
