@@ -573,6 +573,12 @@
       "notInstalled": "That version isn't registered: install it first.",
       "notInLibrary": "Version {version} isn't in your library: it can't be reinstalled without downloading it.",
       "backupIsDefault": "The second copy has to go on another disk, not on the ★."
+    },
+    "ports": {
+      "notFound": "That port is no longer in the catalog.",
+      "noPort": "There's no port of this game yet: there's a decompilation, but it can't be installed.",
+      "needsUrl": "This port has no recipe with a download: give its release URL.",
+      "sourceUnreachable": "Couldn't check the port's latest release: check the connection or use its URL."
     }
   },
   "credentials": {
@@ -1240,5 +1246,41 @@
       "site": "Verified by the site",
       "none": "Not verified"
     }
+  },
+  "ports": {
+    "title": "Ports",
+    "news": "New ports",
+    "fullyPlayable": "100% playable",
+    "others": "Other ports: not at 100%",
+    "newFullyPlayable": "New 100% playable ports",
+    "newOthers": "New ports not at 100%",
+    "status": {
+      "complete": "100% playable",
+      "playable": "Playable with issues",
+      "beta": "Beta",
+      "experimental": "Experimental",
+      "no-port": "No port yet"
+    },
+    "kind": {
+      "decomp": "Decompilation",
+      "recomp": "Recompilation",
+      "remake": "Remake",
+      "port": "Port",
+      "native-layer": "Native layer",
+      "engine": "Engine"
+    },
+    "abandoned": "Abandoned",
+    "delisted": "No longer listed",
+    "installed": "Installed: {versions}",
+    "added": "In the catalog since {date}",
+    "open": "View the project",
+    "install": "Install",
+    "installFromUrl": "Install from a URL",
+    "url": "Release URL for {name}",
+    "version": "Version",
+    "versionOptional": "Version (optional)",
+    "installConfirm": "Install",
+    "queued": "Install queued: follow it in Tasks.",
+    "seen": "Seen"
   }
 }

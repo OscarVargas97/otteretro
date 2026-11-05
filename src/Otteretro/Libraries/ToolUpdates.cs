@@ -46,7 +46,7 @@ public static class ToolUpdates
     }
 
     static readonly JsonSerializerOptions Snake = new(JsonSerializerDefaults.Web) { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
-    record GitRelease(string TagName, string? Name, string? Body, bool Draft, bool Prerelease, string? PublishedAt, string? HtmlUrl);
+    internal record GitRelease(string TagName, string? Name, string? Body, bool Draft, bool Prerelease, string? PublishedAt, string? HtmlUrl);
     record DolphinBuild(string Shortrev, string? Date, string? ChangelogHtml);
 
     /// <param name="manual">«Revisar ahora»: sin el tope semanal de desarrollo.</param>
@@ -126,7 +126,7 @@ public static class ToolUpdates
     /// La versión de una release: la del tag si empieza por un número (v2.0.3, v0.1-12083, v0.2.0-rc1), si no la del título (RPCS3: tag build-&lt;hash&gt;, título 0.0.37-18146) y, si
     /// ninguno la dice (latest, preview, continuous), la fecha de publicación (aaaa.MM.dd), como las recetas que versionan por fecha.
     /// </summary>
-    static string VersionOf(GitRelease g) =>
+    internal static string VersionOf(GitRelease g) =>
         Regex.IsMatch(g.TagName, @"^[vV]?\d") ? Normalize(g.TagName)
         : VersionText.Match(g.TagName) is { Success: true } t ? t.Value
         : VersionText.Match(g.Name ?? "") is { Success: true } n ? n.Value

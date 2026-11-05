@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { request } from "./client";
 import { pagedOptions } from "./paged";
-import type { ApiError, ConsoleCount, GameDetail, NextGame, ReviewPage, RoutesPage, SagaDetail, SagaPage, ToolUpdate, VersionCompare } from "./types";
+import type { ApiError, ConsoleCount, GameDetail, NextGame, PortInfo, ReviewPage, RoutesPage, SagaDetail, SagaPage, ToolUpdate, VersionCompare } from "./types";
 
 /** Consultas que se piden por adelantado (#105): la pantalla y el enlace usan la misma clave, así el clic encuentra los datos. */
 export const sagaQuery = (id: string) => ({ queryKey: ["saga", id], queryFn: () => request<SagaDetail>(`/api/sagas/${id}`) });
@@ -14,6 +14,9 @@ export const noticesQuery = { queryKey: ["notices"], queryFn: () => request<ApiE
 /** Los avisos de versiones nuevas (decisión 294): Herramientas, el contador de la barra lateral e Inicio › Novedades. */
 // Cambia solo con la revisión (diaria o a pedido), que la invalida al terminar: no hace falta volver a pedirla al pasar por las pantallas.
 export const toolUpdatesQuery = { queryKey: ["toolUpdates"], queryFn: () => request<ToolUpdate[]>("/api/tools/updates"), staleTime: 5 * 60_000 };
+
+/** Inicio › Novedades: los ports nuevos de juegos que tienes o sigues (decisión 296). */
+export const portNewsQuery = { queryKey: ["ports", "news"], queryFn: () => request<PortInfo[]>("/api/ports/news") };
 
 export const nextQuery = { queryKey: ["home", "next"], queryFn: () => request<NextGame[]>("/api/home/next") };
 
@@ -52,5 +55,6 @@ export function prefetchLink(client: QueryClient, href: string) {
     client.prefetchQuery(noticesQuery);
     client.prefetchQuery(nextQuery);
     client.prefetchQuery(reviewQuery);
+    client.prefetchQuery(portNewsQuery);
   }
 }

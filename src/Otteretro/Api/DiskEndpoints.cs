@@ -244,6 +244,32 @@ public static class DiskEndpoints
             return error is null ? TypedResults.Ok(task!.Value) : error.Code is "install.exists" or "library.notConnected" ? TypedResults.Conflict(error) : TypedResults.BadRequest(error);
         });
 
+        // Ports (#286, #287): los de un juego, los nuevos para Inicio › Novedades, «Visto» e instalar uno con su receta o con la URL de su release.
+        api.MapGet("/games/{id:long}/ports", Results<Ok<List<PortInfo>>, Conflict<ApiError>> (long id, AppSession s) =>
+            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Ports.OfGame(db, id)) : CatalogEndpoints.NoData());
+
+        api.MapGet("/ports/news", Results<Ok<List<PortInfo>>, Conflict<ApiError>> (AppSession s) =>
+            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Ports.News(db)) : CatalogEndpoints.NoData());
+
+        api.MapPost("/ports/news/seen", Results<NoContent, Conflict<ApiError>> (AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            Ports.MarkSeen(db);
+            return TypedResults.NoContent();
+        });
+
+        api.MapPost("/ports/{id:long}/install", async Task<Results<Ok<long>, BadRequest<ApiError>, NotFound, Conflict<ApiError>>> (long id, PortInstallRequest request, AppSession s, CancellationToken ct) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            var (task, error) = await Ports.Install(db, id, request, ct);
+            return error is null ? TypedResults.Ok(task!.Value) : error.Code switch
+            {
+                "ports.notFound" => TypedResults.NotFound(),
+                "install.exists" or "library.notConnected" => TypedResults.Conflict(error),
+                _ => TypedResults.BadRequest(error),
+            };
+        });
+
         // El disco de la segunda copia de la librería (Ajustes › Almacenamiento, decisión 303).
         api.MapGet("/library/backup", Results<Ok<LibraryBackup>, Conflict<ApiError>> (AppSession s) =>
             CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Installs.Backup(db)) : CatalogEndpoints.NoData());

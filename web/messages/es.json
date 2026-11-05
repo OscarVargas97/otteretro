@@ -573,6 +573,12 @@
       "notInstalled": "Esa versión no está registrada: instálala primero.",
       "notInLibrary": "La versión {version} no está en tu librería: no se puede reinstalar sin bajarla.",
       "backupIsDefault": "La segunda copia tiene que ir en otro disco, no en el ★."
+    },
+    "ports": {
+      "notFound": "Ese port ya no está en el catálogo.",
+      "noPort": "Todavía no hay port de este juego: hay una decompilación, pero no se puede instalar.",
+      "needsUrl": "Este port no tiene receta con descarga: indica la URL de su release.",
+      "sourceUnreachable": "No se pudo consultar la última release del port: revisa la conexión o usa su URL."
     }
   },
   "credentials": {
@@ -1240,5 +1246,41 @@
       "site": "Verificado por el sitio",
       "none": "Sin verificar"
     }
+  },
+  "ports": {
+    "title": "Ports",
+    "news": "Ports nuevos",
+    "fullyPlayable": "100 % jugables",
+    "others": "Otros ports: no están al 100 %",
+    "newFullyPlayable": "Ports nuevos 100 % jugables",
+    "newOthers": "Ports nuevos que no están al 100 %",
+    "status": {
+      "complete": "100 % jugable",
+      "playable": "Jugable con fallos",
+      "beta": "Beta",
+      "experimental": "Experimental",
+      "no-port": "Sin port todavía"
+    },
+    "kind": {
+      "decomp": "Decompilación",
+      "recomp": "Recompilación",
+      "remake": "Remake",
+      "port": "Port",
+      "native-layer": "Capa nativa",
+      "engine": "Motor"
+    },
+    "abandoned": "Abandonado",
+    "delisted": "Ya no listado",
+    "installed": "Instalado: {versions}",
+    "added": "En el catálogo desde el {date}",
+    "open": "Ver el proyecto",
+    "install": "Instalar",
+    "installFromUrl": "Instalar desde una URL",
+    "url": "URL de la release de {name}",
+    "version": "Versión",
+    "versionOptional": "Versión (opcional)",
+    "installConfirm": "Instalar",
+    "queued": "Instalación en cola: la sigues en Tareas.",
+    "seen": "Visto"
   }
 }
