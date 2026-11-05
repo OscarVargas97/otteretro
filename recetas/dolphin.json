@@ -10,5 +10,6 @@
   "config": ["User/Config", "User/GameSettings"],
   "gamePaths": [{ "file": "User/Config/Dolphin.ini", "format": "ini", "key": "ISOPath*" }],
   "settings": [{ "file": "User/Config/Dolphin.ini", "format": "ini", "section": "General", "key": "RecursiveISOPaths", "value": "True" }],
+  "updates": { "source": "dolphin", "dev": true },
   "formats": ["iso", "gcm", "rvz", "wbfs", "ciso", "gcz", "wia"]
 }

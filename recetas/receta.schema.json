@@ -61,6 +61,16 @@
       }
     },
     "formats": { "type": "array", "items": { "type": "string" } },
+    "updates": {
+      "type": "object", "additionalProperties": false, "required": ["source"],
+      "description": "Dónde publica sus versiones, para avisar de las nuevas (decisión 294)",
+      "properties": {
+        "source": { "enum": ["github", "forgejo", "dolphin"], "description": "github y forgejo: sus releases (las prereleases son de desarrollo); dolphin: su servidor de actualizaciones" },
+        "repo": { "type": "string", "pattern": "^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$" },
+        "host": { "type": "string", "description": "Con forgejo: el servidor (codeberg.org)" },
+        "dev": { "type": "boolean", "description": "También avisa de las versiones de desarrollo (como mucho una vez por semana)" }
+      }
+    },
     "downloads": {
       "type": "array", "description": "Por versión y sistema: URL y hash SRI (Nix las arma en PlayOS; Otteretro las descarga en Windows, F5)",
       "items": {

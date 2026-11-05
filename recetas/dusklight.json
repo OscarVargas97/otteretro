@@ -10,5 +10,6 @@
   "saves": ["Datos/EUR", "Datos/USA", "Datos/JAP"],
   "config": ["Datos/config.json"],
   "gamePaths": [{ "file": "Datos/config.json", "format": "json", "key": "backend.isoPath" }],
+  "updates": { "source": "github", "repo": "TwilitRealm/dusklight" },
   "formats": ["iso", "rvz", "gcm"]
 }

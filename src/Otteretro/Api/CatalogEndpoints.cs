@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Otteretro.App;
 using Otteretro.Catalog;
 using Otteretro.Data;
+using Otteretro.Libraries;
 
 namespace Otteretro.Api;
 
@@ -270,7 +271,21 @@ public static class CatalogEndpoints
             return TypedResults.Ok(text.Length < 2 ? new SearchResults([], []) : CatalogQueries.Search(db, text));
         });
 
-        // Avisos de Inicio: por ahora, las claves que faltan (el código lo traduce el front: notices.*).
+        // Avisos de versiones nuevas (decisión 294): Herramientas, la barra lateral e Inicio › Novedades.
+        api.MapGet("/tools/updates", Results<Ok<List<ToolUpdate>>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(ToolUpdates.List(db)) : NoData());
+
+        // «Revisar ahora»: sin el tope semanal de las versiones de desarrollo.
+        api.MapPost("/tools/updates/check", Results<Ok<long>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(ToolUpdates.Enqueue(db, manual: true)) : NoData());
+
+        api.MapPost("/tools/updates/{recipeId}/{channel}/skip", Results<NoContent, NotFound, Conflict<ApiError>> (string recipeId, string channel, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            return ToolUpdates.Skip(db, recipeId, channel) ? TypedResults.NoContent() : TypedResults.NotFound();
+        });
+
+        // Avisos de Inicio: las claves que faltan, lo sin identificar y las versiones nuevas (el código lo traduce el front: notices.*).
         api.MapGet("/notices", Results<Ok<List<ApiError>>, Conflict<ApiError>> (AppSession s, SecretBox box) =>
         {
             if (Db(s) is not { } db) return NoData();
@@ -280,6 +295,8 @@ public static class CatalogEndpoints
             using (var c = db.Open())
                 if (c.ExecuteScalar<long>("SELECT count(*) FROM review_item WHERE kind = 'unidentified' AND status = 'open'") is > 0 and var n)
                     notices.Add(ApiError.Of("notices.unidentified", ("count", n.ToString())));
+            // Novedades: versiones nuevas de emuladores, ports y complementos (decisión 294).
+            notices.AddRange(ToolUpdates.List(db).Select(u => ApiError.Of("notices.toolUpdate", ("name", u.Name), ("version", u.Version), ("channel", u.Channel))));
             return TypedResults.Ok(notices);
         });
     }

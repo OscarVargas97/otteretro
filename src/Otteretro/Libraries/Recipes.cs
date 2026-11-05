@@ -28,6 +28,8 @@ public record Recipe(string Id, string Name, string Kind, string Folder, string 
     public List<RecipeSetting> Settings { get; init; } = [];
     public List<string> Formats { get; init; } = [];
     public List<RecipeDownload> Downloads { get; init; } = [];
+    /// <summary>Dónde publica sus versiones, para avisar de las nuevas (decisión 294).</summary>
+    public RecipeUpdates? Updates { get; init; }
 
     /// <summary>Emuladores, Ports o Complementos: el primer nivel de Herramientas (§5.1). Nombres de carpeta de la persona: en español.</summary>
     public string Group => Kind switch { "emulator" => "Emuladores", "port" => "Ports", _ => "Complementos" };

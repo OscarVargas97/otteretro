@@ -1,0 +1,108 @@
+using System.Net;
+using Otteretro.Libraries;
+
+namespace Otteretro.Tests;
+
+/// <summary>Avisos de versiones (decisión 294) con un servidor de releases falso: sin red.</summary>
+public class ToolUpdatesTests
+{
+    sealed class Fake(Dictionary<string, string> answers) : HttpMessageHandler
+    {
+        public Dictionary<string, string> Answers { get; } = answers;
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            var key = Answers.Keys.FirstOrDefault(request.RequestUri!.ToString().Contains);
+            return Task.FromResult(key is null ? new HttpResponseMessage(HttpStatusCode.NotFound) : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(Answers[key]) });
+        }
+    }
+
+    static string GitHub(string tag, string body = "Notas") =>
+        $$"""[{"tag_name":"{{tag}}-rc","body":"rc","draft":false,"prerelease":true},{"tag_name":"{{tag}}","body":"{{body}}","draft":false,"prerelease":false,"published_at":"2026-09-30T07:06:44Z","html_url":"https://github.com/TwilitRealm/dusklight/releases/tag/{{tag}}"}]""";
+
+    static string Dolphin(string rev, string date) => $$"""{"shortrev":"{{rev}}","date":"{{date}}","changelog_html":"<p>Arreglos &amp; mejoras</p>"}""";
+
+    static void Install(Fixture f, string group, string console, string name, string version) =>
+        Directory.CreateDirectory(Path.Combine(DiskTasks.ToolsOf(f.Db), group, console, name, version));
+
+    static async Task Check(Fixture f, Fake fake, bool manual = false)
+    {
+        ToolUpdates.Handler = fake;
+        try { Assert.Equal("done", (await f.Run(ToolUpdates.Enqueue(f.Db, manual))).Status); }
+        finally { ToolUpdates.Handler = null; }
+    }
+
+    [Fact]
+    public async Task ANewVersionIsNoticedUntilItIsInstalledBesideTheOldOne()
+    {
+        await using var f = new Fixture();
+        Install(f, "Ports", "GameCube", "Dusklight", "2.0.2");
+        await Check(f, new(new() { ["api.github.com/repos/TwilitRealm/dusklight/releases"] = GitHub("v2.0.3") }));
+
+        var u = Assert.Single(ToolUpdates.List(f.Db));
+        Assert.Equal(("dusklight", "stable", "2.0.3", "Notas"), (u.RecipeId, u.Channel, u.Version, u.Notes));
+        Assert.Equal(["2.0.2"], u.Installed);
+
+        Install(f, "Ports", "GameCube", "Dusklight", "2.0.3"); // al lado de la vieja
+        Assert.Empty(ToolUpdates.List(f.Db));
+    }
+
+    [Fact]
+    public async Task SkippingAVersionHidesItUntilAnotherComesOut()
+    {
+        await using var f = new Fixture();
+        Install(f, "Ports", "GameCube", "Dusklight", "2.0.2");
+        var fake = new Fake(new() { ["repos/TwilitRealm/dusklight/releases"] = GitHub("v2.0.3") });
+        await Check(f, fake);
+        Assert.True(ToolUpdates.Skip(f.Db, "dusklight", "stable"));
+        Assert.Empty(ToolUpdates.List(f.Db));
+
+        await Check(f, fake);
+        Assert.Empty(ToolUpdates.List(f.Db));
+
+        fake.Answers["repos/TwilitRealm/dusklight/releases"] = GitHub("v2.0.4");
+        await Check(f, fake);
+        Assert.Equal("2.0.4", Assert.Single(ToolUpdates.List(f.Db)).Version);
+    }
+
+    [Fact]
+    public async Task DevelopmentVersionsNoticeAtMostOnceAWeekUnlessAskedByHand()
+    {
+        await using var f = new Fixture();
+        Install(f, "Emuladores", "GameCube", "Dolphin", "2026.10.01");
+        var fake = new Fake(new()
+        {
+            ["update/latest/beta"] = Dolphin("2609a", "2026-10-08T00:57:28Z"),
+            ["update/latest/dev"] = Dolphin("2609-100", "2026-11-01T00:00:00Z"),
+        });
+        await Check(f, fake);
+        var list = ToolUpdates.List(f.Db);
+        Assert.Equal(["2609a", "2609-100"], list.Select(u => u.Version));
+        Assert.Equal("Arreglos & mejoras", list[0].Notes);
+
+        // Al día siguiente sale otra de desarrollo: sola no cambia el aviso dentro de la semana.
+        fake.Answers["update/latest/dev"] = Dolphin("2609-120", "2026-11-02T00:00:00Z");
+        await Check(f, fake);
+        Assert.Equal("2609-100", ToolUpdates.List(f.Db).Single(u => u.Channel == "dev").Version);
+
+        // «Revisar ahora» la trae igual.
+        await Check(f, fake, manual: true);
+        Assert.Equal("2609-120", ToolUpdates.List(f.Db).Single(u => u.Channel == "dev").Version);
+
+        // Pasada la semana, la revisión diaria también.
+        ToolUpdates.Remember(f.Db, "dolphin", "dev", new("2609-130", null, null, "2026-11-03T00:00:00Z"), manual: false, DateTime.UtcNow.AddDays(8));
+        Assert.Equal("2609-130", ToolUpdates.List(f.Db).Single(u => u.Channel == "dev").Version);
+
+        // Lo instalado más nuevo que lo publicado (por fecha) no avisa.
+        Install(f, "Emuladores", "GameCube", "Dolphin", "2026.11.04");
+        Assert.Empty(ToolUpdates.List(f.Db));
+    }
+
+    [Fact]
+    public async Task OnlyWhatIsInstalledIsChecked()
+    {
+        await using var f = new Fixture();
+        var fake = new Fake(new() { ["repos/TwilitRealm/dusklight/releases"] = GitHub("v2.0.3") });
+        await Check(f, fake);
+        Assert.Empty(ToolUpdates.List(f.Db));
+    }
+}
