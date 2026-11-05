@@ -38,6 +38,8 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         [Libraries.Dats.UpdateKind] = Libraries.Dats.Update,
         [Libraries.Dats.VerifyKind] = Libraries.Dats.Verify,
         [Libraries.ToolUpdates.Kind] = Libraries.ToolUpdates.Run,
+        [Libraries.Installs.Kind] = Libraries.Installs.Run,
+        [Libraries.Installs.BackupKind] = Libraries.Installs.RunBackup,
     };
 
     /// <summary>Tipos que no corren a la vez aunque sean distintos: mover y adoptar tocan las mismas carpetas (§5.3).</summary>
@@ -56,6 +58,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
 
     readonly Libraries.GamesWatcher games = new();
     ClipboardWatcher? clipboard;
+    DateTime lastBackupCheck;
 
     /// <summary>
     /// Espera antes de cada reintento de un error pasajero (#59): se corta la red, vence el tiempo, o la fuente responde 429 o 5xx.
@@ -198,6 +201,12 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
                         Libraries.ToolUpdates.EnqueueIfDue(db);
                         clipboard ??= new(notify: (found, added) => Notify.LinksCaptured(session.Config.EffectiveLanguage, found, added));
                         clipboard.Tick(db, session.Config.ClipboardCapture ?? true);
+                        // La segunda copia de la librería se hace sola cuando se conecta su disco (decisión 303).
+                        if (DateTime.UtcNow - lastBackupCheck > TimeSpan.FromSeconds(30))
+                        {
+                            lastBackupCheck = DateTime.UtcNow;
+                            Libraries.Installs.EnqueueBackupIfPending(db);
+                        }
                     }
                     StartPending(db, ct);
                 }

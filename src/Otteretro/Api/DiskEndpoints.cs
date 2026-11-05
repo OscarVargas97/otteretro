@@ -17,6 +17,8 @@ public record MoveFolderRequest(string Relative, string? ToLibrary = null, strin
 /// <param name="Path">La instalación (una carpeta de versión de lo instalado).</param>
 /// <param name="ToLocation">Ubicación de su tipo; sin ella, de vuelta a `Herramientas` de la carpeta de datos.</param>
 public record MoveToolRequest(string Path, string? ToLocation = null);
+public record ReinstallRequest(string Emulator, string Version);
+public record BackupDiskRequest(string? DiskId);
 public record DestinationRequest(string? LocationId);
 /// <param name="Path">La carpeta Otteretro del disco (la `folder` de /drives).</param>
 /// <param name="Name">Lo que ve la persona: la unidad (E:).</param>
@@ -223,6 +225,35 @@ public static class DiskEndpoints
         api.MapGet("/tools", Results<Ok<List<ToolInfo>>, Conflict<ApiError>> (AppSession s) =>
             CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Recipes.Installed(Disk.ToolRoots(db))) : CatalogEndpoints.NoData());
 
+        // Emuladores y ports instalados con su origen, versión y hash (#268), e instalar uno nuevo en una tarea.
+        api.MapGet("/emulators", Results<Ok<List<EmulatorInstall>>, Conflict<ApiError>> (AppSession s) =>
+            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Installs.List(db)) : CatalogEndpoints.NoData());
+
+        api.MapPost("/emulators/install", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (InstallJob request, AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            var (task, error) = Installs.Enqueue(db, request);
+            return error is null ? TypedResults.Ok(task!.Value) : error.Code is "install.exists" or "library.notConnected" ? TypedResults.Conflict(error) : TypedResults.BadRequest(error);
+        });
+
+        // Reinstalar una versión que perdió su carpeta, desde la librería y verificada por hash (decisión 304).
+        api.MapPost("/emulators/reinstall", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (ReinstallRequest request, AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            var (task, error) = Installs.Enqueue(db, new InstallJob(request.Emulator, request.Version, Reinstall: true));
+            return error is null ? TypedResults.Ok(task!.Value) : error.Code is "install.exists" or "library.notConnected" ? TypedResults.Conflict(error) : TypedResults.BadRequest(error);
+        });
+
+        // El disco de la segunda copia de la librería (Ajustes › Almacenamiento, decisión 303).
+        api.MapGet("/library/backup", Results<Ok<LibraryBackup>, Conflict<ApiError>> (AppSession s) =>
+            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Installs.Backup(db)) : CatalogEndpoints.NoData());
+
+        api.MapPut("/library/backup", Results<Ok<LibraryBackup>, BadRequest<ApiError>, Conflict<ApiError>> (BackupDiskRequest request, AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            return Installs.SetBackupDisk(db, request.DiskId) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(Installs.Backup(db));
+        });
+
         // Mover un emulador, port o complemento a otra ubicación de su tipo, o de vuelta a Herramientas (#198), en una tarea.
         api.MapPost("/tools/move", Results<Ok<long>, BadRequest<ApiError>, NotFound, Conflict<ApiError>> (MoveToolRequest request, AppSession s) =>
         {
@@ -237,7 +268,9 @@ public static class DiskEndpoints
                 root = folder;
             }
             else root = Recipes.DefaultRoots(DiskTasks.ToolsOf(db)).First(r => r.Kind == tool.Kind).Path;
-            var (task, error) = DiskTasks.EnqueueMove(db, new(tool.Path, Path.Combine(root, tool.Folder, tool.Name, tool.Version)));
+            // A la misma ruta dentro del destino: `<Emulador>\<versión>`, o `<Consola>\<Instalación>\<versión>` en lo de antes.
+            var from = Disk.ToolRoots(db).First(r => r.Kind == tool.Kind && Disk.Inside(tool.Path, r.Path)).Path;
+            var (task, error) = DiskTasks.EnqueueMove(db, new(tool.Path, Path.Combine(root, Path.GetRelativePath(from, tool.Path))));
             return error is null ? TypedResults.Ok(task!.Value) : TypedResults.BadRequest(error);
         });
     }

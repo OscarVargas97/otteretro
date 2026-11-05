@@ -59,7 +59,11 @@ public static class DiskTasks
     public record MigrationPlan(List<DiskInfo> Locations, bool Tools);
 
     public static MigrationPlan Pending(Database db) =>
-        new(Disk.List(db).Where(l => l.Type != "disk").ToList(), Recipes.Installed(ToolsOf(db)).Count > 0);
+        new(Disk.List(db).Where(l => l.Type != "disk").ToList(), Recipes.Installed(ToolsOf(db)).Count > 0 || Outdated(db).Count > 0);
+
+    /// <summary>Lo instalado con una receta anterior (#273: Dusklight con `Datos` y su enlace en AppData).</summary>
+    static List<ToolInfo> Outdated(Database db) =>
+        Recipes.Installed(Disk.ToolRoots(db)).Where(t => t.RecipeId is not null && Recipes.Outdated(Recipes.Find(t.RecipeId)!, t.Path)).ToList();
 
     /// <summary>
     /// Pasa todo al estándar (#159, #202, #204). Cada ubicación de un solo tipo va a la carpeta fija del disco donde está (en el
@@ -120,6 +124,12 @@ public static class DiskTasks
                 Relink(Recipes.Installed(Disk.ToolRoots(run.Db)), tool.Path, to);
                 run.Log(ApiError.Of("library.log.tool", ("name", tool.Name), ("path", to)));
             }
+        // Lo instalado con una receta anterior pasa a la actual (#273): se renombra dentro de la instalación, sin copiar nada.
+        foreach (var tool in Outdated(run.Db))
+        {
+            Recipes.MakePortable(Recipes.Find(tool.RecipeId!)!, tool.Path);
+            run.Log(ApiError.Of("library.log.updated", ("name", tool.Name), ("path", tool.Path)));
+        }
         Scan.Enqueue(run.Db); // los juegos cambiaron de lugar (#212)
         return Task.CompletedTask;
     }
@@ -175,8 +185,7 @@ public static class DiskTasks
             var recipe = Recipes.Identify(install);
             var version = Recipes.VersionOf(recipe, install);
             var group = Path.GetFileName(Path.GetDirectoryName(install)!);
-            var console = Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(install)!)!);
-            var target = recipe is not null ? Recipes.Target(tools, recipe, version) : Path.Combine(tools, group, console, Path.GetFileName(install), version);
+            var target = recipe is not null ? Recipes.Target(tools, recipe, version) : Path.Combine(tools, group, Path.GetFileName(install), version);
             var (from, to) = (i * 60 / installs.Count, (i + 1) * 60 / installs.Count);
             MoveFolder(install, target, (done, total) => run.Report(Percent(done, total, from, to), ApiError.Of("library.copying", ("path", target))), ct);
             run.Log(ApiError.Of("library.log.tool", ("name", Path.GetFileName(install)), ("path", target)));
@@ -187,6 +196,7 @@ public static class DiskTasks
         foreach (var tool in Recipes.Installed(tools).Where(t => t.RecipeId is not null && t.Kind != "complement"))
         {
             var recipe = Recipes.Find(tool.RecipeId!)!;
+            Recipes.MakePortable(recipe, tool.Path); // primero: puede renombrar la carpeta donde están los complementos (Dusklight, Datos → data)
             foreach (var complement in Recipes.All.Where(r => r.Parent == recipe.Id))
             {
                 var inside = Path.Combine(tool.Path, complement.Link!);
@@ -196,7 +206,6 @@ public static class DiskTasks
                 Links.Point(inside, target);
                 run.Log(ApiError.Of("library.log.tool", ("name", complement.Name), ("path", target)));
             }
-            Recipes.MakePortable(recipe, tool.Path);
         }
 
         // 3. Juegos: <Consola>\Juegos\<Juego> → <Consola>\<Juego>, y las rutas que apuntaban ahí.

@@ -128,26 +128,41 @@ Tablas principales. `id` entero salvo donde se indica. Tablas, columnas y valore
 
 ## 5. Recetas
 
-Un JSON por emulador, port, complemento o tienda en `recetas/`. Ejemplo resumido:
+Un JSON por emulador, port o complemento en `recetas/`. El formato, campo por campo, está en `recetas/receta.schema.json`. `Libraries/Recipes.cs` las carga al arrancar: una receta que no se puede leer hace fallar el arranque. Lo que el deserializador no revisa (enums, consolas, plantillas, rutas relativas) lo comprueban las pruebas `LoadsEveryRecipe` y `RecipesFollowTheSchemaRules`. Lo que describe:
+
+- **Instalación:** `detect` (el ejecutable), `version` (de dónde sale la versión de algo instalado a mano), `portable` (los pasos para dejarlo portable), `settings` (valores que necesita) y `formats`.
+- **Consolas:** `consoles` y `baseFor` (decisiones 286 y 291), con `license`, `experimental` y `devOnly`.
+- **Fuente:** `updates` (las releases de GitHub o Forgejo, o el servidor de Dolphin; también se usa para los avisos de versión; `devRepo` cuando las de desarrollo están en otro repo, como Ryubing Canary, y `devPattern` para los tags de desarrollo que no vienen marcados, como las `-rc` de Eden) y `asset` (el archivo de Windows de cada release). Sin ellos, como Ryujinx SS4K, se instala solo desde la librería. `downloads` fija la URL y el hash de cada versión para Nix.
+- **Datos:**
+  - `saves` y `content` (contenido instalado en el emulador): son del emulador, no de la versión, y los comparten todas sus versiones (decisión 308).
+  - `config`.
+  - `gamePaths` y `contentPaths`: las rutas a los juegos y a los UPD/DLC que el emulador lee sin copiarlos. Se reescriben al mover.
+  - `install`: cómo se instala contenido por línea de comandos.
+- **Por juego** (`perGame`):
+  - `config`: el archivo de configuración del juego. Las plantillas son `{titleId}` (con `idCase`, mayúsculas o minúsculas), `{gameId}`, `{serial}`, etc.
+  - `apply`: cómo se aplica (archivo, sección, cambio y vuelta o argumento).
+  - `full`: el archivo es una copia completa de la global.
+  - `files`: otros archivos del juego.
+  - `mods`: las carpetas de mods. Se activan con `modsArg` o `modsEnable`.
+  - `args`: los argumentos.
+- **Ajustes y mandos:**
+  - `options`: resolución, fps, aspecto, filtros, renderizador, etc. Lleva `since` cuando una clave cambia de nombre entre versiones (decisión 298).
+  - `input`: los perfiles de mando y cómo se eligen.
+
+Ejemplo resumido (`recetas/eden.json`):
 
 ```json
 {
-  "id": "dolphin",
-  "tipo": "emulador",
-  "consolas": ["gamecube", "wii"],
-  "fuente": { "github": "dolphin-emu/dolphin" },
-  "versiones": {
-    "2509": {
-      "windows": { "url": "https://…/dolphin-2509-x64.7z", "hash": "sha256-…" },
-      "linux": { "nixpkgs": "dolphin-emu" }
-    }
-  },
-  "portable": { "crear": ["portable.txt"] },
-  "partidas": ["User/GC/**", "User/Wii/title/**"],
-  "configuracion": ["User/Config/*.ini"],
-  "rutas_internas": [{ "archivo": "User/Config/Dolphin.ini", "formato": "ini", "clave": "General.ISOPath0", "valor": "{biblioteca}/GameCube" }],
-  "formatos": { "acepta": ["rvz", "iso", "gcz", "wbfs"], "preferido": "rvz" },
-  "lanzar": { "args": ["-b", "-e", "{rom}"] }
+  "id": "eden", "name": "Eden", "kind": "emulator", "folder": "Switch", "detect": "eden.exe",
+  "consoles": ["switch"], "baseFor": ["switch"],
+  "portable": [{ "type": "folder", "path": "user" }],
+  "content": ["user/nand"],
+  "contentPaths": [{ "file": "user/config/qt-config.ini", "format": "ini", "key": "external_content_dirs*" }],
+  "perGame": { "config": "user/config/custom/{titleId}.ini", "apply": "file", "idCase": "upper", "mods": ["user/load/{titleId}"] },
+  "input": { "profiles": ["user/config/input"], "arg": "--input-profile" },
+  "options": [{ "name": "resolution", "file": "user/config/qt-config.ini", "format": "ini", "section": "Renderer", "key": "resolution_setup" }],
+  "updates": { "source": "forgejo", "repo": "eden-emu/eden", "host": "git.eden-emu.dev" },
+  "asset": "^Eden-Windows-v.*-amd64-clang-pgo\\.zip$"
 }
 ```
 

@@ -14,9 +14,9 @@ public static class DataFolder
 
     /// <summary>
     /// Lo que es de la carpeta de datos y se muda con ella (#208): nada más. `Herramientas` y `cache` son de versiones
-    /// anteriores (#204, #167) y se llevan si quedaron.
+    /// anteriores (#204, #167) y se llevan si quedaron. `Libreria`, la librería privada, va con el disco ★ (decisión 293).
     /// </summary>
-    public static readonly string[] Entries = ["data", "catalogo", "logs", "Herramientas", "cache"];
+    public static readonly string[] Entries = ["data", "catalogo", "logs", "Libreria", "Herramientas", "cache"];
 
     /// <summary>Crea la carpeta y sus subcarpetas. Devuelve el error o null si quedó lista.</summary>
     public static ApiError? Prepare(string? path)

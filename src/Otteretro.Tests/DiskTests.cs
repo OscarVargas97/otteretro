@@ -115,12 +115,156 @@ public class DiskTests
         Assert.True(Disk.List(f.Db).Single().Connected);
     }
 
+    /// <summary>
+    /// Los ids de consola del catálogo (tabla console). Mega Drive y Dreamcast se suman en la administración con el slug de IGDB
+    /// como id (otteretro-catalogo, Consoles.Enable): genesis-slash-megadrive y dc.
+    /// </summary>
+    static readonly string[] CatalogConsoles = ["nes", "gb", "snes", "vb", "n64", "gba", "gc", "ds", "wii", "3ds", "wiiu", "switch", "ps1", "ps2", "psp",
+        "ps3", "vita", "ps4", "ps5", "xbox", "x360", "xone", "xseries", "pc", "switch2", "pcvr", "genesis-slash-megadrive", "dc"];
+
+    static string RecipesFolder()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (!Directory.Exists(Path.Combine(dir.FullName, "recetas"))) dir = dir.Parent!;
+        return Path.Combine(dir.FullName, "recetas");
+    }
+
     [Fact]
     public void LoadsEveryRecipe()
     {
-        Assert.Equal(["dolphin", "dusklight", "dusklight-texturas", "ryujinx-ss4k", "ryujinx-ss4k-pack"], Recipes.All.Select(r => r.Id).Order());
+        var folder = RecipesFolder();
+        var files = Directory.GetFiles(folder, "*.json").Select(Path.GetFileNameWithoutExtension).Where(n => n != "receta.schema").Order();
+        Assert.Equal(files, Recipes.All.Select(r => r.Id).Order());
         foreach (var complement in Recipes.All.Where(r => r.Kind == "complement"))
             Assert.Equal(complement.Folder, Recipes.Find(complement.Parent!)!.Name);
+
+        // #273: lo de cada juego, los ajustes y de dónde sale cada versión.
+        Assert.Equal(("user/config/custom/{titleId}.ini", "upper"), (Recipes.Find("eden")!.PerGame!.Config, Recipes.Find("eden")!.PerGame!.IdCase));
+        Assert.True(Recipes.Find("ryubing")!.PerGame!.Full);
+        Assert.Equal("--mods", Recipes.Find("dusklight")!.PerGame!.ModsArg);
+        Assert.Contains(Recipes.Find("dolphin")!.Options, o => o is { Name: "resolution", Section: "Settings", Key: "InternalResolution" });
+        Assert.All(new[] { "dolphin", "dusklight", "eden", "ryubing" }, id => Assert.NotEmpty(Recipes.Find(id)!.Options));
+        Assert.Null(Recipes.Find("ryujinx-ss4k")!.Updates); // sin fuente pública: solo desde la librería, sin avisos
+        Assert.All(new[] { "eden", "ryubing", "citron", "dolphin", "dusklight" }, id => Assert.NotNull(Recipes.Find(id)!.Asset));
+
+        // El esquema y el record dicen lo mismo: cada propiedad de uno está en el otro.
+        using var schema = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(folder, "receta.schema.json")));
+        var properties = typeof(Recipe).GetProperties().Where(p => p.Name != nameof(Recipe.Group)).Select(p => System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(p.Name)).Order();
+        Assert.Equal(schema.RootElement.GetProperty("properties").EnumerateObject().Select(p => p.Name).Order(), properties);
+    }
+
+    [Fact]
+    public void FindsToolsInHerramientasWithoutConsole()
+    {
+        using var tmp = new TempDir();
+        var srm = Recipes.Find("steam-rom-manager")!;
+        var target = Recipes.Target(tmp.Path, srm, "2.6.2");
+        Assert.Equal(Path.Combine(tmp.Path, "Herramientas", "Steam ROM Manager", "2.6.2"), target);
+        Directory.CreateDirectory(target);
+        // Lo de antes que vive en Herramientas de la carpeta de datos no se toma por una herramienta.
+        Directory.CreateDirectory(Path.Combine(tmp.Path, "Herramientas", "Emuladores", "GameCube", "Dolphin", "2509"));
+
+        var tool = Assert.Single(Recipes.Installed(tmp.Path), t => t.Kind == "tool");
+        Assert.Equal(("steam-rom-manager", "Steam ROM Manager", "2.6.2", target), (tool.RecipeId, tool.Name, tool.Version, tool.Path));
+    }
+
+    /// <summary>Lo que el deserializador no revisa: enums, consolas del catálogo, plantillas y rutas relativas.</summary>
+    [Fact]
+    public void RecipesFollowTheSchemaRules()
+    {
+        string[] placeholders = ["{titleId}", "{serial}", "{crc}", "{gameId}", "{rom}", "{game}", "{config}", "{file}", "{zrif}"];
+        void Relative(string recipe, string path)
+        {
+            Assert.False(Path.IsPathRooted(path) || path.Split('/', '\\').Contains(".."), $"{recipe}: {path}");
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(path, @"\{[^}]*\}"))
+                Assert.Contains(m.Value, placeholders);
+        }
+        foreach (var r in Recipes.All)
+        {
+            Assert.All(r.Consoles, c => Assert.Contains(c, CatalogConsoles));
+            Assert.All(r.BaseFor, c => Assert.Contains(c, r.Consoles));
+            if (r.Asset is not null)
+            {
+                Assert.NotNull(r.Updates);
+                _ = new System.Text.RegularExpressions.Regex(r.Asset);
+            }
+            if (r.Updates is { } u) Assert.Contains(u.Source, new[] { "github", "forgejo", "dolphin" });
+            if (r.Updates?.DevPattern is { } dev) _ = new System.Text.RegularExpressions.Regex(dev);
+            foreach (var path in r.Saves.Concat(r.Config).Concat(r.Content).Append(r.Detect)) Relative(r.Id, path);
+            if (r.PerGame is { } g)
+            {
+                if (g.Apply is not null) Assert.Contains(g.Apply, new[] { "file", "section", "swap", "argument" });
+                Assert.Equal(g.Apply == "argument", g.Args.Count > 0);
+                foreach (var path in g.Mods.Concat(g.Args).Concat(g.Files).Concat(g.ModsEnable.Select(s => s.File)).Concat(g.Config is null ? [] : [g.Config])) Relative(r.Id, path);
+                if (g.IdCase is not null) Assert.Contains(g.IdCase, new[] { "upper", "lower" });
+            }
+            Assert.All(r.Install, i => Assert.Contains("{file}", i.Args));
+            foreach (var o in r.Options)
+            {
+                Assert.Contains(o.Name, new[] { "resolution", "renderer", "aspectRatio", "filter", "vsync", "speed", "anisotropy", "fps", "antialiasing" });
+                Assert.Contains(o.Format, new[] { "ini", "json", "toml", "yml", "cfg" });
+                Relative(r.Id, o.File);
+            }
+        }
+    }
+
+    /// <summary>#273: Ryubing y Ryujinx SS4K tienen el mismo ejecutable; gana la receta que se llama como la carpeta.</summary>
+    [Fact]
+    public void IdentifiesBySameExeAndFolderName()
+    {
+        using var tmp = new TempDir();
+        Write(tmp[@"Ryujinx SS4K\Ryujinx.exe"]);
+        Write(tmp[@"Ryubing\Ryujinx.exe"]);
+
+        Assert.Equal("ryujinx-ss4k", Recipes.Identify(tmp["Ryujinx SS4K"])?.Id);
+        Assert.Equal("ryubing", Recipes.Identify(tmp["Ryubing"])?.Id);
+    }
+
+    /// <summary>
+    /// #273: el Dusklight que ya estaba instalado (con `Datos` enlazada desde AppData) pasa solo, al abrir la app, a su carpeta portable
+    /// `data`: sin perder partidas ni texturas, sin el enlace viejo, con registro en la tarea; y la vez siguiente no queda nada pendiente.
+    /// </summary>
+    [Fact]
+    public async Task InstalledDusklightMovesToDataOnOpen()
+    {
+        await using var f = new Fixture();
+        Assert.Null(Disk.Create(f.Db, f.Tmp["disco"], null).Error);
+        var install = f.Tmp[@"disco\Ports\GameCube\Dusklight\1.0"];
+        var textures = f.Tmp[@"disco\Complementos\Dusklight\Texturas\original"];
+        Write(Path.Combine(install, "dusklight.exe"));
+        Write(Path.Combine(install, @"Datos\EUR\save.gci"));
+        Write(Path.Combine(textures, "link.png"));
+        Links.Point(Path.Combine(install, @"Datos\texture_replacements"), textures);
+        var appData = f.Tmp["appdata"];
+        var other = f.Tmp["otra-instalacion"];
+        Directory.CreateDirectory(other);
+        var before = Environment.GetEnvironmentVariable("APPDATA");
+        Environment.SetEnvironmentVariable("APPDATA", appData);
+        try
+        {
+            Links.Point(Path.Combine(appData, @"TwilitRealm\Dusklight"), Path.Combine(install, "Datos"));
+
+            var task = DiskTasks.EnqueueMigrateIfPending(f.Db);
+            Assert.NotNull(task);
+            var result = await f.Run(task!.Value);
+            Assert.True(result.Status == "done", System.Text.Json.JsonSerializer.Serialize(result.Detail));
+
+            Assert.True(File.Exists(Path.Combine(install, @"data\EUR\save.gci")));
+            Assert.True(File.Exists(Path.Combine(install, @"data\texture_replacements\link.png")));
+            Assert.False(Directory.Exists(Path.Combine(install, "Datos")));
+            Assert.False(Path.Exists(Path.Combine(appData, @"TwilitRealm\Dusklight")));
+            Assert.True(File.Exists(Path.Combine(textures, "link.png"))); // borrar el enlace no toca lo enlazado
+            using (var c = f.Db.Open())
+                Assert.Contains(c.Query<string>("SELECT message FROM task_log WHERE task_id = @task", new { task }), m => m.Contains("library.log.updated"));
+            Assert.Null(DiskTasks.EnqueueMigrateIfPending(f.Db));
+
+            // Un enlace de AppData que apunta a otra instalación no se toca.
+            Links.Point(Path.Combine(appData, @"TwilitRealm\Dusklight"), other);
+            Assert.Null(DiskTasks.EnqueueMigrateIfPending(f.Db));
+            Recipes.MakePortable(Recipes.Find("dusklight")!, install);
+            Assert.True(Links.IsLink(Path.Combine(appData, @"TwilitRealm\Dusklight")));
+        }
+        finally { Environment.SetEnvironmentVariable("APPDATA", before); }
     }
 
     [Fact]
@@ -142,19 +286,31 @@ public class DiskTests
     public void RewritesJsonPathsAndArrays()
     {
         using var tmp = new TempDir();
-        Directory.CreateDirectory(tmp["Datos"]);
-        File.WriteAllText(tmp[@"Datos\config.json"], """{ "backend.isoPath": "E:\\Consolas\\GameCube\\Juegos\\TP\\tp.iso", "game.x": true }""");
+        Directory.CreateDirectory(tmp["data"]);
+        File.WriteAllText(tmp[@"data\config.json"], """{ "backend.isoPath": "E:\\Consolas\\GameCube\\Juegos\\TP\\tp.iso", "game.x": true }""");
         Directory.CreateDirectory(tmp["portable"]);
         File.WriteAllText(tmp[@"portable\Config.json"], """{ "game_dirs": ["E:\\Consolas\\Switch\\Juegos", "D:\\Otro"] }""");
 
         Assert.Equal(1, Recipes.RewriteGamePaths(Recipes.Find("dusklight")!, tmp.Path, @"E:\Consolas\GameCube\Juegos", @"E:\Consolas\GameCube"));
         Assert.Equal(1, Recipes.RewriteGamePaths(Recipes.Find("ryujinx-ss4k")!, tmp.Path, @"E:\Consolas\Switch\Juegos", @"F:\Switch"));
 
-        Assert.Contains(@"E:\\Consolas\\GameCube\\TP\\tp.iso", File.ReadAllText(tmp[@"Datos\config.json"]));
-        Assert.Contains("\"game.x\": true", File.ReadAllText(tmp[@"Datos\config.json"]));
+        Assert.Contains(@"E:\\Consolas\\GameCube\\TP\\tp.iso", File.ReadAllText(tmp[@"data\config.json"]));
+        Assert.Contains("\"game.x\": true", File.ReadAllText(tmp[@"data\config.json"]));
         var ryujinx = File.ReadAllText(tmp[@"portable\Config.json"]);
         Assert.Contains(@"F:\\Switch", ryujinx);
         Assert.Contains(@"D:\\Otro", ryujinx);
+    }
+
+    /// <summary>#273: las carpetas de UPD y DLC que el emulador lee sin copiarlas también siguen a los juegos.</summary>
+    [Fact]
+    public void RewritesContentPaths()
+    {
+        using var tmp = new TempDir();
+        Directory.CreateDirectory(tmp["portable"]);
+        File.WriteAllText(tmp[@"portable\Config.json"], """{ "game_dirs": [], "autoload_dirs": ["E:\\Juegos\\Switch\\Zelda"] }""");
+
+        Assert.Equal(1, Recipes.RewriteGamePaths(Recipes.Find("ryubing")!, tmp.Path, @"E:\Juegos", @"F:\Juegos"));
+        Assert.Contains(@"F:\\Juegos\\Switch\\Zelda", File.ReadAllText(tmp[@"portable\Config.json"]));
     }
 
     [Fact]
@@ -306,17 +462,16 @@ public class DiskTests
         var ini = File.ReadAllText(Path.Combine(dolphin, @"User\Config\Dolphin.ini")).Replace("\r\n", "\n");
         Assert.Contains($"ISOPath0 = {games}\\GameCube\n", ini);
         Assert.Contains("RecursiveISOPaths = True", ini);
-        Assert.Contains(System.Text.Json.JsonSerializer.Serialize(games + @"\GameCube\TP\tp.iso")[1..^1], File.ReadAllText(Path.Combine(dusklight, @"Datos\config.json")));
+        Assert.Contains(System.Text.Json.JsonSerializer.Serialize(games + @"\GameCube\TP\tp.iso")[1..^1], File.ReadAllText(Path.Combine(dusklight, @"data\config.json")));
 
         // Complementos aparte y enlazados donde los busca su emulador o port.
-        Assert.True(Links.IsLink(Path.Combine(dusklight, @"Datos\texture_replacements")));
-        Assert.True(File.Exists(Path.Combine(dusklight, @"Datos\texture_replacements\link.png")));
+        Assert.True(Links.IsLink(Path.Combine(dusklight, @"data\texture_replacements")));
+        Assert.True(File.Exists(Path.Combine(dusklight, @"data\texture_replacements\link.png")));
         Assert.True(File.Exists(Path.Combine(disk, @"Complementos\Dusklight\Texturas\original\link.png")));
         Assert.True(File.Exists(Path.Combine(disk, @"Complementos\Ryujinx SS4K\Pack SS4K\original\contents\pack.bin")));
 
-        // El enlace de AppData apunta a la instalación nueva.
-        Assert.True(File.Exists(Path.Combine(appData, @"TwilitRealm\Dusklight\config.json")));
-        Assert.True(Disk.Same(new DirectoryInfo(Path.Combine(appData, @"TwilitRealm\Dusklight")).LinkTarget!.Replace(@"\??\", ""), Path.Combine(dusklight, "Datos")));
+        // Dusklight pasó de la carpeta Datos enlazada desde AppData a su carpeta portable data (#273).
+        Assert.False(Directory.Exists(Path.Combine(dusklight, "Datos")));
 
         // Ya no queda nada de antes: al abrir la app otra vez no se encola nada, y repetirla a mano no rompe nada.
         Assert.Null(DiskTasks.EnqueueMigrateIfPending(f.Db));
@@ -332,10 +487,10 @@ public class DiskTests
         var install = Path.Combine(tools, @"Ports\GameCube\Dusklight\1.0");
         var textures = Path.Combine(tools, @"Complementos\Dusklight\Texturas\original");
         Write(Path.Combine(install, "dusklight.exe"));
-        Directory.CreateDirectory(Path.Combine(install, "Datos"));
-        File.WriteAllText(Path.Combine(install, @"Datos\config.json"), "{}");
+        Directory.CreateDirectory(Path.Combine(install, "data"));
+        File.WriteAllText(Path.Combine(install, @"data\config.json"), "{}");
         Write(Path.Combine(textures, "link.png"));
-        Links.Point(Path.Combine(install, @"Datos\texture_replacements"), textures);
+        Links.Point(Path.Combine(install, @"data\texture_replacements"), textures);
         var appData = f.Tmp["appdata"];
         var (ports, _) = Disk.Create(f.Db, f.Tmp["otro"], null);
         var complements = ports;
@@ -354,13 +509,12 @@ public class DiskTests
             Assert.Equal(ports, installed.Single(t => t.RecipeId == "dusklight").LocationId);
             Assert.Equal("The Legend of Zelda: Twilight Princess", installed.Single(t => t.RecipeId == "dusklight").Game);
             Assert.Equal(complements, installed.Single(t => t.RecipeId == "dusklight-texturas").LocationId);
-            // Las texturas se ven desde el port movido, y AppData apunta a la instalación nueva.
-            Assert.True(File.Exists(Path.Combine(moved, @"Datos\texture_replacements\link.png")));
-            Assert.True(Disk.Same(new DirectoryInfo(Path.Combine(appData, @"TwilitRealm\Dusklight")).LinkTarget!.Replace(@"\??\", ""), Path.Combine(moved, "Datos")));
+            // Las texturas se ven desde el port movido.
+            Assert.True(File.Exists(Path.Combine(moved, @"data\texture_replacements\link.png")));
 
             // Y de vuelta a Herramientas.
             await Done(f, DiskTasks.EnqueueMove(f.Db, new(moved, install)).Task!.Value);
-            Assert.True(File.Exists(Path.Combine(install, @"Datos\texture_replacements\link.png")));
+            Assert.True(File.Exists(Path.Combine(install, @"data\texture_replacements\link.png")));
             Assert.Null(Recipes.Installed(Disk.ToolRoots(f.Db)).Single(t => t.RecipeId == "dusklight").LocationId);
         }
         finally { Environment.SetEnvironmentVariable("APPDATA", before); }
