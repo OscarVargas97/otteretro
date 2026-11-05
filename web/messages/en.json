@@ -1336,6 +1336,15 @@
     "fromEmpty": "Empty",
     "fromDefault": "The default profile",
     "fromCopy": "Duplicate “{name}”",
-    "create": "Create"
+    "create": "Create",
+    "saves": {
+      "copied": "Saves were carried over to the other emulator. What was there is backed up in {backup}.",
+      "none": "There were no saves to carry over to the other emulator.",
+      "needsFirstRun": "Saves weren't carried over: open the game once in the other emulator, go back to “no profile” and activate this profile again.",
+      "untested": "Saves weren't carried over: the format looks the same but isn't tested yet. Copy them by hand if you want.",
+      "unknown": "Saves can't be carried over to this emulator: there's no known way. They're still in the previous emulator.",
+      "chooseUser": "This emulator has several console users: which one should the saves go to?",
+      "chooseUserConfirm": "Carry them and activate"
+    }
   }
 }

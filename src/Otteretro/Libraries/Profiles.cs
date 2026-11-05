@@ -189,17 +189,19 @@ public static class Profiles
     /// Cambia el perfil activo de una versión del juego, con sus archivos: guarda lo del que estaba en su carpeta y lo quita del
     /// emulador, y carga el nuevo. Sin <paramref name="profile"/> (o con un perfil por defecto), el juego queda sin perfil: vuelve lo
     /// que tenía en el emulador base antes de su primer perfil. Antes de tocar nada comprueba que se pueda hacer entero; un archivo se
-    /// borra del emulador solo después de copiarlo y verificarlo.
+    /// borra del emulador solo después de copiarlo y verificarlo. Si el juego pasa a otro emulador, lleva sus partidas
+    /// (<see cref="SaveTransfer"/>, #270) y devuelve qué pasó con ellas. Si hay que elegir el usuario de consola de destino
+    /// (<paramref name="saveUser"/>), no cambia nada y lo pide (saves.chooseUser).
     /// </summary>
-    public static ApiError? Switch(Database db, long version, long? profile)
+    public static (ApiError? Error, SaveNotice? Saves) Switch(Database db, long version, long? profile, string? saveUser = null)
     {
         using var c = db.Open();
-        if (c.ExecuteScalar<string?>("SELECT platform FROM version WHERE id = @version", new { version }) is null) return ApiError.Of("profile.notFound");
+        if (c.ExecuteScalar<string?>("SELECT platform FROM version WHERE id = @version", new { version }) is null) return (ApiError.Of("profile.notFound"), null);
         var target = profile is { } id ? Get(c, id) : null;
-        if (profile is not null && (target is null || (target.GameVersionId is { } g && g != version))) return ApiError.Of("profile.notFound");
+        if (profile is not null && (target is null || (target.GameVersionId is { } g && g != version))) return (ApiError.Of("profile.notFound"), null);
         if (target is { GameVersionId: null }) target = null;
         var current = c.QuerySingleOrDefault<Profile>($"SELECT {Columns} FROM profile WHERE game_version_id = @version AND active = 1", new { version });
-        if (current?.Id == target?.Id) return null;
+        if (current?.Id == target?.Id) return (null, null);
         var baseEmulator = BaseOf(c, version);
         var from = current is not null ? StateOf(db, current) : baseEmulator is null ? null : Loose(db, version, baseEmulator);
         var to = target is not null ? StateOf(db, target) : baseEmulator is null ? null : Loose(db, version, baseEmulator);
@@ -210,20 +212,26 @@ public static class Profiles
         {
             if (state is null) continue;
             var recipe = Recipes.Find(state.Emulator);
-            if (Items(recipe, GameKey(c, version, p?.SourceId)) is not { } items) return ApiError.Of("profile.noGameKey");
+            if (Items(recipe, GameKey(c, version, p?.SourceId)) is not { } items) return (ApiError.Of("profile.noGameKey"), null);
             if (items.Count == 0) { plan.Add((state, "", items, recipe)); continue; }
             if (InstallOf(db, state.Emulator, state.Version) is not { } install)
             {
                 // Sin perfil y sin el emulador instalado no hay nada que guardar; los archivos de un perfil sí pueden estar en un disco desconectado.
-                if (state.ProfileId is not null) return ApiError.Of("profile.notInstalled", ("emulator", state.Emulator));
+                if (state.ProfileId is not null) return (ApiError.Of("profile.notInstalled", ("emulator", state.Emulator)), null);
                 plan.Add((state, "", [], recipe));
                 continue;
             }
             plan.Add((state, install, items, recipe));
         }
 
+        SaveNotice? saves = null;
         try
         {
+            // Las partidas primero: si no se pueden llevar, se avisa, pero el perfil se cambia igual (la de origen no se toca).
+            if (from is not null && to is not null && from.Emulator != to.Emulator)
+                saves = SaveTransfer.Transfer(db, from.Emulator, InstallOf(db, from.Emulator, from.Version), to.Emulator,
+                    InstallOf(db, to.Emulator, to.Version), GameKey(c, version, current?.SourceId), saveUser);
+            if (saves?.Code == "saves.chooseUser") return (null, saves); // todavía no se movió nada
             if (from is not null)
             {
                 var unload = plan[0];
@@ -243,18 +251,18 @@ public static class Profiles
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
             // Lo movido hasta acá ya está copiado y verificado donde va: no se pierde nada, y el perfil activo no cambia.
-            return ApiError.Of("profile.switchFailed", ("detail", e.Message));
+            return (ApiError.Of("profile.switchFailed", ("detail", e.Message)), saves);
         }
         catch (TaskException e)
         {
-            return e.Error;
+            return (e.Error, saves);
         }
 
         using var t = c.BeginTransaction();
         c.Execute("UPDATE profile SET active = 0 WHERE game_version_id = @version AND active = 1", new { version }, t);
         if (target is not null) c.Execute("UPDATE profile SET active = 1 WHERE id = @Id", new { target.Id }, t);
         t.Commit();
-        return null;
+        return (null, saves);
     }
 
     /// <summary>Saca del emulador lo del juego y lo guarda en <see cref="State.Store"/>. Lo que pisaría queda en los respaldos.</summary>
@@ -355,7 +363,7 @@ public static class Profiles
         Links.DeleteTree(from);
     }
 
-    static void CopyTree(string from, string to)
+    internal static void CopyTree(string from, string to)
     {
         Directory.CreateDirectory(to);
         foreach (var dir in Directory.EnumerateDirectories(from, "*", SearchOption.AllDirectories))

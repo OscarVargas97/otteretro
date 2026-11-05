@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useConsoleName } from "@/components/Catalog";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
-import type { VersionProfiles } from "@/lib/types";
+import type { ProfileSwitch, VersionProfiles } from "@/lib/types";
 
 /** Perfiles del juego (§8.0, #269): por versión del juego (decisión 301), cuál está activo, crear, renombrar, elegir ROM y activar. */
 export function GameProfiles({ gameId }: { gameId: number }) {
@@ -28,9 +28,13 @@ function VersionPanel({ gameId, version: v }: { gameId: number; version: Version
   const cache = useQueryClient();
   const refresh = () => cache.invalidateQueries({ queryKey: ["profiles", gameId] });
   const activate = useMutation({
-    mutationFn: (profileId: string | null) => request<void>(`/api/versions/${v.versionId}/profile`, { method: "PUT", body: JSON.stringify({ profileId: profileId === null ? null : Number(profileId) }) }),
+    mutationFn: ({ profileId, saveUser }: { profileId: string | null; saveUser?: string }) =>
+      request<ProfileSwitch>(`/api/versions/${v.versionId}/profile`, { method: "PUT", body: JSON.stringify({ profileId: profileId === null ? null : Number(profileId), saveUser: saveUser ?? null }) }),
     onSettled: refresh,
   });
+  // Qué pasó con las partidas al cambiar de emulador (#270). Con varios usuarios de consola en Eden o Citron, se elige a cuál van.
+  const saves = activate.data?.saves;
+  const [user, setUser] = useState("");
   const save = useMutation({
     mutationFn: ({ id, name, sourceId }: { id: string; name: string; sourceId: string | null }) =>
       request<void>(`/api/profiles/${id}`, { method: "PUT", body: JSON.stringify({ name, sourceId: sourceId === null ? null : Number(sourceId) }) }),
@@ -52,6 +56,19 @@ function VersionPanel({ gameId, version: v }: { gameId: number; version: Version
         </span>
       </div>
       {failure && <p className="error small" role="alert">{describe(failure)}</p>}
+      {saves?.code === "saves.chooseUser" && activate.variables ? (
+        <form className="sentence" onSubmit={(e) => { e.preventDefault(); activate.mutate({ profileId: activate.variables!.profileId, saveUser: user || saves.users?.[0] }); }}>
+          <label className="small" htmlFor={`user-${v.versionId}`}>{t("saves.chooseUser")}</label>
+          <select id={`user-${v.versionId}`} value={user || saves.users?.[0]} onChange={(e) => setUser(e.target.value)}>
+            {saves.users?.map((u) => <option key={u} value={u}>{u}</option>)}
+          </select>
+          <button className="ot-btn ot-btn-sm ot-btn-primary" type="submit" disabled={activate.isPending}>{t("saves.chooseUserConfirm")}</button>
+        </form>
+      ) : saves && (
+        <p className={`small${saves.code === "saves.copied" || saves.code === "saves.none" ? " muted" : " error"}`} role="status" style={{ margin: 0 }}>
+          {t(`saves.${saves.code.slice(6) as "copied"}`, { backup: saves.backup ?? "" })}
+        </p>
+      )}
       {v.emulators.length === 0 ? <p className="small muted" style={{ margin: 0 }}>{t("noEmulatorHint")}</p> : (
         <>
           <div className="table-wrap">
@@ -73,14 +90,14 @@ function VersionPanel({ gameId, version: v }: { gameId: number; version: Version
                     </td>
                     <td>
                       {p.active ? <span className="ot-badge ot-badge-have">{t("isActive")}</span>
-                        : <button className="ot-btn ot-btn-sm" type="button" disabled={activate.isPending} onClick={() => activate.mutate(String(p.id))}>{t("activate")}</button>}
+                        : <button className="ot-btn ot-btn-sm" type="button" disabled={activate.isPending} onClick={() => activate.mutate({ profileId: String(p.id) })}>{t("activate")}</button>}
                     </td>
                   </tr>
                 ))}
                 {active && base && (
                   <tr>
                     <td colSpan={3} className="small muted">{t("useDefault", { name: base.defaultName, emulator: base.name })}</td>
-                    <td><button className="ot-btn ot-btn-sm" type="button" disabled={activate.isPending} onClick={() => activate.mutate(null)}>{t("activate")}</button></td>
+                    <td><button className="ot-btn ot-btn-sm" type="button" disabled={activate.isPending} onClick={() => activate.mutate({ profileId: null })}>{t("activate")}</button></td>
                   </tr>
                 )}
               </tbody>

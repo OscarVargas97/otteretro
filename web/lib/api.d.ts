@@ -2833,7 +2833,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ProfileSwitch"];
+                    };
                 };
                 /** @description Bad Request */
                 400: {
@@ -5286,6 +5288,7 @@ export interface components {
         ActiveProfileRequest: {
             /** Format: int64 */
             profileId: null | number | string;
+            saveUser?: null | string;
         };
         AdoptResult: {
             id: string;
@@ -5758,6 +5761,9 @@ export interface components {
             sourceId: null | number | string;
             active: boolean;
         };
+        ProfileSwitch: {
+            saves: null | components["schemas"]["SaveNotice"];
+        };
         ProgressInfo: {
             status: string;
             startedAt: null | string;
@@ -5887,6 +5893,11 @@ export interface components {
             items: components["schemas"]["SagaCard"][];
             /** Format: int32 */
             total: number | string;
+        };
+        SaveNotice: {
+            code: string;
+            backup?: null | string;
+            users?: null | string[];
         };
         SearchResults: {
             sagas: components["schemas"]["SagaCard"][];

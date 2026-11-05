@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:61491/"
+      "url": "http://127.0.0.1:52354/"
     }
   ],
   "paths": {
@@ -2456,7 +2456,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileSwitch"
+                }
+              }
+            }
           },
           "400": {
             "description": "Bad Request",
@@ -4567,6 +4574,12 @@
               "string"
             ],
             "format": "int64"
+          },
+          "saveUser": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -6711,6 +6724,24 @@
           }
         }
       },
+      "ProfileSwitch": {
+        "required": [
+          "saves"
+        ],
+        "type": "object",
+        "properties": {
+          "saves": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SaveNotice"
+              }
+            ]
+          }
+        }
+      },
       "ProgressInfo": {
         "required": [
           "status",
@@ -7309,6 +7340,32 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "SaveNotice": {
+        "required": [
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "backup": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "users": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
