@@ -22,6 +22,7 @@ export default function Home() {
   const pending = review.data?.files.length ?? 0;
   const missing = notices.data?.filter((n) => n.code === "notices.missingKey") ?? [];
   const unidentified = notices.data?.find((n) => n.code === "notices.unidentified");
+  const news = notices.data?.filter((n) => n.code === "notices.toolUpdate") ?? [];
   // Todo junto (#105): los avisos van arriba y, si llegaran después, empujarían el resto.
   if (notices.isPending || next.isPending || review.isPending)
     return <div className="content" aria-busy="true"><section className="sec"><div className="sec-h"><h2>{t("next")}</h2></div><NextCards count={2} /></section></div>;
@@ -64,6 +65,20 @@ export default function Home() {
             ))}
           </div>
         </section>
+        {/* Novedades: versiones nuevas de lo que tienes instalado (decisión 294). */}
+        {news.length > 0 && (
+          <section className="sec">
+            <div className="sec-h"><h2>{t("news")}</h2></div>
+            <div className="panel" style={{ display: "grid", gap: 6 }}>
+              {news.map((n) => (
+                <span key={`${n.params?.name}-${n.params?.channel}`} className="small">
+                  {tn("toolUpdate", { name: n.params?.name ?? "", version: n.params?.version ?? "", channel: n.params?.channel ?? "" })}
+                </span>
+              ))}
+              <Link className="ot-btn" href="/tools/" style={{ alignSelf: "flex-start" }}>{tn("openTools")}</Link>
+            </div>
+          </section>
+        )}
         {/* Solo si hay algo por aprobar (#170). */}
         {pending > 0 && (
           <section className="sec">

@@ -8,6 +8,7 @@ import { useEffect } from "react";
 import { request } from "@/lib/client";
 import type { AppState } from "@/lib/types";
 import { normalizePath, useAppState } from "./Shell";
+import { toolUpdatesQuery } from "./ToolUpdates";
 
 // Clave en nav.* de cada entrada; `phase`, la fase en que llega: hasta entonces se ve atenuada y no se abre (#169).
 type Entry = { href: string; key: "home" | "sagas" | "collection" | "discover" | "review" | "downloads" | "tools" | "steam" | "settings"; phase?: number };
@@ -49,7 +50,9 @@ export function Sidebar() {
   // El menú se dibuja antes de saber si hay carpeta de datos (#105); sin ella no hay qué contar.
   const configured = !!useAppState().data?.configured;
   const review = useQuery({ queryKey: ["review", "count"], queryFn: () => request<number>("/api/review/count"), refetchInterval: 60_000, retry: false, enabled: configured });
-  const counts: Partial<Record<string, number>> = { review: Number(review.data ?? 0) };
+  // Versiones nuevas de emuladores y ports (decisión 294).
+  const updates = useQuery({ ...toolUpdatesQuery, refetchInterval: 60_000, retry: false, enabled: configured });
+  const counts: Partial<Record<string, number>> = { review: Number(review.data ?? 0), tools: updates.data?.length ?? 0 };
   const current = normalizePath(usePathname());
   // Retraída a una franja de íconos (#130): se guarda en config.json y Ctrl+B la alterna.
   const cache = useQueryClient();

@@ -391,6 +391,10 @@
         "resumed": "Resumed.",
         "canceled": "Canceled.",
         "identify": "Left {doubtful} in Doubtful and {unidentified} in Unidentified."
+      },
+      "tools": {
+        "checking": "Checking {name}",
+        "sourceFailed": "Could not check {name}: {detail}"
       }
     },
     "progress": {
@@ -641,6 +645,9 @@
       },
       "download": {
         "package": "Download a package"
+      },
+      "tools": {
+        "updates": "Check emulator and port versions"
       }
     },
     "status": {
@@ -920,7 +927,9 @@
     "missingKeys": "Otteretro already works. For covers and new data, add your keys for {services}.",
     "openCredentials": "Accounts and keys",
     "unidentified": "{count, plural, one {1 unidentified file} other {# unidentified files}}: pick its game in Review.",
-    "openReview": "Open Review"
+    "openReview": "Open Review",
+    "toolUpdate": "{name} {version} is available{channel, select, dev { (development)} other {}}.",
+    "openTools": "See in Tools"
   },
   "review": {
     "tabs": "Review sections",
@@ -1012,7 +1021,8 @@
     "nextEmptyTitle": "You're not following any route yet",
     "viewGame": "View game",
     "routeOf": "{saga} · {route}",
-    "progress": "{done} of {total} played"
+    "progress": "{done} of {total} played",
+    "news": "What's new"
   },
   "libraries": {
     "cancel": "Cancel",
@@ -1112,7 +1122,24 @@
     "systemUploading": "Uploading…",
     "systemEmptyTitle": "No system files",
     "systemEmptyText": "Choose a console and upload your BIOS, keys or firmware.",
-    "systemMissing": "{name} is missing"
+    "systemMissing": "{name} is missing",
+    "updates": {
+      "title": "New versions",
+      "count": "{count, plural, one {# new version} other {# new versions}}",
+      "checkNow": "Check now",
+      "checking": "Checking for new versions: see it in the tasks panel.",
+      "none": "All up to date. Checked when the app opens and once a day.",
+      "dev": "Development",
+      "installed": "You have",
+      "published": "Released",
+      "games": "Used by",
+      "gamesUnknown": "Not known yet: it comes with per-game profiles.",
+      "notes": "Release notes",
+      "besideOld": "The new one is installed next to the one you have: the old one is left untouched and you can go back to it.",
+      "update": "Update",
+      "skip": "Skip this version",
+      "badge": "New version"
+    }
   },
   "downloads": {
     "add": "Grab links",

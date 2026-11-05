@@ -24,6 +24,11 @@ export function upsertTask(cache: QueryClient, task: TaskInfo) {
     cache.invalidateQueries({ queryKey: ["tools"] });
     cache.invalidateQueries({ queryKey: ["consoles", "detail"] });
   }
+  // Una revisión de versiones cambia los avisos (decisión 294).
+  if (task.kind === "tools.updates" && task.status === "done") {
+    cache.invalidateQueries({ queryKey: ["tools", "updates"] });
+    cache.invalidateQueries({ queryKey: ["notices"] });
+  }
   // Un escaneo terminado cambia lo que tienes (#178).
   if ((task.kind === "library.scan" || task.kind === "library.verify" || task.kind === "library.import" || task.kind === "library.convert") && task.status === "done") {
     cache.invalidateQueries({ queryKey: ["game"] });

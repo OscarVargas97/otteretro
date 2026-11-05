@@ -1,0 +1,70 @@
+"use client";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useFormatter, useTranslations } from "next-intl";
+import { request } from "@/lib/client";
+import { useDescribeError } from "@/lib/i18n";
+import type { ToolUpdate } from "@/lib/types";
+
+/** Los avisos de versiones nuevas (decisión 294): Herramientas, el contador de la barra lateral e Inicio › Novedades. */
+export const toolUpdatesQuery = { queryKey: ["tools", "updates"], queryFn: () => request<ToolUpdate[]>("/api/tools/updates") };
+
+/** Arriba de Herramientas: cada versión nueva con sus notas, quién la usa, Actualizar y «Omitir esta versión», más «Revisar ahora». */
+export function ToolUpdates() {
+  const t = useTranslations("tools.updates");
+  const format = useFormatter();
+  const describe = useDescribeError();
+  const cache = useQueryClient();
+  const updates = useQuery(toolUpdatesQuery);
+  const check = useMutation({
+    mutationFn: () => request<number>("/api/tools/updates/check", { method: "POST" }),
+    onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+  const skip = useMutation({
+    mutationFn: (u: ToolUpdate) => request<void>(`/api/tools/updates/${encodeURIComponent(u.recipeId)}/${u.channel}/skip`, { method: "POST" }),
+    onSettled: () => { cache.invalidateQueries({ queryKey: ["tools", "updates"] }); cache.invalidateQueries({ queryKey: ["notices"] }); },
+  });
+  const list = updates.data ?? [];
+  return (
+    <section className="panel" style={{ display: "grid", gap: 8 }} aria-labelledby="tool-updates">
+      <div className="version-row">
+        <h3 id="tool-updates" style={{ margin: 0 }}>
+          {t("title")} {list.length > 0 && <span className="ot-count" aria-label={t("count", { count: list.length })}>{list.length}</span>}
+        </h3>
+        <button className="ot-btn ot-btn-sm" type="button" disabled={check.isPending} onClick={() => check.mutate()}>{t("checkNow")}</button>
+      </div>
+      {check.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("checking")}</p>}
+      {(updates.isError || check.isError || skip.isError) && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(updates.error ?? check.error ?? skip.error)}</p>}
+      {updates.isPending && <div className="skeleton" style={{ height: 40 }} aria-busy="true" />}
+      {updates.data?.length === 0 && <p className="small muted" style={{ margin: 0 }}>{t("none")}</p>}
+      {list.map((u) => (
+        <article key={`${u.recipeId}-${u.channel}`} className="tool-detail" style={{ display: "grid", gap: 6 }}>
+          <div className="version-row">
+            <b>{u.name}</b>
+            <span style={{ display: "flex", gap: 6 }}>
+              <span className="ot-badge ot-badge-info">{u.version}</span>
+              {u.channel === "dev" && <span className="ot-badge ot-badge-review">{t("dev")}</span>}
+            </span>
+          </div>
+          <dl className="facts small">
+            <dt>{t("installed")}</dt><dd>{u.installed.join(", ")}</dd>
+            {u.publishedAt && <><dt>{t("published")}</dt><dd>{format.dateTime(new Date(u.publishedAt), { dateStyle: "medium" })}</dd></>}
+            <dt>{t("games")}</dt><dd>{u.games.length > 0 ? format.list(u.games) : <span className="muted">{t("gamesUnknown")}</span>}</dd>
+          </dl>
+          {u.notes && (
+            <details className="small">
+              <summary>{t("notes")}</summary>
+              <p style={{ whiteSpace: "pre-wrap", margin: "6px 0 0" }}>{u.notes}</p>
+            </details>
+          )}
+          <p className="small muted" style={{ margin: 0 }}>{t("besideOld")}</p>
+          <div className="hero-actions">
+            {/* Instalar desde la app llega con #268: mientras tanto abre la página de la versión para bajarla. */}
+            {u.url && <a className="ot-btn ot-btn-primary ot-btn-sm" href={u.url} target="_blank" rel="noreferrer">{t("update")}</a>}
+            <button className="ot-btn ot-btn-sm" type="button" disabled={skip.isPending} onClick={() => skip.mutate(u)}>{t("skip")}</button>
+          </div>
+        </article>
+      ))}
+    </section>
+  );
+}
