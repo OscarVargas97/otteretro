@@ -816,6 +816,7 @@ test("ports: Novedades con los nuevos de lo que sigues, la ficha separa los 100 
   await ports.getByRole("button", { name: es.ports.installConfirm, exact: true }).click();
   await expect(ports.getByRole("alert")).toHaveText(es.errors.install.noVersion);
   await expectTextFits();
+});
 
 test("la ficha: perfiles de cada versión, crear, activar y volver al por defecto (#269)", async () => {
   // Un emulador sin receta, base de Switch: sus perfiles no mueven archivos, así que no hace falta instalarlo.
