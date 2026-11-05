@@ -108,11 +108,13 @@ public class CatalogUpdateTests
     {
         await using var f = new Fixture();
         Mine(f);
-        var done = await Update(f, Answers(Compiled(f, Catalog2)));
+        // Con sus ports (#286): llegan con el catálogo.
+        var done = await Update(f, Answers(Compiled(f, Catalog2 + "INSERT INTO catalog.port (id, console, game, project, kind, status, link, source, added, game_id) VALUES (1, 'gba', 'Metroid Fusion', 'Fusion PC', 'decomp', 'complete', 'https://x.test/p', 'extra', '2026-11-01', 10);")));
         Assert.True(done.Status == "done", JsonSerializer.Serialize(done.Detail));
 
         using var c = f.Db.Open();
         Assert.Equal("Metroid Fusion", c.ExecuteScalar<string>("SELECT name_es FROM catalog.game WHERE id = 10"));
+        Assert.Equal("Fusion PC", c.ExecuteScalar<string>("SELECT project FROM catalog.port WHERE game_id = 10"));
         Assert.Equal(0, c.ExecuteScalar<long>("SELECT count(*) FROM catalog.game WHERE id = 11"));
         // Lo tuyo pasó al juego que queda.
         Assert.Equal("Lo terminé", c.ExecuteScalar<string>("SELECT notes FROM progress WHERE game_id = 10"));

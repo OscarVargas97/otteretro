@@ -51,6 +51,7 @@ export type MegapackPreview = Schemas["MegapackPreview"];
 export type PreviewItem = Schemas["PreviewItem"];
 export type ToolInfo = Schemas["ToolInfo"];
 export type ToolUpdate = Schemas["ToolUpdate"];
+export type PortInfo = Schemas["PortInfo"];
 export type EmulatorInstall = Schemas["EmulatorInstall"];
 export type LibraryBackup = Schemas["LibraryBackup"];
 export type RecipeSummary = Schemas["RecipeSummary"];

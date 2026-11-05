@@ -12,10 +12,11 @@ namespace Otteretro.Libraries;
 /// Qué instalar (#268): de la receta de <paramref name="Emulator"/> con <paramref name="Version"/>, de una release ya compilada
 /// (<paramref name="Url"/>) o de una carpeta o un zip de este equipo (<paramref name="Path"/>; con <paramref name="Adopt"/>, uno
 /// instalado a mano). Sin receta, <paramref name="Name"/> dice cómo se llama su carpeta. <paramref name="Reinstall"/>: una versión
-/// registrada que perdió su carpeta vuelve desde la librería (decisión 304).
+/// registrada que perdió su carpeta vuelve desde la librería (decisión 304). <paramref name="Port"/>: el port del catálogo que se
+/// instala (#287); sus juegos reciben un perfil con él.
 /// </summary>
 public record InstallJob(string Emulator, string? Version = null, string? Url = null, string? Path = null, bool Adopt = false,
-    string? Name = null, string Kind = "emulator", bool Reinstall = false);
+    string? Name = null, string Kind = "emulator", bool Reinstall = false, long? Port = null);
 
 /// <param name="Path">Dónde está instalada; null si su disco no está conectado o la carpeta ya no está (se puede reinstalar).</param>
 /// <param name="BackupLibraryId">El disco con la segunda copia en la librería; null si todavía no hay.</param>
@@ -208,6 +209,7 @@ public static class Installs
             if (!job.Reinstall)
             {
                 Profiles.AddEmulator(run.Db, job.Emulator, target.Kind, target.Name);
+                if (job.Port is { } port) Ports.AddProfiles(run.Db, port, job.Emulator, target.Name);
                 using (var c = run.Db.Open())
                     c.Execute("""
                         INSERT INTO emulator_install (emulator_id, version, origin, url, file, sha256, installed_at)
