@@ -128,26 +128,27 @@ Tablas principales. `id` entero salvo donde se indica. Tablas, columnas y valore
 
 ## 5. Recetas
 
-Un JSON por emulador, port, complemento o tienda en `recetas/`. Ejemplo resumido:
+Un JSON por emulador, port o complemento en `recetas/`. El formato, campo por campo, está en `recetas/receta.schema.json`; `Libraries/Recipes.cs` las carga y las valida al arrancar (una receta inválida hace fallar el arranque y la prueba que las carga). Lo que describe:
+
+- **Instalación:** `detect` (el ejecutable), `version` (de dónde sale la versión de algo instalado a mano), `portable` (pasos para dejarlo portable), `settings` (valores que necesita), `formats`.
+- **Fuente:** `updates` (releases de GitHub o Forgejo, o el servidor de Dolphin; también los avisos de versión) y `assets` (qué archivo de cada release se baja por sistema). Sin ellos, como Ryujinx SS4K, se instala solo desde la librería. `downloads` fija URL y hash por versión para Nix.
+- **Datos:** `saves`, `config`, `gamePaths` y `contentPaths` (rutas a juegos y a UPD/DLC que se reescriben al mover), y `shared` (partidas y contenido comunes a todas las versiones del emulador, decisión 308).
+- **Por juego** (`perGame`): el archivo de configuración del juego y las carpetas de mods, con la clave del juego en la ruta (`{TitleID}`, `{titleid}`, `{GameID}`); cómo se activan los mods (`modsArg`, `modsEnable`).
+- **Ajustes y mandos:** `options` (resolución, fps, aspecto, filtros, renderizador…, con `since` cuando una clave cambia de nombre entre versiones, decisión 298) e `input` (perfiles de mando y cómo se eligen).
+
+Ejemplo resumido (`recetas/eden.json`):
 
 ```json
 {
-  "id": "dolphin",
-  "tipo": "emulador",
-  "consolas": ["gamecube", "wii"],
-  "fuente": { "github": "dolphin-emu/dolphin" },
-  "versiones": {
-    "2509": {
-      "windows": { "url": "https://…/dolphin-2509-x64.7z", "hash": "sha256-…" },
-      "linux": { "nixpkgs": "dolphin-emu" }
-    }
-  },
-  "portable": { "crear": ["portable.txt"] },
-  "partidas": ["User/GC/**", "User/Wii/title/**"],
-  "configuracion": ["User/Config/*.ini"],
-  "rutas_internas": [{ "archivo": "User/Config/Dolphin.ini", "formato": "ini", "clave": "General.ISOPath0", "valor": "{biblioteca}/GameCube" }],
-  "formatos": { "acepta": ["rvz", "iso", "gcz", "wbfs"], "preferido": "rvz" },
-  "lanzar": { "args": ["-b", "-e", "{rom}"] }
+  "id": "eden", "name": "Eden", "kind": "emulator", "folder": "Switch", "detect": "eden.exe",
+  "portable": [{ "type": "folder", "path": "user" }],
+  "contentPaths": [{ "file": "user/config/qt-config.ini", "format": "ini", "key": "external_content_dirs*" }],
+  "shared": ["user/nand"],
+  "perGame": { "config": "user/config/custom/{TitleID}.ini", "mods": ["user/load/{TitleID}"] },
+  "input": { "profiles": ["user/config/input"], "arg": "--input-profile" },
+  "options": [{ "id": "resolution", "file": "user/config/qt-config.ini", "format": "ini", "section": "Renderer", "key": "resolution_setup" }],
+  "updates": { "source": "forgejo", "host": "git.eden-emu.dev", "repo": "eden-emu/eden" },
+  "assets": [{ "system": "windows", "pattern": "^Eden-Windows-v.*-amd64-clang-pgo\.zip$" }]
 }
 ```
 

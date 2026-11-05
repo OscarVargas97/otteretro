@@ -10,5 +10,28 @@
   "config": ["User/Config", "User/GameSettings"],
   "gamePaths": [{ "file": "User/Config/Dolphin.ini", "format": "ini", "key": "ISOPath*" }],
   "settings": [{ "file": "User/Config/Dolphin.ini", "format": "ini", "section": "General", "key": "RecursiveISOPaths", "value": "True" }],
+  "shared": ["User/GC", "User/Wii", "User/StateSaves"],
+  "perGame": {
+    "config": "User/GameSettings/{GameID}.ini",
+    "mods": ["User/Load/Textures/{GameID}"],
+    "modsEnable": [{ "file": "User/Config/GFX.ini", "format": "ini", "section": "Settings", "key": "HiresTextures", "value": "True" }]
+  },
+  "input": {
+    "profiles": ["User/Config/Profiles/GCPad", "User/Config/Profiles/Wiimote"],
+    "section": "Controls",
+    "keys": ["PadProfile1", "PadProfile2", "PadProfile3", "PadProfile4", "WiimoteProfile1", "WiimoteProfile2", "WiimoteProfile3", "WiimoteProfile4"]
+  },
+  "options": [
+    { "id": "resolution", "file": "User/Config/GFX.ini", "format": "ini", "section": "Settings", "key": "InternalResolution" },
+    { "id": "aspect", "file": "User/Config/GFX.ini", "format": "ini", "section": "Settings", "key": "AspectRatio" },
+    { "id": "antialiasing", "file": "User/Config/GFX.ini", "format": "ini", "section": "Settings", "key": "MSAA" },
+    { "id": "vsync", "file": "User/Config/GFX.ini", "format": "ini", "section": "Hardware", "key": "VSync" },
+    { "id": "anisotropy", "file": "User/Config/GFX.ini", "format": "ini", "section": "Enhancements", "key": "MaxAnisotropy" },
+    { "id": "filter", "file": "User/Config/GFX.ini", "format": "ini", "section": "Enhancements", "key": "OutputResampling" },
+    { "id": "renderer", "file": "User/Config/Dolphin.ini", "format": "ini", "section": "Core", "key": "GFXBackend" },
+    { "id": "speed", "file": "User/Config/Dolphin.ini", "format": "ini", "section": "Core", "key": "EmulationSpeed" }
+  ],
+  "assets": [{ "system": "windows", "pattern": "-x64\\.7z$" }],
+  "updates": { "source": "dolphin", "dev": true },
   "formats": ["iso", "gcm", "rvz", "wbfs", "ciso", "gcz", "wia"]
 }

@@ -187,6 +187,7 @@ public static class DiskTasks
         foreach (var tool in Recipes.Installed(tools).Where(t => t.RecipeId is not null && t.Kind != "complement"))
         {
             var recipe = Recipes.Find(tool.RecipeId!)!;
+            Recipes.MakePortable(recipe, tool.Path); // primero: puede renombrar la carpeta donde están los complementos (Dusklight, Datos → data)
             foreach (var complement in Recipes.All.Where(r => r.Parent == recipe.Id))
             {
                 var inside = Path.Combine(tool.Path, complement.Link!);
@@ -196,7 +197,6 @@ public static class DiskTasks
                 Links.Point(inside, target);
                 run.Log(ApiError.Of("library.log.tool", ("name", complement.Name), ("path", target)));
             }
-            Recipes.MakePortable(recipe, tool.Path);
         }
 
         // 3. Juegos: <Consola>\Juegos\<Juego> → <Consola>\<Juego>, y las rutas que apuntaban ahí.

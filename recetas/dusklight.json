@@ -6,9 +6,20 @@
   "game": "The Legend of Zelda: Twilight Princess",
   "detect": "dusklight.exe",
   "version": { "from": "exe" },
-  "portable": [{ "type": "junction", "path": "Datos", "link": "%APPDATA%/TwilitRealm/Dusklight", "system": "windows" }],
-  "saves": ["Datos/EUR", "Datos/USA", "Datos/JAP"],
-  "config": ["Datos/config.json"],
-  "gamePaths": [{ "file": "Datos/config.json", "format": "json", "key": "backend.isoPath" }],
+  "portable": [{ "type": "rename", "from": "Datos", "path": "data" }, { "type": "folder", "path": "data" }],
+  "saves": ["data/EUR", "data/USA", "data/JAP"],
+  "config": ["data/config.json"],
+  "gamePaths": [{ "file": "data/config.json", "format": "json", "key": "backend.isoPath" }],
+  "shared": ["data/EUR", "data/USA", "data/JAP"],
+  "perGame": { "config": "data/config.json", "mods": ["data/mods"], "modsArg": "--mods" },
+  "options": [
+    { "id": "resolution", "file": "data/config.json", "format": "json", "key": "game.internalResolutionScale" },
+    { "id": "fps", "file": "data/config.json", "format": "json", "key": "video.maxFrameRate" },
+    { "id": "vsync", "file": "data/config.json", "format": "json", "key": "video.enableVsync" },
+    { "id": "aspect", "file": "data/config.json", "format": "json", "key": "video.lockAspectRatio" },
+    { "id": "renderer", "file": "data/config.json", "format": "json", "key": "backend.graphicsBackend" }
+  ],
+  "assets": [{ "system": "windows", "pattern": "^Dusklight-v.*-win32-x86_64\\.zip$" }],
+  "updates": { "source": "github", "repo": "TwilitRealm/dusklight" },
   "formats": ["iso", "rvz", "gcm"]
 }

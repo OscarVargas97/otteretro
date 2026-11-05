@@ -7,11 +7,27 @@ using System.Text.RegularExpressions;
 namespace Otteretro.Libraries;
 
 public record RecipeVersion(string From, string? Value = null);
-/// <param name="Type">file, folder o junction.</param>
-public record PortableStep(string Type, string Path, string? Link = null, string? System = null);
+/// <param name="Type">file, folder, junction o rename (<paramref name="From"/> pasa a <paramref name="Path"/>).</param>
+public record PortableStep(string Type, string Path, string? Link = null, string? System = null, string? From = null);
 public record GamePath(string File, string Format, string Key);
 public record RecipeSetting(string File, string Format, string Key, string Value, string? Section = null);
 public record RecipeDownload(string Version, string System, string Url, string Hash);
+/// <summary>Qué archivo de cada release se baja en un sistema: una expresión regular sobre su nombre.</summary>
+public record RecipeAsset(string System, string Pattern);
+/// <summary>Dónde publica sus versiones una receta (decisión 294). Igual que en #291 (ToolUpdates.cs): al fusionar el segundo, queda una sola.</summary>
+/// <param name="Source">github, forgejo (con <paramref name="Host"/>) o dolphin (su servidor de actualizaciones).</param>
+/// <param name="Dev">También avisa de las versiones de desarrollo (prereleases; en Dolphin, la pista dev).</param>
+public record RecipeUpdates(string Source, string? Repo = null, string? Host = null, bool Dev = false);
+/// <summary>
+/// Lo de un juego, que va con su perfil (decisión 286). Las rutas llevan {TitleID}, {titleid} o {GameID}.
+/// <paramref name="Full"/>: el archivo es una copia completa de la global (Ryubing), no solo lo que difiere.
+/// </summary>
+public record RecipePerGame(string? Config = null, bool Full = false, List<string>? Files = null, List<string>? Mods = null,
+    string? ModsArg = null, List<RecipeSetting>? ModsEnable = null);
+/// <param name="Keys">Claves de <see cref="RecipePerGame.Config"/> que eligen el perfil de mando o guardan los mandos.</param>
+public record RecipeInput(List<string>? Profiles = null, string? Arg = null, string? Section = null, List<string>? Keys = null);
+/// <summary>Un ajuste de los más usados (decisión 298). <paramref name="Since"/>: la versión desde la que vale esa clave.</summary>
+public record RecipeOption(string Id, string File, string Format, string Key, string? Section = null, string? Since = null);
 
 /// <summary>Una receta de `recetas/` (§8.1, F3.3). El esquema está en `recetas/receta.schema.json`.</summary>
 public record Recipe(string Id, string Name, string Kind, string Folder, string Detect)
@@ -28,6 +44,16 @@ public record Recipe(string Id, string Name, string Kind, string Folder, string 
     public List<RecipeSetting> Settings { get; init; } = [];
     public List<string> Formats { get; init; } = [];
     public List<RecipeDownload> Downloads { get; init; } = [];
+    /// <summary>Dónde publica sus versiones, para avisar de las nuevas (decisión 294).</summary>
+    public RecipeUpdates? Updates { get; init; }
+    public List<RecipeAsset> Assets { get; init; } = [];
+    /// <summary>Dónde se apuntan UPD y DLC sin copiarlos (decisión 295); se reescriben al mover, como <see cref="GamePaths"/>.</summary>
+    public List<GamePath> ContentPaths { get; init; } = [];
+    /// <summary>Partidas y contenido comunes a todas las versiones del emulador (decisión 308).</summary>
+    public List<string> Shared { get; init; } = [];
+    public RecipePerGame? PerGame { get; init; }
+    public RecipeInput? Input { get; init; }
+    public List<RecipeOption> Options { get; init; } = [];
 
     /// <summary>Emuladores, Ports o Complementos: el primer nivel de Herramientas (§5.1). Nombres de carpeta de la persona: en español.</summary>
     public string Group => Kind switch { "emulator" => "Emuladores", "port" => "Ports", _ => "Complementos" };
@@ -53,6 +79,8 @@ public static class Recipes
     };
 
     static readonly string[] Kinds = ["emulator", "port", "complement"];
+    static readonly string[] OptionIds = ["resolution", "fps", "speed", "aspect", "filter", "renderer", "vsync", "anisotropy", "antialiasing"];
+    static readonly string[] GameKeys = ["{TitleID}", "{titleid}", "{GameID}"];
 
     static List<Recipe>? all;
 
@@ -69,16 +97,34 @@ public static class Recipes
         {
             using var stream = assembly.GetManifestResourceStream(name)!;
             var r = JsonSerializer.Deserialize<Recipe>(stream, Json) ?? throw new InvalidDataException(name);
-            if (!Regex.IsMatch(r.Id, "^[a-z0-9-]+$") || !Kinds.Contains(r.Kind) || (r.Kind == "complement") != (r.Parent is not null && r.Link is not null))
+            if (!Regex.IsMatch(r.Id, "^[a-z0-9-]+$") || !Kinds.Contains(r.Kind) || (r.Kind == "complement") != (r.Parent is not null && r.Link is not null)
+                || r.Options.Any(o => !OptionIds.Contains(o.Id)) || PerGamePaths(r).Any(p => Regex.Matches(p, "{[^}]*}").Any(m => !GameKeys.Contains(m.Value)))
+                || r.Assets.Any(a => !IsRegex(a.Pattern)))
                 throw new InvalidDataException($"Receta inválida: {name}");
             list.Add(r);
         }
         return list;
     }
 
-    /// <summary>La receta de una carpeta instalada (por su ejecutable) entre los emuladores y ports.</summary>
-    public static Recipe? Identify(string install) =>
-        All.FirstOrDefault(r => r.Kind != "complement" && File.Exists(Path.Combine(install, r.Detect)));
+    /// <summary>Las rutas por juego de una receta, con su clave ({TitleID}…).</summary>
+    static IEnumerable<string> PerGamePaths(Recipe r) =>
+        r.PerGame is not { } g ? [] : new[] { g.Config }.Concat(g.Files ?? []).Concat(g.Mods ?? []).Concat((g.ModsEnable ?? []).Select(s => s.File)).OfType<string>();
+
+    static bool IsRegex(string pattern)
+    {
+        try { _ = new Regex(pattern); return true; }
+        catch (ArgumentException) { return false; }
+    }
+
+    /// <summary>
+    /// La receta de una carpeta instalada (por su ejecutable) entre los emuladores y ports. Si varias tienen el mismo ejecutable
+    /// (Ryubing y Ryujinx SS4K), la que se llama como la carpeta.
+    /// </summary>
+    public static Recipe? Identify(string install)
+    {
+        var matches = All.Where(r => r.Kind != "complement" && File.Exists(Path.Combine(install, r.Detect))).ToList();
+        return matches.FirstOrDefault(r => r.Name == Path.GetFileName(Path.TrimEndingDirectorySeparator(install))) ?? matches.FirstOrDefault();
+    }
 
     /// <summary>La versión con la que se guarda en Herramientas: la del ejecutable, su fecha o la fija de la receta.</summary>
     public static string VersionOf(Recipe? recipe, string install)
@@ -135,6 +181,9 @@ public static class Recipes
             var path = Path.Combine(install, step.Path);
             switch (step.Type)
             {
+                case "rename" when Directory.Exists(Path.Combine(install, step.From!)) && !Path.Exists(path):
+                    Directory.Move(Path.Combine(install, step.From!), path); // dentro de la instalación: el mismo disco, se renombra
+                    break;
                 case "file" when !File.Exists(path):
                     Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                     File.WriteAllText(path, "");
@@ -158,7 +207,7 @@ public static class Recipes
     public static int RewriteGamePaths(Recipe recipe, string install, string from, string to)
     {
         var changed = 0;
-        foreach (var g in recipe.GamePaths)
+        foreach (var g in recipe.GamePaths.Concat(recipe.ContentPaths))
         {
             var file = Path.Combine(install, g.File);
             if (!File.Exists(file)) continue;

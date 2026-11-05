@@ -1,0 +1,29 @@
+{
+  "id": "eden",
+  "name": "Eden",
+  "kind": "emulator",
+  "folder": "Switch",
+  "detect": "eden.exe",
+  "version": { "from": "date" },
+  "portable": [{ "type": "folder", "path": "user" }],
+  "config": ["user/config"],
+  "contentPaths": [{ "file": "user/config/qt-config.ini", "format": "ini", "key": "external_content_dirs*" }],
+  "shared": ["user/nand"],
+  "perGame": {
+    "config": "user/config/custom/{TitleID}.ini",
+    "mods": ["user/load/{TitleID}"]
+  },
+  "input": { "profiles": ["user/config/input"], "arg": "--input-profile" },
+  "options": [
+    { "id": "resolution", "file": "user/config/qt-config.ini", "format": "ini", "section": "Renderer", "key": "resolution_setup" },
+    { "id": "renderer", "file": "user/config/qt-config.ini", "format": "ini", "section": "Renderer", "key": "backend" },
+    { "id": "filter", "file": "user/config/qt-config.ini", "format": "ini", "section": "Renderer", "key": "scaling_filter" },
+    { "id": "aspect", "file": "user/config/qt-config.ini", "format": "ini", "section": "Renderer", "key": "aspect_ratio" },
+    { "id": "antialiasing", "file": "user/config/qt-config.ini", "format": "ini", "section": "Renderer", "key": "anti_aliasing" },
+    { "id": "anisotropy", "file": "user/config/qt-config.ini", "format": "ini", "section": "Renderer", "key": "max_anisotropy" },
+    { "id": "speed", "file": "user/config/qt-config.ini", "format": "ini", "section": "Core", "key": "speed_limit" }
+  ],
+  "updates": { "source": "forgejo", "host": "git.eden-emu.dev", "repo": "eden-emu/eden" },
+  "assets": [{ "system": "windows", "pattern": "^Eden-Windows-v.*-amd64-clang-pgo\\.zip$" }],
+  "formats": ["nsp", "xci", "nca", "nro"]
+}

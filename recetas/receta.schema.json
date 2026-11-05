@@ -26,8 +26,9 @@
       "items": {
         "type": "object", "additionalProperties": false, "required": ["type", "path"],
         "properties": {
-          "type": { "enum": ["file", "folder", "junction"], "description": "file: crea path vacío si falta; folder: crea la carpeta path; junction: enlaza link (fuera de la instalación) a path" },
+          "type": { "enum": ["file", "folder", "junction", "rename"], "description": "file: crea path vacío si falta; folder: crea la carpeta path; junction: enlaza link (fuera de la instalación) a path; rename: si existe from y no path, renombra from a path (la carpeta de una receta anterior)" },
           "path": { "type": "string" },
+          "from": { "type": "string", "description": "Con rename: la ruta vieja dentro de la instalación" },
           "link": { "type": "string", "description": "Con junction: ruta con variables de entorno (%APPDATA%)" },
           "system": { "enum": ["windows", "linux"] }
         }
@@ -61,6 +62,16 @@
       }
     },
     "formats": { "type": "array", "items": { "type": "string" } },
+    "updates": {
+      "type": "object", "additionalProperties": false, "required": ["source"],
+      "description": "Dónde publica sus versiones, para avisar de las nuevas (decisión 294)",
+      "properties": {
+        "source": { "enum": ["github", "forgejo", "dolphin"], "description": "github y forgejo: sus releases (las prereleases son de desarrollo); dolphin: su servidor de actualizaciones" },
+        "repo": { "type": "string", "pattern": "^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$" },
+        "host": { "type": "string", "description": "Con forgejo: el servidor (codeberg.org)" },
+        "dev": { "type": "boolean", "description": "También avisa de las versiones de desarrollo (como mucho una vez por semana)" }
+      }
+    },
     "downloads": {
       "type": "array", "description": "Por versión y sistema: URL y hash SRI (Nix las arma en PlayOS; Otteretro las descarga en Windows, F5)",
       "items": {
@@ -70,6 +81,60 @@
           "system": { "enum": ["windows", "linux"] },
           "url": { "type": "string" },
           "hash": { "type": "string", "pattern": "^sha256-" }
+        }
+      }
+    },
+    "assets": {
+      "type": "array", "description": "Qué archivo de cada release de updates se baja, por sistema; la versión se elige al instalar. Sin updates ni assets (Ryujinx SS4K), se instala solo desde la librería o subiendo el archivo, y no hay avisos",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["system", "pattern"],
+        "properties": {
+          "system": { "enum": ["windows", "linux"] },
+          "pattern": { "type": "string", "description": "Expresión regular sobre el nombre del archivo (en Dolphin, sobre la URL del artefacto)" }
+        }
+      }
+    },
+    "contentPaths": {
+      "type": "array", "description": "Dónde se apuntan las actualizaciones y los DLC sin copiarlos (decisión 295). Se reescriben al mover, como gamePaths",
+      "items": { "$ref": "#/properties/gamePaths/items" }
+    },
+    "shared": {
+      "type": "array", "items": { "type": "string" },
+      "description": "Partidas y contenido instalado comunes a todas las versiones del emulador (decisión 308): cada versión enlaza estas carpetas a una carpeta común del emulador"
+    },
+    "perGame": {
+      "type": "object", "additionalProperties": false,
+      "description": "Lo de un juego, que va con su perfil (decisión 286). Las rutas llevan la clave del juego: {TitleID} (16 hex en mayúsculas), {titleid} (16 hex en minúsculas) o {GameID} (los 6 caracteres de GameCube y Wii)",
+      "properties": {
+        "config": { "type": "string", "description": "Archivo de configuración del juego" },
+        "full": { "type": "boolean", "description": "Es una copia completa de la global (Ryubing), no solo lo que difiere: se crea desde la global" },
+        "files": { "type": "array", "items": { "type": "string" }, "description": "Otros archivos del juego que van con el perfil (mods activos, UPD y DLC elegidos)" },
+        "mods": { "type": "array", "items": { "type": "string" }, "description": "Carpetas de mods del juego: se enlazan a la del perfil activo" },
+        "modsArg": { "type": "string", "description": "Argumento que apunta los mods a la carpeta del perfil al lanzar, en lugar del enlace" },
+        "modsEnable": { "type": "array", "items": { "$ref": "#/properties/settings/items" }, "description": "Valores que activan los mods" }
+      }
+    },
+    "input": {
+      "type": "object", "additionalProperties": false, "description": "Mandos",
+      "properties": {
+        "profiles": { "type": "array", "items": { "type": "string" }, "description": "Carpetas de los perfiles de mando con nombre" },
+        "arg": { "type": "string", "description": "Argumento que elige el perfil al lanzar" },
+        "section": { "type": "string" },
+        "keys": { "type": "array", "items": { "type": "string" }, "description": "Claves de perGame.config que eligen el perfil o guardan los mandos" }
+      }
+    },
+    "options": {
+      "type": "array",
+      "description": "Los ajustes más usados (decisión 298), en la configuración global; perGame.config usa las mismas claves. Si una clave cambia de nombre, una entrada por versión con since: la app usa la de since más alta que no pase la versión instalada",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "file", "format", "key"],
+        "properties": {
+          "id": { "enum": ["resolution", "fps", "speed", "aspect", "filter", "renderer", "vsync", "anisotropy", "antialiasing"] },
+          "file": { "type": "string" },
+          "format": { "enum": ["ini", "json"] },
+          "section": { "type": "string" },
+          "key": { "type": "string" },
+          "since": { "type": "string", "description": "Versión desde la que vale; sin since, desde la primera" }
         }
       }
     }

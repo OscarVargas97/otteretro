@@ -1,0 +1,33 @@
+{
+  "id": "ryubing",
+  "name": "Ryubing",
+  "kind": "emulator",
+  "folder": "Switch",
+  "detect": "Ryujinx.exe",
+  "version": { "from": "exe" },
+  "portable": [{ "type": "folder", "path": "portable" }],
+  "saves": ["portable/bis/user/save", "portable/bis/system/save"],
+  "config": ["portable/Config.json", "portable/profiles", "portable/games"],
+  "gamePaths": [{ "file": "portable/Config.json", "format": "json", "key": "game_dirs" }],
+  "contentPaths": [{ "file": "portable/Config.json", "format": "json", "key": "autoload_dirs" }],
+  "shared": ["portable/bis"],
+  "perGame": {
+    "config": "portable/games/{titleid}/Config.json",
+    "full": true,
+    "files": ["portable/games/{titleid}/mods.json", "portable/games/{titleid}/updates.json", "portable/games/{titleid}/dlc.json"],
+    "mods": ["portable/mods/contents/{titleid}"]
+  },
+  "input": { "profiles": ["portable/profiles"], "keys": ["input_config"] },
+  "options": [
+    { "id": "resolution", "file": "portable/Config.json", "format": "json", "key": "res_scale" },
+    { "id": "renderer", "file": "portable/Config.json", "format": "json", "key": "graphics_backend" },
+    { "id": "filter", "file": "portable/Config.json", "format": "json", "key": "scaling_filter" },
+    { "id": "aspect", "file": "portable/Config.json", "format": "json", "key": "aspect_ratio" },
+    { "id": "antialiasing", "file": "portable/Config.json", "format": "json", "key": "anti_aliasing" },
+    { "id": "anisotropy", "file": "portable/Config.json", "format": "json", "key": "max_anisotropy" },
+    { "id": "vsync", "file": "portable/Config.json", "format": "json", "key": "vsync_mode" }
+  ],
+  "updates": { "source": "forgejo", "host": "git.ryujinx.app", "repo": "projects/Ryubing" },
+  "assets": [{ "system": "windows", "pattern": "^ryujinx-[0-9.]+-win_x64\\.zip$" }],
+  "formats": ["nsp", "xci", "nca", "nro"]
+}
