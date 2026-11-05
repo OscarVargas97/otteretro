@@ -107,8 +107,10 @@ public static class FolderMove
             return ApiError.Of("move.insideCurrent");
         if (File.Exists(d))
             return ApiError.Of("path.isFile");
-        // El destino puede ser la raíz de otro disco, con sus juegos (#208): solo no puede tener datos de Otteretro.
-        if (DataFolder.Entries.Any(e => Path.Exists(Path.Combine(d, e))))
+        // El destino puede ser la raíz de otro disco, con sus juegos (#208): solo no puede tener datos de Otteretro. Su `Herramientas`
+        // vacía no cuenta: cada disco la trae (decisión 311) y es la misma de la carpeta de datos.
+        // ponytail: con algo instalado en esa `Herramientas`, el disco no recibe los datos; mezclarlas cuando haga falta.
+        if (DataFolder.Entries.Any(e => Path.Exists(Path.Combine(d, e)) && !(e == Libraries.Disk.DiskFolders["tool"] && EmptyFolder(Path.Combine(d, e)))))
             return ApiError.Of("move.destinationNotEmpty");
         if (!Mounts.Same(s, d))
         {
@@ -141,7 +143,12 @@ public static class FolderMove
         {
             report(new("moving", 0, 1));
             Directory.CreateDirectory(destination);
-            foreach (var entry in entries) Directory.Move(entry, Path.Combine(destination, Path.GetFileName(entry)));
+            foreach (var entry in entries)
+            {
+                var to = Path.Combine(destination, Path.GetFileName(entry));
+                if (EmptyFolder(to)) Directory.Delete(to); // la `Herramientas` fija del disco (Validate)
+                Directory.Move(entry, to);
+            }
             report(new("moving", 1, 1));
             return;
         }
@@ -211,6 +218,8 @@ public static class FolderMove
         }
         if (!Directory.EnumerateFileSystemEntries(destination).Any()) Directory.Delete(destination);
     }
+
+    static bool EmptyFolder(string path) => Directory.Exists(path) && !Directory.EnumerateFileSystemEntries(path).Any();
 
     /// <summary>Lo de la carpeta de datos que existe en <paramref name="folder"/> (#208).</summary>
     static IEnumerable<string> Entries(string folder) =>

@@ -6,6 +6,11 @@ import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
 import { toolUpdatesQuery } from "@/lib/queries";
 import type { ToolUpdate } from "@/lib/types";
+import { useState } from "react";
+
+/** Cuántos juegos se nombran en el aviso; del resto, cuántos son. */
+const GAMES = 6;
+const id = (u: ToolUpdate) => `${u.recipeId}-${u.channel}-${u.version}`;
 
 /** Arriba de Herramientas: cada versión nueva con sus notas, quién la usa, Actualizar (o Instalar, si no la tienes) y «Omitir esta versión», más «Revisar ahora». */
 export function ToolUpdates() {
@@ -21,6 +26,12 @@ export function ToolUpdates() {
   const skip = useMutation({
     mutationFn: (u: ToolUpdate) => request<void>(`/api/tools/updates/${encodeURIComponent(u.recipeId)}/${u.channel}/skip`, { method: "POST" }),
     onSettled: () => { cache.invalidateQueries({ queryKey: ["toolUpdates"] }); cache.invalidateQueries({ queryKey: ["notices"] }); },
+  });
+  // «Actualizar» e «Instalar»: la versión del aviso, desde su archivo, en una tarea (#296).
+  const [queued, setQueued] = useState<Set<string>>(new Set());
+  const install = useMutation({
+    mutationFn: (u: ToolUpdate) => request<number>("/api/emulators/install", { method: "POST", body: JSON.stringify({ emulator: u.recipeId, version: u.version, url: u.download }) }),
+    onSuccess: (_, u) => { setQueued((q) => new Set(q).add(id(u))); cache.invalidateQueries({ queryKey: ["tasks"] }); },
   });
   const list = updates.data ?? [];
   return (
@@ -47,7 +58,8 @@ export function ToolUpdates() {
           <dl className="facts small">
             <dt>{t("installed")}</dt><dd>{u.installed.length > 0 ? u.installed.join(", ") : <span className="muted">{t("notInstalled")}</span>}</dd>
             {u.publishedAt && <><dt>{t("published")}</dt><dd>{format.dateTime(new Date(u.publishedAt), { dateStyle: "medium" })}</dd></>}
-            <dt>{t("games")}</dt><dd>{u.games.length > 0 ? format.list(u.games) : <span className="muted">{t("gamesUnknown")}</span>}</dd>
+            <dt>{t("games")}</dt><dd>{u.games.length === 0 ? <span className="muted">{t("gamesUnknown")}</span>
+              : u.games.length <= GAMES ? format.list(u.games) : t("gamesMore", { list: u.games.slice(0, GAMES).join(", "), count: u.games.length - GAMES })}</dd>
           </dl>
           {u.notes && (
             <details className="small">
@@ -57,10 +69,16 @@ export function ToolUpdates() {
           )}
           {u.installed.length > 0 && <p className="small muted" style={{ margin: 0 }}>{t("besideOld")}</p>}
           <div className="hero-actions">
-            {/* Instalar desde la app llega con #268: mientras tanto abre la página de la versión para bajarla. */}
-            {u.url && <a className="ot-btn ot-btn-primary ot-btn-sm" href={u.url} target="_blank" rel="noreferrer">{t(u.installed.length > 0 ? "update" : "install")}</a>}
+            {/* Con el archivo de la versión se instala al lado de la vieja (#296); sin él (Dolphin), se abre su página para bajarlo. */}
+            {u.download ? (
+              <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" disabled={install.isPending || queued.has(id(u))} onClick={() => install.mutate(u)}>
+                {t(u.installed.length > 0 ? "update" : "install")}
+              </button>
+            ) : u.url && <a className="ot-btn ot-btn-primary ot-btn-sm" href={u.url} target="_blank" rel="noreferrer">{t(u.installed.length > 0 ? "update" : "install")}</a>}
             <button className="ot-btn ot-btn-sm" type="button" disabled={skip.isPending} onClick={() => skip.mutate(u)}>{t("skip")}</button>
           </div>
+          {queued.has(id(u)) && <p className="small muted" role="status" style={{ margin: 0 }}>{t("queued")}</p>}
+          {install.isError && install.variables === u && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(install.error)}</p>}
         </article>
       ))}
     </section>

@@ -142,7 +142,11 @@ public class FolderMoveTests
         File.WriteAllText(Path.Combine(Directory.CreateDirectory(Path.Combine(source, @"Juegos\Switch")).FullName, "zelda.nsp"), "juego");
         var other = tmp["otro-disco"];
         File.WriteAllText(Path.Combine(Directory.CreateDirectory(Path.Combine(other, @"Juegos\GBA")).FullName, "metroid.gba"), "otro");
+        Directory.CreateDirectory(Path.Combine(other, "Herramientas")); // la carpeta fija del disco (decisión 311), vacía
         Assert.Null(FolderMove.Validate(source, other));
+        Directory.CreateDirectory(Path.Combine(other, @"Libreria\x"));
+        Assert.NotNull(FolderMove.Validate(source, other)); // con algo adentro, sí son datos
+        Directory.Delete(Path.Combine(other, "Libreria"), recursive: true);
 
         FolderMove.CopyAndVerify(source, other, _ => { }, forceCopy: copy);
         Assert.Null(FolderMove.DeleteSource(source));
