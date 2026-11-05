@@ -128,27 +128,41 @@ Tablas principales. `id` entero salvo donde se indica. Tablas, columnas y valore
 
 ## 5. Recetas
 
-Un JSON por emulador, port o complemento en `recetas/`. El formato, campo por campo, está en `recetas/receta.schema.json`; `Libraries/Recipes.cs` las carga y las valida al arrancar (una receta inválida hace fallar el arranque y la prueba que las carga). Lo que describe:
+Un JSON por emulador, port o complemento en `recetas/`. El formato, campo por campo, está en `recetas/receta.schema.json`. `Libraries/Recipes.cs` las carga al arrancar: una receta que no se puede leer hace fallar el arranque. Lo que el deserializador no revisa (enums, consolas, plantillas, rutas relativas) lo comprueban las pruebas `LoadsEveryRecipe` y `RecipesFollowTheSchemaRules`. Lo que describe:
 
-- **Instalación:** `detect` (el ejecutable), `version` (de dónde sale la versión de algo instalado a mano), `portable` (pasos para dejarlo portable), `settings` (valores que necesita), `formats`.
-- **Fuente:** `updates` (releases de GitHub o Forgejo, o el servidor de Dolphin; también los avisos de versión) y `assets` (qué archivo de cada release se baja por sistema). Sin ellos, como Ryujinx SS4K, se instala solo desde la librería. `downloads` fija URL y hash por versión para Nix.
-- **Datos:** `saves`, `config`, `gamePaths` y `contentPaths` (rutas a juegos y a UPD/DLC que se reescriben al mover), y `shared` (partidas y contenido comunes a todas las versiones del emulador, decisión 308).
-- **Por juego** (`perGame`): el archivo de configuración del juego y las carpetas de mods, con la clave del juego en la ruta (`{TitleID}`, `{titleid}`, `{GameID}`); cómo se activan los mods (`modsArg`, `modsEnable`).
-- **Ajustes y mandos:** `options` (resolución, fps, aspecto, filtros, renderizador…, con `since` cuando una clave cambia de nombre entre versiones, decisión 298) e `input` (perfiles de mando y cómo se eligen).
+- **Instalación:** `detect` (el ejecutable), `version` (de dónde sale la versión de algo instalado a mano), `portable` (los pasos para dejarlo portable), `settings` (valores que necesita) y `formats`.
+- **Consolas:** `consoles` y `baseFor` (decisiones 286 y 291), con `license`, `experimental` y `devOnly`.
+- **Fuente:** `updates` (las releases de GitHub o Forgejo, o el servidor de Dolphin; también se usa para los avisos de versión) y `asset` (el archivo de Windows de cada release). Sin ellos, como Ryujinx SS4K, se instala solo desde la librería. `downloads` fija la URL y el hash de cada versión para Nix.
+- **Datos:**
+  - `saves` y `content` (contenido instalado en el emulador): son del emulador, no de la versión, y los comparten todas sus versiones (decisión 308).
+  - `config`.
+  - `gamePaths` y `contentPaths`: las rutas a los juegos y a los UPD/DLC que el emulador lee sin copiarlos. Se reescriben al mover.
+  - `install`: cómo se instala contenido por línea de comandos.
+- **Por juego** (`perGame`):
+  - `config`: el archivo de configuración del juego. Las plantillas son `{titleId}` (con `idCase`, mayúsculas o minúsculas), `{gameId}`, `{serial}`, etc.
+  - `apply`: cómo se aplica (archivo, sección, cambio y vuelta o argumento).
+  - `full`: el archivo es una copia completa de la global.
+  - `files`: otros archivos del juego.
+  - `mods`: las carpetas de mods. Se activan con `modsArg` o `modsEnable`.
+  - `args`: los argumentos.
+- **Ajustes y mandos:**
+  - `options`: resolución, fps, aspecto, filtros, renderizador, etc. Lleva `since` cuando una clave cambia de nombre entre versiones (decisión 298).
+  - `input`: los perfiles de mando y cómo se eligen.
 
 Ejemplo resumido (`recetas/eden.json`):
 
 ```json
 {
   "id": "eden", "name": "Eden", "kind": "emulator", "folder": "Switch", "detect": "eden.exe",
+  "consoles": ["switch"], "baseFor": ["switch"],
   "portable": [{ "type": "folder", "path": "user" }],
+  "content": ["user/nand"],
   "contentPaths": [{ "file": "user/config/qt-config.ini", "format": "ini", "key": "external_content_dirs*" }],
-  "shared": ["user/nand"],
-  "perGame": { "config": "user/config/custom/{TitleID}.ini", "mods": ["user/load/{TitleID}"] },
+  "perGame": { "config": "user/config/custom/{titleId}.ini", "apply": "file", "idCase": "upper", "mods": ["user/load/{titleId}"] },
   "input": { "profiles": ["user/config/input"], "arg": "--input-profile" },
-  "options": [{ "id": "resolution", "file": "user/config/qt-config.ini", "format": "ini", "section": "Renderer", "key": "resolution_setup" }],
-  "updates": { "source": "forgejo", "host": "git.eden-emu.dev", "repo": "eden-emu/eden" },
-  "assets": [{ "system": "windows", "pattern": "^Eden-Windows-v.*-amd64-clang-pgo\.zip$" }]
+  "options": [{ "name": "resolution", "file": "user/config/qt-config.ini", "format": "ini", "section": "Renderer", "key": "resolution_setup" }],
+  "updates": { "source": "forgejo", "repo": "eden-emu/eden", "host": "git.eden-emu.dev" },
+  "asset": "^Eden-Windows-v.*-amd64-clang-pgo\\.zip$"
 }
 ```
 

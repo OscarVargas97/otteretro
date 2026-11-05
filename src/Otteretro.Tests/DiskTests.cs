@@ -115,21 +115,78 @@ public class DiskTests
         Assert.True(Disk.List(f.Db).Single().Connected);
     }
 
+    /// <summary>Los ids de consola del catálogo (tabla console).</summary>
+    static readonly string[] CatalogConsoles = ["nes", "gb", "snes", "vb", "n64", "gba", "gc", "ds", "wii", "3ds", "wiiu", "switch", "ps1", "ps2", "psp",
+        "ps3", "vita", "ps4", "ps5", "xbox", "x360", "xone", "xseries", "pc", "switch2", "pcvr"];
+
+    static string RecipesFolder()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (!Directory.Exists(Path.Combine(dir.FullName, "recetas"))) dir = dir.Parent!;
+        return Path.Combine(dir.FullName, "recetas");
+    }
+
     [Fact]
     public void LoadsEveryRecipe()
     {
-        Assert.Equal(["citron", "dolphin", "dusklight", "dusklight-texturas", "eden", "ryubing", "ryujinx-ss4k", "ryujinx-ss4k-pack"], Recipes.All.Select(r => r.Id).Order());
+        var folder = RecipesFolder();
+        var files = Directory.GetFiles(folder, "*.json").Select(Path.GetFileNameWithoutExtension).Where(n => n != "receta.schema").Order();
+        Assert.Equal(files, Recipes.All.Select(r => r.Id).Order());
         foreach (var complement in Recipes.All.Where(r => r.Kind == "complement"))
             Assert.Equal(complement.Folder, Recipes.Find(complement.Parent!)!.Name);
+
         // #273: lo de cada juego, los ajustes y de dónde sale cada versión.
-        Assert.Equal("user/config/custom/{TitleID}.ini", Recipes.Find("eden")!.PerGame!.Config);
+        Assert.Equal(("user/config/custom/{titleId}.ini", "upper"), (Recipes.Find("eden")!.PerGame!.Config, Recipes.Find("eden")!.PerGame!.IdCase));
         Assert.True(Recipes.Find("ryubing")!.PerGame!.Full);
         Assert.Equal("--mods", Recipes.Find("dusklight")!.PerGame!.ModsArg);
-        Assert.Contains(Recipes.Find("dolphin")!.Options, o => o is { Id: "resolution", Section: "Settings", Key: "InternalResolution" });
-        Assert.Equal(["dolphin", "dusklight", "eden", "ryubing"], Recipes.All.Where(r => r.Options.Count > 0).Select(r => r.Id).Order());
+        Assert.Contains(Recipes.Find("dolphin")!.Options, o => o is { Name: "resolution", Section: "Settings", Key: "InternalResolution" });
+        Assert.All(new[] { "dolphin", "dusklight", "eden", "ryubing" }, id => Assert.NotEmpty(Recipes.Find(id)!.Options));
         Assert.Null(Recipes.Find("ryujinx-ss4k")!.Updates); // sin fuente pública: solo desde la librería, sin avisos
-        Assert.All(Recipes.All.Where(r => r.Updates is not null), r => Assert.Contains(r.Assets, a => a.System == "windows"));
-        Assert.All(Recipes.All.Where(r => r.Kind != "complement"), r => Assert.NotEmpty(r.Shared));
+        Assert.All(new[] { "eden", "ryubing", "citron", "dolphin", "dusklight" }, id => Assert.NotNull(Recipes.Find(id)!.Asset));
+
+        // El esquema y el record dicen lo mismo: cada propiedad de uno está en el otro.
+        using var schema = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(folder, "receta.schema.json")));
+        var properties = typeof(Recipe).GetProperties().Where(p => p.Name != nameof(Recipe.Group)).Select(p => System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(p.Name)).Order();
+        Assert.Equal(schema.RootElement.GetProperty("properties").EnumerateObject().Select(p => p.Name).Order(), properties);
+    }
+
+    /// <summary>Lo que el deserializador no revisa: enums, consolas del catálogo, plantillas y rutas relativas.</summary>
+    [Fact]
+    public void RecipesFollowTheSchemaRules()
+    {
+        string[] placeholders = ["{titleId}", "{serial}", "{crc}", "{gameId}", "{rom}", "{game}", "{config}", "{file}", "{zrif}"];
+        void Relative(string recipe, string path)
+        {
+            Assert.False(Path.IsPathRooted(path) || path.Split('/', '\\').Contains(".."), $"{recipe}: {path}");
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(path, @"\{[^}]*\}"))
+                Assert.Contains(m.Value, placeholders);
+        }
+        foreach (var r in Recipes.All)
+        {
+            Assert.All(r.Consoles, c => Assert.Contains(c, CatalogConsoles));
+            Assert.All(r.BaseFor, c => Assert.Contains(c, r.Consoles));
+            if (r.Asset is not null)
+            {
+                Assert.NotNull(r.Updates);
+                _ = new System.Text.RegularExpressions.Regex(r.Asset);
+            }
+            if (r.Updates is { } u) Assert.Contains(u.Source, new[] { "github", "forgejo", "dolphin" });
+            foreach (var path in r.Saves.Concat(r.Config).Concat(r.Content).Append(r.Detect)) Relative(r.Id, path);
+            if (r.PerGame is { } g)
+            {
+                if (g.Apply is not null) Assert.Contains(g.Apply, new[] { "file", "section", "swap", "argument" });
+                Assert.Equal(g.Apply == "argument", g.Args.Count > 0);
+                foreach (var path in g.Mods.Concat(g.Args).Concat(g.Files).Concat(g.ModsEnable.Select(s => s.File)).Concat(g.Config is null ? [] : [g.Config])) Relative(r.Id, path);
+                if (g.IdCase is not null) Assert.Contains(g.IdCase, new[] { "upper", "lower" });
+            }
+            Assert.All(r.Install, i => Assert.Contains("{file}", i.Args));
+            foreach (var o in r.Options)
+            {
+                Assert.Contains(o.Name, new[] { "resolution", "renderer", "aspectRatio", "filter", "vsync", "speed", "anisotropy", "fps", "antialiasing" });
+                Assert.Contains(o.Format, new[] { "ini", "json", "toml", "yml", "cfg" });
+                Relative(r.Id, o.File);
+            }
+        }
     }
 
     /// <summary>#273: Ryubing y Ryujinx SS4K tienen el mismo ejecutable; gana la receta que se llama como la carpeta.</summary>
