@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useConsoleName } from "@/components/Catalog";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
-import type { VersionProfiles } from "@/lib/types";
+import type { ProfileSwitch, VersionProfiles } from "@/lib/types";
 
 /** Perfiles del juego (§8.0, #269): por versión del juego (decisión 301), cuál está activo, crear, renombrar, elegir ROM y activar. */
 export function GameProfiles({ gameId }: { gameId: number }) {
@@ -28,9 +28,11 @@ function VersionPanel({ gameId, version: v }: { gameId: number; version: Version
   const cache = useQueryClient();
   const refresh = () => cache.invalidateQueries({ queryKey: ["profiles", gameId] });
   const activate = useMutation({
-    mutationFn: (profileId: string | null) => request<void>(`/api/versions/${v.versionId}/profile`, { method: "PUT", body: JSON.stringify({ profileId: profileId === null ? null : Number(profileId) }) }),
+    mutationFn: (profileId: string | null) => request<ProfileSwitch>(`/api/versions/${v.versionId}/profile`, { method: "PUT", body: JSON.stringify({ profileId: profileId === null ? null : Number(profileId) }) }),
     onSettled: refresh,
   });
+  // Qué pasó con las partidas al cambiar de emulador (#270).
+  const saves = activate.data?.saves;
   const save = useMutation({
     mutationFn: ({ id, name, sourceId }: { id: string; name: string; sourceId: string | null }) =>
       request<void>(`/api/profiles/${id}`, { method: "PUT", body: JSON.stringify({ name, sourceId: sourceId === null ? null : Number(sourceId) }) }),
@@ -52,6 +54,11 @@ function VersionPanel({ gameId, version: v }: { gameId: number; version: Version
         </span>
       </div>
       {failure && <p className="error small" role="alert">{describe(failure)}</p>}
+      {saves && (
+        <p className={`small${saves.code === "saves.copied" || saves.code === "saves.none" ? " muted" : " error"}`} role="status" style={{ margin: 0 }}>
+          {t(`saves.${saves.code.slice(6) as "copied"}`, { backup: saves.backup ?? "" })}
+        </p>
+      )}
       {v.emulators.length === 0 ? <p className="small muted" style={{ margin: 0 }}>{t("noEmulatorHint")}</p> : (
         <>
           <div className="table-wrap">

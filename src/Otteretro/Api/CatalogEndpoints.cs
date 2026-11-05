@@ -41,6 +41,7 @@ public record CreateProfileRequest(long VersionId, string Emulator, string Name,
 public record ProfileRequest(string Name, long? SourceId);
 /// <param name="ProfileId">null: sin perfil, con el por defecto del emulador base.</param>
 public record ActiveProfileRequest(long? ProfileId);
+public record ProfileSwitch(SaveNotice? Saves);
 
 /// <summary>Pantallas del catálogo (F1.9): sagas, colección, ficha, seguimiento, búsqueda y avisos de Inicio.</summary>
 public static class CatalogEndpoints
@@ -281,8 +282,13 @@ public static class CatalogEndpoints
         });
         api.MapPut("/profiles/{id:long}", Results<Ok, BadRequest<ApiError>, Conflict<ApiError>> (long id, ProfileRequest r, AppSession s) =>
             Db(s) is not { } db ? NoData() : Profiles.Update(db, id, r.Name, r.SourceId) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok());
-        api.MapPut("/versions/{id:long}/profile", Results<Ok, BadRequest<ApiError>, Conflict<ApiError>> (long id, ActiveProfileRequest r, AppSession s) =>
-            Db(s) is not { } db ? NoData() : Profiles.Switch(db, id, r.ProfileId) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok());
+        // Con las partidas si cambia de emulador (#270): qué pasó con ellas, o null.
+        api.MapPut("/versions/{id:long}/profile", Results<Ok<ProfileSwitch>, BadRequest<ApiError>, Conflict<ApiError>> (long id, ActiveProfileRequest r, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var (error, saves) = Profiles.Switch(db, id, r.ProfileId);
+            return error is null ? TypedResults.Ok(new ProfileSwitch(saves)) : TypedResults.BadRequest(error);
+        });
 
         api.MapGet("/search", Results<Ok<SearchResults>, Conflict<ApiError>> (AppSession s, string? q) =>
         {

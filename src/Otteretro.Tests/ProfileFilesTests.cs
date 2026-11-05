@@ -47,7 +47,12 @@ public class ProfileFilesTests
         return id!.Value;
     }
 
-    static void Activate(Fixture f, long? profile) => Assert.Null(Profiles.Switch(f.Db, 20, profile));
+    static SaveNotice? Activate(Fixture f, long? profile)
+    {
+        var (error, saves) = Profiles.Switch(f.Db, 20, profile);
+        Assert.Null(error);
+        return saves;
+    }
 
     [Fact]
     public async Task EdenSwitchesConfigAndModsAndGoingBackRestoresEverything()
@@ -182,8 +187,101 @@ public class ProfileFilesTests
         var eden = Install(f, "eden", "emulator", "Eden", "eden.exe");
         Write(Path.Combine(eden, @"user\config\custom\x.ini"), "x");
         var p = Create(f, "eden", "2x");
-        Assert.Equal("profile.noGameKey", Profiles.Switch(f.Db, 20, p)?.Code);
+        Assert.Equal("profile.noGameKey", Profiles.Switch(f.Db, 20, p).Error?.Code);
         Assert.Null(Profiles.Effective(f.Db, 20)!.GameVersionId);
         Assert.Equal("profile.badRom", Profiles.Update(f.Db, p, "2x", 999)?.Code);
+    }
+
+    // ── Partidas al cambiar de emulador (#270) ─────────────────────────────────────────────────────────────────────────────
+
+    const string User = "00112233445566778899AABBCCDDEEFF";
+
+    /// <summary>Un índice `imkvdb.arc` de Ryujinx con la partida de cuenta de cada juego.</summary>
+    static void Index(string ryu, params (string TitleId, ulong SaveId)[] entries)
+    {
+        using var data = new MemoryStream();
+        using var w = new BinaryWriter(data);
+        w.Write("IMKV"u8);
+        w.Write(0);
+        w.Write(entries.Length);
+        foreach (var (title, save) in entries)
+        {
+            w.Write("IMEN"u8);
+            w.Write(0x40);
+            w.Write(0x40);
+            var key = new byte[0x40];
+            BitConverter.GetBytes(Convert.ToUInt64(title, 16)).CopyTo(key, 0);
+            key[0x20] = 1; // cuenta
+            w.Write(key);
+            var value = new byte[0x40];
+            BitConverter.GetBytes(save).CopyTo(value, 0);
+            w.Write(value);
+        }
+        w.Flush();
+        var file = Path.Combine(ryu, @"portable\bis\system\save\8000000000000000\0\imkvdb.arc");
+        Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+        File.WriteAllBytes(file, data.ToArray());
+    }
+
+    [Fact]
+    public async Task SwitchSavesGoBetweenEdenAndRyubingWithABackupAndTheOriginalUntouched()
+    {
+        await using var f = Game("switch", Totk);
+        var eden = Install(f, "eden", "emulator", "Eden", "eden.exe");
+        var ryu = Install(f, "ryubing", "emulator", "Ryubing", "Ryujinx.exe");
+        var edenSave = Path.Combine(eden, $@"user\nand\user\save\0000000000000000\{User}\{Totk}");
+        Write(Path.Combine(edenSave, "progress.sav"), "eden");
+        Index(ryu, ("0100000000010000", 4), (Totk, 5));
+        var ryuSave = Path.Combine(ryu, @"portable\bis\user\save\0000000000000005\0");
+        Write(Path.Combine(ryuSave, "progress.sav"), "ryu vieja");
+        Write(Path.Combine(ryuSave, "otro.sav"), "ryu otro");
+
+        var notice = Activate(f, Create(f, "ryubing", "Ryubing"));
+        Assert.Equal("saves.copied", notice?.Code);
+        Assert.Equal("eden", File.ReadAllText(Path.Combine(ryuSave, "progress.sav")));
+        Assert.False(File.Exists(Path.Combine(ryuSave, "otro.sav"))); // se reemplaza, no se mezcla
+        Assert.Equal("eden", File.ReadAllText(Path.Combine(edenSave, "progress.sav"))); // el origen no se toca
+        Assert.Equal("ryu vieja", File.ReadAllText(Path.Combine(notice!.Backup!, @"0\progress.sav")));
+        Assert.Equal("ryu otro", File.ReadAllText(Path.Combine(notice.Backup!, @"0\otro.sav")));
+
+        // Se juega en Ryubing y se vuelve a Eden: llega lo nuevo, y lo de Eden queda respaldado.
+        File.WriteAllText(Path.Combine(ryuSave, "progress.sav"), "ryu nueva");
+        notice = Activate(f, null);
+        Assert.Equal("saves.copied", notice?.Code);
+        Assert.Equal("ryu nueva", File.ReadAllText(Path.Combine(edenSave, "progress.sav")));
+        Assert.Equal("eden", File.ReadAllText(Path.Combine(notice!.Backup!, "progress.sav")));
+    }
+
+    [Fact]
+    public async Task SwitchSavesWarnWhenTheOtherEmulatorHasNoPlaceYet()
+    {
+        await using var f = Game("switch", Totk);
+        var eden = Install(f, "eden", "emulator", "Eden", "eden.exe");
+        Install(f, "ryubing", "emulator", "Ryubing", "Ryujinx.exe");
+        var citron = Install(f, "citron", "emulator", "Citron", "citron.exe");
+        Write(Path.Combine(eden, $@"user\nand\user\save\0000000000000000\{User}\{Totk}\progress.sav"), "eden");
+
+        // Ryubing sin el juego en su índice: hay que abrirlo una vez ahí. El perfil se cambia igual.
+        var ryubing = Create(f, "ryubing", "Ryubing");
+        Assert.Equal("saves.needsFirstRun", Activate(f, ryubing)?.Code);
+        Assert.Equal(ryubing, Profiles.Effective(f.Db, 20)!.Id);
+
+        // Ryubing no tiene partida: a Citron no llega nada. Desde Eden, Citron la recibe con el mismo usuario.
+        var c = Create(f, "citron", "Citron");
+        Assert.Equal("saves.none", Activate(f, c)?.Code);
+        Activate(f, null);
+        Assert.Equal("saves.copied", Activate(f, c)?.Code);
+        Assert.Equal("eden", File.ReadAllText(Path.Combine(citron, $@"user\nand\user\save\0000000000000000\{User}\{Totk}\progress.sav")));
+    }
+
+    [Fact]
+    public async Task GameCubeSavesToDusklightAreOnlyAWarning()
+    {
+        await using var f = Game("gc", "GZ2E01", "The Legend of Zelda: Twilight Princess");
+        var dolphin = Install(f, "dolphin", "emulator", "Dolphin", "Dolphin.exe");
+        var dusk = Install(f, "dusklight", "port", "Dusklight", "dusklight.exe");
+        Write(Path.Combine(dolphin, @"User\GC\USA\Card A\01-GZ2E-gczelda2.gci"), "gci");
+        Assert.Equal("saves.untested", Activate(f, Create(f, "dusklight", "Dusklight"))?.Code);
+        Assert.False(Directory.Exists(Path.Combine(dusk, @"data\USA")));
     }
 }
