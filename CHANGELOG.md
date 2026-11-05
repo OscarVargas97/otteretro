@@ -2,6 +2,13 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
+## 0.5.0 · Herramientas · en desarrollo
+
+`docs/encuesta-19-herramientas` · F5 (#263, encuesta 19, #264): emuladores, ports y herramientas instalados y al día, con perfiles por juego · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+
+### Cambios
+- **Plan de la F5 decidido** (encuesta 19): emuladores compartidos por consola con perfiles por juego (configuración y mods, uno activo), tu librería privada en dos discos, avisos de versiones, UPD y DLC dentro del emulador, ports, compartir perfiles en un .zip y configurar el emulador desde la app.
+
 ## 0.4.22 · Archivos de juegos
 
 `chore/176-release-f4`, `fix/259-version-squash`, `docs/257-decisiones-tareas`, `feat/251-reconocer-sin-horario`, `docs/251-decisiones-reconocer`, `feat/249-id-del-catalogo`, `feat/240-reconocer-sin-ia`, `feat/241-switch-titledb`, `fix/237-switch2-carpetas`, `docs/231-readme`, `fix/230-version-en-uso`, `feat/230-pestana-catalogo`, `feat/228-versiones-catalogo`, `fix/225-sagas-al-abrir`, `docs/220-catalogo-versiones-manual`, `feat/215-imagenes-por-referencia`, `feat/217-catalogo-fork`, `feat/212-catalogo-aparte`, `feat/211-listo-al-descargar`, `fase/f4-coleccion` y `docs/encuesta-17-plan-dominios` · F4 (#176, tareas #178 a #182; encuesta 17, #185): tus archivos de juegos reconocidos, verificados y marcados como «lo tengo» · release a `main` en el canal Estable.
