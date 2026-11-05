@@ -19,6 +19,8 @@ public record FieldRequest(string? Value);
 
 /// <summary>Una consola o un juego (#179).</summary>
 public record VerifyRequest(string? Console, long? GameId);
+/// <param name="Emulator">Sin él, el emulador con el que se juega (su perfil o el base de la consola).</param>
+public record PrepareContentRequest(string? Emulator);
 
 /// <summary>El ejecutable de un juego de PC suelto, relativo a su carpeta (#182).</summary>
 public record ExecutableRequest(string Path);
@@ -229,6 +231,14 @@ public static class CatalogEndpoints
             Db(s) is not { } db ? NoData()
             : request.Console is null == request.GameId is null ? TypedResults.BadRequest(ApiError.Of("dat.verifyWhat"))
             : TypedResults.Ok(Libraries.Dats.EnqueueVerify(db, request.Console, request.GameId)));
+
+        // «Preparar para el emulador» (#280): UPD, DLC y lo que se instala dentro del emulador con el que se juega, en una tarea.
+        api.MapPost("/versions/{id:long}/content", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (long id, PrepareContentRequest request, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var (task, error) = Libraries.Content.Enqueue(db, id, request.Emulator);
+            return error is null ? TypedResults.Ok(task!.Value) : TypedResults.BadRequest(error);
+        });
 
         // Cambiar el ejecutable de un juego de PC suelto (#182): uno de los .exe de su carpeta.
         // Quitar un juego del disco (#224): lo marcado va a la papelera y deja de contar como «lo tengo».

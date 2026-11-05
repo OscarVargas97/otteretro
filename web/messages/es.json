@@ -573,6 +573,20 @@
       "notInstalled": "Esa versión no está registrada: instálala primero.",
       "notInLibrary": "La versión {version} no está en tu librería: no se puede reinstalar sin bajarla.",
       "backupIsDefault": "La segunda copia tiene que ir en otro disco, no en el ★."
+    },
+    "content": {
+      "unknownGame": "Ese juego no está en el catálogo.",
+      "noEmulator": "Todavía no hay un emulador instalado para esta consola.",
+      "notInstalled": "{name} no está instalado (o su disco no está conectado).",
+      "log": {
+        "pointed": "Apuntado sin copiar: {file}",
+        "installed": "Instalado en el emulador: {file}",
+        "already": "Ya estaba instalado: {file}",
+        "ps4": "Instálalo a mano en shadPS4 (Otteretro no descifra nada): {file}",
+        "license": "Falta su licencia (zRIF): instálalo a mano en el emulador: {file}",
+        "manual": "Este emulador no lo toma solo: instálalo a mano desde su menú: {file}",
+        "failed": "El instalador del emulador falló: instálalo a mano: {file}"
+      }
     }
   },
   "credentials": {
@@ -672,6 +686,9 @@
       "tools": {
         "updates": "Revisar versiones de emuladores y ports",
         "install": "Instalar un emulador"
+      },
+      "content": {
+        "prepare": "Preparar un juego en su emulador"
       }
     },
     "status": {
@@ -924,7 +941,11 @@
       "removeHint": "Lo marcado va a la papelera y deja de contar como «lo tengo». Las actualizaciones y DLC solo se van si los marcas.",
       "removeConfirm": "Mandar a la papelera ({count})",
       "removeCancel": "Cancelar",
-      "download": "Descargar"
+      "download": "Descargar",
+      "prepare": "Preparar en el emulador",
+      "prepareFor": "Preparar en el emulador ({console})",
+      "prepareHelp": "Deja sus actualizaciones y DLC listos en el emulador con el que se juega, sin copiarlos si el emulador lo permite.",
+      "prepareQueued": "Preparando: míralo en el panel de tareas."
     },
     "search": {
       "sagas": "Sagas",

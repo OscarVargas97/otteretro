@@ -230,24 +230,29 @@ public static class Installs
     public const string SnapshotsFolder = "_respaldos";
 
     /// <summary>
-    /// Las partidas son de todas las versiones (decisión 308): cada carpeta de partidas de la receta (`saves`) apunta, con un enlace,
-    /// a la misma en `Emuladores\<Emulador>\_compartido`. Antes, si ya hay algo en común, se hace una copia puntual. Nunca se borra
+    /// Las partidas y el contenido instalado (NAND, dev_hdd0, mlc01) son de todas las versiones (decisión 308): cada carpeta `saves`
+    /// y `content` de la receta apunta, con un enlace, a la misma en `Emuladores\<Emulador>\_compartido`. Antes, si ya hay partidas en
+    /// común, se hace una copia puntual de ellas (el contenido no: es grande y vuelve a instalarse desde `Juegos\`). Nunca se borra
     /// nada: lo que traiga la versión va a lo común si todavía no existe, y si ya existe queda al lado como `.antes-de-otteretro`.
+    /// Unas partidas dentro de una carpeta de contenido (RPCS3: `dev_hdd0\home\…\savedata`) van con ella.
     /// </summary>
-    /// <remarks>ponytail: solo las carpetas `saves` de la receta; el contenido instalado (UPD, DLC) se suma cuando las recetas lo
-    /// describan (#273). Mover una versión a otro disco deja su enlace apuntando a lo común del disco de origen.</remarks>
+    /// <remarks>ponytail: mover una versión a otro disco deja su enlace apuntando a lo común del disco de origen. Una versión de antes
+    /// de #280 con contenido propio lo deja en `.antes-de-otteretro` si lo común ya existe: no se mezclan.</remarks>
     public static void ShareSaves(Recipe recipe, string install, string version)
     {
+        var folders = recipe.Content.Concat(recipe.Saves.Where(s => !recipe.Content.Any(c => s.StartsWith(c + "/", StringComparison.Ordinal)))).ToList();
         // Ya enlazada (se repite): no es una versión nueva para lo común.
-        if (recipe.Saves.All(save => Links.IsLink(System.IO.Path.Combine(install, save)))) return;
+        if (folders.All(folder => Links.IsLink(System.IO.Path.Combine(install, folder)))) return;
         var root = System.IO.Path.GetDirectoryName(install)!;
         var shared = System.IO.Path.Combine(root, SharedFolder);
-        if (Directory.Exists(shared) && Directory.EnumerateFiles(shared, "*", SearchOption.AllDirectories).Any())
-            Snapshot(shared, System.IO.Path.Combine(root, SnapshotsFolder, $"{DateTime.Now:yyyy-MM-dd-HHmmss}-antes-de-{version}"));
-        foreach (var save in recipe.Saves)
+        var snapshot = System.IO.Path.Combine(root, SnapshotsFolder, $"{DateTime.Now:yyyy-MM-dd-HHmmss}-antes-de-{version}");
+        foreach (var save in recipe.Saves.Select(s => System.IO.Path.Combine(shared, s)))
+            if (Directory.Exists(save) && Directory.EnumerateFiles(save, "*", SearchOption.AllDirectories).Any())
+                Snapshot(save, System.IO.Path.Combine(snapshot, System.IO.Path.GetRelativePath(shared, save)));
+        foreach (var folder in folders)
         {
-            var inside = System.IO.Path.Combine(install, save);
-            var common = System.IO.Path.Combine(shared, save);
+            var inside = System.IO.Path.Combine(install, folder);
+            var common = System.IO.Path.Combine(shared, folder);
             if (!Links.IsLink(inside) && Directory.Exists(inside))
             {
                 if (!Directory.EnumerateFileSystemEntries(inside).Any()) Directory.Delete(inside);

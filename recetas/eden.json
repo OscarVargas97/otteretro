@@ -10,7 +10,7 @@
   "portable": [{ "type": "folder", "path": "user" }],
   "config": ["user/config"],
   "content": ["user/nand"],
-  "contentPaths": [{ "file": "user/config/qt-config.ini", "format": "ini", "key": "external_content_dirs*" }],
+  "contentPaths": [{ "file": "user/config/qt-config.ini", "format": "ini", "key": "Paths\\external_content_dirs*", "section": "UI" }],
   "perGame": {
     "config": "user/config/custom/{titleId}.ini",
     "apply": "file",

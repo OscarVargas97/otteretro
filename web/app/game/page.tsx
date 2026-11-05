@@ -44,7 +44,7 @@ function Game() {
   // La traducción aprobada (Claude, F2.5) o, mientras no la haya, la de IGDB.
   const description = (g.fields.find((f) => f.field === "summary_es") ?? g.fields.find((f) => f.field === "summary"))?.value;
   const stores = g.versions.flatMap((v) => v.stores.map((s) => ({ ...s, platform: v.platform })));
-  const files = g.versions.flatMap((v) => v.files.map((f) => ({ ...f, platform: v.platform })));
+  const files = g.versions.flatMap((v) => v.files.map((f) => ({ ...f, platform: v.platform, versionId: Number(v.id) })));
   const owned = stores.length > 0 || files.length > 0;
 
   return (
@@ -311,7 +311,7 @@ function Versions({ game, compare }: { game: GameDetail; compare: VersionCompare
 }
 
 /** Tus archivos de este juego (#178), con BASE, UPD y DLC, y «Verificar» por hash contra No-Intro o Redump (#179). */
-function Files({ gameId, files }: { gameId: number; files: (GameDetail["versions"][number]["files"][number] & { platform: string })[] }) {
+function Files({ gameId, files }: { gameId: number; files: (GameDetail["versions"][number]["files"][number] & { platform: string; versionId: number })[] }) {
   const t = useTranslations("catalog");
   const locale = useLocale();
   const describe = useDescribeError();
@@ -327,6 +327,12 @@ function Files({ gameId, files }: { gameId: number; files: (GameDetail["versions
   });
   const verify = useMutation({
     mutationFn: () => request<number>("/api/collection/verify", { method: "POST", body: JSON.stringify({ gameId }) }),
+    onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+  // «Preparar en el emulador» (#280): UPD, DLC y lo que se instala dentro del emulador con el que se juega. Jugar lo hará solo.
+  const versions = [...new Map(files.map((f) => [f.versionId, f.platform])).entries()];
+  const prepare = useMutation({
+    mutationFn: (version: number) => request<number>(`/api/versions/${version}/content`, { method: "POST", body: JSON.stringify({}) }),
     onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
   });
   // Quitar del disco (#224): lo marcado va a la papelera. UPD y DLC vienen sin marcar: solo se van si los marcas (P7).
@@ -352,6 +358,11 @@ function Files({ gameId, files }: { gameId: number; files: (GameDetail["versions
         <h2>{t("game.where")}</h2>
         <div className="hero-actions">
           {verifiable && <button className="ot-btn ot-btn-sm" type="button" disabled={verify.isPending || verify.isSuccess} onClick={() => verify.mutate()}>{t("game.verify")}</button>}
+          {versions.map(([version, platform]) => (
+            <button key={version} className="ot-btn ot-btn-sm" type="button" title={t("game.prepareHelp")} disabled={prepare.isPending} onClick={() => prepare.mutate(version)}>
+              {versions.length > 1 ? t("game.prepareFor", { console: consoleName(platform) }) : t("game.prepare")}
+            </button>
+          ))}
           {!marked && <button className="ot-btn ot-btn-sm" type="button" onClick={startRemoving}>{t("game.remove")}</button>}
         </div>
       </div>
@@ -369,6 +380,8 @@ function Files({ gameId, files }: { gameId: number; files: (GameDetail["versions
       {trash.isError && <p className="error small" role="alert">{describe(trash.error)}</p>}
       {verify.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("game.verifyQueued")}</p>}
       {verify.isError && <p className="error small" role="alert">{describe(verify.error)}</p>}
+      {prepare.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("game.prepareQueued")}</p>}
+      {prepare.isError && <p className="error small" role="alert">{describe(prepare.error)}</p>}
       {executable.isError && <p className="error small" role="alert">{describe(executable.error)}</p>}
       <div className="panel table-wrap" style={{ padding: 0 }}>
         <table className="t">

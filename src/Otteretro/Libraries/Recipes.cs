@@ -9,7 +9,8 @@ namespace Otteretro.Libraries;
 public record RecipeVersion(string From, string? Value = null);
 /// <param name="Type">file, folder, junction o rename (<paramref name="From"/> pasa a <paramref name="Path"/>).</param>
 public record PortableStep(string Type, string Path, string? Link = null, string? System = null, string? From = null);
-public record GamePath(string File, string Format, string Key);
+/// <param name="Section">En ini: dónde se agregan las carpetas de <see cref="Recipe.ContentPaths"/>.</param>
+public record GamePath(string File, string Format, string Key, string? Section = null);
 public record RecipeSetting(string File, string Format, string Key, string Value, string? Section = null);
 public record RecipeDownload(string Version, string System, string Url, string Hash);
 /// <summary>Dónde publica sus versiones (decisión 294). El mismo que trae #278 en ToolUpdates.cs: al fusionar las dos ramas queda uno.</summary>
@@ -321,7 +322,7 @@ public static class Recipes
         return count == 0 ? (text, 0) : (root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), count);
     }
 
-    static void Set(string file, RecipeSetting s)
+    internal static void Set(string file, RecipeSetting s)
     {
         if (s.Format == "json")
         {
@@ -349,7 +350,7 @@ public static class Recipes
         WriteAtomic(file, string.Join(Environment.NewLine, lines) + Environment.NewLine);
     }
 
-    static void WriteAtomic(string file, string text)
+    internal static void WriteAtomic(string file, string text)
     {
         File.WriteAllText(file + ".tmp", text);
         File.Move(file + ".tmp", file, overwrite: true);
