@@ -117,7 +117,14 @@ public static class Profiles
     public static string StoreOf(Database db, long id) => Path.Combine(Root(db), id.ToString());
 
     /// <param name="Folder">Una carpeta (se enlaza); si no, un archivo (se copia).</param>
-    record Item(string Path, bool Folder);
+    /// <param name="Mods">Es de los mods del juego: con algo adentro, se aplica <see cref="RecipePerGame.ModsEnable"/>.</param>
+    record Item(string Path, bool Folder, bool Mods = false);
+
+    /// <summary>Lo que <see cref="RecipePerGame.ModsEnable"/> cambió en la configuración del emulador y cómo estaba antes.</summary>
+    record Changed(string File, RecipeSetting Setting, string? Previous);
+
+    /// <summary>En la carpeta de un perfil activo: los valores que cambió al cargarse, para dejarlos como estaban al quitarlo.</summary>
+    const string ChangedFile = "_valores-cambiados.json";
 
     /// <param name="Linked">Un perfil: sus carpetas se enlazan. Sin perfil, lo de la persona vuelve a ser una carpeta real.</param>
     record State(string Emulator, string? Version, string Store, bool Linked, long? ProfileId);
@@ -159,7 +166,7 @@ public static class Profiles
         var raw = new List<Item>();
         if (pg is { Apply: "file", Config: { } config }) raw.Add(new(config, false));
         raw.AddRange(pg.Files.Select(f => new Item(f, false)));
-        if (pg.ModsArg is null) raw.AddRange(pg.Mods.Select(m => new Item(m, !Path.HasExtension(m))));
+        if (pg.ModsArg is null) raw.AddRange(pg.Mods.Select(m => new Item(m, !Path.HasExtension(m), true)));
         var items = raw.Select(i => Expand(i.Path, recipe, key) is { } p ? i with { Path = p } : null).ToList();
         return items.Any(i => i is null) ? null : items.Select(i => i!).ToList();
     }
@@ -276,6 +283,12 @@ public static class Profiles
                 File.Delete(inside);
             }
         }
+        // Los valores que cambió al cargarse vuelven a como estaban (decisión 286: volver restaura todo).
+        var changed = Path.Combine(state.Store, ChangedFile);
+        if (!File.Exists(changed)) return;
+        foreach (var c in System.Text.Json.JsonSerializer.Deserialize<List<Changed>>(File.ReadAllText(changed))!)
+            Recipes.Restore(Path.Combine(install, c.File), c.Setting, c.Previous);
+        File.Delete(changed);
     }
 
     /// <summary>Pone en el emulador lo del juego: copia sus archivos y enlaza sus carpetas (sin perfil, las devuelve como carpetas).</summary>
@@ -300,14 +313,17 @@ public static class Profiles
             {
                 CopyFile(kept, inside);
                 if (!state.Linked) File.Delete(kept);
-                mods |= state.Linked && recipe?.PerGame?.Mods.Contains(item.Path) == true;
+                mods |= state.Linked && item.Mods;
             }
         }
-        // Con mods, los valores que los activan (Dolphin: HiresTextures). ponytail: no se apagan al quitar el perfil; solo permiten
-        // que se carguen los mods que haya, y un juego sin mods no cambia.
-        if (mods && recipe?.PerGame is { } pg)
-            foreach (var s in pg.ModsEnable)
-                if (Expand(s.File, recipe, key) is { } file) Recipes.Set(Path.Combine(install, file), s);
+        // Con mods, los valores que los activan (Dolphin: HiresTextures), guardando antes cómo estaban: al quitar el perfil vuelven.
+        if (!mods || recipe?.PerGame is not { ModsEnable.Count: > 0 } pg) return;
+        var changed = new List<Changed>();
+        foreach (var s in pg.ModsEnable)
+            if (Expand(s.File, recipe, key) is { } file)
+                changed.Add(new(file, s, Recipes.Get(Path.Combine(install, file), s)));
+        File.WriteAllText(Path.Combine(state.Store, ChangedFile), System.Text.Json.JsonSerializer.Serialize(changed));
+        foreach (var c in changed) Recipes.Set(Path.Combine(install, c.File), c.Setting);
     }
 
     /// <summary>Lo que había en <paramref name="path"/> (si hay algo) pasa a los respaldos, con la fecha.</summary>
@@ -392,6 +408,7 @@ public static class Profiles
         {
             if (c.ExecuteScalar<bool>("SELECT active FROM profile WHERE id = @Id", source)) Capture(db, c, source);
             if (Directory.Exists(StoreOf(db, source.Id))) CopyTree(StoreOf(db, source.Id), store);
+            File.Delete(Path.Combine(store, ChangedFile)); // es del original mientras está cargado, no de la copia
         }
         else if (Recipes.Find(emulator) is { PerGame: { Full: true, Config: { } config } } recipe
             && Expand(config, recipe, GameKey(c, version, null)) is { } relative && InstallOf(db, emulator, null) is { } install

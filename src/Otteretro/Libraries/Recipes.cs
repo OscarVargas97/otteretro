@@ -321,7 +321,7 @@ public static class Recipes
         return count == 0 ? (text, 0) : (root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), count);
     }
 
-    internal static void Set(string file, RecipeSetting s)
+    public static void Set(string file, RecipeSetting s)
     {
         if (s.Format == "json")
         {
@@ -346,6 +346,48 @@ public static class Recipes
             else lines.Insert(end, $"{s.Key} = {s.Value}");
         }
         Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+        WriteAtomic(file, string.Join(Environment.NewLine, lines) + Environment.NewLine);
+    }
+
+    /// <summary>
+    /// El valor que tiene ahora la clave de <paramref name="s"/> en su archivo (en json, el valor tal cual, con su tipo); null si no
+    /// está. Con <see cref="Restore"/> se deja como estaba después de un <see cref="Set"/>.
+    /// </summary>
+    public static string? Get(string file, RecipeSetting s)
+    {
+        if (!File.Exists(file)) return null;
+        if (s.Format == "json") return JsonNode.Parse(File.ReadAllText(file)) is JsonObject o && o[s.Key] is { } v ? v.ToJsonString() : null;
+        var lines = File.ReadAllLines(file);
+        var start = Array.FindIndex(lines, l => l.Trim().Equals($"[{s.Section}]", StringComparison.OrdinalIgnoreCase));
+        if (start < 0) return null;
+        for (var i = start + 1; i < lines.Length && !lines[i].TrimStart().StartsWith('['); i++)
+            if (Regex.Match(lines[i], "^" + Regex.Escape(s.Key) + @"\s*=\s*(.*)$") is { Success: true } m) return m.Groups[1].Value.TrimEnd();
+        return null;
+    }
+
+    /// <summary>Vuelve la clave al valor que dio <see cref="Get"/>: lo pone, o la quita si no estaba.</summary>
+    public static void Restore(string file, RecipeSetting s, string? previous)
+    {
+        if (previous is not null)
+        {
+            if (s.Format != "json") { Set(file, s with { Value = previous }); return; }
+        }
+        if (!File.Exists(file)) return;
+        if (s.Format == "json")
+        {
+            if (JsonNode.Parse(File.ReadAllText(file)) is not JsonObject root) return;
+            if (previous is null) root.Remove(s.Key);
+            else root[s.Key] = JsonNode.Parse(previous);
+            WriteAtomic(file, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+            return;
+        }
+        var lines = File.ReadAllLines(file).ToList();
+        var start = lines.FindIndex(l => l.Trim().Equals($"[{s.Section}]", StringComparison.OrdinalIgnoreCase));
+        if (start < 0) return;
+        var end = lines.FindIndex(start + 1, l => l.TrimStart().StartsWith('['));
+        var at = lines.FindIndex(start + 1, (end < 0 ? lines.Count : end) - start - 1, l => Regex.IsMatch(l, "^" + Regex.Escape(s.Key) + @"\s*="));
+        if (at < 0) return;
+        lines.RemoveAt(at);
         WriteAtomic(file, string.Join(Environment.NewLine, lines) + Environment.NewLine);
     }
 
