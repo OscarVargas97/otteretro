@@ -223,6 +223,17 @@ public static class DiskEndpoints
         api.MapGet("/tools", Results<Ok<List<ToolInfo>>, Conflict<ApiError>> (AppSession s) =>
             CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Recipes.Installed(Disk.ToolRoots(db))) : CatalogEndpoints.NoData());
 
+        // Emuladores y ports instalados con su origen, versión y hash (#268), e instalar uno nuevo en una tarea.
+        api.MapGet("/emulators", Results<Ok<List<EmulatorInstall>>, Conflict<ApiError>> (AppSession s) =>
+            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Installs.List(db)) : CatalogEndpoints.NoData());
+
+        api.MapPost("/emulators/install", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (InstallJob request, AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            var (task, error) = Installs.Enqueue(db, request);
+            return error is null ? TypedResults.Ok(task!.Value) : error.Code is "install.exists" or "library.notConnected" ? TypedResults.Conflict(error) : TypedResults.BadRequest(error);
+        });
+
         // Mover un emulador, port o complemento a otra ubicación de su tipo, o de vuelta a Herramientas (#198), en una tarea.
         api.MapPost("/tools/move", Results<Ok<long>, BadRequest<ApiError>, NotFound, Conflict<ApiError>> (MoveToolRequest request, AppSession s) =>
         {

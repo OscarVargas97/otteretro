@@ -4167,6 +4167,107 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/emulators": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EmulatorInstall"][];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/emulators/install": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["InstallJob"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": number | string;
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/tools/move": {
         parameters: {
             query?: never;
@@ -4825,6 +4926,19 @@ export interface components {
             folder: string;
             suggested: boolean;
         };
+        EmulatorInstall: {
+            emulatorId: string;
+            name: string;
+            kind: string;
+            version: string;
+            origin: string;
+            url: null | string;
+            file: null | string;
+            sha256: null | string;
+            backupLibraryId: null | string;
+            installedAt: string;
+            path: null | string;
+        };
         ExecutableRequest: {
             path: string;
         };
@@ -4916,6 +5030,18 @@ export interface components {
         ImportRequest: {
             path: string;
             skip?: null | string[];
+        };
+        InstallJob: {
+            emulator: string;
+            version?: null | string;
+            url?: null | string;
+            path?: null | string;
+            /** @default false */
+            adopt: boolean;
+            name?: null | string;
+            folder?: null | string;
+            /** @default emulator */
+            kind: string;
         };
         LanguageRequest: {
             language: string;
