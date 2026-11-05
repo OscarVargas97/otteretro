@@ -64,3 +64,4 @@ export type DiskItem = Schemas["DiskItem"];
 export type MigrationPlan = Schemas["MigrationPlan"];
 export type VersionProfiles = Schemas["VersionProfiles"];
 export type ProfileSwitch = Schemas["ProfileSwitch"];
+export type ProfileSettings = Schemas["ProfileSettings"];

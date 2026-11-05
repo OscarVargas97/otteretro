@@ -841,6 +841,36 @@ test("la ficha: perfiles de cada versión, crear, activar y volver al por defect
   await expect(page.getByText(es.profiles.noneActive.replace("{name}", "MiEmu").replace("{emulator}", "MiEmu"))).toBeVisible();
 });
 
+test("la ficha: ajustes del perfil por defecto de Eden según su receta y abrir el emulador (#276)", async () => {
+  // Eden registrado sin instalar: muestra los ajustes de su receta, los guarda en el perfil y avisa que no hay versión instalada.
+  const db = await openDb();
+  db.exec(`
+    INSERT OR IGNORE INTO emulator (id, kind, name) VALUES ('eden', 'emulator', 'Eden');
+    INSERT INTO profile (emulator_id, name, created_at) SELECT 'eden', 'Eden', '' WHERE NOT EXISTS (SELECT 1 FROM profile WHERE emulator_id = 'eden' AND game_version_id IS NULL);
+    INSERT OR IGNORE INTO console_emulator (console_id, emulator_id, is_base) VALUES ('switch', 'eden', 0);
+  `);
+  db.close();
+  await page.goto(`${base()}/game/?id=11`);
+  await page.getByText(es.profiles.defaults).click();
+  await page.getByRole("button", { name: `${es.profiles.settings.open}: Eden` }).click();
+  const form = page.getByRole("form", { name: es.profiles.settings.title.replace("{name}", "Eden") });
+  await expect(form.getByText(es.profiles.settings.notInstalled)).toBeVisible();
+  await form.getByLabel(es.profiles.settings.names.resolution).fill("3");
+  await form.getByLabel(es.profiles.settings.names.speed).fill("200");
+  await form.getByRole("button", { name: es.profiles.settings.save }).click();
+  await expect(form.getByText(es.profiles.settings.saved)).toBeVisible();
+  await expectNoRawKeys();
+  await expectTextFits();
+  await page.screenshot({ path: "e2e-results/13-ajustes-perfil-es.png", fullPage: true });
+  await form.getByRole("button", { name: es.profiles.settings.openEmulator }).click();
+  await expect(form.getByRole("alert")).toHaveText(es.errors.profile.notInstalled.replace("{emulator}", "eden"));
+
+  await page.reload(); // lo guardado vuelve
+  await page.getByText(es.profiles.defaults).click();
+  await page.getByRole("button", { name: `${es.profiles.settings.open}: Eden` }).click();
+  await expect(page.getByLabel(es.profiles.settings.names.resolution)).toHaveValue("3");
+});
+
 test("panel de tareas: terminadas por hora de término, registro al hacer clic y limpiar", async () => {
   const db = await openDb();
   const now = new Date();

@@ -606,6 +606,17 @@
       },
       "badLicense": "That license does not look like a zRIF: copy the whole text, without spaces.",
       "notVita": "The zRIF license is only for Vita games."
+    },
+    "settings": {
+      "noRecipe": "This emulator has no recipe: change its settings in the emulator.",
+      "badVersion": "That emulator version isn't installed.",
+      "versionWhileActive": "To change this profile's version, activate another one (or “no profile”) first: its files are loaded in the current version.",
+      "badValue": "A value isn't valid: no line breaks and up to 200 characters.",
+      "noGameConfig": "This emulator has no per-game settings the app knows how to write.",
+      "notActive": "Activate this profile to open the emulator with its settings.",
+      "openFailed": "Couldn't open the emulator: {detail}",
+      "opened": "The emulator was opened.",
+      "openedPlain": "The emulator opened without the game (the ROM or its disk is missing, or the emulator can't open it that way): find the game in its list."
     }
   },
   "credentials": {
@@ -1416,6 +1427,37 @@
       "unknown": "Saves can't be carried over to this emulator: there's no known way. They're still in the previous emulator.",
       "chooseUser": "This emulator has several console users: which one should the saves go to?",
       "chooseUserConfirm": "Carry them and activate"
+    },
+    "settings": {
+      "open": "Settings",
+      "close": "Close settings",
+      "title": "Settings of “{name}”",
+      "version": "Emulator version",
+      "latest": "The newest ({version})",
+      "undescribed": "The recipe doesn't describe version {version} yet: the keys of the closest earlier one are used, and they may have changed.",
+      "notInstalled": "No version installed: the values are saved and written once you install one and save again.",
+      "current": "In the emulator: {value}",
+      "emulatorValue": "The emulator's",
+      "kept": "Kept for another version: {names}",
+      "input": "Controllers",
+      "inputNone": "Not chosen",
+      "inputArg": "Controller profile at launch",
+      "noOptions": "This emulator's recipe doesn't describe its settings yet.",
+      "save": "Save settings",
+      "saved": "Settings saved.",
+      "openEmulator": "Open the emulator's settings",
+      "openHint": "Everything else is set in the emulator; for a game, with its profile active.",
+      "names": {
+        "resolution": "Resolution",
+        "renderer": "Renderer",
+        "aspectRatio": "Aspect ratio",
+        "filter": "Filter",
+        "vsync": "Vertical sync",
+        "speed": "Speed",
+        "anisotropy": "Anisotropic filtering",
+        "fps": "FPS limit",
+        "antialiasing": "Anti-aliasing"
+      }
     }
   }
 }

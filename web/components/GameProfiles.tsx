@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useConsoleName } from "@/components/Catalog";
+import { ProfileSettingsForm } from "@/components/ProfileSettings";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
 import type { ProfileSwitch, VersionProfiles } from "@/lib/types";
@@ -35,6 +36,14 @@ function VersionPanel({ gameId, version: v }: { gameId: number; version: Version
   // Qué pasó con las partidas al cambiar de emulador (#270). Con varios usuarios de consola en Eden o Citron, se elige a cuál van.
   const saves = activate.data?.saves;
   const [user, setUser] = useState("");
+  // El perfil cuyos ajustes se están viendo (#276), con su nombre.
+  const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
+  const settingsButton = (id: string, name: string) => (
+    <button className="ot-btn ot-btn-sm" type="button" aria-expanded={editing?.id === id} aria-label={t("settings.open") + ": " + name}
+      onClick={() => setEditing(editing?.id === id ? null : { id, name })}>
+      {editing?.id === id ? t("settings.close") : t("settings.open")}
+    </button>
+  );
   const save = useMutation({
     mutationFn: ({ id, name, sourceId }: { id: string; name: string; sourceId: string | null }) =>
       request<void>(`/api/profiles/${id}`, { method: "PUT", body: JSON.stringify({ name, sourceId: sourceId === null ? null : Number(sourceId) }) }),
@@ -88,9 +97,10 @@ function VersionPanel({ gameId, version: v }: { gameId: number; version: Version
                         </select>
                       ) : <span className="small muted">{t("baseRomDefault")}</span>}
                     </td>
-                    <td>
+                    <td className="sentence">
                       {p.active ? <span className="ot-badge ot-badge-have">{t("isActive")}</span>
                         : <button className="ot-btn ot-btn-sm" type="button" disabled={activate.isPending} onClick={() => activate.mutate({ profileId: String(p.id) })}>{t("activate")}</button>}
+                      {settingsButton(String(p.id), p.name)}
                     </td>
                   </tr>
                 ))}
@@ -103,6 +113,7 @@ function VersionPanel({ gameId, version: v }: { gameId: number; version: Version
               </tbody>
             </table>
           </div>
+          {editing && <ProfileSettingsForm key={editing.id} profileId={editing.id} name={editing.name} />}
           <CreateProfile version={v} onCreated={refresh} />
           <details className="fold-line">
             <summary className="small muted">{t("defaults")}</summary>
@@ -111,6 +122,7 @@ function VersionPanel({ gameId, version: v }: { gameId: number; version: Version
                 <span>{e.name}{e.base ? ` · ${t("base")}` : ""}</span>
                 <NameField label={t("rename", { name: e.defaultName })} value={e.defaultName}
                   onSave={(name) => save.mutate({ id: String(e.defaultProfileId), name, sourceId: null })} />
+                {settingsButton(String(e.defaultProfileId), e.defaultName)}
               </div>
             ))}
           </details>
