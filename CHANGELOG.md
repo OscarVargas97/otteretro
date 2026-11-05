@@ -4,7 +4,10 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.5.0 · Herramientas · en desarrollo
 
-`docs/272-investigacion-emuladores`, `docs/283-ports-en-catalogo`, `docs/encuesta-19-herramientas` · F5 (#263, encuesta 19, #264): emuladores, ports y herramientas instalados y al día, con perfiles por juego · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+`feat/267-perfiles-modelo`, `docs/283-ports-en-catalogo`, `docs/encuesta-19-herramientas` y `docs/272-investigacion-emuladores` · F5 (#263, encuesta 19, #264): emuladores, ports y herramientas instalados y al día, con perfiles por juego · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+
+### Nuevo
+- **Emuladores compartidos y perfiles por juego, en la base** (#267): Otteretro ya guarda cada emulador una sola vez con todas sus versiones instaladas, cuál es el base de cada consola, un perfil por defecto por emulador y los perfiles de cada juego con uno activo. Un juego sin perfil propio usa el por defecto del emulador base de su consola, y cada perfil puede elegir una ROM modificada (una traducción o un hack) en vez de la base. Las pantallas para usarlo llegan con las próximas tareas.
 
 ### Cambios
 - **Investigación de emuladores** (#272): de dónde se baja cada emulador de la F5, cómo queda portable, dónde guarda la configuración y los mods de cada juego, sus partidas y su licencia, y qué se puede hacer con perfiles por juego sobre una instalación compartida. Incluye el estado de la emulación de PS5 y de los emuladores de Switch tras los avisos de Nintendo de 2026.
