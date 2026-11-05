@@ -175,8 +175,7 @@ public static class DiskTasks
             var recipe = Recipes.Identify(install);
             var version = Recipes.VersionOf(recipe, install);
             var group = Path.GetFileName(Path.GetDirectoryName(install)!);
-            var console = Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(install)!)!);
-            var target = recipe is not null ? Recipes.Target(tools, recipe, version) : Path.Combine(tools, group, console, Path.GetFileName(install), version);
+            var target = recipe is not null ? Recipes.Target(tools, recipe, version) : Path.Combine(tools, group, Path.GetFileName(install), version);
             var (from, to) = (i * 60 / installs.Count, (i + 1) * 60 / installs.Count);
             MoveFolder(install, target, (done, total) => run.Report(Percent(done, total, from, to), ApiError.Of("library.copying", ("path", target))), ct);
             run.Log(ApiError.Of("library.log.tool", ("name", Path.GetFileName(install)), ("path", target)));

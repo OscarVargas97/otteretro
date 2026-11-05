@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:59654/"
+      "url": "http://127.0.0.1:58332/"
     }
   ],
   "paths": {
@@ -3692,6 +3692,136 @@
         }
       }
     },
+    "/api/emulators/reinstall": {
+      "post": {
+        "tags": [
+          "Otteretro"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReinstallRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "pattern": "^-?(?:0|[1-9]\\d*)$",
+                  "type": [
+                    "integer",
+                    "string"
+                  ],
+                  "format": "int64"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/library/backup": {
+      "get": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryBackup"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Otteretro"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BackupDiskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryBackup"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/tools/move": {
       "post": {
         "tags": [
@@ -4120,6 +4250,20 @@
           },
           "menuCollapsed": {
             "type": "boolean"
+          }
+        }
+      },
+      "BackupDiskRequest": {
+        "required": [
+          "diskId"
+        ],
+        "type": "object",
+        "properties": {
+          "diskId": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -5625,15 +5769,13 @@
               "string"
             ]
           },
-          "folder": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
           "kind": {
             "type": "string",
             "default": "emulator"
+          },
+          "reinstall": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -5645,6 +5787,29 @@
         "properties": {
           "language": {
             "type": "string"
+          }
+        }
+      },
+      "LibraryBackup": {
+        "required": [
+          "diskId",
+          "pending"
+        ],
+        "type": "object",
+        "properties": {
+          "diskId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pending": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -6137,6 +6302,21 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "ReinstallRequest": {
+        "required": [
+          "emulator",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "emulator": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
           }
         }
       },

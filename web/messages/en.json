@@ -561,9 +561,13 @@
       "extracting": "Installing to {path}",
       "backup": "Copying to your second disk",
       "log": {
-        "noBackup": "No other disk is connected: the library has only one copy.",
-        "done": "{name} {version} installed to {path}"
-      }
+        "done": "{name} {version} installed to {path}",
+        "noBackupDisk": "You haven't picked a disk for the library's second copy (Settings › Storage): it has only one copy.",
+        "backupPending": "The second copy's disk isn't connected: it's copied as soon as you connect it."
+      },
+      "notInstalled": "That version isn't registered: install it first.",
+      "notInLibrary": "Version {version} isn't in your library: it can't be reinstalled without downloading it.",
+      "backupIsDefault": "The second copy has to go on another disk, not on the ★."
     }
   },
   "credentials": {
@@ -648,7 +652,8 @@
         "scan": "Scan your drives",
         "verify": "Verify files by hash",
         "import": "Import a folder",
-        "convert": "Convert to the light format"
+        "convert": "Convert to the light format",
+        "backup": "Copy the library to its second disk"
       },
       "disk": {
         "migrate": "Move to the standard drive layout"
