@@ -48,7 +48,7 @@ public static class Content
             .OrderBy(r => r.BaseFor.Contains(console) ? 0 : 1).FirstOrDefault()?.Id;
         if (emulator is null || Recipes.Find(emulator) is not { } recipe) return (null, ApiError.Of("content.noEmulator"));
         var wanted = profile?.EmulatorId == emulator ? profile.EmulatorVersion : null;
-        if (installs.LastOrDefault(i => i.EmulatorId == emulator && (wanted is null || i.Version == wanted)) is not { } install)
+        if (installs.LastOrDefault(i => i.EmulatorId == emulator && (wanted is null || i.Version == wanted || i.Kind == "port")) is not { } install)
             return (null, ApiError.Of("content.notInstalled", ("name", recipe.Name)));
         return (new(recipe, install.Path!, install.Version, console), null);
     }

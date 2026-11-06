@@ -574,7 +574,8 @@
       "notInstalled": "Esa versión no está registrada: instálala primero.",
       "notInLibrary": "La versión {version} no está en tu librería: no se puede reinstalar sin bajarla.",
       "backupIsDefault": "La segunda copia tiene que ir en otro disco, no en el ★.",
-      "sourceFailed": "No se pudo leer las versiones de {name}: {detail}"
+      "sourceFailed": "No se pudo leer las versiones de {name}: {detail}",
+      "manyVersions": "{name} todavía tiene varias versiones en su carpeta: se juntan en una al abrir la app y después se puede actualizar."
     },
     "profile": {
       "notFound": "Ese perfil no existe o no es de esta versión del juego.",
@@ -1251,12 +1252,14 @@
       "games": "La usan",
       "gamesUnknown": "Ninguno de tus juegos todavía.",
       "besideOld": "La nueva se instala al lado de la que tienes: la vieja no se toca y puedes volver a ella.",
+      "replaces": "Un port tiene una sola versión: la nueva reemplaza a la que tienes, en la misma carpeta. Tus partidas, mods y configuración se quedan (antes se respaldan) y el archivo de la vieja queda en tu librería.",
       "update": "Actualizar",
       "skip": "Omitir esta versión",
       "badge": "Versión nueva",
       "gamesCount": "{count, plural, =0 {Ninguno de tus juegos la usa} one {La usa # juego} other {La usan # juegos}}",
       "more": "Más acciones de {name}",
       "gamesMore": "{list} y {count, plural, one {# más} other {# más}}",
+      "queuedReplace": "Actualizando en su carpeta: míralo en el panel de tareas.",
       "queued": "Instalando al lado de la que tienes: míralo en el panel de tareas."
     },
     "install": {
@@ -1292,6 +1295,7 @@
     "library": {
       "title": "Tu librería",
       "help": "Lo que instalaste, con el archivo original guardado en Libreria del disco ★ y su segunda copia en el disco que elegiste en Ajustes › Almacenamiento.",
+      "portHelp": "Un port tiene una sola versión instalada. De las anteriores queda su archivo: «Reinstalar» la deja como la instalada, con tus partidas.",
       "origin": {
         "recipe": "desde su receta",
         "url": "desde una URL",
@@ -1300,6 +1304,8 @@
       },
       "twoCopies": "En dos discos",
       "oneCopy": "Una sola copia",
+      "archived": "Solo el archivo",
+      "installed": "Instalada",
       "missing": "Sin su carpeta",
       "reinstall": "Reinstalar",
       "queued": "Quedó en el panel de tareas: vuelve desde tu librería, sin bajar nada."

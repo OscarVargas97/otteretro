@@ -106,6 +106,9 @@ public static class Recipes
 
     static readonly string[] Kinds = ["emulator", "port", "complement", "tool"];
 
+    /// <summary>En `Ports\<Port>` (decisión 324): la versión instalada, que ya no va en la ruta. Nombre de la persona: en español.</summary>
+    public const string VersionFile = "otteretro-version.txt";
+
     static List<Recipe>? all;
 
     public static IReadOnlyList<Recipe> All => all ??= Load();
@@ -156,7 +159,7 @@ public static class Recipes
     }
 
     /// <summary>
-    /// Dónde va (§5.1): `Emuladores\<Emulador>\<versión>` y `Ports\<Port>\<versión>`, una carpeta aunque sirva a varias consolas
+    /// Dónde va (§5.1): `Emuladores\<Emulador>\<versión>` y, en lo de antes, `Ports\<Port>\<versión>`, una carpeta aunque sirva a varias consolas
     /// (decisión 302); una herramienta, `Herramientas\<Nombre>\<versión>` (#274); `Complementos\<Emulador o port>\<Complemento>\<versión>`.
     /// </summary>
     public static string Target(string tools, Recipe recipe, string version) => recipe.Kind == "complement"
@@ -191,6 +194,12 @@ public static class Recipes
             foreach (var folder in Directory.EnumerateDirectories(root))
             {
                 var named = kind == "complement" ? null : All.FirstOrDefault(r => r.Kind == kind && r.Name == Path.GetFileName(folder));
+                // Un port con una sola versión, en `Ports\<Port>` (decisión 324); sin el archivo, el formato de antes (#316 lo junta).
+                if (kind == "port" && File.Exists(Path.Combine(folder, VersionFile)))
+                {
+                    list.Add(new(kind, named?.Folder ?? "", Path.GetFileName(folder), File.ReadAllText(Path.Combine(folder, VersionFile)).Trim(), folder, named?.Id, named?.Game, locationId));
+                    continue;
+                }
                 foreach (var name in Directory.EnumerateDirectories(folder))
                 {
                     // `Emuladores\<Emulador>\<versión>` (decisión 302): el segundo nivel ya es la versión, con sus archivos. Lo de antes,

@@ -297,7 +297,8 @@ function InstallPanel({ kind }: { kind: Installable }) {
 
 /**
  * La librería (#268, decisiones 293 y 304): lo instalado por emulador, cada versión con su origen y si ya tiene la segunda copia.
- * Una versión cuya carpeta ya no está vuelve con «Reinstalar», desde el archivo guardado y sin bajar nada.
+ * Una versión cuya carpeta ya no está vuelve con «Reinstalar», desde el archivo guardado y sin bajar nada. Un port tiene una sola
+ * instalada (decisión 325): las anteriores quedan como su archivo, y «Reinstalar» la deja en su lugar.
  */
 function Library({ kind }: { kind: Installable }) {
   const t = useTranslations("tools.library");
@@ -317,6 +318,7 @@ function Library({ kind }: { kind: Installable }) {
     <section className="panel" style={{ display: "grid", gap: 8 }} aria-labelledby="library-title">
       <h3 id="library-title" style={{ margin: 0 }}>{t("title")}</h3>
       <p className="small muted" style={{ margin: 0 }}>{t("help")}</p>
+      {kind === "port" && <p className="small muted" style={{ margin: 0 }}>{t("portHelp")}</p>}
       {names.map((name) => (
         <div key={name} style={{ display: "grid", gap: 4 }}>
           <b>{name}</b>
@@ -328,7 +330,8 @@ function Library({ kind }: { kind: Installable }) {
               </span>
               <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 <span className={`ot-badge${i.backupLibraryId ? "" : " ot-badge-review"}`}>{t(i.backupLibraryId ? "twoCopies" : "oneCopy")}</span>
-                {!i.path && <span className="ot-badge ot-badge-danger">{t("missing")}</span>}
+                {kind === "port" ? <span className={`ot-badge${i.path ? " ot-badge-have" : ""}`}>{t(i.path ? "installed" : "archived")}</span>
+                  : !i.path && <span className="ot-badge ot-badge-danger">{t("missing")}</span>}
                 {!i.path && (
                   <button className="ot-btn ot-btn-sm" type="button" disabled={reinstall.isPending} onClick={() => reinstall.mutate(i)}>{t("reinstall")}</button>
                 )}

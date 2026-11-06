@@ -30,7 +30,7 @@ export function ToolUpdates({ kind }: { kind: string }) {
     mutationFn: (u: ToolUpdate) => request<void>(`/api/tools/updates/${encodeURIComponent(u.recipeId)}/${u.channel}/skip`, { method: "POST" }),
     onSettled: () => { cache.invalidateQueries({ queryKey: ["toolUpdates"] }); cache.invalidateQueries({ queryKey: ["notices"] }); },
   });
-  // «Actualizar»: la versión del aviso, desde su archivo, al lado de la vieja y en una tarea (#296).
+  // «Actualizar»: la versión del aviso, desde su archivo y en una tarea (#296): al lado de la vieja, o en su lugar si es un port (decisión 325).
   const [queued, setQueued] = useState<Set<string>>(new Set());
   const install = useMutation({
     mutationFn: (u: ToolUpdate) => request<number>("/api/emulators/install", { method: "POST", body: JSON.stringify({ emulator: u.recipeId, version: u.version, url: u.download }) }),
@@ -82,10 +82,10 @@ export function ToolUpdates({ kind }: { kind: string }) {
                     : u.games.length <= GAMES ? format.list(u.games) : t("gamesMore", { list: u.games.slice(0, GAMES).join(", "), count: u.games.length - GAMES })}</dd>
                 </dl>
                 {u.notes && <p style={{ whiteSpace: "pre-wrap", margin: 0 }}>{u.notes}</p>}
-                <p className="muted" style={{ margin: 0 }}>{t("besideOld")}</p>
+                <p className="muted" style={{ margin: 0 }}>{t(kind === "port" ? "replaces" : "besideOld")}</p>
               </div>
             )}
-            {queued.has(id(u)) && <p className="small muted" role="status" style={{ margin: 0 }}>{t("queued")}</p>}
+            {queued.has(id(u)) && <p className="small muted" role="status" style={{ margin: 0 }}>{t(kind === "port" ? "queuedReplace" : "queued")}</p>}
             {install.isError && install.variables === u && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(install.error)}</p>}
           </article>
         );

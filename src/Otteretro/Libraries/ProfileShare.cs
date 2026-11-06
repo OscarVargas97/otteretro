@@ -72,7 +72,8 @@ public static class ProfileShare
         if (Path.Exists(path)) return ApiError.Of("profile.share.exists", ("path", path));
         using var c = db.Open();
         if (Profiles.Get(c, id) is not { GameVersionId: { } version } p) return ApiError.Of("profile.notFound");
-        var install = Installs.List(db).LastOrDefault(i => i.EmulatorId == p.EmulatorId && (p.EmulatorVersion is null || i.Version == p.EmulatorVersion));
+        // Un port: la versión instalada, como al jugar (decisión 326).
+        var install = Installs.List(db).LastOrDefault(i => i.EmulatorId == p.EmulatorId && (i.Kind == "port" ? i.Path is not null : p.EmulatorVersion is null || i.Version == p.EmulatorVersion));
         if (Disk.DefaultDisk(db) is not { Connected: true } home) return ApiError.Of("library.notConnected");
         var original = install is { File: { } file } ? Path.Combine(Installs.ShelfPath(home.Path, install.Kind, install.EmulatorId, install.Version), file) : null;
         if (install is null || original is null || !File.Exists(original)) return ApiError.Of("profile.share.notInLibrary", ("emulator", install?.Name ?? p.EmulatorId));

@@ -84,7 +84,7 @@ public class PortsTests
         }
         finally { Installs.Handler = null; }
 
-        Assert.Equal("binario", File.ReadAllText(f.Tmp[@"E\Ports\Ship\1.4.2\ship-1.4.2.exe"]));
+        Assert.Equal("binario", File.ReadAllText(f.Tmp[@"E\Ports\Ship\ship-1.4.2.exe"]));
         Assert.Equal(["1.4.2"], Ports.OfGame(f.Db, 11).Single(p => p.Id == 2).Installed);
         // Su juego tiene perfil con el port, como con cualquier emulador; no al 100 %: no se activa. Repetir no lo duplica.
         Ports.AddProfiles(f.Db, 2, "port-2", "Ship");
