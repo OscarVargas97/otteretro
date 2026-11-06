@@ -108,6 +108,38 @@ public class InstallsTests
     }
 
     [Fact]
+    public async Task NewVersionKeepsProfilesUntilUsedAndOldOneIsRemovedKeepingItsFile()
+    {
+        await using var f = new Fixture();
+        Disk.Create(f.Db, f.Tmp["E"], "E:");
+        Assert.Equal("done", (await Install(f, new InstallJob("eden", "0.1", Path: Zip(f.Tmp, "v1", "uno"), Name: "Eden"))).Status);
+        Assert.True(Assert.Single(Installs.List(f.Db)).InUse);
+
+        // La nueva se instala al lado y los perfiles se quedan en la que usaban (decisión 332).
+        Assert.Equal("done", (await Install(f, new InstallJob("eden", "0.2", Path: Zip(f.Tmp, "v2", "dos"), Name: "Eden"))).Status);
+        Assert.Equal([("0.1", true), ("0.2", false)], Installs.List(f.Db).Select(i => (i.Version, i.InUse)));
+        using (var c = f.Db.Open())
+            Assert.Equal("0.1", c.ExecuteScalar<string>("SELECT emulator_version FROM profile WHERE emulator_id = 'eden' AND game_version_id IS NULL"));
+        Assert.Equal("install.inUse", (await Installs.RemoveInstall(f.Db, "eden", "0.1", default))?.Code);
+
+        // «Usar esta versión» le pasa los perfiles; la vieja se borra y su archivo queda en la librería, con su configuración respaldada.
+        Assert.Null(Profiles.UseVersion(f.Db, "eden", "0.2"));
+        Assert.Equal([("0.1", false), ("0.2", true)], Installs.List(f.Db).Select(i => (i.Version, i.InUse)));
+        File.WriteAllText(Path.Combine(Directory.CreateDirectory(f.Tmp[@"E\Emuladores\Eden\0.1\user\config"]).FullName, "qt-config.ini"), "mía");
+        Assert.Equal("install.inUse", (await Installs.RemoveInstall(f.Db, "eden", "0.2", default))?.Code);
+        Assert.Null(await Installs.RemoveInstall(f.Db, "eden", "0.1", default));
+        Assert.False(Directory.Exists(f.Tmp[@"E\Emuladores\Eden\0.1"]));
+        Assert.True(File.Exists(f.Tmp[@"E\Libreria\Emuladores\eden\0.1\v1.zip"]));
+        Assert.Equal("mía", File.ReadAllText(Assert.Single(Directory.GetFiles(f.Tmp[@"E\Emuladores\Eden\_respaldos"], "qt-config.ini", SearchOption.AllDirectories))));
+        Assert.Null(Installs.List(f.Db)[0].Path);
+
+        // Reinstalar la vuelve a poner desde la librería, sin pasarle los perfiles.
+        Assert.Equal("done", (await Install(f, new InstallJob("eden", "0.1", Reinstall: true))).Status);
+        Assert.Equal([("0.1", false), ("0.2", true)], Installs.List(f.Db).Select(i => (i.Version, i.InUse)));
+        Assert.Equal("uno", File.ReadAllText(f.Tmp[@"E\Emuladores\Eden\0.1\eden.exe"]));
+    }
+
+    [Fact]
     public void ReadsOneFolderPerEmulatorAndTheOldLayout()
     {
         using var tmp = new TempDir();

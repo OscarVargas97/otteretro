@@ -21,7 +21,12 @@ public record InstallJob(string Emulator, string? Version = null, string? Url = 
 /// <param name="Path">Dónde está instalada; null si su disco no está conectado o la carpeta ya no está (se puede reinstalar).</param>
 /// <param name="BackupLibraryId">El disco con la segunda copia en la librería; null si todavía no hay.</param>
 public record EmulatorInstall(string EmulatorId, string Name, string Kind, string Version, string Origin, string? Url, string? File,
-    string? Sha256, string? BackupLibraryId, string InstalledAt, string? Path);
+    string? Sha256, string? BackupLibraryId, string InstalledAt, string? Path)
+{
+    /// <summary>La versión que usan los perfiles del emulador (decisión 331): la de su perfil por defecto o, sin ella, la más nueva
+    /// instalada. Un port, la instalada.</summary>
+    public bool InUse { get; init; }
+}
 
 /// <param name="DiskId">El disco elegido para la segunda copia de la librería; null si no se eligió.</param>
 /// <param name="Pending">Versiones de la librería que todavía no tienen su copia en ese disco.</param>
@@ -115,12 +120,14 @@ public static class Installs
         return (TaskQueue.Enqueue(db, Kind, JsonSerializer.Serialize(job, Json)), null);
     }
 
-    /// <summary>Lo instalado con su origen, versión y hash, y dónde está.</summary>
+    /// <summary>Lo instalado con su origen, versión y hash, dónde está y cuál está en uso.</summary>
     public static List<EmulatorInstall> List(Database db)
     {
         var onDisk = Recipes.Installed(Disk.ToolRoots(db));
         using var c = db.Open();
-        return c.Query<EmulatorInstall>("""
+        var pinned = c.Query<(string Emulator, string? Version)>("SELECT emulator_id, emulator_version FROM profile WHERE game_version_id IS NULL")
+            .ToDictionary(p => p.Emulator, p => p.Version);
+        var list = c.Query<EmulatorInstall>("""
             SELECT i.emulator_id AS EmulatorId, e.name, e.kind, i.version, i.origin, i.url, i.file, i.sha256, i.backup_library_id AS BackupLibraryId,
                    i.installed_at AS InstalledAt, e.name AS Path
             FROM emulator_install i JOIN emulator e ON e.id = i.emulator_id ORDER BY e.name, i.installed_at
@@ -128,6 +135,47 @@ public static class Installs
         {
             Path = onDisk.FirstOrDefault(t => t.Kind == i.Kind && t.Name == i.Name && t.Version == i.Version)?.Path,
         }).ToList();
+        string? Current(string emulator) =>
+            pinned.GetValueOrDefault(emulator) is { } v && list.Any(i => i.EmulatorId == emulator && i.Version == v && i.Kind != "port") ? v
+            : list.LastOrDefault(i => i.EmulatorId == emulator && i.Path is not null)?.Version;
+        return list.Select(i => i with { InUse = i.Version == Current(i.EmulatorId) }).ToList();
+    }
+
+    /// <summary>La versión en uso de un emulador; null si no tiene ninguna instalada.</summary>
+    public static string? InUse(Database db, string emulator) => List(db).FirstOrDefault(i => i.EmulatorId == emulator && i.InUse)?.Version;
+
+    /// <summary>
+    /// «Borrar la instalación» (decisión 334): borra la carpeta de una versión que no está en uso; su archivo queda en la librería
+    /// (verificado antes) y «Reinstalar» la vuelve a poner. Lo de la persona que esa versión no comparte (su configuración y los
+    /// archivos por juego de la receta) se copia antes, verificado, a `_respaldos\<fecha>-instalacion-borrada-<versión>`.
+    /// </summary>
+    public static async Task<ApiError?> RemoveInstall(Database db, string emulator, string version, CancellationToken ct)
+    {
+        if (List(db).FirstOrDefault(i => i.EmulatorId == emulator && i.Version == version) is not { Path: { } path } install) return ApiError.Of("install.notInstalled");
+        using (var c = db.Open())
+            if (install.InUse || install.Kind == "port"
+                || c.ExecuteScalar<bool>("SELECT count(*) > 0 FROM profile WHERE emulator_id = @emulator AND emulator_version = @version", new { emulator, version }))
+                return ApiError.Of("install.inUse", ("version", version));
+        if (Disk.DefaultDisk(db) is not { Connected: true } home) return ApiError.Of("library.notConnected");
+        var stored = System.IO.Path.Combine(ShelfPath(home.Path, install.Kind, emulator, version), install.File ?? "");
+        if (install.File is null || !File.Exists(stored)) return ApiError.Of("install.notInLibrary", ("version", version));
+        if (await Sha256(stored, ct) != install.Sha256) return ApiError.Of("install.badHash", ("version", version));
+        var mine = Mine(Recipes.Find(emulator));
+        var backup = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(path)!, SnapshotsFolder, $"{DateTime.Now:yyyy-MM-dd-HHmmss}-instalacion-borrada-{version}");
+        try
+        {
+            foreach (var rel in Files(path).Where(rel => mine.Any(m => Under(rel, m)))) CopyVerified(System.IO.Path.Combine(path, rel), System.IO.Path.Combine(backup, rel));
+            Links.DeleteTree(path); // las partidas son enlaces a `_compartido`: se borra el enlace, no lo enlazado
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return ApiError.Of("install.removeFailed", ("detail", e.Message));
+        }
+        catch (TaskException e)
+        {
+            return e.Error;
+        }
+        return null;
     }
 
     public static Task Run(TaskRun run, CancellationToken ct) => Install(run, JsonSerializer.Deserialize<InstallJob>(run.Data!, Json)!, ct);
@@ -228,6 +276,10 @@ public static class Installs
 
             if (!job.Reinstall)
             {
+                // Los perfiles se quedan en la versión que usaban (decisión 332): la nueva no pasa a ser la en uso sola.
+                if (!isPort && InUse(run.Db, job.Emulator) is { } before)
+                    using (var c = run.Db.Open())
+                        c.Execute("UPDATE profile SET emulator_version = @before WHERE emulator_id = @Emulator AND emulator_version IS NULL", new { before, job.Emulator });
                 Profiles.AddEmulator(run.Db, job.Emulator, target.Kind, target.Name);
                 if (job.Port is { } port) Ports.AddProfiles(run.Db, port, job.Emulator, target.Name);
                 using (var c = run.Db.Open())

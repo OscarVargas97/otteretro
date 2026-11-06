@@ -178,6 +178,48 @@ public static class Profiles
     public static string? InstallOf(Database db, string emulator, string? version) =>
         Installs.List(db).LastOrDefault(i => i.EmulatorId == emulator && i.Path is not null && (version is null || i.Version == version || i.Kind == "port"))?.Path;
 
+    /// <summary>
+    /// «Usar esta versión» (decisiones 332 y 334): la marca en uso y le pasa todos los perfiles del emulador. Lo de un perfil activo
+    /// sale de la versión que usaba y entra en la nueva; antes de tocar nada comprueba que se pueda con todos.
+    /// </summary>
+    /// <remarks>ponytail: lo suelto de un juego sin perfil (<see cref="Loose"/>) se queda en la versión donde estaba.</remarks>
+    public static ApiError? UseVersion(Database db, string emulator, string version)
+    {
+        if (Installs.List(db).FirstOrDefault(i => i.EmulatorId == emulator && i.Version == version) is not { } chosen) return ApiError.Of("install.notInstalled");
+        if (chosen.Path is not { } to) return ApiError.Of("profile.notInstalled", ("emulator", chosen.Name));
+        var recipe = Recipes.Find(emulator);
+        using var c = db.Open();
+        var plan = new List<(Profile Profile, string From, List<Item> Items, string? Key)>();
+        foreach (var p in c.Query<Profile>($"SELECT {Columns} FROM profile WHERE emulator_id = @emulator AND active = 1 AND game_version_id IS NOT NULL", new { emulator }))
+        {
+            var key = GameKey(c, p.GameVersionId!.Value, p.SourceId);
+            if (Items(recipe, key) is not { } items) return ApiError.Of("profile.noGameKey");
+            if (items.Count == 0) continue;
+            if (InstallOf(db, emulator, p.EmulatorVersion) is not { } from) return ApiError.Of("profile.notInstalled", ("emulator", chosen.Name));
+            if (!Disk.Same(from, to)) plan.Add((p, from, items, key));
+        }
+        try
+        {
+            foreach (var (p, from, items, key) in plan)
+            {
+                Unload(db, StateOf(db, p), from, items);
+                Load(StateOf(db, p with { EmulatorVersion = version }), to, items, recipe, key);
+                c.Execute("UPDATE profile SET emulator_version = @version WHERE id = @Id", new { version, p.Id });
+            }
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            // Los que ya pasaron quedan en la nueva; el que falló, con lo suyo copiado y verificado en su carpeta.
+            return ApiError.Of("profile.switchFailed", ("detail", e.Message));
+        }
+        catch (TaskException e)
+        {
+            return e.Error;
+        }
+        c.Execute("UPDATE profile SET emulator_version = @version WHERE emulator_id = @emulator", new { version, emulator });
+        return null;
+    }
+
     static State Loose(Database db, long version, string emulator) =>
         new(emulator, null, Path.Combine(Root(db), LooseFolder, version.ToString(), emulator), false, null);
 
@@ -411,8 +453,13 @@ public static class Profiles
             VALUES (@emulator, @emulatorVersion, @version, @name, @settings, @sourceId, @now) RETURNING id
             """, new
         {
-            emulator, emulatorVersion = source?.GameVersionId is null ? null : source.EmulatorVersion, version, name = name.Trim(),
-            settings = source?.Settings ?? "{}", sourceId = source?.GameVersionId is null ? null : source.SourceId, now = Now(),
+            emulator,
+            emulatorVersion = source?.GameVersionId is null ? null : source.EmulatorVersion,
+            version,
+            name = name.Trim(),
+            settings = source?.Settings ?? "{}",
+            sourceId = source?.GameVersionId is null ? null : source.SourceId,
+            now = Now(),
         });
         var store = StoreOf(db, id);
         if (source is { GameVersionId: not null })

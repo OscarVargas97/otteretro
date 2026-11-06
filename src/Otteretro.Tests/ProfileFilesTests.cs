@@ -55,6 +55,30 @@ public class ProfileFilesTests
     }
 
     [Fact]
+    public async Task UsingAnotherVersionMovesTheActiveProfileFiles()
+    {
+        await using var f = Game("switch", Totk);
+        var old = Install(f, "eden", "emulator", "Eden", "eden.exe");
+        var x2 = Create(f, "eden", "2x");
+        Activate(f, x2);
+        Write(Path.Combine(old, $@"user\config\custom\{Totk}.ini"), "2x");
+        Write(Path.Combine(old, $@"user\load\{Totk}\60fps\exefs\p.ips"), "60");
+        // Como deja la instalación de otra versión: los perfiles se quedan en la que usaban.
+        using (var c = f.Db.Open()) c.Execute("UPDATE profile SET emulator_version = '1.0' WHERE emulator_id = 'eden'");
+        var next = Install(f, "eden", "emulator", "Eden", "eden.exe", "2.0");
+        Assert.Equal("1.0", Installs.InUse(f.Db, "eden"));
+
+        Assert.Null(Profiles.UseVersion(f.Db, "eden", "2.0"));
+        Assert.Equal("2.0", Installs.InUse(f.Db, "eden"));
+        Assert.False(File.Exists(Path.Combine(old, $@"user\config\custom\{Totk}.ini")));
+        Assert.False(Directory.Exists(Path.Combine(old, $@"user\load\{Totk}")));
+        Assert.Equal("2x", File.ReadAllText(Path.Combine(next, $@"user\config\custom\{Totk}.ini")));
+        Assert.Equal("60", File.ReadAllText(Path.Combine(next, $@"user\load\{Totk}\60fps\exefs\p.ips")));
+        using (var c = f.Db.Open()) Assert.Equal(["2.0"], c.Query<string>("SELECT DISTINCT emulator_version FROM profile WHERE emulator_id = 'eden'"));
+        Assert.Equal("install.notInstalled", Profiles.UseVersion(f.Db, "eden", "9")?.Code);
+    }
+
+    [Fact]
     public async Task EdenSwitchesConfigAndModsAndGoingBackRestoresEverything()
     {
         await using var f = Game("switch", Totk.ToLowerInvariant()); // Eden lo escribe en mayúsculas (idCase)
