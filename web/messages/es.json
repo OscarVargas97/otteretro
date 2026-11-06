@@ -427,7 +427,9 @@
       "sourceEmpty": "{repo} no tiene un catálogo publicado: sigues con el anterior.",
       "sourceUnreachable": "No se pudo leer {repo} en GitHub: revisa el nombre o la conexión. Sigues con el anterior.",
       "nothingPending": "No hay ninguna versión esperando: búscala de nuevo.",
-      "versionGone": "La versión {version} ya no está publicada: elige otra."
+      "versionGone": "La versión {version} ya no está publicada: elige otra.",
+      "needsNewerApp": "Actualiza Otteretro para recibir el catálogo nuevo.",
+      "olderSchema": "La versión {version} del catálogo es de una versión anterior de Otteretro: no se puede usar."
     },
     "automation": {
       "notFound": "Esa sugerencia ya no está.",

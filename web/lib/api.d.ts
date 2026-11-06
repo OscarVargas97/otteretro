@@ -6767,6 +6767,8 @@ export interface components {
             publishedAt: null | string;
             available: boolean;
             current: boolean;
+            compatible: boolean;
+            reason: null | string;
             counts: {
                 [key: string]: number | string;
             };

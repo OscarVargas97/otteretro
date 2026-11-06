@@ -52,7 +52,7 @@ public class CatalogUpdateTests
         INSERT INTO catalog.replaced (kind, old_id, new_id) VALUES ('game', 11, 10), ('version', 21, 20), ('version', 29, NULL);
         """;
 
-    static Fake Answers(byte[] data, string? sha = null, string tag = "catalogo-20261101", object? changes = null)
+    static Fake Answers(byte[] data, string? sha = null, string tag = "catalogo-20261101", object? changes = null, bool noSchema = false, params string[] extraSchema)
     {
         var assets = new List<object>
         {
@@ -67,7 +67,7 @@ public class CatalogUpdateTests
                 new { tag_name = "imagenes-1", draft = false, assets = new[] { new { name = "x", browser_download_url = "https://x.test/mal" } } },
                 new { tag_name = tag, draft = false, assets },
             }),
-            ["manifest.json"] = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = sha ?? Convert.ToHexStringLower(SHA256.HashData(data)) }),
+            ["manifest.json"] = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = sha ?? Convert.ToHexStringLower(SHA256.HashData(data)), schema = noSchema ? null : Data.Migrations.CatalogNames().Concat(extraSchema).ToList() }),
             ["catalogo.db.gz"] = data,
         };
         if (changes is not null) answers["cambios.json"] = JsonSerializer.SerializeToUtf8Bytes(changes);
@@ -313,9 +313,9 @@ public class CatalogUpdateTests
         {
             ["releases?"] = JsonSerializer.SerializeToUtf8Bytes(new[] { Release("catalogo-20261102", "n", changes: true), Release("catalogo-20261101", "o") }),
             ["n.test/cambios.json"] = JsonSerializer.SerializeToUtf8Bytes(history),
-            ["n.test/manifest.json"] = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = Convert.ToHexStringLower(SHA256.HashData(newer)) }),
+            ["n.test/manifest.json"] = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = Convert.ToHexStringLower(SHA256.HashData(newer)), schema = Data.Migrations.CatalogNames() }),
             ["n.test/catalogo.db.gz"] = newer,
-            ["o.test/manifest.json"] = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = Convert.ToHexStringLower(SHA256.HashData(older)) }),
+            ["o.test/manifest.json"] = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = Convert.ToHexStringLower(SHA256.HashData(older)), schema = Data.Migrations.CatalogNames() }),
             ["o.test/catalogo.db.gz"] = older,
         });
         try
@@ -329,6 +329,7 @@ public class CatalogUpdateTests
             Assert.True(page.Versions.Single(v => v.Tag == "catalogo-20261101").Current);
             Assert.Equal(["catalogo-20261102", "catalogo-20261101", "catalogo-20261030"], page.Versions.Select(v => v.Tag));
             Assert.Equal([true, true, false], page.Versions.Select(v => v.Available)); // la del 30 ya no se puede bajar
+            Assert.Equal([true, true, false], page.Versions.Select(v => v.Compatible));
             Assert.Equal(1, page.Versions[0].Counts["renamed"]);
             Assert.Equal("Metroid Fusion", page.Versions[0].Changes.Single().From);
 
@@ -359,7 +360,7 @@ public class CatalogUpdateTests
             new { name = "catalogo.db.gz", browser_download_url = $"https://{letter}.test/catalogo.db.gz" },
             new { name = "catalogo.db.gz.json", browser_download_url = $"https://{letter}.test/manifest.json" },
         } } }),
-        [$"{letter}.test/manifest.json"] = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = Convert.ToHexStringLower(SHA256.HashData(data)) }),
+        [$"{letter}.test/manifest.json"] = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = Convert.ToHexStringLower(SHA256.HashData(data)), schema = Data.Migrations.CatalogNames() }),
         [$"{letter}.test/catalogo.db.gz"] = data,
     };
 
@@ -464,5 +465,28 @@ public class CatalogUpdateTests
         Assert.Equal("done", done.Status);
         using var c = f.Db.Open();
         Assert.Equal(2, c.ExecuteScalar<long>("SELECT count(*) FROM catalog.game"));
+    }
+
+    /// <summary>#337: una versión con otras migraciones de catálogo no se baja ni se aplica, y dice por qué.</summary>
+    [Theory]
+    [InlineData(true, "catalog.olderSchema")] // sin `schema` en el manifiesto
+    [InlineData(false, "catalog.needsNewerApp")] // con una migración que la app no conoce
+    public async Task AnIncompatibleVersionIsNeitherDownloadedNorApplied(bool noSchema, string code)
+    {
+        await using var f = new Fixture();
+        Mine(f);
+        var fake = noSchema ? Answers(Compiled(f, Catalog2), noSchema: true) : Answers(Compiled(f, Catalog2), extraSchema: "9999_futura.sql");
+        var task = await Update(f, fake);
+        Assert.Equal(code, task.Detail?.Code);
+        Assert.Equal(0, fake.DataDownloads);
+        Assert.Null(CatalogUpdate.Waiting(f.Db));
+        CatalogUpdate.Handler = fake;
+        try
+        {
+            var v = (await CatalogUpdate.Versions(f.Db)).Versions.Single();
+            Assert.False(v.Compatible);
+            Assert.Equal(noSchema ? "older" : "newer", v.Reason);
+        }
+        finally { CatalogUpdate.Handler = null; }
     }
 }

@@ -40,7 +40,7 @@ public static class Migrations
             var sql = reader.ReadToEnd();
             // Una transacción escribe un solo archivo: en WAL, SQLite no la hace atómica entre los dos. Lo del catálogo (después de
             // la separación) se anota en el propio catálogo; esas migraciones no tocan la base propia.
-            var onCatalog = string.CompareOrdinal(name, SplitMigration) > 0 && sql.Contains("catalog.", StringComparison.Ordinal);
+            var onCatalog = IsCatalog(name, sql);
             using var t = c.BeginTransaction();
             c.Execute(sql, transaction: t);
             if (onCatalog) c.Execute("INSERT INTO catalog.catalog_migration (name, applied_at) VALUES (@name, @date)", new { name, date = DateTime.UtcNow.ToString("O") }, t);
@@ -51,6 +51,22 @@ public static class Migrations
         DropPersonalColumns(c);
         return applied;
     }
+
+    /// <summary>Las migraciones de catálogo de la app, en orden: las que se anotan en `catalog_migration`. Un catálogo es compatible si trae justo estas (#337).</summary>
+    public static List<string> CatalogNames()
+    {
+        var assembly = typeof(Migrations).Assembly;
+        var names = new List<string>();
+        foreach (var resource in assembly.GetManifestResourceNames().Where(r => r.Contains(Marker) && r.EndsWith(".sql", StringComparison.Ordinal)).Order(StringComparer.Ordinal))
+        {
+            var name = resource[(resource.IndexOf(Marker, StringComparison.Ordinal) + Marker.Length)..];
+            using var reader = new StreamReader(assembly.GetManifestResourceStream(resource)!);
+            if (IsCatalog(name, reader.ReadToEnd())) names.Add(name);
+        }
+        return names;
+    }
+
+    static bool IsCatalog(string name, string sql) => string.CompareOrdinal(name, SplitMigration) > 0 && sql.Contains("catalog.", StringComparison.Ordinal);
 
     static bool HasCatalogLog(SqliteConnection c) =>
         c.ExecuteScalar<long>("SELECT count(*) FROM catalog.sqlite_master WHERE type = 'table' AND name = 'catalog_migration'") > 0;
