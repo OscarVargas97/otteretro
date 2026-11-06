@@ -99,15 +99,28 @@ public static class CatalogUpdate
 
     record Asset(string Name, string BrowserDownloadUrl);
     record Release(string TagName, bool Draft, List<Asset> Assets, string? PublishedAt = null);
-    /// <param name="Schema">Las migraciones de catálogo con que se armó, en orden (otteretro-catalogo#78). Sin ella, es de antes de publicarla.</param>
+    /// <param name="Schema">Las columnas de todas las tablas del catálogo publicado, como `tabla.columna` (otteretro-catalogo#78). Sin ella, es de antes de publicarla.</param>
     record Manifest(string Sha256, List<string>? Schema = null);
 
-    /// <summary>Null si el catálogo es compatible; si no, `newer` (trae migraciones que la app no conoce) u `older`.</summary>
-    static string? Incompatible(List<string>? schema)
+    /// <summary>Las columnas de catálogo que usa la app, como `tabla.columna`: las de lo que copia <see cref="Apply"/>.</summary>
+    public static List<string> AppColumns(Database db)
+    {
+        using var c = db.Open();
+        return Published.Concat(["console", "console_platform"])
+            .SelectMany(t => c.Query<string>($"SELECT '{t}.' || name FROM pragma_table_info('{t}', 'catalog')")).ToList();
+    }
+
+    /// <summary>
+    /// Null si el catálogo trae todas las columnas que usa la app (las de más se ignoran, decisión 340). Si falta alguna: `newer` si además trae
+    /// columnas que la app no conoce en esas tablas (es de una app más nueva), si no `older`.
+    /// </summary>
+    static string? Incompatible(Database db, List<string>? schema)
     {
         if (schema is null) return "older";
-        var app = Migrations.CatalogNames();
-        return schema.SequenceEqual(app) ? null : schema.Except(app).Any() ? "newer" : "older";
+        var app = AppColumns(db);
+        if (!app.Except(schema).Any()) return null;
+        var tables = app.Select(x => x[..x.IndexOf('.')]).ToHashSet();
+        return schema.Where(x => tables.Contains(x[..x.IndexOf('.')])).Except(app).Any() ? "newer" : "older";
     }
 
     static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
@@ -171,7 +184,7 @@ public static class CatalogUpdate
         var reasons = (await Task.WhenAll(releases.Select(async r =>
         {
             if (r.Assets.FirstOrDefault(a => a.Name == ManifestAsset) is not { } m) return (r.TagName, "older");
-            try { return (r.TagName, Incompatible(JsonSerializer.Deserialize<Manifest>(await http.GetStringAsync(m.BrowserDownloadUrl, ct), JsonSerializerOptions.Web)?.Schema)); }
+            try { return (r.TagName, Incompatible(db, JsonSerializer.Deserialize<Manifest>(await http.GetStringAsync(m.BrowserDownloadUrl, ct), JsonSerializerOptions.Web)?.Schema)); }
             catch (Exception e) when (e is HttpRequestException or JsonException) { return (r.TagName, "older"); }
         }))).ToDictionary(x => x.TagName, x => x.Item2);
         var byVersion = history?.Entries.GroupBy(e => e.Version).ToDictionary(g => g.Key, g => g.ToList()) ?? [];
@@ -226,7 +239,7 @@ public static class CatalogUpdate
 
         var manifest = JsonSerializer.Deserialize<Manifest>(await http.GetStringAsync(Url(ManifestAsset), ct), JsonSerializerOptions.Web)!;
         // Sin tocar nada: ni se baja ni se aplica una versión de otro esquema (#337, decisión 340).
-        if (Incompatible(manifest.Schema) is { } reason) throw new TaskException(ApiError.Of(reason == "newer" ? "catalog.needsNewerApp" : "catalog.olderSchema", ("version", latest.TagName)));
+        if (Incompatible(run.Db, manifest.Schema) is { } reason) throw new TaskException(ApiError.Of(reason == "newer" ? "catalog.needsNewerApp" : "catalog.olderSchema", ("version", latest.TagName)));
         if (Setting(run.Db, Applied) == manifest.Sha256) { Reject(run.Db); return; }
         if (Waiting(run.Db) is { } waiting && waiting.Sha256 == manifest.Sha256 && waiting.Repo == repo) return;
 
