@@ -173,7 +173,7 @@ public static class ToolUpdates
         Write(db, recipeId, channel, new(latest.Version, latest.Notes, latest.Url, latest.PublishedAt, now.ToString("O"), saved?.Skipped, latest.Download));
     }
 
-    /// <summary>Los avisos vigentes, ni omitidos ni ya instalados. De lo que no tienes, la última versión (con `Installed` vacío).</summary>
+    /// <summary>Los avisos vigentes de lo que tienes instalado, ni omitidos ni ya instalados (decisión 321): lo que no tienes se instala desde «Instalar…».</summary>
     public static List<ToolUpdate> List(Database db)
     {
         var installed = Recipes.Installed(Disk.ToolRoots(db)).Where(t => t.RecipeId is not null).ToLookup(t => t.RecipeId!, t => t.Version);
@@ -184,7 +184,7 @@ public static class ToolUpdates
             {
                 if (Read(db, r.Id, channel) is not { } s || s.Skipped == s.Version) continue;
                 var versions = installed[r.Id].ToList();
-                if (versions.Any(v => Has(r, v, s))) continue;
+                if (versions.Count == 0 || versions.Any(v => Has(r, v, s))) continue;
                 list.Add(new(r.Id, r.Name, r.Kind, channel, s.Version, s.Notes, s.Url, s.PublishedAt, versions, games[r.Id].ToList(), s.Download));
             }
         return list;
