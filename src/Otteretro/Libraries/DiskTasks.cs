@@ -41,7 +41,17 @@ public static class DiskTasks
     public static long? EnqueueMigrateIfPending(Database db)
     {
         var plan = Pending(db);
-        if (plan.Locations.Count == 0 && !plan.Tools) return null;
+        return plan.Locations.Count == 0 && !plan.Tools ? null : EnqueueMigrateOnce(db);
+    }
+
+    /// <summary>
+    /// Al conectar un disco con ports de antes (#316): se encola «Pasar al estándar» para juntarlos, salvo que ya esté en la cola. Si el
+    /// disco no está, queda para cuando se conecte o para el próximo arranque.
+    /// </summary>
+    public static long? EnqueuePortsIfPending(Database db) => OldPorts(db).Count == 0 ? null : EnqueueMigrateOnce(db);
+
+    static long EnqueueMigrateOnce(Database db)
+    {
         using (var c = db.Open())
             if (c.ExecuteScalar<long?>("SELECT id FROM task WHERE kind = @Migrate AND status IN ('queued', 'running') LIMIT 1", new { Migrate }) is { } waiting)
                 return waiting;
@@ -59,11 +69,19 @@ public static class DiskTasks
     public record MigrationPlan(List<DiskInfo> Locations, bool Tools);
 
     public static MigrationPlan Pending(Database db) =>
-        new(Disk.List(db).Where(l => l.Type != "disk").ToList(), Recipes.Installed(ToolsOf(db)).Count > 0 || Outdated(db).Count > 0);
+        new(Disk.List(db).Where(l => l.Type != "disk").ToList(), Recipes.Installed(ToolsOf(db)).Count > 0 || Outdated(db).Count > 0 || OldPorts(db).Count > 0);
 
     /// <summary>Lo instalado con una receta anterior (#273: Dusklight con `Datos` y su enlace en AppData).</summary>
     static List<ToolInfo> Outdated(Database db) =>
         Recipes.Installed(Disk.ToolRoots(db)).Where(t => t.RecipeId is not null && Recipes.Outdated(Recipes.Find(t.RecipeId)!, t.Path)).ToList();
+
+    /// <summary>
+    /// Los ports de antes, `Ports\<Port>\<versión>` con una o varias (#316), en los discos conectados: la carpeta de cada uno con sus versiones.
+    /// </summary>
+    static List<IGrouping<string, ToolInfo>> OldPorts(Database db) =>
+        Recipes.Installed(Disk.ToolRoots(db))
+            .Where(t => t.Kind == "port" && Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(t.Path))) == Disk.DiskFolders["port"])
+            .GroupBy(t => Path.GetDirectoryName(t.Path)!).ToList();
 
     /// <summary>
     /// Pasa todo al estándar (#159, #202, #204). Cada ubicación de un solo tipo va a la carpeta fija del disco donde está (en el
@@ -130,6 +148,19 @@ public static class DiskTasks
             Recipes.MakePortable(Recipes.Find(tool.RecipeId!)!, tool.Path);
             run.Log(ApiError.Of("library.log.updated", ("name", tool.Name), ("path", tool.Path)));
         }
+        // Cada port de antes queda con una sola versión, la más nueva, en `Ports\<Port>`, con las partidas de todas (decisión 327), y
+        // sus perfiles pasan a ella.
+        foreach (var port in OldPorts(run.Db))
+        {
+            var first = port.First();
+            var version = Installs.JoinVersions(port.Key, first.RecipeId is { } id ? Recipes.Find(id) : null, port.Select(t => t.Version).ToList());
+            using (var c = run.Db.Open())
+                c.Execute("""
+                    UPDATE profile SET emulator_version = @version
+                    WHERE emulator_version IS NOT NULL AND emulator_id IN (SELECT id FROM emulator WHERE kind = 'port' AND name = @Name)
+                    """, new { version, first.Name });
+            run.Log(ApiError.Of("library.log.joined", ("name", first.Name), ("version", version), ("path", port.Key)));
+        }
         Scan.Enqueue(run.Db); // los juegos cambiaron de lugar (#212)
         return Task.CompletedTask;
     }
@@ -185,9 +216,18 @@ public static class DiskTasks
             var recipe = Recipes.Identify(install);
             var version = Recipes.VersionOf(recipe, install);
             var group = Path.GetFileName(Path.GetDirectoryName(install)!);
-            var target = recipe is not null ? Recipes.Target(tools, recipe, version) : Path.Combine(tools, group, Path.GetFileName(install), version);
+            var isPort = group == "Ports";
+            var target = recipe is not null ? Recipes.Target(tools, recipe, version)
+                : isPort ? Path.Combine(tools, group, Path.GetFileName(install)) : Path.Combine(tools, group, Path.GetFileName(install), version);
+            // Un port tiene una sola versión, en `Ports\<Port>` (decisión 324): si ya hay uno, el de antes se queda donde está.
+            if (isPort && Path.Exists(target))
+            {
+                run.Log(ApiError.Of("library.log.notEmpty", ("path", install)), "warn");
+                continue;
+            }
             var (from, to) = (i * 60 / installs.Count, (i + 1) * 60 / installs.Count);
             MoveFolder(install, target, (done, total) => run.Report(Percent(done, total, from, to), ApiError.Of("library.copying", ("path", target))), ct);
+            if (isPort) File.WriteAllText(Path.Combine(target, Recipes.VersionFile), version);
             run.Log(ApiError.Of("library.log.tool", ("name", Path.GetFileName(install)), ("path", target)));
         }
 

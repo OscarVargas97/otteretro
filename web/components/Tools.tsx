@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState } from "react";
 import { useConsoles } from "@/components/Catalog";
 import { librariesQuery, toolsQuery } from "@/components/Libraries";
+import { LoadProfile } from "@/components/ProfileShare";
 import { Empty } from "@/components/Shell";
 import { Tabs } from "@/components/Tabs";
 import { ToolUpdates } from "@/components/ToolUpdates";
@@ -25,21 +26,25 @@ const post = (body: unknown) => ({ method: "POST", body: JSON.stringify(body) })
 const recipesQuery = { queryKey: ["recipes"], queryFn: () => request<RecipeSummary[]>("/api/recipes"), staleTime: Infinity };
 const emulatorsQuery = { queryKey: ["emulators"], queryFn: () => request<EmulatorInstall[]>("/api/emulators") };
 
-/** Herramientas (§5.1, #193, #194, #200, #296): el inventario por tipo, en pestañas y una sola columna centrada, con instalar y la librería. */
+/** Herramientas (§5.1, #193, #194, #200, #296, #304): el inventario por tipo, en pestañas y una sola columna centrada, con sus versiones nuevas, instalar y la librería. */
 export function ToolsPage() {
   const t = useTranslations("tools");
   const router = useRouter();
   const asked = useSearchParams().get("k");
   const kind: Kind = KINDS.find((k) => k === asked) ?? "emulator";
+  // Cada pestaña cuenta sus avisos de versiones nuevas (decisión 320).
+  const updates = useQuery(toolUpdatesQuery).data ?? [];
+  const count = (k: Kind) => updates.filter((u) => u.kind === k).length;
   return (
     <div className="centered">
-      <ToolUpdates />
-      <Tabs tabs={KINDS.map((k) => ({ id: k, label: t(`kind.${k}`) }))} current={kind} label={t("sections")} panel="tools-panel"
+      <Tabs tabs={KINDS.map((k) => ({ id: k, label: t(`kind.${k}`), count: count(k), countLabel: t("updates.count", { count: count(k) }) }))} current={kind} label={t("sections")} panel="tools-panel"
         onSelect={(k) => router.push(`/tools/?k=${k}`)} />
       <section className="sec" id="tools-panel" role="tabpanel" aria-labelledby={`tab-${kind}`}>
         {kind === "system" ? <SystemPanel /> : (
           <div style={{ display: "grid", gap: 12 }}>
+            {kind !== "complement" && <ToolUpdates kind={kind} />}
             {kind !== "complement" && <InstallPanel key={kind} kind={kind} />}
+            {kind === "emulator" && <LoadProfile />}
             <ToolList kind={kind} />
             {kind !== "complement" && <Library kind={kind} />}
           </div>
@@ -190,7 +195,12 @@ function InstallPanel({ kind }: { kind: Installable }) {
   const format = useFormatter();
   const describe = useDescribeError();
   const cache = useQueryClient();
-  const recipes = (useQuery(recipesQuery).data ?? []).filter((r) => r.kind === kind);
+  const all = (useQuery(recipesQuery).data ?? []).filter((r) => r.kind === kind);
+  const consoles = useConsoles().data ?? [];
+  // Emuladores: elegir la consola deja solo los suyos, con el base primero (#317).
+  const [console_, setConsole] = useState("");
+  const recipes = console_ === "" ? all : all.filter((r) => r.consoles.includes(console_))
+    .sort((a, b) => Number(b.baseFor.includes(console_)) - Number(a.baseFor.includes(console_)));
   const [open, setOpen] = useState(false);
   const [from, setFrom] = useState<"recipe" | "url" | "path">("recipe");
   const [recipe, setRecipe] = useState("");
@@ -232,10 +242,17 @@ function InstallPanel({ kind }: { kind: Installable }) {
     <section className="panel" style={{ display: "grid", gap: 8 }} aria-labelledby="install-title">
       <h3 id="install-title" style={{ margin: 0 }}>{t(`open.${kind}`)}</h3>
       <div className="sentence">
+        {kind === "emulator" && <>
+          <label className="small muted" htmlFor="install-console">{t("console")}</label>
+          <select id="install-console" value={console_} onChange={(e) => { const c = e.target.value; setConsole(c); if (recipe !== OTHER && c !== "" && !all.find((r) => r.id === recipe)?.consoles.includes(c)) pick(""); }}>
+            <option value="">{t("allConsoles")}</option>
+            {consoles.filter((c) => all.some((r) => r.consoles.includes(c.id))).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </>}
         <label className="small muted" htmlFor="install-recipe">{t("what")}</label>
         <select id="install-recipe" value={recipe} onChange={(e) => pick(e.target.value)}>
           <option value="">{t("pick")}</option>
-          {recipes.map((r) => <option key={r.id} value={r.id}>{r.experimental ? t("experimental", { name: r.name }) : r.name}</option>)}
+          {recipes.map((r) => { const label = r.experimental ? t("experimental", { name: r.name }) : r.name; return <option key={r.id} value={r.id}>{console_ !== "" && r.baseFor.includes(console_) ? t("base", { name: label }) : label}</option>; })}
           {kind !== "tool" && <option value={OTHER}>{t("other")}</option>}
         </select>
         {recipe === OTHER && <input aria-label={t("name")} placeholder={t("name")} value={name} onChange={(e) => setName(e.target.value)} />}
@@ -292,7 +309,8 @@ function InstallPanel({ kind }: { kind: Installable }) {
 
 /**
  * La librería (#268, decisiones 293 y 304): lo instalado por emulador, cada versión con su origen y si ya tiene la segunda copia.
- * Una versión cuya carpeta ya no está vuelve con «Reinstalar», desde el archivo guardado y sin bajar nada.
+ * Una versión cuya carpeta ya no está vuelve con «Reinstalar», desde el archivo guardado y sin bajar nada. Un port tiene una sola
+ * instalada (decisión 325): las anteriores quedan como su archivo, y «Reinstalar» la deja en su lugar.
  */
 function Library({ kind }: { kind: Installable }) {
   const t = useTranslations("tools.library");
@@ -312,6 +330,7 @@ function Library({ kind }: { kind: Installable }) {
     <section className="panel" style={{ display: "grid", gap: 8 }} aria-labelledby="library-title">
       <h3 id="library-title" style={{ margin: 0 }}>{t("title")}</h3>
       <p className="small muted" style={{ margin: 0 }}>{t("help")}</p>
+      {kind === "port" && <p className="small muted" style={{ margin: 0 }}>{t("portHelp")}</p>}
       {names.map((name) => (
         <div key={name} style={{ display: "grid", gap: 4 }}>
           <b>{name}</b>
@@ -323,7 +342,8 @@ function Library({ kind }: { kind: Installable }) {
               </span>
               <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 <span className={`ot-badge${i.backupLibraryId ? "" : " ot-badge-review"}`}>{t(i.backupLibraryId ? "twoCopies" : "oneCopy")}</span>
-                {!i.path && <span className="ot-badge ot-badge-danger">{t("missing")}</span>}
+                {kind === "port" ? <span className={`ot-badge${i.path ? " ot-badge-have" : ""}`}>{t(i.path ? "installed" : "archived")}</span>
+                  : !i.path && <span className="ot-badge ot-badge-danger">{t("missing")}</span>}
                 {!i.path && (
                   <button className="ot-btn ot-btn-sm" type="button" disabled={reinstall.isPending} onClick={() => reinstall.mutate(i)}>{t("reinstall")}</button>
                 )}

@@ -526,6 +526,99 @@ public class DiskTests
         Assert.True(result.Status == "done", System.Text.Json.JsonSerializer.Serialize(result.Detail));
     }
 
+    /// <summary>
+    /// #316 (decisión 327): dos versiones de un port quedan en una, la más nueva, en `Ports\<Port>`, con las partidas de las dos; de una
+    /// repetida queda la más reciente y la otra, en el respaldo. Sus perfiles pasan a ella.
+    /// </summary>
+    [Fact]
+    public async Task OldPortVersionsJoinIntoTheNewestKeepingEverySave()
+    {
+        await using var f = new Fixture();
+        Disk.Create(f.Db, f.Tmp["E"], "E:");
+        var port = f.Tmp[@"E\Ports\Dusklight"];
+        Write(Path.Combine(port, @"1.9\dusklight.exe"), "uno");
+        Write(Path.Combine(port, @"1.9\data\EUR\a.sav"), "solo en la 1.9");
+        Write(Path.Combine(port, @"1.9\data\EUR\rep.sav"), "de la 1.9, la más reciente");
+        Write(Path.Combine(port, @"1.9\mio.txt"), "de la persona");
+        Write(Path.Combine(port, @"1.10\dusklight.exe"), "dos");
+        Write(Path.Combine(port, @"1.10\data\USA\b.sav"), "solo en la 1.10");
+        Write(Path.Combine(port, @"1.10\data\EUR\rep.sav"), "de la 1.10, más vieja");
+        File.SetLastWriteTimeUtc(Path.Combine(port, @"1.10\data\EUR\rep.sav"), DateTime.UtcNow.AddDays(-1));
+        Profiles.AddEmulator(f.Db, "dusklight", "port", "Dusklight");
+        using (var c = f.Db.Open()) c.Execute("UPDATE profile SET emulator_version = '1.9' WHERE emulator_id = 'dusklight'");
+        Assert.True(DiskTasks.Pending(f.Db).Tools);
+
+        await Done(f, DiskTasks.EnqueueMigrateIfPending(f.Db)!.Value);
+
+        // La más nueva por número (1.10 > 1.9), sola y sin la versión en la ruta.
+        Assert.Equal("dos", File.ReadAllText(Path.Combine(port, "dusklight.exe")));
+        Assert.Equal("1.10", File.ReadAllText(Path.Combine(port, Recipes.VersionFile)));
+        Assert.All(new[] { "1.9", "1.10" }, v => Assert.False(Directory.Exists(Path.Combine(port, v))));
+        Assert.False(Directory.Exists(port + ".nueva"));
+        Assert.False(Directory.Exists(port + ".anterior"));
+        var installed = Assert.Single(Recipes.Installed(Disk.ToolRoots(f.Db)), t => t.Kind == "port");
+        Assert.Equal(("1.10", true), (installed.Version, Disk.Same(installed.Path, port)));
+        // Las partidas de las dos juntas, y de la repetida, la más reciente; lo de la persona también.
+        Assert.Equal("solo en la 1.9", File.ReadAllText(Path.Combine(port, @"data\EUR\a.sav")));
+        Assert.Equal("solo en la 1.10", File.ReadAllText(Path.Combine(port, @"data\USA\b.sav")));
+        Assert.Equal("de la 1.9, la más reciente", File.ReadAllText(Path.Combine(port, @"data\EUR\rep.sav")));
+        Assert.Equal("de la persona", File.ReadAllText(Path.Combine(port, "mio.txt")));
+        Assert.True(Links.IsLink(Path.Combine(port, @"data\EUR"))); // en común, como al instalar (decisión 308)
+        // En el respaldo: la que perdió y lo de la versión borrada.
+        var backup = Path.Combine(port, Installs.SnapshotsFolder);
+        string Backed(string name) => string.Join("|", Directory.GetFiles(backup, name, SearchOption.AllDirectories).Select(File.ReadAllText).Order());
+        Assert.Equal("de la 1.10, más vieja|de la 1.9, la más reciente", Backed("rep.sav"));
+        Assert.Equal("solo en la 1.9", Backed("a.sav"));
+        Assert.Equal("de la persona", Backed("mio.txt"));
+        using (var c = f.Db.Open()) Assert.Equal("1.10", c.ExecuteScalar<string>("SELECT emulator_version FROM profile WHERE emulator_id = 'dusklight'"));
+
+        // Ya no queda nada de antes, y repetirla no cambia nada.
+        Assert.Null(DiskTasks.EnqueueMigrateIfPending(f.Db));
+        await Done(f, DiskTasks.EnqueueMigrate(f.Db));
+        Assert.Equal("de la 1.9, la más reciente", File.ReadAllText(Path.Combine(port, @"data\EUR\rep.sav")));
+    }
+
+    /// <summary>#316: un port sin receta con una sola versión en el formato de antes pasa a `Ports\<Port>` con sus archivos.</summary>
+    [Fact]
+    public async Task OldPortWithOneVersionMovesUp()
+    {
+        await using var f = new Fixture();
+        Disk.Create(f.Db, f.Tmp["E"], "E:");
+        var port = f.Tmp[@"E\Ports\Ship"];
+        Write(Path.Combine(port, @"1.0\ship.exe"), "ship");
+        Write(Path.Combine(port, @"1.0\saves\slot1.sav"), "partida");
+
+        await Done(f, DiskTasks.EnqueueMigrateIfPending(f.Db)!.Value);
+
+        Assert.Equal("ship", File.ReadAllText(Path.Combine(port, "ship.exe")));
+        Assert.Equal("partida", File.ReadAllText(Path.Combine(port, @"saves\slot1.sav")));
+        Assert.Equal("1.0", File.ReadAllText(Path.Combine(port, Recipes.VersionFile)));
+        Assert.False(Directory.Exists(Path.Combine(port, "1.0")));
+        Assert.Equal(["1.0"], Recipes.Installed(Disk.ToolRoots(f.Db)).Where(t => t.Kind == "port").Select(t => t.Version));
+    }
+
+    /// <summary>#316: con el disco desconectado no se toca nada; al conectarlo, se encola y se juntan.</summary>
+    [Fact]
+    public async Task OldPortsOnADisconnectedDiskWaitForIt()
+    {
+        await using var f = new Fixture();
+        Disk.Create(f.Db, f.Tmp["E"], "E:");
+        Write(f.Tmp[@"E\Ports\Ship\1.0\ship.exe"], "uno");
+        Write(f.Tmp[@"E\Ports\Ship\2.0\ship.exe"], "dos");
+        Directory.Move(f.Tmp["E"], f.Tmp["E-fuera"]);
+
+        Assert.False(Assert.Single(Disk.List(f.Db)).Connected);
+        Assert.Null(DiskTasks.EnqueuePortsIfPending(f.Db));
+        Assert.Null(DiskTasks.EnqueueMigrateIfPending(f.Db));
+
+        Directory.Move(f.Tmp["E-fuera"], f.Tmp["E"]);
+        var task = DiskTasks.EnqueuePortsIfPending(f.Db)!.Value;
+        Assert.Equal(task, DiskTasks.EnqueuePortsIfPending(f.Db)); // una sola vez
+        await Done(f, task);
+        Assert.Equal("dos", File.ReadAllText(f.Tmp[@"E\Ports\Ship\ship.exe"]));
+        Assert.Equal(["2.0"], Recipes.Installed(Disk.ToolRoots(f.Db)).Where(t => t.Kind == "port").Select(t => t.Version));
+    }
+
     /// <summary>#192, #195: el detalle de GameCube junta la ISO, Dolphin, Dusklight con su juego, sus texturas y la BIOS.</summary>
     [Fact]
     public async Task ConsoleDetailBringsEverythingTogether()

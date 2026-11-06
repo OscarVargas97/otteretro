@@ -23,6 +23,10 @@ public static class ClaudeEndpoints
         api.MapPost("/review/{id:long}/file", Results<Ok<ReviewPage>, BadRequest<ApiError>, Conflict<ApiError>> (long id, ResolveFileRequest request, AppSession s) =>
             Db(s) is not { } db ? NoData() : Identify.Resolve(db, id, request.GameId) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(ClaudeReview.Page(db)));
 
+        // Reintentar un paquete sin juegos (#310, decisión 322): se vuelve a importar y se resuelve si ahora se reconoce.
+        api.MapPost("/review/{id:long}/retry", Results<Ok<ReviewPage>, BadRequest<ApiError>, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is not { } db ? NoData() : Libraries.Import.Retry(db, id) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(ClaudeReview.Page(db)));
+
         api.MapGet("/sagas/{id:long}/routes", Results<Ok<RoutesPage>, Conflict<ApiError>> (long id, AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(ClaudeReview.Routes(db, id)) : NoData());
 

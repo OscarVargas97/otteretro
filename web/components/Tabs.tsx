@@ -3,7 +3,8 @@
 import { useTranslations } from "next-intl";
 import { useLayoutEffect, useRef, useState } from "react";
 
-type Tab = { id: string; label: string };
+/** `count`: un contador al lado del nombre (p. ej. avisos de versiones nuevas, decisión 320); sin él o en 0, no se muestra. */
+type Tab = { id: string; label: string; count?: number; countLabel?: string };
 
 /**
  * Pestañas subrayadas en una sola línea (#108): nunca barra de desplazamiento ni segunda línea. Las que no caben pasan a
@@ -66,7 +67,7 @@ export function Tabs({ tabs, current, onSelect, label, panel }: { tabs: Tab[]; c
         {shown.map((x) => (
           <button key={x.id} id={`tab-${x.id}`} type="button" className="tab" role="tab" aria-selected={x.id === current} aria-controls={panel}
             tabIndex={x.id === current ? 0 : -1} onClick={() => select(x.id)}>
-            {x.label}
+            {x.label}{!!x.count && <> <span className="ot-count" aria-label={x.countLabel}>{x.count}</span></>}
           </button>
         ))}
         {hidden.length > 0 && (
@@ -80,7 +81,9 @@ export function Tabs({ tabs, current, onSelect, label, panel }: { tabs: Tab[]; c
                 <div className="tabs-more-scrim" onClick={() => setOpen(false)} />
                 <div className="tabs-more-menu" role="menu" onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}>
                   {hidden.map((x) => (
-                    <button key={x.id} type="button" role="menuitem" className="tabs-more-item" onClick={() => select(x.id)} autoFocus={x === hidden[0]}>{x.label}</button>
+                    <button key={x.id} type="button" role="menuitem" className="tabs-more-item" onClick={() => select(x.id)} autoFocus={x === hidden[0]}>
+                      {x.label}{!!x.count && <> <span className="ot-count" aria-label={x.countLabel}>{x.count}</span></>}
+                    </button>
                   ))}
                 </div>
               </>
@@ -90,7 +93,7 @@ export function Tabs({ tabs, current, onSelect, label, panel }: { tabs: Tab[]; c
       </div>
       {/* Para medir: las mismas pestañas, invisibles y fuera del flujo. */}
       <div ref={ruler} className="tabs tabs-line tabs-ruler" aria-hidden="true">
-        {tabs.map((x) => <span key={x.id} className="tab">{x.label}</span>)}
+        {tabs.map((x) => <span key={x.id} className="tab">{x.label}{!!x.count && <> <span className="ot-count">{x.count}</span></>}</span>)}
         <span className="tab">{t("more")} ▾</span>
       </div>
     </div>

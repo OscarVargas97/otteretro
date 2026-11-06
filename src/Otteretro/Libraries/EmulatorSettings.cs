@@ -76,8 +76,9 @@ public static class EmulatorSettings
     static List<string> InputKeys(Recipe recipe, Profile p) => recipe.Input is not { } input ? []
         : [.. p.GameVersionId is null ? [] : input.Keys ?? [], .. input.Arg is { } arg ? [arg] : Array.Empty<string>()];
 
+    /// <summary>La del perfil o, sin ella, la más nueva instalada; un port, siempre la instalada (decisión 326).</summary>
     static string? VersionOf(Database db, Profile p) =>
-        p.EmulatorVersion ?? Installs.List(db).LastOrDefault(i => i.EmulatorId == p.EmulatorId && i.Path is not null)?.Version;
+        Installs.List(db).LastOrDefault(i => i.EmulatorId == p.EmulatorId && i.Path is not null && (p.EmulatorVersion is null || i.Kind == "port"))?.Version ?? p.EmulatorVersion;
 
     public static ProfileSettings? View(Database db, long id)
     {

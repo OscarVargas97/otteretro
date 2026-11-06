@@ -28,8 +28,8 @@ public record EmulatorInstall(string EmulatorId, string Name, string Kind, strin
 public record LibraryBackup(string? DiskId, int Pending);
 
 /// <summary>
-/// Instalar emuladores y ports (§8.0, decisiones 287, 293, 302 a 304). Cada versión va a `Emuladores\<Emulador>\<versión>` y nunca
-/// reemplaza otra. El archivo original queda en la librería privada, `Libreria\` del disco ★ (se muda con la carpeta de datos, que es
+/// Instalar emuladores y ports (§8.0, decisiones 287, 293, 302 a 304 y 324 a 326). Cada versión de un emulador va a
+/// `Emuladores\<Emulador>\<versión>` y nunca reemplaza otra; un port tiene una sola, en `Ports\<Port>`, que se reemplaza en el lugar. El archivo original queda en la librería privada, `Libreria\` del disco ★ (se muda con la carpeta de datos, que es
 /// lo que define el ★), con una segunda copia en el disco que elige la persona.
 /// </summary>
 public static class Installs
@@ -71,9 +71,13 @@ public static class Installs
 
     internal static bool BadName(string? s) => string.IsNullOrWhiteSpace(s) || s.Trim('.').Length == 0 || s.IndexOfAny(System.IO.Path.GetInvalidFileNameChars()) >= 0;
 
-    /// <summary>`Emuladores\<Emulador>\<versión>` (o `Ports\…`), una carpeta aunque sirva a varias consolas (decisión 302).</summary>
-    static string InstallPath(DiskInfo home, Target t, string version) =>
-        System.IO.Path.Combine(home.Path, Disk.DiskFolders[t.Kind], t.Name, version);
+    /// <summary>
+    /// `Emuladores\<Emulador>\<versión>`, una carpeta aunque sirva a varias consolas (decisión 302). Un port, `Ports\<Port>`, sin la
+    /// versión (decisión 324): su versión va en <see cref="Recipes.VersionFile"/>.
+    /// </summary>
+    static string InstallPath(DiskInfo home, Target t, string version) => t.Kind == "port"
+        ? System.IO.Path.Combine(home.Path, Disk.DiskFolders[t.Kind], t.Name)
+        : System.IO.Path.Combine(home.Path, Disk.DiskFolders[t.Kind], t.Name, version);
 
     internal static string ShelfPath(string disk, string kind, string emulator, string version) =>
         System.IO.Path.Combine(disk, LibraryFolder, Disk.DiskFolders[kind], emulator, version);
@@ -87,7 +91,8 @@ public static class Installs
         {
             if (home is null) return (null, ApiError.Of("library.notConnected"));
             if (BadName(job.Version) || Registered(db, job.Emulator, job.Version!) is not { File: { } file }) return (null, ApiError.Of("install.notInstalled"));
-            if (System.IO.Path.Exists(InstallPath(home, target, job.Version!))) return (null, ApiError.Of("install.exists", ("version", job.Version!)));
+            // Un port se reinstala sobre la que tenga (decisión 325); un emulador, solo si perdió su carpeta.
+            if (target.Kind != "port" && System.IO.Path.Exists(InstallPath(home, target, job.Version!))) return (null, ApiError.Of("install.exists", ("version", job.Version!)));
             if (!File.Exists(System.IO.Path.Combine(ShelfPath(home.Path, target.Kind, job.Emulator, job.Version!), file)))
                 return (null, ApiError.Of("install.notInLibrary", ("version", job.Version!)));
             return (TaskQueue.Enqueue(db, Kind, JsonSerializer.Serialize(new InstallJob(job.Emulator, job.Version, Reinstall: true), Json)), null);
@@ -105,7 +110,7 @@ public static class Installs
             return (null, ApiError.Of("install.noDownload"));
         if (BadName(job.Version)) return (null, ApiError.Of("install.noVersion"));
         if (home is null) return (null, ApiError.Of("library.notConnected"));
-        if (Registered(db, job.Emulator, job.Version!) is not null || System.IO.Path.Exists(InstallPath(home, target, job.Version!)))
+        if (Registered(db, job.Emulator, job.Version!) is not null || (target.Kind != "port" && System.IO.Path.Exists(InstallPath(home, target, job.Version!))))
             return (null, ApiError.Of("install.exists", ("version", job.Version!)));
         return (TaskQueue.Enqueue(db, Kind, JsonSerializer.Serialize(job, Json)), null);
     }
@@ -127,10 +132,10 @@ public static class Installs
 
     public static Task Run(TaskRun run, CancellationToken ct) => Install(run, JsonSerializer.Deserialize<InstallJob>(run.Data!, Json)!, ct);
 
-    /// <summary>Ya ocupada: registrada o con su carpeta en el disco ★.</summary>
+    /// <summary>Ya ocupada: registrada o con su carpeta en el disco ★ (un port se reemplaza: solo si está registrada).</summary>
     internal static bool Taken(Database db, InstallJob job) =>
         Registered(db, job.Emulator, job.Version!) is not null
-        || (Disk.DefaultDisk(db) is { Connected: true } home && Resolve(db, job) is { } t && System.IO.Path.Exists(InstallPath(home, t, job.Version!)));
+        || (Disk.DefaultDisk(db) is { Connected: true } home && Resolve(db, job) is { Kind: not "port" } t && System.IO.Path.Exists(InstallPath(home, t, job.Version!)));
 
     /// <summary>Instala dentro de otra tarea (cargar un perfil compartido, #282).</summary>
     internal static async Task Install(TaskRun run, InstallJob job, CancellationToken ct)
@@ -139,9 +144,15 @@ public static class Installs
         var target = Resolve(run.Db, job) ?? throw new TaskException(ApiError.Of("install.unknownEmulator"));
         if (Disk.DefaultDisk(run.Db) is not { Connected: true } home) throw new TaskException(ApiError.Of("library.notConnected"));
         var install = InstallPath(home, target, version);
-        // Nunca se pisa una versión: ni la registrada (salvo al reinstalarla) ni una carpeta que ya esté ahí.
+        // Nunca se pisa una versión: ni la registrada (salvo al reinstalarla) ni una carpeta que ya esté ahí. Un port sí se reemplaza
+        // (decisión 325), salvo que todavía tenga varias versiones adentro: primero se juntan en una (#316).
         var registered = Registered(run.Db, job.Emulator, version);
-        if ((registered is not null && !job.Reinstall) || System.IO.Path.Exists(install)) throw new TaskException(ApiError.Of("install.exists", ("version", version)));
+        var isPort = target.Kind == "port";
+        if ((registered is not null && !job.Reinstall) || (!isPort && System.IO.Path.Exists(install))) throw new TaskException(ApiError.Of("install.exists", ("version", version)));
+        var replace = isPort && Directory.Exists(install);
+        if (replace && !File.Exists(System.IO.Path.Combine(install, Recipes.VersionFile))
+            && Directory.EnumerateDirectories(install).Any(d => Registered(run.Db, job.Emulator, System.IO.Path.GetFileName(d)) is not null))
+            throw new TaskException(ApiError.Of("install.manyVersions", ("name", target.Name)));
         var download = job.Url is null && job.Path is null && !job.Reinstall ? target.Recipe!.Downloads.First(d => d.Version == version && d.System == Os) : null;
         var origin = job.Path is not null ? (job.Adopt ? "adopted" : "upload") : download is not null ? "recipe" : "url";
 
@@ -206,7 +217,9 @@ public static class Installs
                 File.Copy(stored, System.IO.Path.Combine(partial, target.Recipe?.SaveAs ?? System.IO.Path.GetFileName(stored)));
             }
             Directory.CreateDirectory(System.IO.Path.GetDirectoryName(install)!);
-            Directory.Move(partial, install);
+            if (replace) Replace(install, partial, target.Recipe, version);
+            else Directory.Move(partial, install);
+            if (isPort) File.WriteAllText(System.IO.Path.Combine(install, Recipes.VersionFile), version);
             if (target.Recipe is { } recipe)
             {
                 Recipes.MakePortable(recipe, install);
@@ -234,6 +247,120 @@ public static class Installs
         }
     }
 
+    /// <summary>
+    /// Reemplaza un port en el lugar (decisión 325) con la versión ya extraída en <paramref name="partial"/>. Lo de la persona se queda:
+    /// `_compartido` y `_respaldos` (partidas y contenido, decisión 308), la configuración, los mods y los archivos por juego de la receta,
+    /// y todo archivo que no venga en el paquete nuevo. Antes se copia, verificado, a `_respaldos`; recién entonces se cambia la
+    /// carpeta, y la vieja se borra al final, cuando lo nuevo ya está en su lugar.
+    /// </summary>
+    /// <remarks>ponytail: un corte entre los dos renombres deja `<Port>.anterior` al lado, con todo: se arregla a mano.</remarks>
+    static void Replace(string install, string partial, Recipe? recipe, string version)
+    {
+        var mine = Mine(recipe);
+        var kept = Files(install).Where(rel => rel != Recipes.VersionFile
+            && (!File.Exists(System.IO.Path.Combine(partial, rel)) || mine.Any(m => Under(rel, m)))).ToList();
+        var backup = System.IO.Path.Combine(install, SnapshotsFolder, $"{DateTime.Now:yyyy-MM-dd-HHmmss}-archivos-antes-de-{version}");
+        foreach (var rel in kept) CopyVerified(System.IO.Path.Combine(install, rel), System.IO.Path.Combine(backup, rel));
+        foreach (var rel in kept) CopyVerified(System.IO.Path.Combine(install, rel), System.IO.Path.Combine(partial, rel), overwrite: true);
+        MoveCommon(install, partial);
+        var old = install + ".anterior";
+        Directory.Move(install, old);
+        Directory.Move(partial, install);
+        Links.DeleteTree(old); // ya sin lo de la persona: los enlaces se borran, no lo enlazado
+    }
+
+    /// <summary>Lo de la persona según la receta, hasta el primer marcador (`data/mods`, `User/GameSettings/`): gana sobre lo que traiga el paquete.</summary>
+    static List<string> Mine(Recipe? recipe) =>
+        (recipe is null ? [] : recipe.Config.Concat(recipe.PerGame is { } pg ? [.. pg.Config is { } c ? [c] : Array.Empty<string>(), .. pg.Files, .. pg.Mods] : []))
+            .Select(p => p.Split('{')[0].Replace('\\', '/').TrimEnd('/')).Where(p => p.Length > 0).ToList();
+
+    static bool Under(string rel, string folder) => rel == folder || rel.StartsWith(folder + "/", StringComparison.Ordinal);
+
+    /// <summary>`_compartido` y `_respaldos` pasan de una carpeta a la otra, en el mismo disco: se renombran.</summary>
+    static void MoveCommon(string from, string to)
+    {
+        foreach (var folder in new[] { SharedFolder, SnapshotsFolder })
+            if (Directory.Exists(System.IO.Path.Combine(from, folder)))
+            {
+                var there = System.IO.Path.Combine(to, folder);
+                if (System.IO.Path.Exists(there)) Directory.Move(there, there + ".del-paquete");
+                Directory.Move(System.IO.Path.Combine(from, folder), there);
+            }
+    }
+
+    /// <summary>
+    /// Un port de antes, `Ports\<Port>\<versión>` con una o varias, pasa a una sola en `Ports\<Port>`: la más nueva (decisión 327, #316).
+    /// Primero copia, verificado, a `_respaldos\<fecha>-antes-de-juntar-versiones\<versión>` lo de la persona de cada versión (lo que
+    /// <see cref="Replace"/> conserva: partidas, configuración, mods y lo que no trae la nueva) y lo que se va a pisar; después junta en
+    /// la nueva las partidas y lo de la persona (si el mismo archivo está en varias, gana el más reciente) y recién entonces borra las
+    /// demás. Los archivos de cada versión siguen en la librería. Devuelve la versión que quedó.
+    /// </summary>
+    /// <remarks>ponytail: un corte entre los renombres deja `<Port>.nueva` o `<Port>.anterior` al lado, con todo: se arregla a mano.</remarks>
+    internal static string JoinVersions(string folder, Recipe? recipe, IReadOnlyList<string> versions)
+    {
+        string P(params string[] parts) => System.IO.Path.Combine(parts);
+        var newest = versions.Order(Comparer<string>.Create((a, b) => EmulatorSettings.Compare(a, b) is var r and not 0 ? r : string.CompareOrdinal(a, b))).Last();
+        var keep = P(folder, newest);
+        var shared = P(folder, SharedFolder);
+        var together = recipe is null ? [] : recipe.Saves.Concat(recipe.Content).Select(s => s.Replace('\\', '/').TrimEnd('/')).ToList();
+        var mine = Mine(recipe).Concat(together).ToList();
+        // Las partidas que ya están en común (decisión 308) se juntan ahí; lo demás, en la versión nueva.
+        string Dest(string rel) => together.Any(s => Under(rel, s) && Directory.Exists(P(shared, s))) ? P(shared, rel) : P(keep, rel);
+
+        var candidates = versions
+            .SelectMany(v => Files(P(folder, v)).Where(rel => rel != Recipes.VersionFile
+                && (mine.Any(m => Under(rel, m)) || (v != newest && !File.Exists(P(keep, rel))))).Select(rel => (Label: v, Rel: rel, File: P(folder, v, rel))))
+            .Concat(together.Where(s => Directory.Exists(P(shared, s)))
+                .SelectMany(s => Files(P(shared, s)).Select(rel => (Label: SharedFolder, Rel: s + "/" + rel, File: P(shared, s, rel)))))
+            .ToList();
+        var winners = candidates.GroupBy(c => c.Rel).Select(g => g.MaxBy(c => File.GetLastWriteTimeUtc(c.File)))
+            .Where(w => !Disk.Same(w.File, Dest(w.Rel))).ToList();
+
+        // 1. Respaldo verificado: lo de la persona de cada versión que se borra (salvo lo que la nueva ya tiene igual) y lo que se pisa.
+        var backup = P(folder, SnapshotsFolder, $"{DateTime.Now:yyyy-MM-dd-HHmmss}-antes-de-juntar-versiones");
+        foreach (var c in candidates.Where(c => c.Label != newest && c.Label != SharedFolder))
+            if (!File.Exists(Dest(c.Rel)) || !FolderMove.SameContent(c.File, Dest(c.Rel))) CopyVerified(c.File, P(backup, c.Label, c.Rel));
+        foreach (var w in winners.Where(w => File.Exists(Dest(w.Rel))))
+            CopyVerified(Dest(w.Rel), P(backup, Dest(w.Rel).StartsWith(shared + System.IO.Path.DirectorySeparatorChar) ? SharedFolder : newest, w.Rel), overwrite: true);
+        // 2. Se juntan en la nueva.
+        foreach (var w in winners) CopyVerified(w.File, Dest(w.Rel), overwrite: true);
+        // 3. Lo que esté suelto junto a las versiones va al respaldo (el mismo disco: se renombra), y la nueva queda en `Ports\<Port>`.
+        foreach (var entry in Directory.EnumerateFileSystemEntries(folder)
+            .Where(e => System.IO.Path.GetFileName(e) is var name && !versions.Contains(name) && name is not (SharedFolder or SnapshotsFolder)).ToList())
+        {
+            var to = P(backup, "_sueltos", System.IO.Path.GetFileName(entry));
+            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(to)!);
+            if (File.Exists(entry)) File.Move(entry, to);
+            else Directory.Move(entry, to);
+        }
+        var next = folder + ".nueva";
+        Directory.Move(keep, next);
+        MoveCommon(folder, next);
+        var old = folder + ".anterior";
+        Directory.Move(folder, old);
+        Directory.Move(next, folder);
+        File.WriteAllText(P(folder, Recipes.VersionFile), newest);
+        Links.DeleteTree(old); // solo las versiones viejas, con lo de la persona ya respaldado y junto: los enlaces se borran, no lo enlazado
+        if (recipe is not null)
+        {
+            Recipes.MakePortable(recipe, folder);
+            ShareSaves(recipe, folder, newest);
+        }
+        return newest;
+    }
+
+    /// <summary>Los archivos de una carpeta, relativos y con `/`, sin entrar a los enlaces ni a `_compartido` y `_respaldos`.</summary>
+    static IEnumerable<string> Files(string root)
+    {
+        var pending = new Stack<string>([root]);
+        while (pending.TryPop(out var dir))
+        {
+            foreach (var file in Directory.EnumerateFiles(dir)) yield return System.IO.Path.GetRelativePath(root, file).Replace('\\', '/');
+            foreach (var sub in Directory.EnumerateDirectories(dir))
+                if (!Links.IsLink(sub) && !(dir == root && System.IO.Path.GetFileName(sub) is SharedFolder or SnapshotsFolder)) pending.Push(sub);
+        }
+    }
+
     /// <summary>Lo común a todas las versiones de un emulador, junto a ellas (decisión 308). Con `_`: no es una versión.</summary>
     public const string SharedFolder = "_compartido";
     /// <summary>Las copias puntuales de lo común, antes de que lo use una versión nueva.</summary>
@@ -253,7 +380,7 @@ public static class Installs
         var folders = recipe.Content.Concat(recipe.Saves.Where(s => !recipe.Content.Any(c => s.StartsWith(c + "/", StringComparison.Ordinal)))).ToList();
         // Ya enlazada (se repite): no es una versión nueva para lo común.
         if (folders.All(folder => Links.IsLink(System.IO.Path.Combine(install, folder)))) return;
-        var root = System.IO.Path.GetDirectoryName(install)!;
+        var root = recipe.Kind == "port" ? install : System.IO.Path.GetDirectoryName(install)!; // un port: `Ports\<Port>\_compartido`
         var shared = System.IO.Path.Combine(root, SharedFolder);
         var snapshot = System.IO.Path.Combine(root, SnapshotsFolder, $"{DateTime.Now:yyyy-MM-dd-HHmmss}-antes-de-{version}");
         foreach (var save in recipe.Saves.Select(s => System.IO.Path.Combine(shared, s)))
@@ -282,13 +409,15 @@ public static class Installs
     static void Snapshot(string from, string to)
     {
         foreach (var file in Directory.EnumerateFiles(from, "*", SearchOption.AllDirectories))
-        {
-            var target = System.IO.Path.Combine(to, System.IO.Path.GetRelativePath(from, file));
-            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(target)!);
-            File.Copy(file, target);
-            FolderMove.FlushToDisk(target);
-            if (!FolderMove.SameContent(file, target)) throw new TaskException(ApiError.Of("move.copyMismatch", ("path", from), ("detail", file)));
-        }
+            CopyVerified(file, System.IO.Path.Combine(to, System.IO.Path.GetRelativePath(from, file)));
+    }
+
+    static void CopyVerified(string file, string target, bool overwrite = false)
+    {
+        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(target)!);
+        File.Copy(file, target, overwrite);
+        FolderMove.FlushToDisk(target);
+        if (!FolderMove.SameContent(file, target)) throw new TaskException(ApiError.Of("move.copyMismatch", ("path", file), ("detail", target)));
     }
 
     /// <summary>El disco elegido para la segunda copia (decisión 303).</summary>

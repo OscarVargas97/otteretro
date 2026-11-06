@@ -392,6 +392,8 @@ public static class CatalogEndpoints
     internal static Database? Db(AppSession s) =>
         DataFolder.IsReady(s.Config.DataFolder) ? DataFolder.Open(s.Config.DataFolder!) : null;
 
+    internal static Credentials? CredentialsOf(AppSession s, SecretBox box) => Db(s) is { } db ? new(db, s.Config.MachineId, box) : null;
+
     internal static Conflict<ApiError> NoData() => TypedResults.Conflict(ApiError.Of("move.noDataFolder"));
 
     static bool IsDate(string? value) =>
