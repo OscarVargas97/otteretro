@@ -147,9 +147,10 @@ public class DiskTests
         Assert.Null(Recipes.Find("ryujinx-ss4k")!.Updates); // sin fuente pública: solo desde la librería, sin avisos
         Assert.All(new[] { "eden", "ryubing", "citron", "dolphin", "dusklight" }, id => Assert.NotNull(Recipes.Find(id)!.Asset));
         // #334: Switch 2 en experimental, con Lichii como base; Switch sigue con los suyos.
-        Assert.All(new[] { "lichii", "eglantine" }, id => Assert.True(Recipes.Find(id) is { Experimental: true, Consoles: ["switch2"], Asset: not null, Updates.Dev: true }));
+        Assert.All(new[] { "lichii", "eglantine", "eden-nx2" }, id => Assert.True(Recipes.Find(id) is { Experimental: true, Consoles: ["switch2"], Asset: not null, Updates.Dev: true }));
         Assert.Equal(["lichii"], Recipes.All.Where(r => r.BaseFor.Contains("switch2")).Select(r => r.Id));
         Assert.DoesNotContain(Recipes.All, r => r.Consoles.Contains("switch") && r.Consoles.Contains("switch2"));
+        Assert.Equal(("forgejo", "git.eden-emu.dev"), (Recipes.Find("eden-nx2")!.Updates!.Source, Recipes.Find("eden-nx2")!.Updates!.Host)); // #335
 
         // El esquema y el record dicen lo mismo: cada propiedad de uno está en el otro.
         using var schema = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(folder, "receta.schema.json")));
