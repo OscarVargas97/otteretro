@@ -579,6 +579,8 @@
       },
       "notInstalled": "Esa versión no está registrada: instálala primero.",
       "notInLibrary": "La versión {version} no está en tu librería: no se puede reinstalar sin bajarla.",
+      "inUse": "La versión {version} la usan tus perfiles: pasa los perfiles a otra antes de borrarla.",
+      "removeFailed": "No se pudo borrar la instalación: {detail}",
       "sourceFailed": "No se pudo leer las versiones de {name}: {detail}",
       "manyVersions": "{name} todavía tiene varias versiones en su carpeta: se juntan en una al abrir la app y después se puede actualizar."
     },
