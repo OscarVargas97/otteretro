@@ -123,14 +123,14 @@ public static class Ports
     /// La última versión estable de la receta para este sistema: la de sus descargas o, si no trae, la release de GitHub con el archivo que
     /// dice su <c>asset</c>. Null si no se sabe de dónde.
     /// </summary>
-    static async Task<(string Version, string? Url)?> Latest(Recipe r, CancellationToken ct)
+    static async Task<(string Version, string? Url)?> Latest(Recipe r, string? token, CancellationToken ct)
     {
         var os = OperatingSystem.IsWindows() ? "windows" : "linux";
         if (r.Downloads.LastOrDefault(d => d.System == os) is { } d) return (d.Version, null);
         if (r.Updates is not { Source: "github", Repo: { } repo } || r.Asset is null || !OperatingSystem.IsWindows()) return null;
         using var http = Installs.Handler is null ? new HttpClient() : new HttpClient(Installs.Handler, disposeHandler: false);
         http.DefaultRequestHeaders.UserAgent.ParseAdd("Otteretro");
-        var releases = JsonSerializer.Deserialize<List<GitRelease>>(await http.GetStringAsync($"https://api.github.com/repos/{repo}/releases?per_page=30", ct), Snake)!;
+        var releases = JsonSerializer.Deserialize<List<GitRelease>>(await GithubApi.GetString(http, $"https://api.github.com/repos/{repo}/releases?per_page=30", token, ct), Snake)!;
         var asset = new Regex(r.Asset);
         return releases.Where(x => !x.Draft && !x.Prerelease && x.Assets.Any(a => asset.IsMatch(a.Name))).MaxBy(x => x.PublishedAt ?? "") is { } g
             ? (ToolUpdates.VersionOf(new(g.TagName, g.Name, null, g.Draft, g.Prerelease, g.PublishedAt, null, null)), g.Assets.First(a => asset.IsMatch(a.Name)).BrowserDownloadUrl)
@@ -138,7 +138,7 @@ public static class Ports
     }
 
     /// <summary>Instalar un port (#287): con un clic si tiene receta, o con la URL de su release. Devuelve la tarea o el error.</summary>
-    public static async Task<(long? Task, ApiError? Error)> Install(Database db, long id, PortInstallRequest request, CancellationToken ct = default)
+    public static async Task<(long? Task, ApiError? Error)> Install(Database db, long id, PortInstallRequest request, CancellationToken ct = default, string? token = null)
     {
         if (Query(db, "WHERE p.id = @id", new { id }).FirstOrDefault() is not { } port) return (null, ApiError.Of("ports.notFound"));
         if (port.Status == NoPort) return (null, ApiError.Of("ports.noPort"));
@@ -150,7 +150,8 @@ public static class Ports
         else
         {
             (string Version, string? Url)? latest;
-            try { latest = await Latest(recipe, ct); }
+            try { latest = await Latest(recipe, token, ct); }
+            catch (GithubRateLimitException e) { return (null, e.Error); }
             catch (Exception e) when (e is HttpRequestException or JsonException) { return (null, ApiError.Of("ports.sourceUnreachable")); }
             if (latest is not { } l) return (null, ApiError.Of("ports.needsUrl"));
             job = job with { Version = l.Version, Url = l.Url };

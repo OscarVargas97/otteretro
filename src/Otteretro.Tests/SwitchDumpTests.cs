@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Net;
 using System.Text;
 using Dapper;
+using Otteretro.Claude;
 using Otteretro.Libraries;
 
 namespace Otteretro.Tests;
@@ -71,6 +72,27 @@ public class SwitchDumpTests
     }
 
     /// <summary>#241: un juego de Switch cuyo nombre de archivo no dice qué es se reconoce por su TitleID con titledb, sin Claude.</summary>
+    /// <summary>#309: un `.nup` (volcado de Switch o Switch 2) en un comprimido de `Entrada\` va tal cual a la consola de su TitleID.</summary>
+    [Fact]
+    public async Task ANupGoesAsIsToTheConsoleOfItsTitleId()
+    {
+        await using var f = new Fixture();
+        var (id, _) = Disk.Create(f.Db, f.Tmp["Otteretro"], "E:");
+        using (var c = f.Db.Open())
+            c.Execute("INSERT INTO game (id, name_es) VALUES (50205, 'Pokémon Pokopia'); INSERT INTO version (id, game_id, platform) VALUES (70, 50205, 'switch2');");
+        const string nup = "PPP [0400A3A01EE4C000][v0].nup";
+        Directory.CreateDirectory(f.Tmp[@"Otteretro\Entrada"]);
+        File.WriteAllBytes(f.Tmp[@"Otteretro\Entrada\PPP ROM.zip"], Zip((nup, "juego"u8.ToArray())));
+        (Dats.Handler, SwitchTitles.Handler) = (new NoNetwork(), new Switchbrew());
+        try { Assert.Equal("done", (await f.Run(Import.EnqueueEntry(f.Db, Disk.Get(f.Db, id!)!))).Status); }
+        finally { (Dats.Handler, SwitchTitles.Handler) = (null, null); }
+
+        Assert.Equal("juego", File.ReadAllText(f.Tmp[$@"Otteretro\Juegos\Switch 2\Pokémon Pokopia\{nup}"]));
+        Assert.False(File.Exists(f.Tmp[@"Otteretro\Entrada\PPP ROM.zip"]));
+        using var db = f.Db.Open();
+        Assert.Equal((70L, "switch2"), db.QuerySingle<(long, string)>("SELECT version_id, console FROM source WHERE title_id = @Pokopia", new { Pokopia }));
+    }
+
     [Fact]
     public async Task ASwitchFileIsRecognizedByItsTitleIdWithTitledb()
     {
@@ -144,6 +166,23 @@ public class SwitchDumpTests
         Assert.Equal(1, switchbrew.Calls);
     }
 
+    /// <summary>#311: con otra versión de Otteretro, lo ya intentado se olvida una sola vez; con la misma, no.</summary>
+    [Fact]
+    public async Task WhatWasTriedIsForgottenOnANewVersionOnly()
+    {
+        await using var f = new Fixture();
+        using var c = f.Db.Open();
+        long Tried() => c.ExecuteScalar<long>("SELECT count(*) FROM entry_tried");
+        void MarkOne() => c.Execute(@"INSERT INTO entry_tried (library_id, relative_path, size) VALUES ('d', 'Entrada\x.zip', 1) ON CONFLICT DO NOTHING");
+
+        MarkOne();
+        Import.RetryTriedOnNewVersion(f.Db, "9.9.9");
+        Assert.Equal(0, Tried());
+        MarkOne();
+        Import.RetryTriedOnNewVersion(f.Db, "9.9.9");
+        Assert.Equal(1, Tried());
+    }
+
     /// <summary>
     /// Lo que no se reconoce espera en `Entrada\` (para Revisar) y no se vuelve a descomprimir cada vez que el vigilante mira; un paquete
     /// sin juegos, tampoco.
@@ -170,6 +209,39 @@ public class SwitchDumpTests
             Assert.Equal(("switch2", Unknown), c.QuerySingle<(string, string)>("SELECT console, title_id FROM source WHERE relative_path = @path", new { path = @"Entrada\DKB ROM.zip" }));
         }
         finally { (Dats.Handler, SwitchTitles.Handler) = (null, null); }
+    }
+
+    /// <summary>#310: un paquete sin juegos queda en Revisar con su nombre y sus archivos; «Reintentar» olvida el intento y lo vuelve a importar.</summary>
+    [Fact]
+    public async Task APackageWithoutGamesGoesToReviewAndCanBeRetried()
+    {
+        await using var f = new Fixture();
+        var (id, _) = Disk.Create(f.Db, f.Tmp["Otteretro"], "E:");
+        Directory.CreateDirectory(f.Tmp[@"Otteretro\Entrada"]);
+        File.WriteAllBytes(f.Tmp[@"Otteretro\Entrada\leeme.zip"], Zip(("leeme.txt", "nada"u8.ToArray())));
+        var disk = Disk.Get(f.Db, id!)!;
+        await f.Run(Import.EnqueueEntry(f.Db, disk));
+
+        var package = Assert.Single(ClaudeReview.Page(f.Db).Packages);
+        Assert.Equal("leeme", package.Name);
+        Assert.Equal(["leeme.txt"], package.Files);
+        Assert.Equal(f.Tmp[@"Otteretro\Entrada\leeme.zip"], package.Path);
+        Assert.Equal(1, ClaudeReview.PendingCount(f.Db));
+
+        Assert.Null(Import.Retry(f.Db, package.Id));
+        using (var c = f.Db.Open()) Assert.Equal(0, c.ExecuteScalar<long>("SELECT count(*) FROM entry_tried"));
+        var again = await f.Run(Import.EnqueueEntry(f.Db, disk)); // la que encoló Reintentar
+        using (var c = f.Db.Open())
+        {
+            Assert.Contains(c.Query<string>("SELECT message FROM task_log WHERE task_id = @Id", again), m => m.Contains("import.log.noGames"));
+            Assert.Equal(1, c.ExecuteScalar<long>("SELECT count(*) FROM entry_tried"));
+        }
+        Assert.Single(ClaudeReview.Page(f.Db).Packages); // sigue sin juegos: uno solo, el nuevo
+
+        File.Delete(f.Tmp[@"Otteretro\Entrada\leeme.zip"]);
+        await f.Run(Import.EnqueueEntry(f.Db, disk));
+        Assert.Empty(ClaudeReview.Page(f.Db).Packages);
+        Assert.Equal("review.notFound", Import.Retry(f.Db, package.Id)?.Code);
     }
 }
 

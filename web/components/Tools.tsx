@@ -195,7 +195,12 @@ function InstallPanel({ kind }: { kind: Installable }) {
   const format = useFormatter();
   const describe = useDescribeError();
   const cache = useQueryClient();
-  const recipes = (useQuery(recipesQuery).data ?? []).filter((r) => r.kind === kind);
+  const all = (useQuery(recipesQuery).data ?? []).filter((r) => r.kind === kind);
+  const consoles = useConsoles().data ?? [];
+  // Emuladores: elegir la consola deja solo los suyos, con el base primero (#317).
+  const [console_, setConsole] = useState("");
+  const recipes = console_ === "" ? all : all.filter((r) => r.consoles.includes(console_))
+    .sort((a, b) => Number(b.baseFor.includes(console_)) - Number(a.baseFor.includes(console_)));
   const [open, setOpen] = useState(false);
   const [from, setFrom] = useState<"recipe" | "url" | "path">("recipe");
   const [recipe, setRecipe] = useState("");
@@ -237,10 +242,17 @@ function InstallPanel({ kind }: { kind: Installable }) {
     <section className="panel" style={{ display: "grid", gap: 8 }} aria-labelledby="install-title">
       <h3 id="install-title" style={{ margin: 0 }}>{t(`open.${kind}`)}</h3>
       <div className="sentence">
+        {kind === "emulator" && <>
+          <label className="small muted" htmlFor="install-console">{t("console")}</label>
+          <select id="install-console" value={console_} onChange={(e) => { const c = e.target.value; setConsole(c); if (recipe !== OTHER && c !== "" && !all.find((r) => r.id === recipe)?.consoles.includes(c)) pick(""); }}>
+            <option value="">{t("allConsoles")}</option>
+            {consoles.filter((c) => all.some((r) => r.consoles.includes(c.id))).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </>}
         <label className="small muted" htmlFor="install-recipe">{t("what")}</label>
         <select id="install-recipe" value={recipe} onChange={(e) => pick(e.target.value)}>
           <option value="">{t("pick")}</option>
-          {recipes.map((r) => <option key={r.id} value={r.id}>{r.experimental ? t("experimental", { name: r.name }) : r.name}</option>)}
+          {recipes.map((r) => { const label = r.experimental ? t("experimental", { name: r.name }) : r.name; return <option key={r.id} value={r.id}>{console_ !== "" && r.baseFor.includes(console_) ? t("base", { name: label }) : label}</option>; })}
           {kind !== "tool" && <option value={OTHER}>{t("other")}</option>}
         </select>
         {recipe === OTHER && <input aria-label={t("name")} placeholder={t("name")} value={name} onChange={(e) => setName(e.target.value)} />}
