@@ -365,8 +365,11 @@ test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería y
   // Al terminar: en la lista de su tipo y en la librería, con su origen.
   const panel = page.locator("#tools-panel");
   await expect(panel.getByRole("button", { name: /Steam ROM Manager/ })).toBeVisible({ timeout: 15_000 });
-  const library = panel.locator("section", { has: page.getByRole("heading", { name: en.tools.library.title }) });
-  await expect(library.getByText(en.tools.library.origin.upload, { exact: false })).toBeVisible();
+  const card = panel.getByRole("region", { name: "Steam ROM Manager" });
+  await expect(card.getByText(en.tools.library.origin.upload, { exact: false })).toBeVisible();
+  // Una herramienta no se "usa" ni se borra desde aquí: solo se abre su carpeta.
+  await expect(card.getByRole("button", { name: en.tools.library.open })).toBeVisible();
+  await expect(card.getByRole("button", { name: en.tools.library.use })).toHaveCount(0);
   await page.screenshot({ path: "e2e-results/8-tools-install-en.png", fullPage: true });
 
   // Ya no hay segunda copia: ni la opción en Ajustes › Almacenamiento ni insignias de copias (decisión 335).
@@ -394,6 +397,30 @@ test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería y
   await expectNoRawKeys();
   await page.unroute("**/api/tools/updates");
   await page.unroute("**/api/emulators/install");
+  // La tarjeta de un emulador (#329): «En uso», usar otra versión y borrar la que no se usa.
+  const ver = (version: string, path: string | null, inUse: boolean) => ({ emulatorId: "eden", name: "Eden", kind: "emulator", version, origin: "recipe", url: null, file: null, sha256: null, installedAt: "2026-01-01T00:00:00Z", path, inUse });
+  let list = [ver("1.0", "C:/e/1.0", true), ver("2.0", "C:/e/2.0", false), ver("0.9", null, false)];
+  await page.route("**/api/emulators", (route) => route.fulfill({ json: list }));
+  const bodies: Record<string, unknown> = {};
+  for (const action of ["use", "remove"]) await page.route(`**/api/emulators/${action}`, (route) => {
+    bodies[action] = route.request().postDataJSON();
+    list = action === "use" ? [ver("1.0", "C:/e/1.0", false), ver("2.0", "C:/e/2.0", true), ver("0.9", null, false)] : list.filter((i) => i.version !== "1.0");
+    return route.fulfill({ json: list });
+  });
+  await page.goto(`${base()}/tools/?k=emulator`);
+  const eden = page.getByRole("region", { name: "Eden" });
+  await expect(eden.getByText(en.tools.library.inUse)).toHaveCount(1);
+  await expect(eden.getByText(en.tools.library.archived)).toBeVisible();
+  await expectNoRawKeys();
+  await eden.getByRole("button", { name: en.tools.library.use }).click();
+  await expect(eden.locator(".version-row", { hasText: "2.0" }).getByText(en.tools.library.inUse)).toBeVisible();
+  expect(bodies.use).toEqual({ emulator: "eden", version: "2.0" });
+  await eden.locator(".version-row", { hasText: "1.0" }).getByRole("button", { name: en.tools.library.remove }).click();
+  await eden.getByRole("button", { name: en.tools.library.removeConfirm, exact: true }).click();
+  await expect(eden.getByText("1.0")).toHaveCount(0);
+  expect(bodies.remove).toEqual({ emulator: "eden", version: "1.0" });
+  for (const action of ["use", "remove"]) await page.unroute(`**/api/emulators/${action}`);
+  await page.unroute("**/api/emulators");
   // Se limpian la instalación y la copia del panel de tareas, para las pruebas que siguen.
   await page.getByRole("button", { name: en.topBar.tasks }).click();
   await expect(async () => {
