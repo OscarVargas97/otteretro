@@ -301,6 +301,12 @@ a.ot-btn, a.chip { text-decoration: none; }
 .ot-menu-list button { text-align: left; padding: 8px 12px; border: 0; border-radius: 6px; background: none; color: var(--ink); font: inherit; cursor: pointer; }
 .ot-menu-list button:hover:not(:disabled), .ot-menu-list button:focus-visible { background: var(--surface); }
 .ot-menu-list button:disabled { color: var(--ink-muted); cursor: default; }
+.ot-menu-sm > summary { width: 32px; height: 32px; font-size: 16px; }
+/* Avisos de versiones nuevas (decisión 322): una fila que se abre al tocarla. */
+.update-row { display: grid; gap: 6px; padding: 8px 0; border-top: 1px solid var(--line); }
+.update-row-toggle { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; padding: 4px 0; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.update-row-toggle::before { content: "▸"; color: var(--ink-muted); }
+.update-row-toggle[aria-expanded="true"]::before { content: "▾"; }
 .ot-dialog { width: min(560px, calc(100vw - 32px)); padding: var(--space-4); border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); }
 .ot-dialog::backdrop { background: rgb(0 0 0 / .55); }
 .disk-panel { gap: var(--space-3); }

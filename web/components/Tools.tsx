@@ -25,20 +25,23 @@ const post = (body: unknown) => ({ method: "POST", body: JSON.stringify(body) })
 const recipesQuery = { queryKey: ["recipes"], queryFn: () => request<RecipeSummary[]>("/api/recipes"), staleTime: Infinity };
 const emulatorsQuery = { queryKey: ["emulators"], queryFn: () => request<EmulatorInstall[]>("/api/emulators") };
 
-/** Herramientas (§5.1, #193, #194, #200, #296): el inventario por tipo, en pestañas y una sola columna centrada, con instalar y la librería. */
+/** Herramientas (§5.1, #193, #194, #200, #296, #304): el inventario por tipo, en pestañas y una sola columna centrada, con sus versiones nuevas, instalar y la librería. */
 export function ToolsPage() {
   const t = useTranslations("tools");
   const router = useRouter();
   const asked = useSearchParams().get("k");
   const kind: Kind = KINDS.find((k) => k === asked) ?? "emulator";
+  // Cada pestaña cuenta sus avisos de versiones nuevas (decisión 320).
+  const updates = useQuery(toolUpdatesQuery).data ?? [];
+  const count = (k: Kind) => updates.filter((u) => u.kind === k).length;
   return (
     <div className="centered">
-      <ToolUpdates />
-      <Tabs tabs={KINDS.map((k) => ({ id: k, label: t(`kind.${k}`) }))} current={kind} label={t("sections")} panel="tools-panel"
+      <Tabs tabs={KINDS.map((k) => ({ id: k, label: t(`kind.${k}`), count: count(k), countLabel: t("updates.count", { count: count(k) }) }))} current={kind} label={t("sections")} panel="tools-panel"
         onSelect={(k) => router.push(`/tools/?k=${k}`)} />
       <section className="sec" id="tools-panel" role="tabpanel" aria-labelledby={`tab-${kind}`}>
         {kind === "system" ? <SystemPanel /> : (
           <div style={{ display: "grid", gap: 12 }}>
+            {kind !== "complement" && <ToolUpdates kind={kind} />}
             {kind !== "complement" && <InstallPanel key={kind} kind={kind} />}
             <ToolList kind={kind} />
             {kind !== "complement" && <Library kind={kind} />}

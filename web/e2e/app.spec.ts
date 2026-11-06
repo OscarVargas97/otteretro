@@ -386,7 +386,15 @@ test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería c
     notes: null, url: "https://github.com/SteamGridDB/steam-rom-manager/releases", publishedAt: null, installed: ["2.6.2"], games: many, download: "https://example.com/srm-2.6.3.exe" }] }));
   let sent: unknown = null;
   await page.route("**/api/emulators/install", (route) => { sent = route.request().postDataJSON(); return route.fulfill({ json: 1 }); });
+  // Va en su pestaña (decisión 320), con su contador, y en una fila que se abre (decisión 322).
   await page.goto(`${base()}/tools/`);
+  await expect(page.getByText("Steam ROM Manager")).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: new RegExp(en.tools.kind.tool) }).locator(".ot-count")).toHaveText("1");
+  await page.goto(`${base()}/tools/?k=tool`);
+  const row = page.getByRole("button", { name: /Steam ROM Manager.*2\.6\.2 → 2\.6\.3/ });
+  await expect(row).toHaveAttribute("aria-expanded", "false");
+  await row.click();
+  await page.screenshot({ path: "e2e-results/8-tools-updates-en.png" });
   await expect(page.getByText(en.tools.updates.gamesMore.replace("{list}", "A, B, C, D, E, F").replace(/\{count.*\}$/, "2 more"))).toBeVisible();
   await page.getByRole("button", { name: en.tools.updates.update, exact: true }).click();
   await expect(page.getByText(en.tools.updates.queued)).toBeVisible();
