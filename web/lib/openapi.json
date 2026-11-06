@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:57125/"
+      "url": "http://127.0.0.1:50622/"
     }
   ],
   "paths": {
@@ -2809,6 +2809,50 @@
           },
           "required": true
         },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "pattern": "^-?(?:0|[1-9]\\d*)$",
+                  "type": [
+                    "integer",
+                    "string"
+                  ],
+                  "format": "int64"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/profiles/load-file": {
+      "post": {
+        "tags": [
+          "Otteretro"
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -8827,6 +8871,8 @@
           "publishedAt",
           "available",
           "current",
+          "compatible",
+          "reason",
           "counts",
           "changes"
         ],
@@ -8846,6 +8892,15 @@
           },
           "current": {
             "type": "boolean"
+          },
+          "compatible": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "counts": {
             "type": "object",
