@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Net;
 using System.Text;
 using Dapper;
+using Otteretro.Claude;
 using Otteretro.Libraries;
 
 namespace Otteretro.Tests;
@@ -208,6 +209,39 @@ public class SwitchDumpTests
             Assert.Equal(("switch2", Unknown), c.QuerySingle<(string, string)>("SELECT console, title_id FROM source WHERE relative_path = @path", new { path = @"Entrada\DKB ROM.zip" }));
         }
         finally { (Dats.Handler, SwitchTitles.Handler) = (null, null); }
+    }
+
+    /// <summary>#310: un paquete sin juegos queda en Revisar con su nombre y sus archivos; «Reintentar» olvida el intento y lo vuelve a importar.</summary>
+    [Fact]
+    public async Task APackageWithoutGamesGoesToReviewAndCanBeRetried()
+    {
+        await using var f = new Fixture();
+        var (id, _) = Disk.Create(f.Db, f.Tmp["Otteretro"], "E:");
+        Directory.CreateDirectory(f.Tmp[@"Otteretro\Entrada"]);
+        File.WriteAllBytes(f.Tmp[@"Otteretro\Entrada\leeme.zip"], Zip(("leeme.txt", "nada"u8.ToArray())));
+        var disk = Disk.Get(f.Db, id!)!;
+        await f.Run(Import.EnqueueEntry(f.Db, disk));
+
+        var package = Assert.Single(ClaudeReview.Page(f.Db).Packages);
+        Assert.Equal("leeme", package.Name);
+        Assert.Equal(["leeme.txt"], package.Files);
+        Assert.Equal(f.Tmp[@"Otteretro\Entrada\leeme.zip"], package.Path);
+        Assert.Equal(1, ClaudeReview.PendingCount(f.Db));
+
+        Assert.Null(Import.Retry(f.Db, package.Id));
+        using (var c = f.Db.Open()) Assert.Equal(0, c.ExecuteScalar<long>("SELECT count(*) FROM entry_tried"));
+        var again = await f.Run(Import.EnqueueEntry(f.Db, disk)); // la que encoló Reintentar
+        using (var c = f.Db.Open())
+        {
+            Assert.Contains(c.Query<string>("SELECT message FROM task_log WHERE task_id = @Id", again), m => m.Contains("import.log.noGames"));
+            Assert.Equal(1, c.ExecuteScalar<long>("SELECT count(*) FROM entry_tried"));
+        }
+        Assert.Single(ClaudeReview.Page(f.Db).Packages); // sigue sin juegos: uno solo, el nuevo
+
+        File.Delete(f.Tmp[@"Otteretro\Entrada\leeme.zip"]);
+        await f.Run(Import.EnqueueEntry(f.Db, disk));
+        Assert.Empty(ClaudeReview.Page(f.Db).Packages);
+        Assert.Equal("review.notFound", Import.Retry(f.Db, package.Id)?.Code);
     }
 }
 

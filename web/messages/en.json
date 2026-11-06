@@ -1113,6 +1113,12 @@
       "change": "Change game",
       "search": "Search for the game",
       "noResults": "No {console} game with that name."
+    },
+    "packages": {
+      "noGames": "No games",
+      "files": "{count, plural, one {It had # file} other {It had # files}}",
+      "hint": "It was extracted and no game was recognized. If you updated Otteretro or changed the package, retry it: if it is recognized now, it leaves this list.",
+      "retry": "Retry"
     }
   },
   "home": {
