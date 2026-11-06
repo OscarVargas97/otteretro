@@ -30,6 +30,7 @@ export type FieldRow = Schemas["FieldRow"];
 export type SearchResults = Schemas["SearchResults"];
 export type FileReview = Schemas["FileReview"];
 export type ReviewPage = Schemas["ReviewPage"];
+export type PackageReview = Schemas["PackageReview"];
 export type RoutesPage = Schemas["RoutesPage"];
 export type RouteInfo = Schemas["RouteInfo"];
 export type RouteStepInfo = Schemas["RouteStepInfo"];
