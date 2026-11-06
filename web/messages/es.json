@@ -1506,8 +1506,7 @@
     "sharePlaceholder": "Ruta del .zip nuevo, p. ej. D:\\perfil.zip",
     "shareConfirm": "Guardar el .zip",
     "shared": "Listo: {path}. Lleva el emulador, los mods y la configuración; nunca keys, BIOS, firmware, juegos ni partidas.",
-    "load": "Cargar perfil",
-    "loadPath": "Ruta del .zip del perfil",
+    "loadZip": "Cargar un perfil (.zip)",
     "loadConfirm": "Cargar",
     "loaded": "Cargando el perfil: lo sigues en Tareas."
   }

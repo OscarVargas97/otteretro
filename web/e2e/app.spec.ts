@@ -853,9 +853,8 @@ test("la ficha: perfiles de cada versión, crear, activar y volver al por defect
   await page.getByRole("textbox", { name: es.profiles.sharePath.replace("{name}", "2x") }).fill("C:\\no-existe\\2x.zip");
   await page.getByRole("button", { name: es.profiles.shareConfirm }).click();
   await expect(page.getByRole("alert").filter({ hasText: es.errors.profile.share.badPath })).toBeVisible();
-  await page.getByRole("textbox", { name: es.profiles.loadPath }).fill("C:\\no-existe\\perfil.zip");
-  await page.getByRole("button", { name: es.profiles.load, exact: true }).click();
-  await expect(page.getByRole("alert").filter({ hasText: es.errors.profile.import.notFound })).toBeVisible();
+  await page.getByLabel(es.profiles.loadZip).setInputFiles({ name: "perfil.zip", mimeType: "application/zip", buffer: Buffer.from("no es un zip") });
+  await expect(page.getByRole("alert").filter({ hasText: es.errors.profile.import.badPackage })).toBeVisible();
   await expectNoRawKeys();
 });
 

@@ -1506,8 +1506,7 @@
     "sharePlaceholder": "Path of the new .zip, e.g. D:\\profile.zip",
     "shareConfirm": "Save the .zip",
     "shared": "Done: {path}. It has the emulator, mods and settings; never keys, BIOS, firmware, games or saves.",
-    "load": "Load profile",
-    "loadPath": "Path of the profile's .zip",
+    "loadZip": "Load a profile (.zip)",
     "loadConfirm": "Load",
     "loaded": "Loading the profile: follow it in Tasks."
   }
