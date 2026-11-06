@@ -1298,8 +1298,6 @@
       "queued": "Added to the tasks panel."
     },
     "library": {
-      "title": "Your library",
-      "help": "What you installed, with the original file kept in Libreria on the ★ disk.",
       "portHelp": "A port has a single installed version. The earlier ones keep their file: «Reinstall» makes it the installed one, with your saves.",
       "origin": {
         "recipe": "from its recipe",
@@ -1309,9 +1307,17 @@
       },
       "archived": "File only",
       "installed": "Installed",
-      "missing": "Folder missing",
       "reinstall": "Reinstall",
-      "queued": "Added to the tasks panel: it comes back from your library, without downloading anything."
+      "queued": "Added to the tasks panel: it comes back from your library, without downloading anything.",
+      "inUse": "In use",
+      "use": "Use this version",
+      "remove": "Delete the installation",
+      "removeConfirm": "Delete",
+      "keep": "Keep",
+      "open": "Open its folder",
+      "askProfiles": "Move the profiles to {version}?",
+      "yes": "Yes",
+      "no": "No"
     }
   },
   "downloads": {

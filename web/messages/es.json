@@ -1298,8 +1298,6 @@
       "queued": "Quedó en el panel de tareas."
     },
     "library": {
-      "title": "Tu librería",
-      "help": "Lo que instalaste, con el archivo original guardado en Libreria del disco ★.",
       "portHelp": "Un port tiene una sola versión instalada. De las anteriores queda su archivo: «Reinstalar» la deja como la instalada, con tus partidas.",
       "origin": {
         "recipe": "desde su receta",
@@ -1309,9 +1307,17 @@
       },
       "archived": "Solo el archivo",
       "installed": "Instalada",
-      "missing": "Sin su carpeta",
       "reinstall": "Reinstalar",
-      "queued": "Quedó en el panel de tareas: vuelve desde tu librería, sin bajar nada."
+      "queued": "Quedó en el panel de tareas: vuelve desde tu librería, sin bajar nada.",
+      "inUse": "En uso",
+      "use": "Usar esta versión",
+      "remove": "Borrar la instalación",
+      "removeConfirm": "Borrar",
+      "keep": "Conservar",
+      "open": "Abrir su carpeta",
+      "askProfiles": "¿Pasar los perfiles a la {version}?",
+      "yes": "Sí",
+      "no": "No"
     }
   },
   "downloads": {

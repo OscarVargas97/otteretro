@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useFormatter } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useConsoles } from "@/components/Catalog";
 import { librariesQuery, toolsQuery } from "@/components/Libraries";
 import { LoadProfile } from "@/components/ProfileShare";
@@ -26,7 +26,7 @@ const post = (body: unknown) => ({ method: "POST", body: JSON.stringify(body) })
 const recipesQuery = { queryKey: ["recipes"], queryFn: () => request<RecipeSummary[]>("/api/recipes"), staleTime: Infinity };
 const emulatorsQuery = { queryKey: ["emulators"], queryFn: () => request<EmulatorInstall[]>("/api/emulators") };
 
-/** Herramientas (§5.1, #193, #194, #200, #296, #304): el inventario por tipo, en pestañas y una sola columna centrada, con sus versiones nuevas, instalar y la librería. */
+/** Herramientas (§5.1, #193, #194, #200, #296, #304): el inventario por tipo, en pestañas y una sola columna centrada, con sus versiones nuevas, instalar y una tarjeta por emulador. */
 export function ToolsPage() {
   const t = useTranslations("tools");
   const router = useRouter();
@@ -310,9 +310,9 @@ function InstallPanel({ kind }: { kind: Installable }) {
 }
 
 /**
- * La librería (#268, decisiones 293 y 304): lo instalado por emulador, cada versión con su origen.
- * Una versión cuya carpeta ya no está vuelve con «Reinstalar», desde el archivo guardado y sin bajar nada. Un port tiene una sola
- * instalada (decisión 325): las anteriores quedan como su archivo, y «Reinstalar» la deja en su lugar.
+ * Una tarjeta por emulador, port o herramienta (#268, #329; decisiones 293, 304 y 325): sus versiones, cada una instalada o solo
+ * su archivo guardado, y la que usan tus perfiles. Un port tiene una sola instalada: las anteriores quedan como su archivo.
+ * Al terminar una instalación que deja una versión nueva sin usar, pregunta si pasar los perfiles a ella.
  */
 function Library({ kind }: { kind: Installable }) {
   const t = useTranslations("tools.library");
@@ -320,41 +320,81 @@ function Library({ kind }: { kind: Installable }) {
   const describe = useDescribeError();
   const cache = useQueryClient();
   const list = useQuery(emulatorsQuery);
-  const reinstall = useMutation({
-    mutationFn: (i: EmulatorInstall) => request<number>("/api/emulators/reinstall", post({ emulator: i.emulatorId, version: i.version })),
-    onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
+  const [confirm, setConfirm] = useState<string | null>(null);
+  const [ask, setAsk] = useState<EmulatorInstall | null>(null);
+  const seen = useRef<Set<string> | null>(null);
+  const act = useMutation({
+    mutationFn: ({ action, i }: { action: "use" | "remove" | "reinstall" | "open"; i: EmulatorInstall }) =>
+      request<unknown>(`/api/emulators/${action}`, post({ emulator: i.emulatorId, version: i.version })),
+    onSuccess: (data, { action }) => {
+      setConfirm(null);
+      setAsk(null);
+      if (Array.isArray(data)) cache.setQueryData(["emulators"], data);
+      if (action === "reinstall") cache.invalidateQueries({ queryKey: ["tasks"] });
+    },
   });
   const rows = (list.data ?? []).filter((i) => i.kind === kind);
+  // Una versión que aparece después de la primera carga, sin usar y con otra en uso: ofrece pasar los perfiles (decisión de #329).
+  useEffect(() => {
+    if (!list.data) return;
+    const keys = new Set(list.data.map((i) => `${i.emulatorId}|${i.version}`));
+    const before = seen.current;
+    seen.current = keys;
+    if (!before || kind !== "emulator") return;
+    const fresh = list.data.find((i) => i.kind === kind && i.path && !i.inUse && !before.has(`${i.emulatorId}|${i.version}`)
+      && list.data.some((o) => o.emulatorId === i.emulatorId && o.inUse));
+    if (fresh) setAsk(fresh);
+  }, [list.data, kind]);
   if (list.isError) return <p className="error small" role="alert">{describe(list.error)}</p>;
   if (rows.length === 0) return null;
-  const names = [...new Set(rows.map((i) => i.name))];
+  const ids = [...new Set(rows.map((i) => i.emulatorId))];
+  const busy = act.isPending;
   return (
-    <section className="panel" style={{ display: "grid", gap: 8 }} aria-labelledby="library-title">
-      <h3 id="library-title" style={{ margin: 0 }}>{t("title")}</h3>
-      <p className="small muted" style={{ margin: 0 }}>{t("help")}</p>
+    <>
       {kind === "port" && <p className="small muted" style={{ margin: 0 }}>{t("portHelp")}</p>}
-      {names.map((name) => (
-        <div key={name} style={{ display: "grid", gap: 4 }}>
-          <b>{name}</b>
-          {rows.filter((i) => i.name === name).map((i) => (
-            <div key={i.version} className="version-row small">
-              <span className="grow">
-                <span>{i.version} · {t(`origin.${i.origin as "recipe" | "url" | "upload" | "adopted"}`)} · {format.dateTime(new Date(i.installedAt), { dateStyle: "medium" })}</span>
-                {i.url && <span className="folder-path muted">{i.url}</span>}
-              </span>
-              <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                {kind === "port" ? <span className={`ot-badge${i.path ? " ot-badge-have" : ""}`}>{t(i.path ? "installed" : "archived")}</span>
-                  : !i.path && <span className="ot-badge ot-badge-danger">{t("missing")}</span>}
-                {!i.path && (
-                  <button className="ot-btn ot-btn-sm" type="button" disabled={reinstall.isPending} onClick={() => reinstall.mutate(i)}>{t("reinstall")}</button>
-                )}
-              </span>
-            </div>
-          ))}
-        </div>
-      ))}
-      {reinstall.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("queued")}</p>}
-      {reinstall.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(reinstall.error)}</p>}
-    </section>
+      {ids.map((id) => {
+        const versions = rows.filter((i) => i.emulatorId === id);
+        return (
+          <section key={id} className="panel emulator-card" style={{ display: "grid", gap: 6 }} aria-label={versions[0].name}>
+            <h3 style={{ margin: 0 }}>{versions[0].name}</h3>
+            {ask?.emulatorId === id && (
+              <div className="sentence" role="status">
+                <span className="small">{t("askProfiles", { version: ask.version })}</span>
+                <button type="button" className="ot-btn ot-btn-sm" onClick={() => setAsk(null)}>{t("no")}</button>
+                <button type="button" className="ot-btn ot-btn-sm ot-btn-primary" disabled={busy} onClick={() => act.mutate({ action: "use", i: ask })}>{t("yes")}</button>
+              </div>
+            )}
+            {versions.map((i) => {
+              const row = `${id}|${i.version}`;
+              return (
+                <div key={i.version} className="version-row small">
+                  <span className="grow">
+                    <span>{i.version} · {t(`origin.${i.origin as "recipe" | "url" | "upload" | "adopted"}`)} · {format.dateTime(new Date(i.installedAt), { dateStyle: "medium" })}</span>
+                    {i.url && <span className="folder-path muted">{i.url}</span>}
+                  </span>
+                  <span style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                    {i.inUse && <span className="ot-badge ot-badge-have">{t("inUse")}</span>}
+                    <span className={`ot-badge${i.path ? " ot-badge-have" : ""}`}>{t(i.path ? "installed" : "archived")}</span>
+                    {kind === "emulator" && i.path && !i.inUse && (
+                      <button className="ot-btn ot-btn-sm" type="button" disabled={busy} onClick={() => act.mutate({ action: "use", i })}>{t("use")}</button>
+                    )}
+                    {i.path && <button className="ot-btn ot-btn-sm" type="button" disabled={busy} onClick={() => act.mutate({ action: "open", i })}>{t("open")}</button>}
+                    {!i.path && <button className="ot-btn ot-btn-sm" type="button" disabled={busy} onClick={() => act.mutate({ action: "reinstall", i })}>{t("reinstall")}</button>}
+                    {kind === "emulator" && i.path && !i.inUse && (confirm === row ? (
+                      <>
+                        <button className="ot-btn ot-btn-sm" type="button" onClick={() => setConfirm(null)}>{t("keep")}</button>
+                        <button className="ot-btn ot-btn-sm ot-btn-danger" type="button" disabled={busy} onClick={() => act.mutate({ action: "remove", i })}>{t("removeConfirm")}</button>
+                      </>
+                    ) : <button className="ot-btn ot-btn-sm ot-btn-ghost" type="button" disabled={busy} onClick={() => setConfirm(row)}>{t("remove")}</button>)}
+                  </span>
+                </div>
+              );
+            })}
+          </section>
+        );
+      })}
+      {act.isSuccess && act.variables.action === "reinstall" && <p className="small muted" role="status" style={{ margin: 0 }}>{t("queued")}</p>}
+      {act.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(act.error)}</p>}
+    </>
   );
 }
