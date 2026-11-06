@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState } from "react";
 import { useConsoles } from "@/components/Catalog";
 import { librariesQuery, toolsQuery } from "@/components/Libraries";
+import { LoadProfile } from "@/components/ProfileShare";
 import { Empty } from "@/components/Shell";
 import { Tabs } from "@/components/Tabs";
 import { ToolUpdates } from "@/components/ToolUpdates";
@@ -43,6 +44,7 @@ export function ToolsPage() {
           <div style={{ display: "grid", gap: 12 }}>
             {kind !== "complement" && <ToolUpdates kind={kind} />}
             {kind !== "complement" && <InstallPanel key={kind} kind={kind} />}
+            {kind === "emulator" && <LoadProfile />}
             <ToolList kind={kind} />
             {kind !== "complement" && <Library kind={kind} />}
           </div>
