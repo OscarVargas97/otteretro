@@ -18,7 +18,6 @@ public record MoveFolderRequest(string Relative, string? ToLibrary = null, strin
 /// <param name="ToLocation">Ubicación de su tipo; sin ella, de vuelta a `Herramientas` de la carpeta de datos.</param>
 public record MoveToolRequest(string Path, string? ToLocation = null);
 public record ReinstallRequest(string Emulator, string Version);
-public record BackupDiskRequest(string? DiskId);
 /// <param name="Releases">Su fuente publica el archivo para instalar: se puede elegir la versión.</param>
 /// <param name="Consoles">Las consolas que emula (#317: filtrar «Instalar» por consola).</param>
 /// <param name="BaseFor">Las consolas de las que es el emulador base.</param>
@@ -312,16 +311,6 @@ public static class DiskEndpoints
                 "install.exists" or "library.notConnected" => TypedResults.Conflict(error),
                 _ => TypedResults.BadRequest(error),
             };
-        });
-
-        // El disco de la segunda copia de la librería (Ajustes › Almacenamiento, decisión 303).
-        api.MapGet("/library/backup", Results<Ok<LibraryBackup>, Conflict<ApiError>> (AppSession s) =>
-            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Installs.Backup(db)) : CatalogEndpoints.NoData());
-
-        api.MapPut("/library/backup", Results<Ok<LibraryBackup>, BadRequest<ApiError>, Conflict<ApiError>> (BackupDiskRequest request, AppSession s) =>
-        {
-            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
-            return Installs.SetBackupDisk(db, request.DiskId) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(Installs.Backup(db));
         });
 
         // Mover un emulador, port o complemento a otra ubicación de su tipo, o de vuelta a Herramientas (#198), en una tarea.

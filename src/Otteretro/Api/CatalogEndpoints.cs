@@ -330,6 +330,16 @@ public static class CatalogEndpoints
             var (task, error) = ProfileShare.EnqueueImport(db, r.Path);
             return error is null ? TypedResults.Ok(task!.Value) : error.Code is "library.notConnected" ? TypedResults.Conflict(error) : TypedResults.BadRequest(error);
         });
+        // El .zip llega como cuerpo (selector de archivo del navegador): se deja en la carpeta temporal y se carga como una ruta.
+        api.MapPost("/profiles/load-file", async Task<Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>>> (HttpRequest request, AppSession s, CancellationToken ct) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var path = Path.Combine(Path.GetTempPath(), $"otteretro-perfil-{Guid.NewGuid():N}.zip");
+            await using (var f = File.Create(path)) await request.Body.CopyToAsync(f, ct);
+            var (task, error) = ProfileShare.EnqueueImport(db, path);
+            if (error is not null) File.Delete(path);
+            return error is null ? TypedResults.Ok(task!.Value) : error.Code is "library.notConnected" ? TypedResults.Conflict(error) : TypedResults.BadRequest(error);
+        });
         // Con las partidas si cambia de emulador (#270): qué pasó con ellas, o null.
         api.MapPut("/versions/{id:long}/profile", Results<Ok<ProfileSwitch>, BadRequest<ApiError>, Conflict<ApiError>> (long id, ActiveProfileRequest r, AppSession s) =>
         {

@@ -40,7 +40,6 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         [Libraries.ToolUpdates.Kind] = Libraries.ToolUpdates.Run,
         [Libraries.Installs.Kind] = Libraries.Installs.Run,
         [Libraries.ProfileShare.ImportKind] = Libraries.ProfileShare.RunImport,
-        [Libraries.Installs.BackupKind] = Libraries.Installs.RunBackup,
         [Libraries.Content.Kind] = Libraries.Content.Run,
     };
 
@@ -204,11 +203,9 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
                         Libraries.ToolUpdates.EnqueueIfDue(db);
                         clipboard ??= new(notify: (found, added) => Notify.LinksCaptured(session.Config.EffectiveLanguage, found, added));
                         clipboard.Tick(db, session.Config.ClipboardCapture ?? true);
-                        // La segunda copia de la librería se hace sola cuando se conecta su disco (decisión 303).
                         if (DateTime.UtcNow - lastBackupCheck > TimeSpan.FromSeconds(30))
                         {
                             lastBackupCheck = DateTime.UtcNow;
-                            Libraries.Installs.EnqueueBackupIfPending(db);
                             // Los ports de antes de un disco que se conectó recién pasan a una sola versión (#316). Solo al cambiar los
                             // discos conectados: si falla, no se repite cada 30 s, sino al próximo arranque o al reconectarlo.
                             var connected = string.Join(",", Libraries.Disk.List(db).Where(l => l.Connected).Select(l => l.Id));

@@ -8,7 +8,7 @@ using Otteretro.Libraries;
 
 namespace Otteretro.Tests;
 
-/// <summary>#268: instalar desde una URL, un zip o una carpeta, la librería en dos discos y las versiones que conviven.</summary>
+/// <summary>#268: instalar desde una URL, un zip o una carpeta, la librería de una sola copia y las versiones que conviven.</summary>
 [Collection("Installs.Handler")]
 public class InstallsTests
 {
@@ -30,26 +30,23 @@ public class InstallsTests
     }
 
     [Fact]
-    public async Task ZipGoesToItsVersionAndToTheLibraryOnTwoDisks()
+    public async Task ZipGoesToItsVersionAndToTheLibrary()
     {
         await using var f = new Fixture();
         var (star, _) = Disk.Create(f.Db, f.Tmp["E"], "E:");
         var (other, _) = Disk.Create(f.Db, f.Tmp["F"], "F:");
-        Assert.Equal("install.backupIsDefault", Installs.SetBackupDisk(f.Db, star)?.Code);
-        Assert.Null(Installs.SetBackupDisk(f.Db, other));
         var zip = Zip(f.Tmp, "v1", "uno");
 
         var job = new InstallJob("eden", "0.1", Path: zip, Name: "Eden");
         Assert.Equal("done", (await Install(f, job)).Status);
-        await Backup(f);
 
         // La carpeta de la release se aplana: el ejecutable queda en la raíz de su versión.
         Assert.Equal("uno", File.ReadAllText(f.Tmp[@"E\Emuladores\Eden\0.1\eden.exe"]));
         var sha = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(zip)));
-        foreach (var disk in new[] { "E", "F" })
-            Assert.Equal(sha, Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(f.Tmp[$@"{disk}\Libreria\Emuladores\eden\0.1\v1.zip"]))));
+        Assert.Equal(sha, Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(f.Tmp[@"E\Libreria\Emuladores\eden\0.1\v1.zip"]))));
+        Assert.False(Directory.Exists(f.Tmp[@"F\Libreria"])); // sin segunda copia (decision 335)
         var installed = Assert.Single(Installs.List(f.Db));
-        Assert.Equal(("upload", sha, other, "0.1"), (installed.Origin, installed.Sha256, installed.BackupLibraryId, installed.Version));
+        Assert.Equal(("upload", sha, "0.1"), (installed.Origin, installed.Sha256, installed.Version));
         Assert.True(Disk.Same(f.Tmp[@"E\Emuladores\Eden\0.1"], installed.Path!));
         Assert.False(Directory.Exists(f.Tmp[@"E\Libreria\.trabajo"]) && Directory.EnumerateFileSystemEntries(f.Tmp[@"E\Libreria\.trabajo"]).Any());
 
@@ -64,30 +61,13 @@ public class InstallsTests
         Assert.Equal(1, c.ExecuteScalar<long>("SELECT count(*) FROM profile WHERE emulator_id = 'eden' AND game_version_id IS NULL"));
     }
 
-    /// <summary>La segunda copia, si la cola no la hizo ya mientras corría la instalación.</summary>
-    static async Task Backup(Fixture f)
-    {
-        if (Installs.EnqueueBackupIfPending(f.Db) is { } task) Assert.Equal("done", (await f.Run(task)).Status);
-        Assert.Equal(0, Installs.Backup(f.Db).Pending);
-    }
-
     [Fact]
-    public async Task BackupWaitsForItsDiskAndReinstallComesFromTheLibrary()
+    public async Task ReinstallComesFromTheLibrary()
     {
         await using var f = new Fixture();
         Disk.Create(f.Db, f.Tmp["E"], "E:");
-        var (other, _) = Disk.Create(f.Db, f.Tmp["F"], "F:");
-        Installs.SetBackupDisk(f.Db, other);
-        Directory.Move(f.Tmp["F"], f.Tmp["F-fuera"]); // el disco de la copia, desconectado
 
         Assert.Equal("done", (await Install(f, new InstallJob("eden", "0.1", Path: Zip(f.Tmp, "v1", "uno"), Name: "Eden"))).Status);
-        Assert.Equal(1, Installs.Backup(f.Db).Pending);
-        Assert.Null(Installs.EnqueueBackupIfPending(f.Db));
-
-        Directory.Move(f.Tmp["F-fuera"], f.Tmp["F"]); // vuelve: se copia sola
-        await Backup(f);
-        Assert.True(File.Exists(f.Tmp[@"F\Libreria\Emuladores\eden\0.1\v1.zip"]));
-        Assert.Equal(other, Assert.Single(Installs.List(f.Db)).BackupLibraryId);
 
         // Una versión que perdió su carpeta vuelve desde la librería, sin bajar nada.
         var reinstall = new InstallJob("eden", "0.1", Reinstall: true);
@@ -201,7 +181,7 @@ public class InstallsTests
         Assert.Equal(exe, File.ReadAllBytes(f.Tmp[@"E\Emuladores\Citron\1.0\citron-windows.exe"]));
         Assert.Equal(exe, File.ReadAllBytes(f.Tmp[@"E\Libreria\Emuladores\citron\1.0\citron-windows.exe"]));
         var citron = Assert.Single(Installs.List(f.Db));
-        Assert.Equal(("url", "https://example.com/releases/citron-windows.exe", (string?)null), (citron.Origin, citron.Url, citron.BackupLibraryId));
+        Assert.Equal(("url", "https://example.com/releases/citron-windows.exe"), (citron.Origin, citron.Url));
 
         // Adoptar uno instalado a mano lo copia: el original sigue donde estaba.
         var manual = f.Tmp["a-mano"];

@@ -19,32 +19,24 @@ public record InstallJob(string Emulator, string? Version = null, string? Url = 
     string? Name = null, string Kind = "emulator", bool Reinstall = false, long? Port = null);
 
 /// <param name="Path">Dónde está instalada; null si su disco no está conectado o la carpeta ya no está (se puede reinstalar).</param>
-/// <param name="BackupLibraryId">El disco con la segunda copia en la librería; null si todavía no hay.</param>
 public record EmulatorInstall(string EmulatorId, string Name, string Kind, string Version, string Origin, string? Url, string? File,
-    string? Sha256, string? BackupLibraryId, string InstalledAt, string? Path)
+    string? Sha256, string InstalledAt, string? Path)
 {
     /// <summary>La versión que usan los perfiles del emulador (decisión 331): la de su perfil por defecto o, sin ella, la más nueva
     /// instalada. Un port, la instalada.</summary>
     public bool InUse { get; init; }
 }
 
-/// <param name="DiskId">El disco elegido para la segunda copia de la librería; null si no se eligió.</param>
-/// <param name="Pending">Versiones de la librería que todavía no tienen su copia en ese disco.</param>
-public record LibraryBackup(string? DiskId, int Pending);
-
 /// <summary>
 /// Instalar emuladores y ports (§8.0, decisiones 287, 293, 302 a 304 y 324 a 326). Cada versión de un emulador va a
 /// `Emuladores\<Emulador>\<versión>` y nunca reemplaza otra; un port tiene una sola, en `Ports\<Port>`, que se reemplaza en el lugar. El archivo original queda en la librería privada, `Libreria\` del disco ★ (se muda con la carpeta de datos, que es
-/// lo que define el ★), con una segunda copia en el disco que elige la persona.
+/// lo que define el ★). Una sola copia (decisión 335).
 /// </summary>
 public static class Installs
 {
     public const string Kind = "tools.install";
-    /// <summary>Copiar a la segunda copia lo que le falta. Es de `library.`: no corre a la vez que una mudanza.</summary>
-    public const string BackupKind = "library.backup";
     /// <summary>Nombre de carpeta de la persona: en español.</summary>
     public const string LibraryFolder = "Libreria";
-    const string BackupSetting = "library.backupDisk";
 
     /// <summary>Para las pruebas: responde en lugar de internet.</summary>
     public static HttpMessageHandler? Handler { get; set; }
@@ -128,7 +120,7 @@ public static class Installs
         var pinned = c.Query<(string Emulator, string? Version)>("SELECT emulator_id, emulator_version FROM profile WHERE game_version_id IS NULL")
             .ToDictionary(p => p.Emulator, p => p.Version);
         var list = c.Query<EmulatorInstall>("""
-            SELECT i.emulator_id AS EmulatorId, e.name, e.kind, i.version, i.origin, i.url, i.file, i.sha256, i.backup_library_id AS BackupLibraryId,
+            SELECT i.emulator_id AS EmulatorId, e.name, e.kind, i.version, i.origin, i.url, i.file, i.sha256,
                    i.installed_at AS InstalledAt, e.name AS Path
             FROM emulator_install i JOIN emulator e ON e.id = i.emulator_id ORDER BY e.name, i.installed_at
             """).Select(i => i with // Path: se reemplaza por la carpeta en disco (la columna solo le da el tipo a Dapper)
@@ -287,9 +279,6 @@ public static class Installs
                         INSERT INTO emulator_install (emulator_id, version, origin, url, file, sha256, installed_at)
                         VALUES (@Emulator, @version, @origin, @url, @file, @sha, @now)
                         """, new { job.Emulator, version, origin, url = job.Url ?? download?.Url, file = System.IO.Path.GetFileName(stored), sha, now = DateTime.UtcNow.ToString("O") });
-                // 5. La segunda copia va aparte, al disco elegido; si no está, queda pendiente y se copia al conectarlo.
-                if (EnqueueBackupIfPending(run.Db) is null)
-                    run.Log(ApiError.Of(BackupDisk(run.Db) is null ? "install.log.noBackupDisk" : "install.log.backupPending"), "warn");
             }
             run.Log(ApiError.Of("install.log.done", ("name", target.Name), ("version", version), ("path", install)));
         }
@@ -470,80 +459,6 @@ public static class Installs
         File.Copy(file, target, overwrite);
         FolderMove.FlushToDisk(target);
         if (!FolderMove.SameContent(file, target)) throw new TaskException(ApiError.Of("move.copyMismatch", ("path", file), ("detail", target)));
-    }
-
-    /// <summary>El disco elegido para la segunda copia (decisión 303).</summary>
-    public static string? BackupDisk(Database db)
-    {
-        using var c = db.Open();
-        return c.ExecuteScalar<string?>("SELECT value FROM setting WHERE machine_id = '' AND name = @BackupSetting", new { BackupSetting });
-    }
-
-    public static LibraryBackup Backup(Database db)
-    {
-        var disk = BackupDisk(db);
-        using var c = db.Open();
-        return new(disk, c.ExecuteScalar<int>("SELECT count(*) FROM emulator_install WHERE backup_library_id IS NOT @disk", new { disk }));
-    }
-
-    /// <summary>Elige el disco de la segunda copia (null: ninguno) y, si le falta algo, lo copia. No puede ser el ★.</summary>
-    public static ApiError? SetBackupDisk(Database db, string? disk)
-    {
-        if (disk is not null)
-        {
-            if (Disk.Get(db, disk) is not { Type: "disk" } chosen) return ApiError.Of("library.notFound");
-            if (chosen.Default) return ApiError.Of("install.backupIsDefault");
-        }
-        using (var c = db.Open())
-            if (disk is null) c.Execute("DELETE FROM setting WHERE machine_id = '' AND name = @BackupSetting", new { BackupSetting });
-            else c.Execute("INSERT INTO setting (machine_id, name, value) VALUES ('', @BackupSetting, @disk) ON CONFLICT (name, machine_id) DO UPDATE SET value = excluded.value",
-                new { BackupSetting, disk });
-        EnqueueBackupIfPending(db);
-        return null;
-    }
-
-    /// <summary>
-    /// Si a la segunda copia le falta algo y su disco está conectado, encola copiarlo (salvo que ya esté en la cola). Devuelve la
-    /// tarea, o null si no hay nada que copiar o el disco no está. La cola lo mira cada tanto: así se copia sola al conectar el disco.
-    /// </summary>
-    public static long? EnqueueBackupIfPending(Database db)
-    {
-        if (BackupDisk(db) is not { } disk) return null;
-        using (var c = db.Open())
-        {
-            if (c.ExecuteScalar<long>("SELECT count(*) FROM emulator_install WHERE backup_library_id IS NOT @disk", new { disk }) == 0) return null;
-            if (c.ExecuteScalar<long?>("SELECT id FROM task WHERE kind = @BackupKind AND status IN ('queued', 'running') LIMIT 1", new { BackupKind }) is { } waiting)
-                return waiting;
-        }
-        if (Disk.Get(db, disk) is not { Connected: true, Default: false }) return null;
-        return TaskQueue.Enqueue(db, BackupKind);
-    }
-
-    /// <summary>Copia a la librería del disco elegido, verificado, lo que todavía no tiene. Nunca borra la copia de un disco anterior.</summary>
-    public static Task RunBackup(TaskRun run, CancellationToken ct)
-    {
-        if (Disk.DefaultDisk(run.Db) is not { Connected: true } home || BackupDisk(run.Db) is not { } id
-            || Disk.Get(run.Db, id) is not { Connected: true, Default: false } other) throw new TaskException(ApiError.Of("library.notConnected"));
-        using var c = run.Db.Open();
-        var pending = c.Query<(string Emulator, string Version, string Kind, string? File)>("""
-            SELECT i.emulator_id, i.version, e.kind, i.file FROM emulator_install i JOIN emulator e ON e.id = i.emulator_id
-            WHERE i.backup_library_id IS NOT @id
-            """, new { id }).ToList();
-        for (var i = 0; i < pending.Count; i++)
-        {
-            ct.ThrowIfCancellationRequested();
-            var (emulator, version, kind, file) = pending[i];
-            run.Report(i * 100 / pending.Count, ApiError.Of("install.backup"));
-            var original = System.IO.Path.Combine(ShelfPath(home.Path, kind, emulator, version), file ?? "");
-            if (file is null || !File.Exists(original))
-            {
-                run.Log(ApiError.Of("install.notInLibrary", ("version", $"{emulator} {version}")), "warn");
-                continue;
-            }
-            Store(original, ShelfPath(other.Path, kind, emulator, version));
-            c.Execute("UPDATE emulator_install SET backup_library_id = @id WHERE emulator_id = @emulator AND version = @version", new { id, emulator, version });
-        }
-        return Task.CompletedTask;
     }
 
     /// <summary>

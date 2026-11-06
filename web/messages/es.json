@@ -571,17 +571,13 @@
       "fetching": "Consiguiendo la versión {version}",
       "library": "Guardando en tu librería",
       "extracting": "Instalando en {path}",
-      "backup": "Copiando a tu segundo disco",
       "log": {
-        "done": "{name} {version} instalado en {path}",
-        "noBackupDisk": "No elegiste disco para la segunda copia de la librería (Ajustes › Almacenamiento): quedó con una sola copia.",
-        "backupPending": "El disco de la segunda copia no está conectado: se copia solo cuando lo conectes."
+        "done": "{name} {version} instalado en {path}"
       },
       "notInstalled": "Esa versión no está registrada: instálala primero.",
       "notInLibrary": "La versión {version} no está en tu librería: no se puede reinstalar sin bajarla.",
       "inUse": "La versión {version} la usan tus perfiles: pasa los perfiles a otra antes de borrarla.",
       "removeFailed": "No se pudo borrar la instalación: {detail}",
-      "backupIsDefault": "La segunda copia tiene que ir en otro disco, no en el ★.",
       "sourceFailed": "No se pudo leer las versiones de {name}: {detail}",
       "manyVersions": "{name} todavía tiene varias versiones en su carpeta: se juntan en una al abrir la app y después se puede actualizar."
     },
@@ -728,8 +724,7 @@
         "scan": "Escanear tus discos",
         "verify": "Verificar archivos por hash",
         "import": "Importar una carpeta",
-        "convert": "Convertir al formato liviano",
-        "backup": "Copiar la librería a su segundo disco"
+        "convert": "Convertir al formato liviano"
       },
       "disk": {
         "migrate": "Pasar al estándar de discos"
@@ -1208,16 +1203,6 @@
       "off": "Apagado: lo que no se reconoce va directo a Revisar › Sin identificar.",
       "month": "Este mes: {calls, plural, one {# llamada} other {# llamadas}} · {cost}",
       "paused": "Tu suscripción llegó a su límite: sigue sola el {at}."
-    },
-    "backup": {
-      "title": "Segunda copia de la librería",
-      "help": "Los archivos originales de lo que instalas se guardan en Libreria del disco ★ y, además, en este disco. Si no está conectado, se copia solo al conectarlo.",
-      "disk": "Disco de la segunda copia",
-      "none": "Ninguno",
-      "noDisk": "Sin segunda copia: elige un disco para no depender solo del ★.",
-      "pending": "{count, plural, one {# versión espera} other {# versiones esperan}} su segunda copia: se está copiando.",
-      "pendingDisconnected": "{count, plural, one {# versión espera} other {# versiones esperan}} su segunda copia: se copia sola al conectar {name}.",
-      "upToDate": "Todo tiene su segunda copia."
     }
   },
   "tools": {
@@ -1311,7 +1296,7 @@
     },
     "library": {
       "title": "Tu librería",
-      "help": "Lo que instalaste, con el archivo original guardado en Libreria del disco ★ y su segunda copia en el disco que elegiste en Ajustes › Almacenamiento.",
+      "help": "Lo que instalaste, con el archivo original guardado en Libreria del disco ★.",
       "portHelp": "Un port tiene una sola versión instalada. De las anteriores queda su archivo: «Reinstalar» la deja como la instalada, con tus partidas.",
       "origin": {
         "recipe": "desde su receta",
@@ -1319,8 +1304,6 @@
         "upload": "desde una carpeta o un zip",
         "adopted": "adoptado"
       },
-      "twoCopies": "En dos discos",
-      "oneCopy": "Una sola copia",
       "archived": "Solo el archivo",
       "installed": "Instalada",
       "missing": "Sin su carpeta",
@@ -1508,8 +1491,7 @@
     "sharePlaceholder": "Ruta del .zip nuevo, p. ej. D:\\perfil.zip",
     "shareConfirm": "Guardar el .zip",
     "shared": "Listo: {path}. Lleva el emulador, los mods y la configuración; nunca keys, BIOS, firmware, juegos ni partidas.",
-    "load": "Cargar perfil",
-    "loadPath": "Ruta del .zip del perfil",
+    "loadZip": "Cargar un perfil (.zip)",
     "loadConfirm": "Cargar",
     "loaded": "Cargando el perfil: lo sigues en Tareas."
   }
