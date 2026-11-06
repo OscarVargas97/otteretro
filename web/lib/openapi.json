@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:57550/"
+      "url": "http://127.0.0.1:61376/"
     }
   ],
   "paths": {
@@ -7703,7 +7703,9 @@
           "name",
           "kind",
           "experimental",
-          "releases"
+          "releases",
+          "consoles",
+          "baseFor"
         ],
         "type": "object",
         "properties": {
@@ -7721,6 +7723,18 @@
           },
           "releases": {
             "type": "boolean"
+          },
+          "consoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "baseFor": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
