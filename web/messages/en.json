@@ -270,6 +270,7 @@
       "goTo": "Use this one",
       "goBack": "Go back to this one",
       "notAvailable": "No longer downloadable",
+      "reason": { "newer": "Needs a newer Otteretro", "older": "From an earlier Otteretro" },
       "noHistory": "No published change details",
       "inUse": "Catalog in use",
       "unknownVersion": "Unidentified version",

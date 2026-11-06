@@ -270,6 +270,7 @@
       "goTo": "Usar esta",
       "goBack": "Volver a esta",
       "notAvailable": "Ya no se puede bajar",
+      "reason": { "newer": "Necesita Otteretro más nuevo", "older": "De una versión anterior de Otteretro" },
       "noHistory": "Sin detalle de cambios publicado",
       "inUse": "Catálogo en uso",
       "unknownVersion": "Versión sin identificar",
