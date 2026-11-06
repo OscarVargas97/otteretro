@@ -20,7 +20,9 @@ public record MoveToolRequest(string Path, string? ToLocation = null);
 public record ReinstallRequest(string Emulator, string Version);
 public record BackupDiskRequest(string? DiskId);
 /// <param name="Releases">Su fuente publica el archivo para instalar: se puede elegir la versión.</param>
-public record RecipeSummary(string Id, string Name, string Kind, bool Experimental, bool Releases);
+/// <param name="Consoles">Las consolas que emula (#317: filtrar «Instalar» por consola).</param>
+/// <param name="BaseFor">Las consolas de las que es el emulador base.</param>
+public record RecipeSummary(string Id, string Name, string Kind, bool Experimental, bool Releases, List<string> Consoles, List<string> BaseFor);
 public record DestinationRequest(string? LocationId);
 /// <param name="Path">La carpeta Otteretro del disco (la `folder` de /drives).</param>
 /// <param name="Name">Lo que ve la persona: la unidad (E:).</param>
@@ -240,7 +242,7 @@ public static class DiskEndpoints
 
         // Las recetas que se instalan (emuladores, ports y herramientas) y las versiones publicadas de una, para elegir cuál (#296).
         api.MapGet("/recipes", () => TypedResults.Ok(Recipes.All.Where(r => r.Kind != "complement")
-            .Select(r => new RecipeSummary(r.Id, r.Name, r.Kind, r.Experimental, r.Updates is not null && r.Asset is not null)).OrderBy(r => r.Name).ToList()));
+            .Select(r => new RecipeSummary(r.Id, r.Name, r.Kind, r.Experimental, r.Updates is not null && r.Asset is not null, r.Consoles, r.BaseFor)).OrderBy(r => r.Name).ToList()));
 
         api.MapGet("/recipes/{id}/releases", async Task<Results<Ok<List<RecipeRelease>>, NotFound, Conflict<ApiError>>> (string id, CancellationToken ct) =>
         {
