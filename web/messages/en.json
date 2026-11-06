@@ -583,7 +583,25 @@
       "badName": "The profile needs a name.",
       "badFrom": "The profile can't be created from there.",
       "badRom": "That ROM isn't for this version of the game.",
-      "switchFailed": "The profile couldn't be switched; whatever moved is saved and the active profile didn't change: {detail}"
+      "switchFailed": "The profile couldn't be switched; whatever moved is saved and the active profile didn't change: {detail}",
+      "share": {
+        "badPath": "Enter the full path of the new .zip, in a folder that exists.",
+        "exists": "There's already a file at {path}: it isn't replaced.",
+        "notInLibrary": "{emulator} isn't in your library: without its original file it can't be shared.",
+        "private": "The profile wasn't shared: {path} has the game's license, which never leaves your computer."
+      },
+      "import": {
+        "notFound": "That file doesn't exist on this computer.",
+        "badPackage": "That file isn't an Otteretro shared profile.",
+        "noGame": "“{name}” isn't in your catalog: nothing was installed.",
+        "badHash": "The package arrived damaged: a file doesn't match its hash. Nothing was installed.",
+        "checking": "Checking the package",
+        "creating": "Creating the profile",
+        "log": {
+          "notOwned": "You don't have “{name}” on your disks yet: the profile is ready for when you do.",
+          "done": "Profile “{name}” for {game} loaded with {emulator} {version}."
+        }
+      }
     },
     "ports": {
       "notFound": "That port is no longer in the catalog.",
@@ -708,6 +726,9 @@
       },
       "content": {
         "prepare": "Prepare a game in its emulator"
+      },
+      "profiles": {
+        "import": "Load a shared profile"
       }
     },
     "status": {
@@ -1416,6 +1437,16 @@
       "unknown": "Saves can't be carried over to this emulator: there's no known way. They're still in the previous emulator.",
       "chooseUser": "This emulator has several console users: which one should the saves go to?",
       "chooseUserConfirm": "Carry them and activate"
-    }
+    },
+    "share": "Share",
+    "shareOf": "Share {name}",
+    "sharePath": "Where to save the .zip of {name}",
+    "sharePlaceholder": "Path of the new .zip, e.g. D:\\profile.zip",
+    "shareConfirm": "Save the .zip",
+    "shared": "Done: {path}. It has the emulator, mods and settings; never keys, BIOS, firmware, games or saves.",
+    "load": "Load profile",
+    "loadPath": "Path of the profile's .zip",
+    "loadConfirm": "Load",
+    "loaded": "Loading the profile: follow it in Tasks."
   }
 }

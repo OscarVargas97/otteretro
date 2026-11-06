@@ -124,7 +124,7 @@ public static class Profiles
     record Changed(string File, RecipeSetting Setting, string? Previous);
 
     /// <summary>En la carpeta de un perfil activo: los valores que cambió al cargarse, para dejarlos como estaban al quitarlo.</summary>
-    const string ChangedFile = "_valores-cambiados.json";
+    internal const string ChangedFile = "_valores-cambiados.json";
 
     /// <param name="Linked">Un perfil: sus carpetas se enlazan. Sin perfil, lo de la persona vuelve a ser una carpeta real.</param>
     record State(string Emulator, string? Version, string Store, bool Linked, long? ProfileId);
@@ -132,7 +132,7 @@ public static class Profiles
     static readonly string[] Keys = ["titleId", "gameId", "serial"];
 
     /// <summary>La clave del juego en el emulador: el TitleID o serial de la ROM del perfil, el de su ROM base o el del catálogo.</summary>
-    static string? GameKey(SqliteConnection c, long version, long? source) =>
+    internal static string? GameKey(SqliteConnection c, long version, long? source) =>
         c.QueryFirstOrDefault<string?>("SELECT title_id FROM source WHERE id = @source AND title_id IS NOT NULL", new { source })
         ?? c.QueryFirstOrDefault<string?>("""
             SELECT title_id FROM source WHERE version_id = @version AND title_id IS NOT NULL AND coalesce(component, 'BASE') = 'BASE'
@@ -183,7 +183,7 @@ public static class Profiles
     static string? BaseOf(SqliteConnection c, long version) => c.ExecuteScalar<string?>(
         "SELECT e.emulator_id FROM console_emulator e JOIN version v ON v.platform = e.console_id WHERE v.id = @version AND e.is_base = 1", new { version });
 
-    static Profile? Get(SqliteConnection c, long id) => c.QuerySingleOrDefault<Profile>($"SELECT {Columns} FROM profile WHERE id = @id", new { id });
+    internal static Profile? Get(SqliteConnection c, long id) => c.QuerySingleOrDefault<Profile>($"SELECT {Columns} FROM profile WHERE id = @id", new { id });
 
     /// <summary>
     /// Cambia el perfil activo de una versión del juego, con sus archivos: guarda lo del que estaba en su carpeta y lo quita del
@@ -373,7 +373,7 @@ public static class Profiles
     }
 
     /// <summary>Copia del emulador a la carpeta del perfil activo lo que cambió ahí (sus archivos), sin quitarlo.</summary>
-    static void Capture(Database db, SqliteConnection c, Profile p)
+    internal static void Capture(Database db, SqliteConnection c, Profile p)
     {
         if (p.GameVersionId is not { } version || Items(Recipes.Find(p.EmulatorId), GameKey(c, version, p.SourceId)) is not { Count: > 0 } items
             || InstallOf(db, p.EmulatorId, p.EmulatorVersion) is not { } install) return;

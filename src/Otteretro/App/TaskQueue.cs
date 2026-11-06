@@ -39,6 +39,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         [Libraries.Dats.VerifyKind] = Libraries.Dats.Verify,
         [Libraries.ToolUpdates.Kind] = Libraries.ToolUpdates.Run,
         [Libraries.Installs.Kind] = Libraries.Installs.Run,
+        [Libraries.ProfileShare.ImportKind] = Libraries.ProfileShare.RunImport,
         [Libraries.Installs.BackupKind] = Libraries.Installs.RunBackup,
         [Libraries.Content.Kind] = Libraries.Content.Run,
     };
