@@ -114,6 +114,7 @@ public class ToolUpdatesTests
         Profiles.AddEmulator(f.Db, "otro", "emulator", "Otro");
         Profiles.Activate(f.Db, Profiles.Add(f.Db, 21, "otro", "El suyo"));
         const string releases = """[{"tag_name":"0.10.5","draft":false,"prerelease":false,"published_at":"2026-10-01T00:00:00Z","assets":[{"name":"mGBA-0.10.5-macos.dmg","browser_download_url":"https://x/mac.dmg"},{"name":"mGBA-0.10.5-win64.7z","browser_download_url":"https://x/mGBA-0.10.5-win64.7z"}]},{"tag_name":"0.10.4","draft":false,"prerelease":false,"published_at":"2025-10-01T00:00:00Z","assets":[]}]""";
+        Install(f, "Emuladores", "Game Boy Advance", "mGBA", "2025.01.01");
         var fake = new Fake(new() { ["repos/mgba-emu/mgba/releases"] = releases });
         await Check(f, fake);
 
@@ -129,17 +130,16 @@ public class ToolUpdatesTests
     }
 
     [Fact]
-    public async Task WhatIsNotInstalledShowsItsLatestVersion()
+    public async Task WhatIsNotInstalledIsNotNoticed()
     {
         await using var f = new Fixture();
         var fake = new Fake(new() { ["repos/TwilitRealm/dusklight/releases"] = GitHub("v2.0.3") });
         await Check(f, fake);
-        var u = Assert.Single(ToolUpdates.List(f.Db), x => x.RecipeId == "dusklight");
-        Assert.Equal("2.0.3", u.Version);
-        Assert.Empty(u.Installed);
-
-        Assert.True(ToolUpdates.Skip(f.Db, "dusklight", "stable"));
+        // Sin ninguna versión instalada no hay aviso (decisión 321): se instala desde «Instalar…».
         Assert.DoesNotContain(ToolUpdates.List(f.Db), x => x.RecipeId == "dusklight");
+
+        Install(f, "Ports", "GameCube", "Dusklight", "2.0.2");
+        Assert.Equal("2.0.3", Assert.Single(ToolUpdates.List(f.Db), x => x.RecipeId == "dusklight").Version);
     }
 
     [Fact]
@@ -148,6 +148,7 @@ public class ToolUpdatesTests
         await using var f = new Fixture();
         // Como RPCS3: tags build-<hash> sin orden; la versión está en el título y la última es la de fecha más nueva.
         var rpcs3 = """[{"tag_name":"build-fff0c96","name":"0.0.18-12817","draft":false,"prerelease":false,"published_at":"2021-09-24T18:32:52Z"},{"tag_name":"build-ffeb16f","name":"0.0.37-18146","draft":false,"prerelease":false,"published_at":"2025-09-19T09:11:48Z"},{"tag_name":"build-ffea52d","name":"0.0.12-10987","draft":false,"prerelease":false,"published_at":"2020-10-08T16:42:34Z"}]""";
+        Install(f, "Ports", "GameCube", "Dusklight", "0.0.1");
         var fake = new Fake(new() { ["repos/TwilitRealm/dusklight/releases"] = rpcs3 });
         await Check(f, fake);
         Assert.Equal("0.0.37-18146", Assert.Single(ToolUpdates.List(f.Db), x => x.RecipeId == "dusklight").Version);
