@@ -262,6 +262,31 @@ public static class DiskEndpoints
             return error is null ? TypedResults.Ok(task!.Value) : error.Code is "install.exists" or "library.notConnected" ? TypedResults.Conflict(error) : TypedResults.BadRequest(error);
         });
 
+        // La versión en uso de un emulador (decisiones 331 a 334): «Usar esta versión» le pasa los perfiles; «Borrar la instalación»
+        // deja su archivo en la librería; «Abrir su carpeta». Las dos primeras devuelven la lista al día.
+        api.MapPost("/emulators/use", Results<Ok<List<EmulatorInstall>>, BadRequest<ApiError>, Conflict<ApiError>> (ReinstallRequest request, AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            return Profiles.UseVersion(db, request.Emulator, request.Version) is { } error
+                ? error.Code is "install.notInstalled" or "profile.noGameKey" ? TypedResults.BadRequest(error) : TypedResults.Conflict(error)
+                : TypedResults.Ok(Installs.List(db));
+        });
+
+        api.MapPost("/emulators/remove", async Task<Results<Ok<List<EmulatorInstall>>, BadRequest<ApiError>, Conflict<ApiError>>> (ReinstallRequest request, AppSession s, CancellationToken ct) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            return await Installs.RemoveInstall(db, request.Emulator, request.Version, ct) is { } error
+                ? error.Code is "install.notInstalled" ? TypedResults.BadRequest(error) : TypedResults.Conflict(error)
+                : TypedResults.Ok(Installs.List(db));
+        });
+
+        api.MapPost("/emulators/open", Results<Ok, NotFound, Conflict<ApiError>> (ReinstallRequest request, AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            if (Installs.List(db).FirstOrDefault(i => i.EmulatorId == request.Emulator && i.Version == request.Version) is not { Path: { } path }) return TypedResults.NotFound();
+            return Endpoints.Open(path) ? TypedResults.Ok() : TypedResults.Conflict(ApiError.Of("link.openFailed"));
+        });
+
         // Ports (#286, #287): los de un juego, los nuevos para Inicio › Novedades, «Visto» e instalar uno con su receta o con la URL de su release.
         api.MapGet("/games/{id:long}/ports", Results<Ok<List<PortInfo>>, Conflict<ApiError>> (long id, AppSession s) =>
             CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Ports.OfGame(db, id)) : CatalogEndpoints.NoData());
