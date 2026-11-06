@@ -252,6 +252,21 @@ public static partial class Import
         return Scan.Match(learned, label) is null && Scan.Match(learned, Path.GetFileNameWithoutExtension(main)) is null;
     }
 
+    const string TriedVersionSetting = "import.triedVersion";
+
+    /// <summary>
+    /// Con otra versión de Otteretro, lo ya intentado se olvida (#311, decisión 322): puede que ahora reconozca su formato. El vigilante de
+    /// `Entrada\` lo vuelve a importar al arrancar, porque la encuentra con algo adentro.
+    /// </summary>
+    public static void RetryTriedOnNewVersion(Database db, string version)
+    {
+        using var c = db.Open();
+        if (c.ExecuteScalar<string?>("SELECT value FROM setting WHERE machine_id = '' AND name = @TriedVersionSetting", new { TriedVersionSetting }) == version) return;
+        c.Execute("DELETE FROM entry_tried");
+        c.Execute("INSERT INTO setting (machine_id, name, value) VALUES ('', @TriedVersionSetting, @version) ON CONFLICT (name, machine_id) DO UPDATE SET value = excluded.value",
+            new { TriedVersionSetting, version });
+    }
+
     static void Tried(Database db, DiskInfo disk, string main, long size)
     {
         using var c = db.Open();

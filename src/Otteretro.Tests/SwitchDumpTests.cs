@@ -165,6 +165,23 @@ public class SwitchDumpTests
         Assert.Equal(1, switchbrew.Calls);
     }
 
+    /// <summary>#311: con otra versión de Otteretro, lo ya intentado se olvida una sola vez; con la misma, no.</summary>
+    [Fact]
+    public async Task WhatWasTriedIsForgottenOnANewVersionOnly()
+    {
+        await using var f = new Fixture();
+        using var c = f.Db.Open();
+        long Tried() => c.ExecuteScalar<long>("SELECT count(*) FROM entry_tried");
+        void MarkOne() => c.Execute(@"INSERT INTO entry_tried (library_id, relative_path, size) VALUES ('d', 'Entrada\x.zip', 1) ON CONFLICT DO NOTHING");
+
+        MarkOne();
+        Import.RetryTriedOnNewVersion(f.Db, "9.9.9");
+        Assert.Equal(0, Tried());
+        MarkOne();
+        Import.RetryTriedOnNewVersion(f.Db, "9.9.9");
+        Assert.Equal(1, Tried());
+    }
+
     /// <summary>
     /// Lo que no se reconoce espera en `Entrada\` (para Revisar) y no se vuelve a descomprimir cada vez que el vigilante mira; un paquete
     /// sin juegos, tampoco.
