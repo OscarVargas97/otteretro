@@ -17,6 +17,7 @@ public class DataTests
         using var c = db.Open();
         Assert.Equal("wal", c.ExecuteScalar<string>("PRAGMA journal_mode"));
         Assert.Equal(1, c.ExecuteScalar<int>("SELECT count(*) FROM sqlite_master WHERE name = 'machine'"));
+        Assert.Equal("early", c.ExecuteScalar<string>("SELECT emulation_status FROM console WHERE id = 'switch2'")); // #334
     }
 
     /// <summary>

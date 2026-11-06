@@ -5436,91 +5436,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/library/backup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["LibraryBackup"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiError"];
-                    };
-                };
-            };
-        };
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["BackupDiskRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["LibraryBackup"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiError"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiError"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/tools/move": {
         parameters: {
             query?: never;
@@ -5974,9 +5889,6 @@ export interface components {
             fullscreen: boolean;
             menuCollapsed: boolean;
         };
-        BackupDiskRequest: {
-            diskId: null | string;
-        };
         CapturedLink: {
             /** Format: int64 */
             id: number | string;
@@ -6206,7 +6118,6 @@ export interface components {
             url: null | string;
             file: null | string;
             sha256: null | string;
-            backupLibraryId: null | string;
             installedAt: string;
             path: null | string;
         };
@@ -6319,11 +6230,6 @@ export interface components {
         };
         LanguageRequest: {
             language: string;
-        };
-        LibraryBackup: {
-            diskId: null | string;
-            /** Format: int32 */
-            pending: number | string;
         };
         LibraryRequest: {
             path: string;

@@ -225,4 +225,20 @@ public class ToolUpdatesTests
         Assert.Equal("1.3.3", (await ToolUpdates.Latest(http, ryubing, "stable", default))!.Version);
         Assert.Equal("1.3.200", (await ToolUpdates.Latest(http, ryubing, "dev", default))!.Version);
     }
+
+    [Fact]
+    public async Task TheLatestIsTheNewestThatBringsTheWindowsFile()
+    {
+        // Como Eglantine (#334): todo es prerelease y hay builds por rama sin Windows o con variantes -pgo.
+        var fake = new Fake(new()
+        {
+            ["repos/Djihads80/Eglantine/releases"] = """[{"tag_name":"branch-exp","draft":false,"prerelease":true,"published_at":"2026-11-06T13:09:28Z","assets":[{"name":"eglantine-linux-x86_64.AppImage","browser_download_url":"https://x/linux"}]},{"tag_name":"daily-20261106","draft":false,"prerelease":true,"published_at":"2026-11-06T07:45:54Z","assets":[{"name":"eglantine-windows-x86_64-pgo.zip","browser_download_url":"https://x/pgo.zip"},{"name":"eglantine-windows-x86_64.zip","browser_download_url":"https://x/win.zip"}]}]""",
+        });
+        using var http = new HttpClient(fake);
+        var eglantine = Recipes.Find("eglantine")!;
+        Assert.Equal(["stable", "dev"], ToolUpdates.ChannelsOf(eglantine.Updates!, manual: false));
+        var latest = (await ToolUpdates.Latest(http, eglantine.Updates!, "dev", default, eglantine.Asset))!;
+        Assert.Equal(("2026.11.06", "https://x/win.zip"), (latest.Version, latest.Download));
+        Assert.Null(await ToolUpdates.Latest(http, eglantine.Updates!, "stable", default, eglantine.Asset));
+    }
 }
