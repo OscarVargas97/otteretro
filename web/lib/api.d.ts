@@ -6649,6 +6649,8 @@ export interface components {
             releases: boolean;
             consoles: string[];
             baseFor: string[];
+            folder: string;
+            game: null | string;
         };
         RecognizeRequest: {
             useClaude: boolean;

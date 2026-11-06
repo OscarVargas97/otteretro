@@ -270,7 +270,10 @@
       "goTo": "Use this one",
       "goBack": "Go back to this one",
       "notAvailable": "No longer downloadable",
-      "reason": { "newer": "Needs a newer Otteretro", "older": "From an earlier Otteretro" },
+      "reason": {
+        "newer": "Needs a newer Otteretro",
+        "older": "From an earlier Otteretro"
+      },
       "noHistory": "No published change details",
       "inUse": "Catalog in use",
       "unknownVersion": "Unidentified version",
@@ -1223,11 +1226,7 @@
     "sections": "Tool types",
     "pick": "Pick a tool to see its details.",
     "none": "Nothing of this type yet.",
-    "version": "Version",
-    "console": "Console",
-    "path": "Folder",
-    "covers": "Covers",
-    "location": "Location",
+    "otherConsole": "Other",
     "recipe": "Recipe",
     "move": "Move to another location",
     "to": "To",
@@ -1243,11 +1242,11 @@
     "systemEmptyText": "Choose a console and upload your BIOS, keys or firmware.",
     "systemMissing": "{name} is missing",
     "updates": {
-      "title": "New versions",
       "count": "{count, plural, one {# new version} other {# new versions}}",
       "checkNow": "Check now",
       "checking": "Checking for new versions: see it in the tasks panel.",
       "none": "All up to date. Checked when the app opens and once a day.",
+      "upToDate": "Up to date",
       "dev": "Development",
       "installed": "You have",
       "published": "Released",
@@ -1317,7 +1316,10 @@
       "open": "Open its folder",
       "askProfiles": "Move the profiles to {version}?",
       "yes": "Yes",
-      "no": "No"
+      "no": "No",
+      "current": "In use: {version}",
+      "more": "{count, plural, one {▾ # more version} other {▾ # more versions}}",
+      "details": "▾ Details"
     }
   },
   "downloads": {

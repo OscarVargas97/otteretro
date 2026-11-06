@@ -270,7 +270,10 @@
       "goTo": "Usar esta",
       "goBack": "Volver a esta",
       "notAvailable": "Ya no se puede bajar",
-      "reason": { "newer": "Necesita Otteretro más nuevo", "older": "De una versión anterior de Otteretro" },
+      "reason": {
+        "newer": "Necesita Otteretro más nuevo",
+        "older": "De una versión anterior de Otteretro"
+      },
       "noHistory": "Sin detalle de cambios publicado",
       "inUse": "Catálogo en uso",
       "unknownVersion": "Versión sin identificar",
@@ -1223,11 +1226,7 @@
     "sections": "Tipos de herramientas",
     "pick": "Elige una herramienta para ver su detalle.",
     "none": "Nada de este tipo todavía.",
-    "version": "Versión",
-    "console": "Consola",
-    "path": "Carpeta",
-    "covers": "Cubre",
-    "location": "Ubicación",
+    "otherConsole": "Otras",
     "recipe": "Receta",
     "move": "Mover a otra ubicación",
     "to": "A",
@@ -1243,11 +1242,11 @@
     "systemEmptyText": "Elige una consola y sube tu BIOS, keys o firmware.",
     "systemMissing": "Falta {name}",
     "updates": {
-      "title": "Versiones nuevas",
       "count": "{count, plural, one {# versión nueva} other {# versiones nuevas}}",
       "checkNow": "Revisar ahora",
       "checking": "Revisando versiones nuevas: míralo en el panel de tareas.",
       "none": "Todo al día. Se revisa al abrir la app y una vez al día.",
+      "upToDate": "Todo al día",
       "dev": "Desarrollo",
       "installed": "Tienes",
       "published": "Publicada",
@@ -1317,7 +1316,10 @@
       "open": "Abrir su carpeta",
       "askProfiles": "¿Pasar los perfiles a la {version}?",
       "yes": "Sí",
-      "no": "No"
+      "no": "No",
+      "current": "En uso: {version}",
+      "more": "{count, plural, one {▾ # versión más} other {▾ # versiones más}}",
+      "details": "▾ Detalles"
     }
   },
   "downloads": {

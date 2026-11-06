@@ -307,6 +307,12 @@ a.ot-btn, a.chip { text-decoration: none; }
 .update-row-toggle { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; padding: 4px 0; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
 .update-row-toggle::before { content: "▸"; color: var(--ink-muted); }
 .update-row-toggle[aria-expanded="true"]::before { content: "▾"; }
+/* Herramientas (#348): las otras versiones de una tarjeta, plegadas; el título de cada consola. */
+.tool-versions > summary { list-style: none; cursor: pointer; color: var(--ink-muted); }
+.tool-versions > summary::-webkit-details-marker { display: none; }
+.tool-versions[open] { display: grid; gap: 6px; }
+h2.console-group { font-size: 1rem; }
+.panel.version-row { flex-direction: row; }
 .ot-dialog { width: min(560px, calc(100vw - 32px)); padding: var(--space-4); border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); }
 .ot-dialog::backdrop { background: rgb(0 0 0 / .55); }
 .disk-panel { gap: var(--space-3); }
