@@ -1,0 +1,51 @@
+{
+  "respuestas": {
+    "actualizado": "2026-11-06T12:36:06.627Z",
+    "respuestas": {
+      "a1": {
+        "v": "varias"
+      },
+      "a2": {
+        "v": "preguntar"
+      },
+      "b1": {
+        "v": "una"
+      },
+      "b2": {
+        "v": [
+          "usar",
+          "borrar",
+          "reinstalar",
+          "carpeta"
+        ]
+      },
+      "b3": {
+        "c": "No entiendo esto de 1 sola copia...",
+        "v": "accion"
+      },
+      "c1": {
+        "v": "boton"
+      },
+      "c2": {
+        "v": "boton"
+      },
+      "c3": {
+        "v": "contexto"
+      },
+      "c4": {
+        "c": "La switch 2 si tiene emuladores.... La emulación de Nintendo Switch 2 en PC y otras plataformas ha comenzado de forma experimental con los siguientes proyectos principales:\n• Eden NX2: Es una versión modificada y experimental del emulador Eden (derivado del ecosistema de Yuzu), publicada públicamente para Windows de 64 bits. Permite arrancar y probar títulos iniciales (como Mario Kart World o Donkey Kong Bananza), aunque con rendimiento irregular y fallos gráficos.\n• Eglantine y Lichii: Eglantine es uno de los emuladores activos que recibe actualizaciones constantes con funciones como FSR, mientras que Lichii (una bifurcación/modificación de Eglantine) ha logrado ejecutar juegos exclusivos como el remake de Star Fox o títulos de la nueva consola con mejoras de rendimiento y soporte para DLSS.\n• Proyectos en otras plataformas: Existen adaptaciones como Eden SX2A para Android y herramientas de traducción de código o ejecución como nxnative para ordenadores Mac con Apple Silicon.",
+        "v": "gris"
+      }
+    }
+  },
+  "seguimiento": [
+    {
+      "fecha": "2026-11-06",
+      "b3": "No necesito respaldos locales de emuladores y juegos: se quita la segunda copia (reemplaza la #303)"
+    },
+    {
+      "fecha": "2026-11-06",
+      "c4": "Agregar los emuladores de Switch 2: Eden NX2 (git.eden-emu.dev/Takoroka/eden-nx2), Lichii y Eglantine, todos"
+    }
+  ]
+}
