@@ -69,13 +69,13 @@ public static class Installs
         return job is { Name: { Length: > 0 } name, Kind: "emulator" or "port" } ? new(null, job.Kind, name) : null;
     }
 
-    static bool BadName(string? s) => string.IsNullOrWhiteSpace(s) || s.Trim('.').Length == 0 || s.IndexOfAny(System.IO.Path.GetInvalidFileNameChars()) >= 0;
+    internal static bool BadName(string? s) => string.IsNullOrWhiteSpace(s) || s.Trim('.').Length == 0 || s.IndexOfAny(System.IO.Path.GetInvalidFileNameChars()) >= 0;
 
     /// <summary>`Emuladores\<Emulador>\<versión>` (o `Ports\…`), una carpeta aunque sirva a varias consolas (decisión 302).</summary>
     static string InstallPath(DiskInfo home, Target t, string version) =>
         System.IO.Path.Combine(home.Path, Disk.DiskFolders[t.Kind], t.Name, version);
 
-    static string ShelfPath(string disk, string kind, string emulator, string version) =>
+    internal static string ShelfPath(string disk, string kind, string emulator, string version) =>
         System.IO.Path.Combine(disk, LibraryFolder, Disk.DiskFolders[kind], emulator, version);
 
     /// <summary>Valida y encola la instalación. Devuelve la tarea o el error.</summary>
@@ -125,9 +125,16 @@ public static class Installs
         }).ToList();
     }
 
-    public static async Task Run(TaskRun run, CancellationToken ct)
+    public static Task Run(TaskRun run, CancellationToken ct) => Install(run, JsonSerializer.Deserialize<InstallJob>(run.Data!, Json)!, ct);
+
+    /// <summary>Ya ocupada: registrada o con su carpeta en el disco ★.</summary>
+    internal static bool Taken(Database db, InstallJob job) =>
+        Registered(db, job.Emulator, job.Version!) is not null
+        || (Disk.DefaultDisk(db) is { Connected: true } home && Resolve(db, job) is { } t && System.IO.Path.Exists(InstallPath(home, t, job.Version!)));
+
+    /// <summary>Instala dentro de otra tarea (cargar un perfil compartido, #282).</summary>
+    internal static async Task Install(TaskRun run, InstallJob job, CancellationToken ct)
     {
-        var job = JsonSerializer.Deserialize<InstallJob>(run.Data!, Json)!;
         var version = job.Version!;
         var target = Resolve(run.Db, job) ?? throw new TaskException(ApiError.Of("install.unknownEmulator"));
         if (Disk.DefaultDisk(run.Db) is not { Connected: true } home) throw new TaskException(ApiError.Of("library.notConnected"));
@@ -386,7 +393,7 @@ public static class Installs
     /// <summary>El SHA-256 en hexadecimal contra el hash SRI de la receta (`sha256-` y base64, como Nix).</summary>
     public static bool MatchesSri(string sha256Hex, string sri) => "sha256-" + Convert.ToBase64String(Convert.FromHexString(sha256Hex)) == sri;
 
-    static async Task<string> Sha256(string file, CancellationToken ct)
+    internal static async Task<string> Sha256(string file, CancellationToken ct)
     {
         await using var stream = File.OpenRead(file);
         return Convert.ToHexStringLower(await SHA256.HashDataAsync(stream, ct));

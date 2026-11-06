@@ -839,6 +839,16 @@ test("la ficha: perfiles de cada versión, crear, activar y volver al por defect
   await page.screenshot({ path: "e2e-results/12-perfiles-es.png", fullPage: true });
   await page.getByRole("button", { name: es.profiles.activate }).click(); // la fila «sin perfil»
   await expect(page.getByText(es.profiles.noneActive.replace("{name}", "MiEmu").replace("{emulator}", "MiEmu"))).toBeVisible();
+
+  // Compartir (#282): pide la ruta del .zip y avisa si su carpeta no existe; cargar, si el archivo no está.
+  await page.getByRole("button", { name: es.profiles.shareOf.replace("{name}", "2x") }).click();
+  await page.getByRole("textbox", { name: es.profiles.sharePath.replace("{name}", "2x") }).fill("C:\\no-existe\\2x.zip");
+  await page.getByRole("button", { name: es.profiles.shareConfirm }).click();
+  await expect(page.getByRole("alert").filter({ hasText: es.errors.profile.share.badPath })).toBeVisible();
+  await page.getByRole("textbox", { name: es.profiles.loadPath }).fill("C:\\no-existe\\perfil.zip");
+  await page.getByRole("button", { name: es.profiles.load, exact: true }).click();
+  await expect(page.getByRole("alert").filter({ hasText: es.errors.profile.import.notFound })).toBeVisible();
+  await expectNoRawKeys();
 });
 
 test("la ficha: ajustes del perfil por defecto de Eden según su receta y abrir el emulador (#276)", async () => {

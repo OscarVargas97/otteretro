@@ -7,6 +7,7 @@ import { useConsoleName } from "@/components/Catalog";
 import { ProfileSettingsForm } from "@/components/ProfileSettings";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
+import { LoadProfile, ShareProfile } from "@/components/ProfileShare";
 import type { ProfileSwitch, VersionProfiles } from "@/lib/types";
 
 /** Perfiles del juego (§8.0, #269): por versión del juego (decisión 301), cuál está activo, crear, renombrar, elegir ROM y activar. */
@@ -18,6 +19,7 @@ export function GameProfiles({ gameId }: { gameId: number }) {
     <section className="sec">
       <div className="sec-h"><h2>{t("title")}</h2></div>
       {versions.data.map((v) => <VersionPanel key={String(v.versionId)} gameId={gameId} version={v} />)}
+      <LoadProfile />
     </section>
   );
 }
@@ -101,6 +103,7 @@ function VersionPanel({ gameId, version: v }: { gameId: number; version: Version
                       {p.active ? <span className="ot-badge ot-badge-have">{t("isActive")}</span>
                         : <button className="ot-btn ot-btn-sm" type="button" disabled={activate.isPending} onClick={() => activate.mutate({ profileId: String(p.id) })}>{t("activate")}</button>}
                       {settingsButton(String(p.id), p.name)}
+                      {" "}<ShareProfile id={String(p.id)} name={p.name} />
                     </td>
                   </tr>
                 ))}

@@ -124,7 +124,7 @@ public static class Profiles
     record Changed(string File, RecipeSetting Setting, string? Previous);
 
     /// <summary>En la carpeta de un perfil activo: los valores que cambió al cargarse, para dejarlos como estaban al quitarlo.</summary>
-    const string ChangedFile = "_valores-cambiados.json";
+    internal const string ChangedFile = "_valores-cambiados.json";
 
     /// <param name="Linked">Un perfil: sus carpetas se enlazan. Sin perfil, lo de la persona vuelve a ser una carpeta real.</param>
     record State(string Emulator, string? Version, string Store, bool Linked, long? ProfileId);
