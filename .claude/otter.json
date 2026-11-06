@@ -8,5 +8,17 @@
     ".cs": "dotnet format whitespace --folder --verify-no-changes --include {file}",
     ".ts": "[ -d web/node_modules ] || exit 0; npm --prefix web run --silent revisar",
     ".tsx": "[ -d web/node_modules ] || exit 0; npm --prefix web run --silent revisar"
+  },
+  "project": {
+    "number": 2,
+    "id": "PVT_kwHOAp1b0c4BnZq6",
+    "field": "PVTSSF_lAHOAp1b0c4BnZq6zhl-elE",
+    "options": {
+      "Pendiente": "f75ad846",
+      "En desarrollo": "47fc9ee4",
+      "En revisión": "9008e4ba",
+      "Hecho": "98236657",
+      "Descartado": "a3fd7d53"
+    }
   }
 }
