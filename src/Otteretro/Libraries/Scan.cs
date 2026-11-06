@@ -20,7 +20,7 @@ public static partial class Scan
     /// <summary>Lo que se cuenta como juego: de un CD, el .cue y no cada .bin. PC tiene su propio escaneo (#182).</summary>
     internal static readonly HashSet<string> GameExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".nsp", ".nsz", ".xci", ".xcz", ".iso", ".rvz", ".gcm", ".gcz", ".wbfs", ".wia", ".ciso", ".chd", ".cue", ".cso", ".pbp", ".m3u",
+        ".nsp", ".nsz", ".xci", ".xcz", ".nup", ".iso", ".rvz", ".gcm", ".gcz", ".wbfs", ".wia", ".ciso", ".chd", ".cue", ".cso", ".pbp", ".m3u",
         ".nes", ".fds", ".sfc", ".smc", ".n64", ".z64", ".v64", ".gb", ".gbc", ".gba", ".vb", ".nds", ".3ds", ".cia", ".cci", ".wua", ".wux",
         ".zip", ".7z", ".pkg", ".vpk",
     };

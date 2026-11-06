@@ -29,6 +29,7 @@ public static partial class Import
         [".nsz"] = "switch",
         [".xci"] = "switch",
         [".xcz"] = "switch",
+        [".nup"] = "switch", // volcado que unifica el juego (#309): el TitleID del nombre dice si es Switch 2
         [".nes"] = "nes",
         [".fds"] = "nes",
         [".sfc"] = "snes",
