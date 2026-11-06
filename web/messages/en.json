@@ -447,6 +447,7 @@
         "moved": "Moved {from} to {to}; {paths} emulator paths updated.",
         "tool": "{name} is now in {path}.",
         "updated": "{name} now follows its current recipe, in {path}.",
+        "joined": "{name} now has a single version, {version}, in {path}. The saves of the others were merged there and the previous files are in _respaldos.",
         "notEmpty": "{path} was not empty and was not deleted: check what is in it.",
         "skipped": "{name} is disconnected: it was not moved to the standard layout."
       },

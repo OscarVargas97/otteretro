@@ -256,25 +256,97 @@ public static class Installs
     /// <remarks>ponytail: un corte entre los dos renombres deja `<Port>.anterior` al lado, con todo: se arregla a mano.</remarks>
     static void Replace(string install, string partial, Recipe? recipe, string version)
     {
-        // Los de la receta, hasta el primer marcador (`data/mods`, `User/GameSettings/`): ganan sobre lo que traiga el paquete.
-        var mine = (recipe is null ? [] : recipe.Config.Concat(recipe.PerGame is { } pg ? [.. pg.Config is { } c ? [c] : Array.Empty<string>(), .. pg.Files, .. pg.Mods] : []))
-            .Select(p => p.Split('{')[0].Replace('\\', '/').TrimEnd('/')).Where(p => p.Length > 0).ToList();
+        var mine = Mine(recipe);
         var kept = Files(install).Where(rel => rel != Recipes.VersionFile
-            && (!File.Exists(System.IO.Path.Combine(partial, rel)) || mine.Any(m => rel == m || rel.StartsWith(m + "/", StringComparison.Ordinal)))).ToList();
+            && (!File.Exists(System.IO.Path.Combine(partial, rel)) || mine.Any(m => Under(rel, m)))).ToList();
         var backup = System.IO.Path.Combine(install, SnapshotsFolder, $"{DateTime.Now:yyyy-MM-dd-HHmmss}-archivos-antes-de-{version}");
         foreach (var rel in kept) CopyVerified(System.IO.Path.Combine(install, rel), System.IO.Path.Combine(backup, rel));
         foreach (var rel in kept) CopyVerified(System.IO.Path.Combine(install, rel), System.IO.Path.Combine(partial, rel), overwrite: true);
-        foreach (var folder in new[] { SharedFolder, SnapshotsFolder })
-            if (Directory.Exists(System.IO.Path.Combine(install, folder)))
-            {
-                var inPackage = System.IO.Path.Combine(partial, folder);
-                if (System.IO.Path.Exists(inPackage)) Directory.Move(inPackage, inPackage + ".del-paquete");
-                Directory.Move(System.IO.Path.Combine(install, folder), inPackage); // el mismo disco: se renombra
-            }
+        MoveCommon(install, partial);
         var old = install + ".anterior";
         Directory.Move(install, old);
         Directory.Move(partial, install);
         Links.DeleteTree(old); // ya sin lo de la persona: los enlaces se borran, no lo enlazado
+    }
+
+    /// <summary>Lo de la persona según la receta, hasta el primer marcador (`data/mods`, `User/GameSettings/`): gana sobre lo que traiga el paquete.</summary>
+    static List<string> Mine(Recipe? recipe) =>
+        (recipe is null ? [] : recipe.Config.Concat(recipe.PerGame is { } pg ? [.. pg.Config is { } c ? [c] : Array.Empty<string>(), .. pg.Files, .. pg.Mods] : []))
+            .Select(p => p.Split('{')[0].Replace('\\', '/').TrimEnd('/')).Where(p => p.Length > 0).ToList();
+
+    static bool Under(string rel, string folder) => rel == folder || rel.StartsWith(folder + "/", StringComparison.Ordinal);
+
+    /// <summary>`_compartido` y `_respaldos` pasan de una carpeta a la otra, en el mismo disco: se renombran.</summary>
+    static void MoveCommon(string from, string to)
+    {
+        foreach (var folder in new[] { SharedFolder, SnapshotsFolder })
+            if (Directory.Exists(System.IO.Path.Combine(from, folder)))
+            {
+                var there = System.IO.Path.Combine(to, folder);
+                if (System.IO.Path.Exists(there)) Directory.Move(there, there + ".del-paquete");
+                Directory.Move(System.IO.Path.Combine(from, folder), there);
+            }
+    }
+
+    /// <summary>
+    /// Un port de antes, `Ports\<Port>\<versión>` con una o varias, pasa a una sola en `Ports\<Port>`: la más nueva (decisión 327, #316).
+    /// Primero copia, verificado, a `_respaldos\<fecha>-antes-de-juntar-versiones\<versión>` lo de la persona de cada versión (lo que
+    /// <see cref="Replace"/> conserva: partidas, configuración, mods y lo que no trae la nueva) y lo que se va a pisar; después junta en
+    /// la nueva las partidas y lo de la persona (si el mismo archivo está en varias, gana el más reciente) y recién entonces borra las
+    /// demás. Los archivos de cada versión siguen en la librería. Devuelve la versión que quedó.
+    /// </summary>
+    /// <remarks>ponytail: un corte entre los renombres deja `<Port>.nueva` o `<Port>.anterior` al lado, con todo: se arregla a mano.</remarks>
+    internal static string JoinVersions(string folder, Recipe? recipe, IReadOnlyList<string> versions)
+    {
+        string P(params string[] parts) => System.IO.Path.Combine(parts);
+        var newest = versions.Order(Comparer<string>.Create((a, b) => EmulatorSettings.Compare(a, b) is var r and not 0 ? r : string.CompareOrdinal(a, b))).Last();
+        var keep = P(folder, newest);
+        var shared = P(folder, SharedFolder);
+        var together = recipe is null ? [] : recipe.Saves.Concat(recipe.Content).Select(s => s.Replace('\\', '/').TrimEnd('/')).ToList();
+        var mine = Mine(recipe).Concat(together).ToList();
+        // Las partidas que ya están en común (decisión 308) se juntan ahí; lo demás, en la versión nueva.
+        string Dest(string rel) => together.Any(s => Under(rel, s) && Directory.Exists(P(shared, s))) ? P(shared, rel) : P(keep, rel);
+
+        var candidates = versions
+            .SelectMany(v => Files(P(folder, v)).Where(rel => rel != Recipes.VersionFile
+                && (mine.Any(m => Under(rel, m)) || (v != newest && !File.Exists(P(keep, rel))))).Select(rel => (Label: v, Rel: rel, File: P(folder, v, rel))))
+            .Concat(together.Where(s => Directory.Exists(P(shared, s)))
+                .SelectMany(s => Files(P(shared, s)).Select(rel => (Label: SharedFolder, Rel: s + "/" + rel, File: P(shared, s, rel)))))
+            .ToList();
+        var winners = candidates.GroupBy(c => c.Rel).Select(g => g.MaxBy(c => File.GetLastWriteTimeUtc(c.File)))
+            .Where(w => !Disk.Same(w.File, Dest(w.Rel))).ToList();
+
+        // 1. Respaldo verificado: lo de la persona de cada versión que se borra (salvo lo que la nueva ya tiene igual) y lo que se pisa.
+        var backup = P(folder, SnapshotsFolder, $"{DateTime.Now:yyyy-MM-dd-HHmmss}-antes-de-juntar-versiones");
+        foreach (var c in candidates.Where(c => c.Label != newest && c.Label != SharedFolder))
+            if (!File.Exists(Dest(c.Rel)) || !FolderMove.SameContent(c.File, Dest(c.Rel))) CopyVerified(c.File, P(backup, c.Label, c.Rel));
+        foreach (var w in winners.Where(w => File.Exists(Dest(w.Rel))))
+            CopyVerified(Dest(w.Rel), P(backup, Dest(w.Rel).StartsWith(shared + System.IO.Path.DirectorySeparatorChar) ? SharedFolder : newest, w.Rel), overwrite: true);
+        // 2. Se juntan en la nueva.
+        foreach (var w in winners) CopyVerified(w.File, Dest(w.Rel), overwrite: true);
+        // 3. Lo que esté suelto junto a las versiones va al respaldo (el mismo disco: se renombra), y la nueva queda en `Ports\<Port>`.
+        foreach (var entry in Directory.EnumerateFileSystemEntries(folder)
+            .Where(e => System.IO.Path.GetFileName(e) is var name && !versions.Contains(name) && name is not (SharedFolder or SnapshotsFolder)).ToList())
+        {
+            var to = P(backup, "_sueltos", System.IO.Path.GetFileName(entry));
+            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(to)!);
+            if (File.Exists(entry)) File.Move(entry, to);
+            else Directory.Move(entry, to);
+        }
+        var next = folder + ".nueva";
+        Directory.Move(keep, next);
+        MoveCommon(folder, next);
+        var old = folder + ".anterior";
+        Directory.Move(folder, old);
+        Directory.Move(next, folder);
+        File.WriteAllText(P(folder, Recipes.VersionFile), newest);
+        Links.DeleteTree(old); // solo las versiones viejas, con lo de la persona ya respaldado y junto: los enlaces se borran, no lo enlazado
+        if (recipe is not null)
+        {
+            Recipes.MakePortable(recipe, folder);
+            ShareSaves(recipe, folder, newest);
+        }
+        return newest;
     }
 
     /// <summary>Los archivos de una carpeta, relativos y con `/`, sin entrar a los enlaces ni a `_compartido` y `_respaldos`.</summary>

@@ -447,6 +447,7 @@
         "moved": "Movida {from} a {to}; {paths} rutas de emuladores al día.",
         "tool": "{name} quedó en {path}.",
         "updated": "{name} pasó a la estructura de su receta actual, en {path}.",
+        "joined": "{name} quedó con una sola versión, la {version}, en {path}. Las partidas de las demás se juntaron ahí y lo anterior está en _respaldos.",
         "notEmpty": "{path} no quedó vacía y no se borró: revisa qué tiene.",
         "skipped": "{name} está desconectada: no se pasó al estándar."
       },

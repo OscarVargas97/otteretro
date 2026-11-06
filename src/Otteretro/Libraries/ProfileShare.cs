@@ -208,7 +208,8 @@ public static class ProfileShare
             version = VersionFor(c, m.Game) ?? throw new TaskException(ApiError.Of("profile.import.noGame", ("name", m.Game.Name)));
         if (Disk.DefaultDisk(run.Db) is not { Connected: true } home) throw new TaskException(ApiError.Of("library.notConnected"));
 
-        // El emulador: siempre la copia del paquete, al lado de las versiones que ya haya.
+        // El emulador: siempre la copia del paquete, al lado de las versiones que ya haya. Un port la deja como su única versión, con
+        // las partidas y lo de la persona que ya tenía (decisión 325).
         var job = new InstallJob(m.Emulator.Id, m.Emulator.Version, Name: m.Emulator.Name, Kind: m.Emulator.Kind);
         for (var n = 1; Installs.Taken(run.Db, job); n++)
             job = job with { Version = n == 1 ? $"{m.Emulator.Version}-compartido" : $"{m.Emulator.Version}-compartido-{n}" };

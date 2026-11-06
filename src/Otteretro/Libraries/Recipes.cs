@@ -159,12 +159,16 @@ public static class Recipes
     }
 
     /// <summary>
-    /// Dónde va (§5.1): `Emuladores\<Emulador>\<versión>` y, en lo de antes, `Ports\<Port>\<versión>`, una carpeta aunque sirva a varias consolas
-    /// (decisión 302); una herramienta, `Herramientas\<Nombre>\<versión>` (#274); `Complementos\<Emulador o port>\<Complemento>\<versión>`.
+    /// Dónde va (§5.1): `Emuladores\<Emulador>\<versión>`, una carpeta aunque sirva a varias consolas (decisión 302); un port,
+    /// `Ports\<Port>`, sin la versión (decisión 324); una herramienta, `Herramientas\<Nombre>\<versión>` (#274);
+    /// `Complementos\<Emulador o port>\<Complemento>\<versión>`.
     /// </summary>
-    public static string Target(string tools, Recipe recipe, string version) => recipe.Kind == "complement"
-        ? Path.Combine(tools, recipe.Group, recipe.Folder, recipe.Name, version)
-        : Path.Combine(tools, recipe.Group, recipe.Name, version);
+    public static string Target(string tools, Recipe recipe, string version) => recipe.Kind switch
+    {
+        "complement" => Path.Combine(tools, recipe.Group, recipe.Folder, recipe.Name, version),
+        "port" => Path.Combine(tools, recipe.Group, recipe.Name),
+        _ => Path.Combine(tools, recipe.Group, recipe.Name, version),
+    };
 
     /// <summary>Emuladores, Ports, Complementos y Herramientas (§5.1): la primera ubicación de cada tipo (#198).</summary>
     public static List<ToolRoot> DefaultRoots(string tools) =>
@@ -194,7 +198,8 @@ public static class Recipes
             foreach (var folder in Directory.EnumerateDirectories(root))
             {
                 var named = kind == "complement" ? null : All.FirstOrDefault(r => r.Kind == kind && r.Name == Path.GetFileName(folder));
-                // Un port con una sola versión, en `Ports\<Port>` (decisión 324); sin el archivo, el formato de antes (#316 lo junta).
+                // Un port con una sola versión, en `Ports\<Port>` (decisión 324); sin el archivo, el formato de antes, que se lee hasta
+                // que «Pasar al estándar» lo junta en una (DiskTasks.OldPorts, decisión 327).
                 if (kind == "port" && File.Exists(Path.Combine(folder, VersionFile)))
                 {
                     list.Add(new(kind, named?.Folder ?? "", Path.GetFileName(folder), File.ReadAllText(Path.Combine(folder, VersionFile)).Trim(), folder, named?.Id, named?.Game, locationId));
