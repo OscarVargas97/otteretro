@@ -127,7 +127,9 @@ export function CatalogSettings() {
                       </details>
                     ) : <span className="muted">{text || t("noHistory")}</span>}
                   </span>
-                  {!v.current && (v.available
+                  {!v.current && (v.reason
+                    ? <span className="small muted">{t(`reason.${v.reason as "newer" | "older"}`)}</span>
+                    : v.available && v.compatible
                     ? <button className="ot-btn" type="button" disabled={busy} onClick={() => check.mutate(v.tag)}>{older ? t("goBack") : t("goTo")}</button>
                     : <span className="small muted">{t("notAvailable")}</span>)}
                 </li>

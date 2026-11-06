@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:60773/"
+      "url": "http://127.0.0.1:62272/"
     }
   ],
   "paths": {
@@ -9013,6 +9013,8 @@
           "publishedAt",
           "available",
           "current",
+          "compatible",
+          "reason",
           "counts",
           "changes"
         ],
@@ -9032,6 +9034,15 @@
           },
           "current": {
             "type": "boolean"
+          },
+          "compatible": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "counts": {
             "type": "object",

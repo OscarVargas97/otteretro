@@ -52,7 +52,20 @@ public class CatalogUpdateTests
         INSERT INTO catalog.replaced (kind, old_id, new_id) VALUES ('game', 11, 10), ('version', 21, 20), ('version', 29, NULL);
         """;
 
-    static Fake Answers(byte[] data, string? sha = null, string tag = "catalogo-20261101", object? changes = null)
+    /// <summary>Lo que publica el catálogo en `schema`: las columnas de catálogo de esta app.</summary>
+    static readonly Lazy<List<string>> AppSchema = new(() =>
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "otteretro-schema-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var db = new Data.Database(Path.Combine(dir, "propia.db"), Path.Combine(dir, "catalogo.db"));
+        Data.Migrations.Apply(db);
+        var columns = CatalogUpdate.AppColumns(db);
+        SqliteConnection.ClearAllPools();
+        try { Directory.Delete(dir, true); } catch (IOException) { }
+        return columns;
+    });
+
+    static Fake Answers(byte[] data, string? sha = null, string tag = "catalogo-20261101", object? changes = null, bool noSchema = false, List<string>? schema = null)
     {
         var assets = new List<object>
         {
@@ -67,7 +80,7 @@ public class CatalogUpdateTests
                 new { tag_name = "imagenes-1", draft = false, assets = new[] { new { name = "x", browser_download_url = "https://x.test/mal" } } },
                 new { tag_name = tag, draft = false, assets },
             }),
-            ["manifest.json"] = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = sha ?? Convert.ToHexStringLower(SHA256.HashData(data)) }),
+            ["manifest.json"] = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = sha ?? Convert.ToHexStringLower(SHA256.HashData(data)), schema = noSchema ? null : schema ?? AppSchema.Value }),
             ["catalogo.db.gz"] = data,
         };
         if (changes is not null) answers["cambios.json"] = JsonSerializer.SerializeToUtf8Bytes(changes);
@@ -313,9 +326,9 @@ public class CatalogUpdateTests
         {
             ["releases?"] = JsonSerializer.SerializeToUtf8Bytes(new[] { Release("catalogo-20261102", "n", changes: true), Release("catalogo-20261101", "o") }),
             ["n.test/cambios.json"] = JsonSerializer.SerializeToUtf8Bytes(history),
-            ["n.test/manifest.json"] = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = Convert.ToHexStringLower(SHA256.HashData(newer)) }),
+            ["n.test/manifest.json"] = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = Convert.ToHexStringLower(SHA256.HashData(newer)), schema = AppSchema.Value }),
             ["n.test/catalogo.db.gz"] = newer,
-            ["o.test/manifest.json"] = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = Convert.ToHexStringLower(SHA256.HashData(older)) }),
+            ["o.test/manifest.json"] = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = Convert.ToHexStringLower(SHA256.HashData(older)), schema = AppSchema.Value }),
             ["o.test/catalogo.db.gz"] = older,
         });
         try
@@ -329,6 +342,7 @@ public class CatalogUpdateTests
             Assert.True(page.Versions.Single(v => v.Tag == "catalogo-20261101").Current);
             Assert.Equal(["catalogo-20261102", "catalogo-20261101", "catalogo-20261030"], page.Versions.Select(v => v.Tag));
             Assert.Equal([true, true, false], page.Versions.Select(v => v.Available)); // la del 30 ya no se puede bajar
+            Assert.Equal([true, true, false], page.Versions.Select(v => v.Compatible));
             Assert.Equal(1, page.Versions[0].Counts["renamed"]);
             Assert.Equal("Metroid Fusion", page.Versions[0].Changes.Single().From);
 
@@ -359,7 +373,7 @@ public class CatalogUpdateTests
             new { name = "catalogo.db.gz", browser_download_url = $"https://{letter}.test/catalogo.db.gz" },
             new { name = "catalogo.db.gz.json", browser_download_url = $"https://{letter}.test/manifest.json" },
         } } }),
-        [$"{letter}.test/manifest.json"] = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = Convert.ToHexStringLower(SHA256.HashData(data)) }),
+        [$"{letter}.test/manifest.json"] = JsonSerializer.SerializeToUtf8Bytes(new { sha256 = Convert.ToHexStringLower(SHA256.HashData(data)), schema = AppSchema.Value }),
         [$"{letter}.test/catalogo.db.gz"] = data,
     };
 
@@ -464,5 +478,41 @@ public class CatalogUpdateTests
         Assert.Equal("done", done.Status);
         using var c = f.Db.Open();
         Assert.Equal(2, c.ExecuteScalar<long>("SELECT count(*) FROM catalog.game"));
+    }
+
+    /// <summary>#337: sin una columna que usa la app no se baja ni se aplica, y dice por qué.</summary>
+    [Theory]
+    [InlineData("none", "catalog.olderSchema", "older")] // sin `schema` en el manifiesto
+    [InlineData("missing", "catalog.olderSchema", "older")] // le falta una columna
+    [InlineData("missingAndExtra", "catalog.needsNewerApp", "newer")] // le falta una y trae otra que la app no conoce
+    public async Task AnIncompatibleVersionIsNeitherDownloadedNorApplied(string kind, string code, string reason)
+    {
+        await using var f = new Fixture();
+        Mine(f);
+        var columns = AppSchema.Value.Where(x => x != "game.saga_id").Concat(kind == "missingAndExtra" ? ["game.futura"] : []).ToList();
+        var fake = Answers(Compiled(f, Catalog2), noSchema: kind == "none", schema: columns);
+        var task = await Update(f, fake);
+        Assert.Equal(code, task.Detail?.Code);
+        Assert.Equal(0, fake.DataDownloads);
+        Assert.Null(CatalogUpdate.Waiting(f.Db));
+        CatalogUpdate.Handler = fake;
+        try
+        {
+            var v = (await CatalogUpdate.Versions(f.Db)).Versions.Single();
+            Assert.False(v.Compatible);
+            Assert.Equal(reason, v.Reason);
+        }
+        finally { CatalogUpdate.Handler = null; }
+    }
+
+    /// <summary>Una columna o tabla de más no estorba: la app la ignora.</summary>
+    [Fact]
+    public async Task ExtraColumnsKeepAVersionCompatible()
+    {
+        await using var f = new Fixture();
+        Mine(f);
+        var task = await Update(f, Answers(Compiled(f, Catalog2), schema: AppSchema.Value.Append("game.futura").Append("tabla_nueva.id").ToList()));
+        Assert.Equal("done", task.Status);
+        Assert.Equal("catalogo-20261101", CatalogUpdate.Version(f.Db));
     }
 }
