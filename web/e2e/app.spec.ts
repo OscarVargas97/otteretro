@@ -345,7 +345,7 @@ test("Herramientas: pestañas por tipo y subir un archivo de sistema con version
   await expectNoRawKeys();
 });
 
-test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería con la segunda copia y los avisos que instalan (#296)", async () => {
+test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería y los avisos que instalan (#296)", async () => {
   const src = dataDir("srm-a-mano");
   mkdirSync(src, { recursive: true });
   writeFileSync(join(src, "Steam-ROM-Manager.exe"), "srm");
@@ -362,23 +362,15 @@ test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería c
   await expectTextFits();
   await page.locator("section[aria-labelledby=install-title]").getByRole("button", { name: en.tools.install.submit, exact: true }).click();
   await expect(page.getByText(en.tools.install.queued)).toBeVisible();
-  // Al terminar: en la lista de su tipo y en la librería, con su origen y una sola copia todavía.
+  // Al terminar: en la lista de su tipo y en la librería, con su origen.
   const panel = page.locator("#tools-panel");
   await expect(panel.getByRole("button", { name: /Steam ROM Manager/ })).toBeVisible({ timeout: 15_000 });
   const library = panel.locator("section", { has: page.getByRole("heading", { name: en.tools.library.title }) });
   await expect(library.getByText(en.tools.library.origin.upload, { exact: false })).toBeVisible();
-  await expect(library.getByText(en.tools.library.oneCopy)).toBeVisible();
   await page.screenshot({ path: "e2e-results/8-tools-install-en.png", fullPage: true });
 
-  // Ajustes › Almacenamiento: elegir el disco de la segunda copia la hace sola.
-  await page.goto(`${base()}/settings/?s=storage`);
-  const backup = page.getByLabel(en.libraries.backup.disk);
-  await expect(backup.locator("option", { hasText: "★" })).toHaveCount(0); // nunca el ★
-  await backup.selectOption({ label: "Disco Copia" });
-  await expect(page.getByText(en.libraries.backup.upToDate)).toBeVisible({ timeout: 15_000 });
-  await expectNoRawKeys();
-  await page.goto(`${base()}/tools/?k=tool`);
-  await expect(page.locator("#tools-panel").getByText(en.tools.library.twoCopies)).toBeVisible();
+  // Ya no hay segunda copia: ni la opción en Ajustes › Almacenamiento ni insignias de copias (decisión 335).
+  await expect(page.getByText(/En dos discos|On two disks|Una sola copia|Only one copy/)).toHaveCount(0);
 
   // Un aviso con su archivo: «Actualizar» lo instala al lado (con la API de instalar) y dice qué juegos lo usan.
   const many = ["A", "B", "C", "D", "E", "F", "G", "H"];
@@ -402,7 +394,6 @@ test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería c
   await expectNoRawKeys();
   await page.unroute("**/api/tools/updates");
   await page.unroute("**/api/emulators/install");
-  await api("PUT", "/api/library/backup", { diskId: null });
   // Se limpian la instalación y la copia del panel de tareas, para las pruebas que siguen.
   await page.getByRole("button", { name: en.topBar.tasks }).click();
   await expect(async () => {
