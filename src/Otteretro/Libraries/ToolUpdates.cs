@@ -109,9 +109,12 @@ public static class ToolUpdates
     public static string[] ChannelsOf(RecipeUpdates u, bool manual) =>
         u.Dev || manual && (u.DevRepo is not null || u.DevPattern is not null) ? Channels : ["stable"];
 
-    /// <summary>Lo último de un canal; null si la fuente no publica en él.</summary>
+    /// <summary>
+    /// Lo último de un canal que trae el archivo de Windows (Eglantine publica builds por rama sin él, #334); si ninguna lo trae, la última.
+    /// null si la fuente no publica en él.
+    /// </summary>
     public static async Task<Release?> Latest(HttpClient http, RecipeUpdates u, string channel, CancellationToken ct, string? asset = null, string? token = null) =>
-        (await Releases(http, u, channel, ct, asset, token)).FirstOrDefault();
+        await Releases(http, u, channel, ct, asset, token) is var list ? list.FirstOrDefault(x => x.Download is not null) ?? list.FirstOrDefault() : null;
 
     /// <summary>
     /// Las versiones de una receta que se pueden instalar (las que traen su `asset`), de la más nueva a la más vieja, en los canales
