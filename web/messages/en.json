@@ -571,15 +571,11 @@
       "fetching": "Getting version {version}",
       "library": "Saving to your library",
       "extracting": "Installing to {path}",
-      "backup": "Copying to your second disk",
       "log": {
-        "done": "{name} {version} installed to {path}",
-        "noBackupDisk": "You haven't picked a disk for the library's second copy (Settings › Storage): it has only one copy.",
-        "backupPending": "The second copy's disk isn't connected: it's copied as soon as you connect it."
+        "done": "{name} {version} installed to {path}"
       },
       "notInstalled": "That version isn't registered: install it first.",
       "notInLibrary": "Version {version} isn't in your library: it can't be reinstalled without downloading it.",
-      "backupIsDefault": "The second copy has to go on another disk, not on the ★.",
       "sourceFailed": "Could not read the versions of {name}: {detail}",
       "manyVersions": "{name} still has several versions in its folder: they are merged into one when the app opens, and then it can be updated."
     },
@@ -726,8 +722,7 @@
         "scan": "Scan your drives",
         "verify": "Verify files by hash",
         "import": "Import a folder",
-        "convert": "Convert to the light format",
-        "backup": "Copy the library to its second disk"
+        "convert": "Convert to the light format"
       },
       "disk": {
         "migrate": "Move to the standard drive layout"
@@ -1206,16 +1201,6 @@
       "off": "Off: what isn't recognized goes straight to Review › Unidentified.",
       "month": "This month: {calls, plural, one {# call} other {# calls}} · {cost}",
       "paused": "Your subscription hit its limit: it resumes on its own on {at}."
-    },
-    "backup": {
-      "title": "Second copy of the library",
-      "help": "The original files of what you install are kept in Libreria on the ★ disk and also on this disk. If it is not connected, it is copied as soon as you connect it.",
-      "disk": "Second copy disk",
-      "none": "None",
-      "noDisk": "No second copy: choose a disk so you do not depend on the ★ alone.",
-      "pending": "{count, plural, one {# version is waiting} other {# versions are waiting}} for its second copy: it is being copied.",
-      "pendingDisconnected": "{count, plural, one {# version is waiting} other {# versions are waiting}} for its second copy: it is copied when you connect {name}.",
-      "upToDate": "Everything has its second copy."
     }
   },
   "tools": {
@@ -1309,7 +1294,7 @@
     },
     "library": {
       "title": "Your library",
-      "help": "What you installed, with the original file kept in Libreria on the ★ disk and its second copy on the disk you chose in Settings › Storage.",
+      "help": "What you installed, with the original file kept in Libreria on the ★ disk.",
       "portHelp": "A port has a single installed version. The earlier ones keep their file: «Reinstall» makes it the installed one, with your saves.",
       "origin": {
         "recipe": "from its recipe",
@@ -1317,8 +1302,6 @@
         "upload": "from a folder or zip",
         "adopted": "adopted"
       },
-      "twoCopies": "On two disks",
-      "oneCopy": "Only one copy",
       "archived": "File only",
       "installed": "Installed",
       "missing": "Folder missing",

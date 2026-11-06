@@ -310,7 +310,7 @@ function InstallPanel({ kind }: { kind: Installable }) {
 }
 
 /**
- * La librería (#268, decisiones 293 y 304): lo instalado por emulador, cada versión con su origen y si ya tiene la segunda copia.
+ * La librería (#268, decisiones 293 y 304): lo instalado por emulador, cada versión con su origen.
  * Una versión cuya carpeta ya no está vuelve con «Reinstalar», desde el archivo guardado y sin bajar nada. Un port tiene una sola
  * instalada (decisión 325): las anteriores quedan como su archivo, y «Reinstalar» la deja en su lugar.
  */
@@ -343,7 +343,6 @@ function Library({ kind }: { kind: Installable }) {
                 {i.url && <span className="folder-path muted">{i.url}</span>}
               </span>
               <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <span className={`ot-badge${i.backupLibraryId ? "" : " ot-badge-review"}`}>{t(i.backupLibraryId ? "twoCopies" : "oneCopy")}</span>
                 {kind === "port" ? <span className={`ot-badge${i.path ? " ot-badge-have" : ""}`}>{t(i.path ? "installed" : "archived")}</span>
                   : !i.path && <span className="ot-badge ot-badge-danger">{t("missing")}</span>}
                 {!i.path && (

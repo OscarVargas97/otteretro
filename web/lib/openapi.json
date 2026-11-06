@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:53671/"
+      "url": "http://127.0.0.1:57125/"
     }
   ],
   "paths": {
@@ -4774,82 +4774,6 @@
         }
       }
     },
-    "/api/library/backup": {
-      "get": {
-        "tags": [
-          "Otteretro"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LibraryBackup"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "Otteretro"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BackupDiskRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LibraryBackup"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/tools/move": {
       "post": {
         "tags": [
@@ -5301,20 +5225,6 @@
           },
           "menuCollapsed": {
             "type": "boolean"
-          }
-        }
-      },
-      "BackupDiskRequest": {
-        "required": [
-          "diskId"
-        ],
-        "type": "object",
-        "properties": {
-          "diskId": {
-            "type": [
-              "null",
-              "string"
-            ]
           }
         }
       },
@@ -6317,7 +6227,6 @@
           "url",
           "file",
           "sha256",
-          "backupLibraryId",
           "installedAt",
           "path"
         ],
@@ -6351,12 +6260,6 @@
             ]
           },
           "sha256": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "backupLibraryId": {
             "type": [
               "null",
               "string"
@@ -6884,29 +6787,6 @@
         "properties": {
           "language": {
             "type": "string"
-          }
-        }
-      },
-      "LibraryBackup": {
-        "required": [
-          "diskId",
-          "pending"
-        ],
-        "type": "object",
-        "properties": {
-          "diskId": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "pending": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
           }
         }
       },
