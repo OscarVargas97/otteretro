@@ -151,4 +151,37 @@ public class ProfileShareTests
         Assert.Equal("profile.import.badPackage", ProfileShare.EnqueueImport(b.Db, a.Tmp[@"E\Libreria\Emuladores\eden\1.0\eden-1.0-eden.zip"]).Error?.Code);
         Assert.Empty(Installs.List(b.Db));
     }
+
+    static async Task InstallDusklight(Fixture f, string version, string exe)
+    {
+        var src = f.Tmp[$"dusklight-{version}"];
+        Write(Path.Combine(src, "dusklight.exe"), exe);
+        var zip = f.Tmp[$"dusklight-{version}.zip"];
+        ZipFile.CreateFromDirectory(src, zip);
+        var (task, error) = Installs.Enqueue(f.Db, new InstallJob("dusklight", version, Path: zip));
+        Assert.Null(error);
+        Assert.Equal("done", (await f.Run(task!.Value)).Status);
+    }
+
+    /// <summary>#316: cargar el perfil de un port deja una sola versión, la del paquete, sin perder las partidas que ya había.</summary>
+    [Fact]
+    public async Task LoadingAPortProfileLeavesOneVersionAndKeepsTheSaves()
+    {
+        await using var a = Game(owned: true);
+        await InstallDusklight(a, "1.0", "de a");
+        var (id, _) = Profiles.Create(a.Db, 20, "dusklight", "60 fps");
+        var package = a.Tmp["dusklight.zip"];
+        Assert.Null(ProfileShare.Export(a.Db, id!.Value, package));
+
+        await using var b = Game(owned: true);
+        await InstallDusklight(b, "2.0", "de b");
+        var port = b.Tmp[@"E\Ports\Dusklight"];
+        Write(Path.Combine(port, @"data\EUR\partida.sav"), "partida");
+        Assert.Equal("done", (await b.Run(ProfileShare.EnqueueImport(b.Db, package).Task!.Value)).Status);
+
+        Assert.Equal(["1.0"], Recipes.Installed(Disk.ToolRoots(b.Db)).Where(t => t.Kind == "port").Select(t => t.Version));
+        Assert.Equal("de a", File.ReadAllText(Path.Combine(port, "dusklight.exe")));
+        Assert.Equal("partida", File.ReadAllText(Path.Combine(port, @"data\EUR\partida.sav")));
+        Assert.Equal([("2.0", false), ("1.0", true)], Installs.List(b.Db).Select(i => (i.Version, i.Path is not null)));
+    }
 }

@@ -247,6 +247,68 @@ public class InstallsTests
         Assert.False(Installs.MatchesSri(sha, "sha256-" + Convert.ToBase64String(SHA256.HashData("b"u8.ToArray()))));
     }
 
+    static string Package(TempDir tmp, string name, params (string Path, string Text)[] files)
+    {
+        var folder = tmp[name + "-src"];
+        foreach (var (path, text) in files)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(folder, path))!);
+            File.WriteAllText(Path.Combine(folder, path), text);
+        }
+        ZipFile.CreateFromDirectory(folder, tmp[name + ".zip"]);
+        return tmp[name + ".zip"];
+    }
+
+    /// <summary>#315 (decisiones 324 y 325): un port sin receta tiene una sola versión y lo que creó la persona se queda.</summary>
+    [Fact]
+    public async Task PortWithoutRecipeIsReplacedInPlaceAndKeepsYourFiles()
+    {
+        await using var f = new Fixture();
+        Disk.Create(f.Db, f.Tmp["E"], "E:");
+        var job = new InstallJob("port-2", "1.0", Path: Package(f.Tmp, "v1", ("ship.exe", "uno"), ("viejo.dll", "solo en la 1.0")), Name: "Ship", Kind: "port");
+        Assert.Equal("done", (await Install(f, job)).Status);
+        Assert.Equal("uno", File.ReadAllText(f.Tmp[@"E\Ports\Ship\ship.exe"]));
+        File.WriteAllText(f.Tmp[@"E\Ports\Ship\mio.cfg"], "de la persona");
+
+        Assert.Equal("done", (await Install(f, job with { Version = "2.0", Path = Package(f.Tmp, "v2", ("ship.exe", "dos")) })).Status);
+        Assert.Equal("dos", File.ReadAllText(f.Tmp[@"E\Ports\Ship\ship.exe"]));
+        Assert.Equal("de la persona", File.ReadAllText(f.Tmp[@"E\Ports\Ship\mio.cfg"]));
+        Assert.Equal("de la persona", File.ReadAllText(Assert.Single(Directory.GetFiles(f.Tmp[@"E\Ports\Ship\_respaldos"], "mio.cfg", SearchOption.AllDirectories))));
+        Assert.False(Directory.Exists(f.Tmp[@"E\Ports\Ship.anterior"]));
+        // Una sola instalada; la otra queda como archivo de la librería.
+        Assert.Equal([("1.0", false), ("2.0", true)], Installs.List(f.Db).Select(i => (i.Version, i.Path is not null)));
+        Assert.Equal(["2.0"], Recipes.Installed(Disk.ToolRoots(f.Db)).Where(t => t.Kind == "port").Select(t => t.Version));
+
+        // «Reinstalar» la vieja la deja como la única, sin perder lo de la persona.
+        Assert.Equal("done", (await Install(f, new InstallJob("port-2", "1.0", Reinstall: true))).Status);
+        Assert.Equal("uno", File.ReadAllText(f.Tmp[@"E\Ports\Ship\ship.exe"]));
+        Assert.Equal("de la persona", File.ReadAllText(f.Tmp[@"E\Ports\Ship\mio.cfg"]));
+        Assert.Equal([("1.0", true), ("2.0", false)], Installs.List(f.Db).Select(i => (i.Version, i.Path is not null)));
+    }
+
+    /// <summary>#315 (decisiones 325 y 326): Dusklight se actualiza en su carpeta con sus partidas, su configuración y sus mods.</summary>
+    [Fact]
+    public async Task PortWithRecipeKeepsSavesConfigAndModsAndProfilesUseTheNewOne()
+    {
+        await using var f = new Fixture();
+        Disk.Create(f.Db, f.Tmp["E"], "E:");
+        var job = new InstallJob("dusklight", "1.0", Path: Package(f.Tmp, "v1", ("dusklight.exe", "uno"), ("data/config.json", "{}")));
+        Assert.Equal("done", (await Install(f, job)).Status);
+        var root = f.Tmp[@"E\Ports\Dusklight"];
+        foreach (var region in new[] { "EUR", "USA", "JAP" }) File.WriteAllText(Path.Combine(root, "data", region, "partida.sav"), region);
+        File.WriteAllText(Path.Combine(root, @"data\config.json"), "{\"mia\":1}");
+        Directory.CreateDirectory(Path.Combine(root, @"data\mods"));
+        File.WriteAllText(Path.Combine(root, @"data\mods\mod.txt"), "mod");
+
+        Assert.Equal("done", (await Install(f, job with { Version = "1.1", Path = Package(f.Tmp, "v2", ("dusklight.exe", "dos"), ("data/config.json", "{\"paquete\":1}")) })).Status);
+        Assert.Equal("dos", File.ReadAllText(Path.Combine(root, "dusklight.exe")));
+        foreach (var region in new[] { "EUR", "USA", "JAP" }) Assert.Equal(region, File.ReadAllText(Path.Combine(root, "data", region, "partida.sav")));
+        Assert.Equal("{\"mia\":1}", File.ReadAllText(Path.Combine(root, @"data\config.json")));
+        Assert.Equal("mod", File.ReadAllText(Path.Combine(root, @"data\mods\mod.txt")));
+        // Un perfil de la versión vieja juega con la nueva.
+        Assert.True(Disk.Same(root, Profiles.InstallOf(f.Db, "dusklight", "1.0")!));
+    }
+
     [Fact]
     public async Task RejectsWhatCannotBeInstalled()
     {

@@ -452,6 +452,7 @@
         "moved": "Moved {from} to {to}; {paths} emulator paths updated.",
         "tool": "{name} is now in {path}.",
         "updated": "{name} now follows its current recipe, in {path}.",
+        "joined": "{name} now has a single version, {version}, in {path}. The saves of the others were merged there and the previous files are in _respaldos.",
         "notEmpty": "{path} was not empty and was not deleted: check what is in it.",
         "skipped": "{name} is disconnected: it was not moved to the standard layout."
       },
@@ -579,7 +580,8 @@
       "notInstalled": "That version isn't registered: install it first.",
       "notInLibrary": "Version {version} isn't in your library: it can't be reinstalled without downloading it.",
       "backupIsDefault": "The second copy has to go on another disk, not on the ★.",
-      "sourceFailed": "Could not read the versions of {name}: {detail}"
+      "sourceFailed": "Could not read the versions of {name}: {detail}",
+      "manyVersions": "{name} still has several versions in its folder: they are merged into one when the app opens, and then it can be updated."
     },
     "profile": {
       "notFound": "That profile doesn't exist or isn't for this version of the game.",
@@ -1262,12 +1264,14 @@
       "games": "Used by",
       "gamesUnknown": "None of your games yet.",
       "besideOld": "The new one is installed next to the one you have: the old one is left untouched and you can go back to it.",
+      "replaces": "A port has a single version: the new one replaces the one you have, in the same folder. Your saves, mods and settings stay (they are backed up first) and the old one's file stays in your library.",
       "update": "Update",
       "skip": "Skip this version",
       "badge": "New version",
       "gamesCount": "{count, plural, =0 {None of your games use it} one {Used by # game} other {Used by # games}}",
       "more": "More actions for {name}",
       "gamesMore": "{list} and {count, plural, one {# more} other {# more}}",
+      "queuedReplace": "Updating in its folder: see it in the tasks panel.",
       "queued": "Installing next to the one you have: see it in the tasks panel."
     },
     "install": {
@@ -1306,6 +1310,7 @@
     "library": {
       "title": "Your library",
       "help": "What you installed, with the original file kept in Libreria on the ★ disk and its second copy on the disk you chose in Settings › Storage.",
+      "portHelp": "A port has a single installed version. The earlier ones keep their file: «Reinstall» makes it the installed one, with your saves.",
       "origin": {
         "recipe": "from its recipe",
         "url": "from a URL",
@@ -1314,6 +1319,8 @@
       },
       "twoCopies": "On two disks",
       "oneCopy": "Only one copy",
+      "archived": "File only",
+      "installed": "Installed",
       "missing": "Folder missing",
       "reinstall": "Reinstall",
       "queued": "Added to the tasks panel: it comes back from your library, without downloading anything."

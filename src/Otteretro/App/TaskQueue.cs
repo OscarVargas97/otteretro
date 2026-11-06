@@ -61,6 +61,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
     readonly Libraries.GamesWatcher games = new();
     ClipboardWatcher? clipboard;
     DateTime lastBackupCheck;
+    string? connectedDisks;
 
     /// <summary>
     /// Espera antes de cada reintento de un error pasajero (#59): se corta la red, vence el tiempo, o la fuente responde 429 o 5xx.
@@ -208,6 +209,14 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
                         {
                             lastBackupCheck = DateTime.UtcNow;
                             Libraries.Installs.EnqueueBackupIfPending(db);
+                            // Los ports de antes de un disco que se conectó recién pasan a una sola versión (#316). Solo al cambiar los
+                            // discos conectados: si falla, no se repite cada 30 s, sino al próximo arranque o al reconectarlo.
+                            var connected = string.Join(",", Libraries.Disk.List(db).Where(l => l.Connected).Select(l => l.Id));
+                            if (connected != connectedDisks)
+                            {
+                                if (connectedDisks is not null) Libraries.DiskTasks.EnqueuePortsIfPending(db);
+                                connectedDisks = connected;
+                            }
                         }
                     }
                     StartPending(db, ct);

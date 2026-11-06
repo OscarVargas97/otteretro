@@ -70,7 +70,8 @@ public static class Ports
     {
         using var c = db.Open();
         var rows = c.Query<Row>($"{Select} {where}", args).ToList();
-        var installed = c.Query<(string Emulator, string Version)>("SELECT emulator_id, version FROM emulator_install").ToLookup(i => i.Emulator, i => i.Version);
+        // La instalada, no las que solo quedan en la librería (decisión 325).
+        var installed = Installs.List(db).Where(i => i.Path is not null).ToLookup(i => i.EmulatorId, i => i.Version);
         return rows.Select(r =>
         {
             var recipe = RecipeOf(r.Project, r.Link);

@@ -171,9 +171,12 @@ public static class Profiles
         return items.Any(i => i is null) ? null : items.Select(i => i!).ToList();
     }
 
-    /// <summary>La carpeta de la versión que usa (null: la más nueva instalada), o null si no está instalada o su disco no está.</summary>
-    internal static string? InstallOf(Database db, string emulator, string? version) =>
-        Installs.List(db).LastOrDefault(i => i.EmulatorId == emulator && i.Path is not null && (version is null || i.Version == version))?.Path;
+    /// <summary>
+    /// La carpeta de la versión que usa (null: la más nueva instalada), o null si no está instalada o su disco no está. Un port usa
+    /// siempre la que tiene instalada, sea cual sea la del perfil (decisión 326).
+    /// </summary>
+    public static string? InstallOf(Database db, string emulator, string? version) =>
+        Installs.List(db).LastOrDefault(i => i.EmulatorId == emulator && i.Path is not null && (version is null || i.Version == version || i.Kind == "port"))?.Path;
 
     static State Loose(Database db, long version, string emulator) =>
         new(emulator, null, Path.Combine(Root(db), LooseFolder, version.ToString(), emulator), false, null);
