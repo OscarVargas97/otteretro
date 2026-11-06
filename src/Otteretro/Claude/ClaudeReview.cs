@@ -5,7 +5,11 @@ using Otteretro.Data;
 namespace Otteretro.Claude;
 
 /// <param name="Files">Archivos en Dudosas y Sin identificar (#181).</param>
-public record ReviewPage(List<FileReview> Files);
+/// <param name="Packages">Paquetes de `Entrada\` sin juegos, en Sin identificar (#310).</param>
+public record ReviewPage(List<FileReview> Files, List<PackageReview> Packages);
+
+/// <param name="Files">Lo que traía el paquete, relativo a él.</param>
+public record PackageReview(long Id, string Path, string Name, List<string> Files);
 
 /// <param name="Kind">doubtful (Claude lo asignó) o unidentified.</param>
 /// <param name="Proposed">El nombre que dio Claude, si dio uno.</param>
@@ -54,15 +58,23 @@ public static class ClaudeReview
             return new FileReview(r.Id, r.Kind, r.SourceId, Path.Combine(r.Root, r.Relative), r.Console, r.Component, r.TitleId, Text("name"), Text("reason"),
                 r.GameId, r.GameName);
         }).ToList();
-        return new ReviewPage(files);
+        var packages = c.Query<(long Id, string Data, string? Root)>("""
+            SELECT r.id, r.data, l.path FROM review_item r LEFT JOIN library l ON l.id = json_extract(r.data, '$.libraryId')
+            WHERE r.entity = 'entry' AND r.status = 'open' ORDER BY r.created_at
+            """).Select(r =>
+        {
+            var e = JsonSerializer.Deserialize<Libraries.Import.EntryReview>(r.Data, Web)!;
+            return new PackageReview(r.Id, Path.Combine(r.Root ?? "", e.RelativePath), e.Name, e.Files);
+        }).ToList();
+        return new ReviewPage(files, packages);
     }
 
     /// <summary>Cuántos resultados esperan aprobación: el contador de Revisar en la barra lateral (D3).</summary>
     public static int PendingCount(Database db)
     {
         using var c = db.Open();
-        // Lo de Claude por aprobar y los archivos en Dudosas y Sin identificar (#181).
-        return c.ExecuteScalar<int>("SELECT count(*) FROM review_item WHERE status = 'open' AND entity = 'source'");
+        // Lo de Claude por aprobar, los archivos en Dudosas y Sin identificar (#181) y los paquetes sin juegos (#310).
+        return c.ExecuteScalar<int>("SELECT count(*) FROM review_item WHERE status = 'open' AND entity IN ('source', 'entry')");
     }
 
     public static RoutesPage Routes(Database db, long sagaId)

@@ -133,6 +133,10 @@ public static partial class Import
             foreach (var (id, relative) in c.Query<(long, string)>(
                          "SELECT id, relative_path FROM source WHERE kind = 'file' AND library_id = @Id AND substr(relative_path, 1, length(@prefix)) = @prefix", new { entryDisk.Id, prefix }).ToList())
                 if (!File.Exists(Path.Combine(entryDisk.Path, relative))) c.Execute("DELETE FROM source WHERE id = @id", new { id });
+            // Igual con los paquetes sin juegos que esperaban en Revisar (#310).
+            foreach (var relative in c.Query<string>("SELECT json_extract(data, '$.relativePath') FROM review_item WHERE entity = 'entry' AND status = 'open' AND json_extract(data, '$.libraryId') = @Id",
+                         new { entryDisk.Id }).ToList())
+                if (!File.Exists(Path.Combine(entryDisk.Path, relative))) CloseReview(c, null, entryDisk.Id, relative, "approved");
         }
 
         var pass = new Pass(run, db, job, entryDisk, consoles, catalog, aliases,
@@ -211,7 +215,11 @@ public static partial class Import
             if (!HasGames())
             {
                 p.Run.Log(ApiError.Of("import.log.noGames", ("path", main)), "warn");
-                if (p.EntryDisk is { } tried) Tried(p.Db, tried, main, size);
+                if (p.EntryDisk is { } tried)
+                {
+                    Tried(p.Db, tried, main, size);
+                    ToReview(p.Db, tried, main, label, inner.Select(f => Path.GetRelativePath(target, f)).ToList());
+                }
                 p.Skipped++;
                 return;
             }
@@ -223,7 +231,11 @@ public static partial class Import
             if (p.Skipped != skipped) return;
             SetAside(p, target, label, main);
             foreach (var part in parts) File.Delete(part);
-            if (p.EntryDisk is { } entry) RemoveRow(p.Db, entry, main);
+            if (p.EntryDisk is { } entry)
+            {
+                RemoveRow(p.Db, entry, main);
+                CloseReview(p.Db, entry.Id, Path.GetRelativePath(entry.Path, main));
+            }
             RemoveEmptyFolders(Path.GetDirectoryName(main)!, p.Job.Path);
             p.Run.Log(ApiError.Of("import.log.archiveDone", ("path", main)));
         }
@@ -272,6 +284,65 @@ public static partial class Import
         using var c = db.Open();
         c.Execute("INSERT INTO entry_tried (library_id, relative_path, size) VALUES (@Id, @relative, @size) ON CONFLICT DO UPDATE SET size = excluded.size",
             new { disk.Id, relative = Path.GetRelativePath(disk.Path, main), size });
+    }
+
+    /// <summary>Lo que trae un paquete en Revisar (#310, decisión 321): dónde está, su nombre y sus archivos.</summary>
+    public record EntryReview(string LibraryId, string RelativePath, string Name, List<string> Files);
+
+    /// <summary>
+    /// Un paquete de `Entrada\` sin juegos queda en Revisar › Sin identificar (#310, decisión 321), con su nombre y sus archivos. Uno abierto por
+    /// paquete: el nuevo reemplaza al anterior.
+    /// </summary>
+    static void ToReview(Database db, DiskInfo disk, string main, string label, List<string> files)
+    {
+        var relative = Path.GetRelativePath(disk.Path, main);
+        using var c = db.Open();
+        using var t = c.BeginTransaction();
+        CloseReview(c, t, disk.Id, relative, "rejected");
+        c.Execute("INSERT INTO review_item (kind, entity, data, created_at) VALUES ('unidentified', 'entry', @data, @now)", new
+        {
+            data = JsonSerializer.Serialize(new EntryReview(disk.Id, relative, label, files), JsonSerializerOptions.Web),
+            now = DateTime.UtcNow.ToString("O"),
+        }, t);
+        t.Commit();
+    }
+
+    /// <summary>El paquete ya se importó (o ya no está): su pendiente de Revisar se resuelve.</summary>
+    static void CloseReview(Database db, string libraryId, string relative)
+    {
+        using var c = db.Open();
+        CloseReview(c, null, libraryId, relative, "approved");
+    }
+
+    static void CloseReview(System.Data.IDbConnection c, System.Data.IDbTransaction? t, string libraryId, string relative, string status) =>
+        c.Execute("""
+            UPDATE review_item SET status = @status WHERE entity = 'entry' AND status = 'open'
+              AND json_extract(data, '$.libraryId') = @libraryId AND json_extract(data, '$.relativePath') = @relative
+            """, new { status, libraryId, relative }, t);
+
+    /// <summary>
+    /// «Reintentar» de un paquete en Revisar (#310, decisión 322): olvida que ya se intentó y encola su carpeta de `Entrada\`. El pendiente se
+    /// resuelve solo si esta vez se reconoce. Devuelve el error, o null.
+    /// </summary>
+    public static ApiError? Retry(Database db, long reviewId)
+    {
+        string? data;
+        using (var c = db.Open())
+            data = c.ExecuteScalar<string?>("SELECT data FROM review_item WHERE id = @reviewId AND entity = 'entry' AND status = 'open'", new { reviewId });
+        if (data is null) return ApiError.Of("review.notFound");
+        var item = JsonSerializer.Deserialize<EntryReview>(data, JsonSerializerOptions.Web)!;
+        if (Disk.Get(db, item.LibraryId) is not { Connected: true } disk) return ApiError.Of("library.notConnected");
+        var main = Path.Combine(disk.Path, item.RelativePath);
+        if (!File.Exists(main))
+        {
+            CloseReview(db, item.LibraryId, item.RelativePath);
+            return ApiError.Of("review.notFound");
+        }
+        using (var c = db.Open())
+            c.Execute("DELETE FROM entry_tried WHERE library_id = @LibraryId AND relative_path = @RelativePath", item);
+        var folder = Path.GetDirectoryName(main)!;
+        EnqueueEntry(db, disk, Disk.Same(folder, Path.Combine(disk.Path, Disk.EntryFolder)) ? null : folder);
+        return null;
     }
 
     /// <summary>
