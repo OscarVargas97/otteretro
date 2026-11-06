@@ -244,10 +244,11 @@ public static class DiskEndpoints
         api.MapGet("/recipes", () => TypedResults.Ok(Recipes.All.Where(r => r.Kind != "complement")
             .Select(r => new RecipeSummary(r.Id, r.Name, r.Kind, r.Experimental, r.Updates is not null && r.Asset is not null, r.Consoles, r.BaseFor)).OrderBy(r => r.Name).ToList()));
 
-        api.MapGet("/recipes/{id}/releases", async Task<Results<Ok<List<RecipeRelease>>, NotFound, Conflict<ApiError>>> (string id, CancellationToken ct) =>
+        api.MapGet("/recipes/{id}/releases", async Task<Results<Ok<List<RecipeRelease>>, NotFound, Conflict<ApiError>>> (string id, AppSession s, SecretBox box, CancellationToken ct) =>
         {
             if (Recipes.Find(id) is not { Kind: not "complement" } recipe) return TypedResults.NotFound();
-            try { return TypedResults.Ok(await ToolUpdates.Installable(recipe, ct)); }
+            try { return TypedResults.Ok(await ToolUpdates.Installable(recipe, ct, GithubApi.Token(CatalogEndpoints.CredentialsOf(s, box)))); }
+            catch (GithubRateLimitException e) { return TypedResults.Conflict(e.Error); }
             catch (Exception e) when (e is HttpRequestException or System.Text.Json.JsonException or TaskCanceledException && !ct.IsCancellationRequested)
             {
                 return TypedResults.Conflict(ApiError.Of("install.sourceFailed", ("name", recipe.Name), ("detail", e.Message)));
@@ -276,10 +277,10 @@ public static class DiskEndpoints
             return TypedResults.NoContent();
         });
 
-        api.MapPost("/ports/{id:long}/install", async Task<Results<Ok<long>, BadRequest<ApiError>, NotFound, Conflict<ApiError>>> (long id, PortInstallRequest request, AppSession s, CancellationToken ct) =>
+        api.MapPost("/ports/{id:long}/install", async Task<Results<Ok<long>, BadRequest<ApiError>, NotFound, Conflict<ApiError>>> (long id, PortInstallRequest request, AppSession s, SecretBox box, CancellationToken ct) =>
         {
             if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
-            var (task, error) = await Ports.Install(db, id, request, ct);
+            var (task, error) = await Ports.Install(db, id, request, ct, GithubApi.Token(new Credentials(db, s.Config.MachineId, box)));
             return error is null ? TypedResults.Ok(task!.Value) : error.Code switch
             {
                 "ports.notFound" => TypedResults.NotFound(),

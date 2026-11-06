@@ -129,6 +129,50 @@ public class ToolUpdatesTests
         finally { ToolUpdates.Handler = null; }
     }
 
+    sealed class Spy(HttpStatusCode status, params (string, string)[] headers) : HttpMessageHandler
+    {
+        public List<string?> Auth { get; } = [];
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            Auth.Add(request.Headers.Authorization?.ToString());
+            var r = new HttpResponseMessage(status) { Content = new StringContent("[]") };
+            foreach (var (k, v) in headers) r.Headers.Add(k, v);
+            return Task.FromResult(r);
+        }
+    }
+
+    /// <summary>#320: con token, api.github.com recibe Authorization: Bearer; sin token, nada; otros hosts nunca.</summary>
+    [Fact]
+    public async Task TheGithubTokenGoesAsBearerOnlyToGithub()
+    {
+        var spy = new Spy(HttpStatusCode.OK);
+        using var http = new HttpClient(spy);
+        await GithubApi.GetString(http, "https://api.github.com/repos/a/b/releases", "tok", default);
+        await GithubApi.GetString(http, "https://api.github.com/repos/a/b/releases", null, default);
+        await GithubApi.GetString(http, "https://codeberg.org/api/v1/repos/a/b/releases", "tok", default);
+        Assert.Equal(["Bearer tok", null, null], spy.Auth);
+        ToolUpdates.Handler = spy;
+        try { await ToolUpdates.Installable(Recipes.Find("mgba")!, default, "tok2"); }
+        finally { ToolUpdates.Handler = null; }
+        Assert.Contains("Bearer tok2", spy.Auth);
+    }
+
+    /// <summary>#320: un 403 por límite dice a qué hora se libera; un 403 cualquiera sigue siendo un error normal.</summary>
+    [Fact]
+    public async Task ARateLimitSaysWhenItIsReleased()
+    {
+        var reset = DateTimeOffset.UtcNow.AddMinutes(20).ToUnixTimeSeconds();
+        using var limited = new HttpClient(new Spy(HttpStatusCode.Forbidden, ("X-RateLimit-Remaining", "0"), ("X-RateLimit-Reset", reset.ToString())));
+        var e = await Assert.ThrowsAsync<GithubRateLimitException>(() => GithubApi.GetString(limited, "https://api.github.com/x", null, default));
+        Assert.Equal(("github.rateLimited", DateTimeOffset.FromUnixTimeSeconds(reset).ToLocalTime().ToString("HH:mm")), (e.Error.Code, e.Error.Params!["time"]));
+
+        using var tooMany = new HttpClient(new Spy(HttpStatusCode.TooManyRequests));
+        Assert.Equal("github.rateLimitedNoTime", (await Assert.ThrowsAsync<GithubRateLimitException>(() => GithubApi.GetString(tooMany, "https://api.github.com/x", null, default))).Error.Code);
+
+        using var denied = new HttpClient(new Spy(HttpStatusCode.Forbidden));
+        await Assert.ThrowsAsync<HttpRequestException>(() => GithubApi.GetString(denied, "https://api.github.com/x", null, default));
+    }
+
     [Fact]
     public async Task WhatIsNotInstalledIsNotNoticed()
     {

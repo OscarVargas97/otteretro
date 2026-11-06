@@ -16,7 +16,10 @@ export const useUpdate = () =>
 /** Motivo que manda el backend como código (update.reason.*), o null. */
 function useReason() {
   const t = useDynamicT();
-  return (u?: UpdateState) => (u?.message && t.has(`update.reason.${u.message}`) ? t(`update.reason.${u.message}`) : null);
+  return (u?: UpdateState) => {
+    const [code, time] = (u?.message ?? "").split("|"); // «rateLimited|HH:mm»: la hora en que GitHub libera el límite
+    return code && t.has(`update.reason.${code}`) ? t(`update.reason.${code}`, { time: time ?? "" }) : null;
+  };
 }
 
 /** Fila del panel de tareas (TaskRow del sistema de diseño). No muestra nada si no hay actualización en marcha. */

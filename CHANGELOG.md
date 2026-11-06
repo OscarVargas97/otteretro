@@ -4,7 +4,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.5.0 · Herramientas · en desarrollo
 
-`feat/317-instalar-por-consola`, `feat/307-cargar-perfil-herramientas`, `feat/304-avisos-en-pestanas`, `feat/276-ajustes-por-version`, `feat/282-compartir-perfiles`, `feat/280-contenido-en-emulador`, `feat/278-avisos-versiones`, `docs/encuesta-19-herramientas`, `feat/273-recetas-switch-gc`, `docs/283-ports-en-catalogo`, `feat/274-recetas-resto`, `feat/268-instalar-libreria`, `feat/267-perfiles-modelo`, `docs/272-investigacion-emuladores`, `feat/286-ports-en-otteretro`, `feat/270-partidas-entre-emuladores`, `feat/269-activar-perfil`, `feat/296-herramientas-pantalla` y `docs/263-decisiones-305-314` · F5 (#263, encuesta 19, #264): emuladores, ports y herramientas instalados y al día, con perfiles por juego · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
+`fix/320-token-github`, `feat/317-instalar-por-consola`, `feat/307-cargar-perfil-herramientas`, `feat/304-avisos-en-pestanas`, `feat/276-ajustes-por-version`, `feat/282-compartir-perfiles`, `feat/280-contenido-en-emulador`, `feat/278-avisos-versiones`, `docs/encuesta-19-herramientas`, `feat/273-recetas-switch-gc`, `docs/283-ports-en-catalogo`, `feat/274-recetas-resto`, `feat/268-instalar-libreria`, `feat/267-perfiles-modelo`, `docs/272-investigacion-emuladores`, `feat/286-ports-en-otteretro`, `feat/270-partidas-entre-emuladores`, `feat/269-activar-perfil`, `feat/296-herramientas-pantalla` y `docs/263-decisiones-305-314` · F5 (#263, encuesta 19, #264): emuladores, ports y herramientas instalados y al día, con perfiles por juego · sale como prerelease en el canal Pruebas mientras la fase sigue abierta.
 
 ### Nuevo
 - **Instalar un emulador por consola** (#317): en Herramientas › Emuladores › «Instalar un emulador», el nuevo selector **Consola** deja en «Qué» solo los emuladores de esa consola, con el base primero y marcado «(base)».
@@ -32,6 +32,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 - **Plan de la F5 decidido** (encuesta 19): emuladores compartidos por consola con perfiles por juego (configuración y mods, uno activo), tu librería privada en dos discos, avisos de versiones, UPD y DLC dentro del emulador, ports, compartir perfiles en un .zip y configurar el emulador desde la app.
 
 ### Arreglos
+- **El token de GitHub ahora se usa** (#320): si cargaste tu token en Ajustes › Cuentas y claves, la búsqueda de actualizaciones de la app, los avisos de versiones nuevas, las versiones de «Instalar» y los ports lo usan y pasan de 60 a 5000 consultas por hora; sin token todo sigue igual. Cuando GitHub limita las consultas, Otteretro te dice a qué hora se libera y te sugiere cargar el token, en vez de «No se pudo buscar la actualización».
 - **Llevar los datos de la app a otro disco** (#296): ya no dice «la carpeta de destino tiene que estar vacía» por la carpeta Herramientas que trae cada disco. Herramientas ya no es parte de los datos de Otteretro: es una carpeta del disco, como Juegos, y se queda donde está. Si en tu carpeta de datos quedan emuladores con la estructura de antes, primero te pide «Pasar al estándar».
 
 ## 0.4.22 · Archivos de juegos

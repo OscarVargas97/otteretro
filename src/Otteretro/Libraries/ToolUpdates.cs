@@ -74,6 +74,7 @@ public static class ToolUpdates
     public static async Task Run(TaskRun run, CancellationToken ct)
     {
         var http = Http;
+        var token = GithubApi.Token(run.Credentials);
         var manual = run.Data == "manual";
         // También lo que no tienes instalado: el aviso ofrece instalarlo (respuesta a la pregunta abierta de #278).
         var recipes = Recipes.All.Where(r => r.Updates is not null).ToList();
@@ -85,9 +86,14 @@ public static class ToolUpdates
             foreach (var channel in ChannelsOf(u, manual))
                 try
                 {
-                    if (await Latest(http, u, channel, ct, r.Asset) is { } latest) Remember(run.Db, r.Id, channel, latest, manual, DateTime.UtcNow);
+                    if (await Latest(http, u, channel, ct, r.Asset, token) is { } latest) Remember(run.Db, r.Id, channel, latest, manual, DateTime.UtcNow);
                 }
                 // Una fuente caída no frena a las demás: se vuelve a mirar mañana o con «Revisar ahora».
+                catch (GithubRateLimitException e)
+                {
+                    run.Log(e.Error, "warn");
+                    return; // el límite es de toda la conexión: seguir con las demás recetas solo lo repetiría
+                }
                 catch (Exception e) when (e is HttpRequestException or JsonException or TaskCanceledException && !ct.IsCancellationRequested)
                 {
                     run.Log(ApiError.Of("tasks.tools.sourceFailed", ("name", r.Name), ("detail", e.Message)), "warn");
@@ -104,25 +110,25 @@ public static class ToolUpdates
         u.Dev || manual && (u.DevRepo is not null || u.DevPattern is not null) ? Channels : ["stable"];
 
     /// <summary>Lo último de un canal; null si la fuente no publica en él.</summary>
-    public static async Task<Release?> Latest(HttpClient http, RecipeUpdates u, string channel, CancellationToken ct, string? asset = null) =>
-        (await Releases(http, u, channel, ct, asset)).FirstOrDefault();
+    public static async Task<Release?> Latest(HttpClient http, RecipeUpdates u, string channel, CancellationToken ct, string? asset = null, string? token = null) =>
+        (await Releases(http, u, channel, ct, asset, token)).FirstOrDefault();
 
     /// <summary>
     /// Las versiones de una receta que se pueden instalar (las que traen su `asset`), de la más nueva a la más vieja, en los canales
     /// que revisa «Revisar ahora». Para elegir la versión en Herramientas › Instalar (#296).
     /// </summary>
-    public static async Task<List<RecipeRelease>> Installable(Recipe r, CancellationToken ct)
+    public static async Task<List<RecipeRelease>> Installable(Recipe r, CancellationToken ct, string? token = null)
     {
         var list = new List<RecipeRelease>();
         if (r.Updates is not { } u) return list;
         foreach (var channel in ChannelsOf(u, manual: true))
-            foreach (var x in await Releases(Http, u, channel, ct, r.Asset))
+            foreach (var x in await Releases(Http, u, channel, ct, r.Asset, token))
                 if (x.Download is { } download) list.Add(new(x.Version, channel, x.PublishedAt, x.Url, download));
         return list.OrderByDescending(x => x.PublishedAt ?? "").ToList();
     }
 
     /// <summary>Lo publicado en un canal, de lo más nuevo a lo más viejo; vacío si la fuente no publica en él.</summary>
-    static async Task<List<Release>> Releases(HttpClient http, RecipeUpdates u, string channel, CancellationToken ct, string? asset)
+    static async Task<List<Release>> Releases(HttpClient http, RecipeUpdates u, string channel, CancellationToken ct, string? asset, string? token)
     {
         if (u.Source == "dolphin")
         {
@@ -138,7 +144,7 @@ public static class ToolUpdates
         var fromDevRepo = channel == "dev" && u.DevRepo is not null;
         var repo = fromDevRepo ? u.DevRepo : u.Repo;
         var url = u.Source == "forgejo" ? $"https://{u.Host}/api/v1/repos/{repo}/releases?limit=30" : $"https://api.github.com/repos/{repo}/releases?per_page=30";
-        var list = JsonSerializer.Deserialize<List<GitRelease>>(await http.GetStringAsync(url, ct), Snake)!;
+        var list = JsonSerializer.Deserialize<List<GitRelease>>(await GithubApi.GetString(http, url, token, ct), Snake)!;
         bool IsDev(GitRelease x) => fromDevRepo || x.Prerelease || u.DevPattern is not null && Regex.IsMatch(x.TagName, u.DevPattern);
         // Por fecha: RPCS3 no las lista en orden, y DuckStation o Vita3K reusan tags fijos (latest, preview, continuous).
         return list.Where(x => !x.Draft && IsDev(x) == (channel == "dev")).OrderByDescending(x => x.PublishedAt ?? "")
