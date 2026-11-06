@@ -141,7 +141,7 @@ public static class Profiles
         ?? c.QueryFirstOrDefault<string?>("SELECT code FROM catalog.version_code WHERE version_id = @version ORDER BY code", new { version });
 
     /// <summary>La plantilla de la receta con la clave del juego; null si le falta algo ({crc}, {rom}, {game} todavía no).</summary>
-    static string? Expand(string template, Recipe recipe, string? key)
+    internal static string? Expand(string template, Recipe recipe, string? key)
     {
         key = recipe.PerGame?.IdCase switch { "upper" => key?.ToUpperInvariant(), "lower" => key?.ToLowerInvariant(), _ => key };
         var missing = false;
@@ -172,7 +172,7 @@ public static class Profiles
     }
 
     /// <summary>La carpeta de la versión que usa (null: la más nueva instalada), o null si no está instalada o su disco no está.</summary>
-    static string? InstallOf(Database db, string emulator, string? version) =>
+    internal static string? InstallOf(Database db, string emulator, string? version) =>
         Installs.List(db).LastOrDefault(i => i.EmulatorId == emulator && i.Path is not null && (version is null || i.Version == version))?.Path;
 
     static State Loose(Database db, long version, string emulator) =>
@@ -183,7 +183,7 @@ public static class Profiles
     static string? BaseOf(SqliteConnection c, long version) => c.ExecuteScalar<string?>(
         "SELECT e.emulator_id FROM console_emulator e JOIN version v ON v.platform = e.console_id WHERE v.id = @version AND e.is_base = 1", new { version });
 
-    internal static Profile? Get(SqliteConnection c, long id) => c.QuerySingleOrDefault<Profile>($"SELECT {Columns} FROM profile WHERE id = @id", new { id });
+    public static Profile? Get(SqliteConnection c, long id) => c.QuerySingleOrDefault<Profile>($"SELECT {Columns} FROM profile WHERE id = @id", new { id });
 
     /// <summary>
     /// Cambia el perfil activo de una versión del juego, con sus archivos: guarda lo del que estaba en su carpeta y lo quita del
@@ -343,7 +343,7 @@ public static class Profiles
         Directory.Move(path, to); // dentro de la carpeta de datos: el mismo disco
     }
 
-    static void CopyFile(string from, string to)
+    internal static void CopyFile(string from, string to)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(to)!);
         File.Copy(from, to + ".tmp", overwrite: true);
@@ -422,6 +422,8 @@ public static class Profiles
             && Expand(config, recipe, GameKey(c, version, null)) is { } relative && InstallOf(db, emulator, null) is { } install
             && recipe.Config.Select(g => Path.Combine(install, g)).FirstOrDefault(File.Exists) is { } global)
             CopyFile(global, Path.Combine(store, relative));
+        // Con los valores del por defecto (#276): se escriben en su configuración del juego, con las claves de su versión.
+        if (source is { GameVersionId: null } && Get(c, id) is { } created) EmulatorSettings.Apply(db, created);
         return (id, null);
     }
 

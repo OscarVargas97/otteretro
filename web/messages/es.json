@@ -624,6 +624,17 @@
       },
       "badLicense": "Esa licencia no parece un zRIF: copia el texto completo, sin espacios.",
       "notVita": "La licencia zRIF es solo para juegos de Vita."
+    },
+    "settings": {
+      "noRecipe": "Este emulador no tiene receta: sus ajustes se cambian en el emulador.",
+      "badVersion": "Esa versión del emulador no está instalada.",
+      "versionWhileActive": "Para cambiar la versión de este perfil, primero activa otro (o «sin perfil»): sus archivos están cargados en la versión actual.",
+      "badValue": "Algún valor no es válido: sin saltos de línea y de hasta 200 caracteres.",
+      "noGameConfig": "Este emulador no tiene configuración por juego que la app sepa escribir.",
+      "notActive": "Activa este perfil para abrir el emulador con su configuración.",
+      "openFailed": "No se pudo abrir el emulador: {detail}",
+      "opened": "Se abrió el emulador.",
+      "openedPlain": "Se abrió el emulador sin el juego (falta la ROM, su disco o el emulador no sabe abrirlo así): busca el juego en su lista."
     }
   },
   "credentials": {
@@ -1437,6 +1448,37 @@
       "unknown": "Las partidas no se pueden llevar a este emulador: no hay forma conocida. Siguen en el emulador de antes.",
       "chooseUser": "Este emulador tiene varios usuarios de consola: ¿a cuál van las partidas?",
       "chooseUserConfirm": "Llevarlas y activar"
+    },
+    "settings": {
+      "open": "Ajustes",
+      "close": "Cerrar ajustes",
+      "title": "Ajustes de «{name}»",
+      "version": "Versión del emulador",
+      "latest": "La más nueva ({version})",
+      "undescribed": "La receta todavía no describe la versión {version}: se usan las claves de la anterior más cercana, que pueden haber cambiado.",
+      "notInstalled": "Sin una versión instalada: los valores se guardan y se escriben al instalarla y volver a guardar.",
+      "current": "En el emulador: {value}",
+      "emulatorValue": "El del emulador",
+      "kept": "Guardado para otra versión: {names}",
+      "input": "Mandos",
+      "inputNone": "Sin elegir",
+      "inputArg": "Perfil de mando al lanzar",
+      "noOptions": "La receta de este emulador todavía no describe sus ajustes.",
+      "save": "Guardar ajustes",
+      "saved": "Ajustes guardados.",
+      "openEmulator": "Abrir la configuración del emulador",
+      "openHint": "Lo demás se configura en el emulador; para un juego, con su perfil activo.",
+      "names": {
+        "resolution": "Resolución",
+        "renderer": "Renderizador",
+        "aspectRatio": "Relación de aspecto",
+        "filter": "Filtro",
+        "vsync": "Sincronización vertical",
+        "speed": "Velocidad",
+        "anisotropy": "Filtrado anisotrópico",
+        "fps": "Límite de fps",
+        "antialiasing": "Antialiasing"
+      }
     },
     "share": "Compartir",
     "shareOf": "Compartir {name}",

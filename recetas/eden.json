@@ -15,9 +15,11 @@
     "config": "user/config/custom/{titleId}.ini",
     "apply": "file",
     "idCase": "upper",
-    "mods": ["user/load/{titleId}"]
+    "mods": ["user/load/{titleId}"],
+    "args": ["-g", "{rom}"]
   },
   "input": { "profiles": ["user/config/input"], "arg": "--input-profile" },
+  "optionFlags": "yuzu",
   "options": [
     { "name": "resolution", "file": "user/config/qt-config.ini", "format": "ini", "section": "Renderer", "key": "resolution_setup" },
     { "name": "renderer", "file": "user/config/qt-config.ini", "format": "ini", "section": "Renderer", "key": "backend" },
@@ -25,6 +27,7 @@
     { "name": "aspectRatio", "file": "user/config/qt-config.ini", "format": "ini", "section": "Renderer", "key": "aspect_ratio" },
     { "name": "antialiasing", "file": "user/config/qt-config.ini", "format": "ini", "section": "Renderer", "key": "anti_aliasing" },
     { "name": "anisotropy", "file": "user/config/qt-config.ini", "format": "ini", "section": "Renderer", "key": "max_anisotropy" },
+    { "name": "vsync", "file": "user/config/qt-config.ini", "format": "ini", "section": "Renderer", "key": "use_vsync" },
     { "name": "speed", "file": "user/config/qt-config.ini", "format": "ini", "section": "Core", "key": "speed_limit" }
   ],
   "updates": { "source": "forgejo", "repo": "eden-emu/eden", "host": "git.eden-emu.dev", "devPattern": "-rc[0-9]*$" },

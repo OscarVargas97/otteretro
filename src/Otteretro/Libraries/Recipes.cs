@@ -36,9 +36,10 @@ public record RecipePerGame(string? Config = null, string? Apply = null)
 /// <param name="Keys">Claves de la configuración del juego que eligen el perfil de mando o guardan los mandos.</param>
 public record RecipeInput(List<string>? Profiles = null, string? Arg = null, string? Section = null, List<string>? Keys = null);
 public record ContentInstall(List<string> Formats, List<string> Args);
-/// <param name="Name">resolution, renderer, aspectRatio, filter, vsync, speed o anisotropy.</param>
+/// <param name="Name">resolution, renderer, aspectRatio, filter, vsync, speed, anisotropy, fps o antialiasing.</param>
 /// <param name="Since">La versión desde la que vale esa clave, cuando cambia de nombre entre versiones (decisión 298).</param>
-public record RecipeOption(string Name, string File, string Format, string Key, string? Section = null, string? Since = null);
+/// <param name="GameSection">La sección en la configuración del juego, si no es la misma que en la global (Dolphin: Video_Settings).</param>
+public record RecipeOption(string Name, string File, string Format, string Key, string? Section = null, string? Since = null, string? GameSection = null);
 
 /// <summary>Una receta de `recetas/` (§8.1, F3.3). El esquema está en `recetas/receta.schema.json`.</summary>
 public record Recipe(string Id, string Name, string Kind, string Folder, string Detect)
@@ -70,6 +71,10 @@ public record Recipe(string Id, string Name, string Kind, string Folder, string 
     public List<string> Content { get; init; } = [];
     public List<ContentInstall> Install { get; init; } = [];
     public List<RecipeOption> Options { get; init; } = [];
+    /// <summary>La versión más nueva en que se revisaron las claves de <see cref="Options"/>: una más nueva usa esas, con aviso.</summary>
+    public string? OptionsUpTo { get; init; }
+    /// <summary>yuzu (Eden, Citron): cada valor va con `clave\default=false` y, en el del juego, `clave\use_global=false`.</summary>
+    public string? OptionFlags { get; init; }
     /// <summary>Dónde se apuntan UPD y DLC sin copiarlos (decisión 295); se reescriben al mover, como <see cref="GamePaths"/>.</summary>
     public List<GamePath> ContentPaths { get; init; } = [];
     public RecipeInput? Input { get; init; }
