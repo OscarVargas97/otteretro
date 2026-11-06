@@ -211,6 +211,8 @@ function InstallPanel({ kind }: { kind: Installable }) {
   const [path, setPath] = useState("");
   const [adopt, setAdopt] = useState(false);
   const chosen = recipes.find((r) => r.id === recipe);
+  // El aviso de «al lado de las otras» solo vale si ese emulador ya tiene una versión instalada (#330, decisión 338).
+  const hasOther = (useQuery({ ...emulatorsQuery, enabled: open }).data ?? []).some((i) => i.emulatorId === (recipe === OTHER ? slug(name) : recipe));
   const releases = useQuery({
     queryKey: ["recipes", recipe, "releases"],
     queryFn: () => request<RecipeRelease[]>(`/api/recipes/${encodeURIComponent(recipe)}/releases`),
@@ -296,7 +298,7 @@ function InstallPanel({ kind }: { kind: Installable }) {
           <label className="small"><input type="checkbox" checked={adopt} onChange={(e) => setAdopt(e.target.checked)} /> {t("adopt")}</label>
         </>
       )}
-      <p className="small muted" style={{ margin: 0 }}>{t("beside")}</p>
+      {hasOther && <p className="small muted" style={{ margin: 0 }}>{t("beside")}</p>}
       <div className="hero-actions">
         <button className="ot-btn ot-btn-sm" type="button" onClick={() => { setOpen(false); install.reset(); }}>{t("cancel")}</button>
         <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" disabled={!ready || install.isPending} onClick={submit}>{t("submit")}</button>
@@ -308,7 +310,7 @@ function InstallPanel({ kind }: { kind: Installable }) {
 }
 
 /**
- * La librería (#268, decisiones 293 y 304): lo instalado por emulador, cada versión con su origen y si ya tiene la segunda copia.
+ * La librería (#268, decisiones 293 y 304): lo instalado por emulador, cada versión con su origen.
  * Una versión cuya carpeta ya no está vuelve con «Reinstalar», desde el archivo guardado y sin bajar nada. Un port tiene una sola
  * instalada (decisión 325): las anteriores quedan como su archivo, y «Reinstalar» la deja en su lugar.
  */
@@ -341,7 +343,6 @@ function Library({ kind }: { kind: Installable }) {
                 {i.url && <span className="folder-path muted">{i.url}</span>}
               </span>
               <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <span className={`ot-badge${i.backupLibraryId ? "" : " ot-badge-review"}`}>{t(i.backupLibraryId ? "twoCopies" : "oneCopy")}</span>
                 {kind === "port" ? <span className={`ot-badge${i.path ? " ot-badge-have" : ""}`}>{t(i.path ? "installed" : "archived")}</span>
                   : !i.path && <span className="ot-badge ot-badge-danger">{t("missing")}</span>}
                 {!i.path && (

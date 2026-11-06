@@ -2,7 +2,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
 
@@ -26,20 +26,21 @@ export function ShareProfile({ id, name }: { id: number | string; name: string }
   );
 }
 
-/** «Cargar perfil»: instala el emulador del paquete y crea el perfil, en una tarea. */
+/** «Cargar un perfil (.zip)» (#330): elige el archivo; instala el emulador del paquete y crea el perfil, en una tarea. */
 export function LoadProfile() {
   const t = useTranslations("profiles");
   const describe = useDescribeError();
-  const [path, setPath] = useState("");
+  const input = useRef<HTMLInputElement>(null);
   const load = useMutation({
-    mutationFn: () => request<number>("/api/profiles/load", { method: "POST", body: JSON.stringify({ path: path.trim() }) }),
+    mutationFn: (file: File) => request<number>("/api/profiles/load-file", { method: "POST", body: file, headers: { "Content-Type": "application/octet-stream" } }),
+    onSettled: () => { if (input.current) input.current.value = ""; },
   });
   return (
-    <form className="sentence" onSubmit={(e) => { e.preventDefault(); if (path.trim()) load.mutate(); }}>
-      <input aria-label={t("loadPath")} placeholder={t("loadPath")} value={path} onChange={(e) => { setPath(e.target.value); load.reset(); }} />
-      <button className="ot-btn ot-btn-sm" type="submit" disabled={!path.trim() || load.isPending}>{t("load")}</button>
+    <div className="sentence">
+      <button className="ot-btn ot-btn-sm" type="button" disabled={load.isPending} onClick={() => input.current?.click()}>{t("loadZip")}</button>
+      <input ref={input} type="file" accept=".zip" hidden aria-label={t("loadZip")} onChange={(e) => { const f = e.target.files?.[0]; if (f) load.mutate(f); }} />
       {load.isSuccess && <span className="small muted" role="status">{t("loaded")}</span>}
       {load.isError && <span className="error small" role="alert">{describe(load.error)}</span>}
-    </form>
+    </div>
   );
 }
