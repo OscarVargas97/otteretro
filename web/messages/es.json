@@ -219,6 +219,7 @@
       "noSource": "No hay un origen de actualizaciones configurado.",
       "notInstalled": "Las actualizaciones solo funcionan en la app instalada.",
       "failed": "No se pudo buscar o descargar la actualización. El detalle está en el registro.",
+      "rateLimited": "GitHub limitó las consultas; vuelve a intentar a las {time}. Carga tu token de GitHub en Ajustes › Cuentas y claves para tener más.",
       "withSystem": "Se actualiza con el sistema: llega con la próxima actualización de PlayOS o NixOS."
     },
     "withSystemBadge": "Con el sistema",
@@ -281,6 +282,10 @@
     }
   },
   "errors": {
+    "github": {
+      "rateLimited": "GitHub limitó las consultas; vuelve a intentar a las {time}. Para tener más, carga tu token de GitHub en Ajustes › Cuentas y claves.",
+      "rateLimitedNoTime": "GitHub limitó las consultas; vuelve a intentar más tarde. Para tener más, carga tu token de GitHub en Ajustes › Cuentas y claves."
+    },
     "http": "La app respondió con un error ({status}).",
     "unknown": "Algo salió mal ({code}).",
     "path": {

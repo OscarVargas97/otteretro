@@ -219,6 +219,7 @@
       "noSource": "No update source is configured.",
       "notInstalled": "Updates only work in the installed app.",
       "failed": "Could not check for or download the update. The details are in the log.",
+      "rateLimited": "GitHub limited the requests; try again at {time}. Add your GitHub token in Settings › Accounts and keys to get more.",
       "withSystem": "Updated with the system: it arrives with the next PlayOS or NixOS update."
     },
     "withSystemBadge": "With the system",
@@ -281,6 +282,10 @@
     }
   },
   "errors": {
+    "github": {
+      "rateLimited": "GitHub limited the requests; try again at {time}. To get more, add your GitHub token in Settings › Accounts and keys.",
+      "rateLimitedNoTime": "GitHub limited the requests; try again later. To get more, add your GitHub token in Settings › Accounts and keys."
+    },
     "http": "The app responded with an error ({status}).",
     "unknown": "Something went wrong ({code}).",
     "path": {
