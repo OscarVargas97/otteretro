@@ -6458,6 +6458,8 @@ export interface components {
             kind: string;
             experimental: boolean;
             releases: boolean;
+            consoles: string[];
+            baseFor: string[];
         };
         RecognizeRequest: {
             useClaude: boolean;
