@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:62272/"
+      "url": "http://127.0.0.1:61849/"
     }
   ],
   "paths": {
@@ -7853,7 +7853,9 @@
           "experimental",
           "releases",
           "consoles",
-          "baseFor"
+          "baseFor",
+          "folder",
+          "game"
         ],
         "type": "object",
         "properties": {
@@ -7883,6 +7885,15 @@
             "items": {
               "type": "string"
             }
+          },
+          "folder": {
+            "type": "string"
+          },
+          "game": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

@@ -362,10 +362,12 @@ test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería y
   await expectTextFits();
   await page.locator("section[aria-labelledby=install-title]").getByRole("button", { name: en.tools.install.submit, exact: true }).click();
   await expect(page.getByText(en.tools.install.queued)).toBeVisible();
-  // Al terminar: en la lista de su tipo y en la librería, con su origen.
+  // Al terminar: una sola tarjeta con lo de disco y lo registrado (#348); su origen, en el plegable.
   const panel = page.locator("#tools-panel");
-  await expect(panel.getByRole("button", { name: /Steam ROM Manager/ })).toBeVisible({ timeout: 15_000 });
   const card = panel.getByRole("region", { name: "Steam ROM Manager" });
+  await expect(card).toBeVisible({ timeout: 15_000 });
+  await expect(card).toHaveCount(1);
+  await card.getByText(en.tools.library.details).click();
   await expect(card.getByText(en.tools.library.origin.upload, { exact: false })).toBeVisible();
   // Una herramienta no se "usa" ni se borra desde aquí: solo se abre su carpeta.
   await expect(card.getByRole("button", { name: en.tools.library.open })).toBeVisible();
@@ -399,7 +401,8 @@ test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería y
   await page.unroute("**/api/emulators/install");
   // La tarjeta de un emulador (#329): «En uso», usar otra versión y borrar la que no se usa.
   const ver = (version: string, path: string | null, inUse: boolean) => ({ emulatorId: "eden", name: "Eden", kind: "emulator", version, origin: "recipe", url: null, file: null, sha256: null, installedAt: "2026-01-01T00:00:00Z", path, inUse });
-  let list = [ver("1.0", "C:/e/1.0", true), ver("2.0", "C:/e/2.0", false), ver("0.9", null, false)];
+  const dolphin = { ...ver("2512", "C:/d/2512", true), emulatorId: "dolphin", name: "Dolphin" };
+  let list = [ver("1.0", "C:/e/1.0", true), ver("2.0", "C:/e/2.0", false), ver("0.9", null, false), dolphin];
   await page.route("**/api/emulators", (route) => route.fulfill({ json: list }));
   const bodies: Record<string, unknown> = {};
   for (const action of ["use", "remove"]) await page.route(`**/api/emulators/${action}`, (route) => {
@@ -408,14 +411,24 @@ test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería y
     return route.fulfill({ json: list });
   });
   await page.goto(`${base()}/tools/?k=emulator`);
+  // Secciones por consola (decisiones 343 y 345): Dolphin sale en GameCube y en Wii; Eden, una vez, en Switch.
+  for (const name of ["GameCube", "Wii"]) await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Dolphin" })).toHaveCount(2);
   const eden = page.getByRole("region", { name: "Eden" });
-  await expect(eden.getByText(en.tools.library.inUse)).toHaveCount(1);
+  await expect(eden).toHaveCount(1);
+  // La versión en uso a la vista y las demás plegadas (decisión 344).
+  await expect(eden.getByText(en.tools.library.current.replace("{version}", "1.0"))).toBeVisible();
+  await expect(eden.getByText(en.tools.library.archived)).toBeHidden();
+  await eden.getByText(/2 more versions/).click();
   await expect(eden.getByText(en.tools.library.archived)).toBeVisible();
   await expectNoRawKeys();
+  await expectTextFits();
+  await page.screenshot({ path: "e2e-results/8-tools-cards-en.png", fullPage: true });
   await eden.getByRole("button", { name: en.tools.library.use }).click();
-  await expect(eden.locator(".version-row", { hasText: "2.0" }).getByText(en.tools.library.inUse)).toBeVisible();
+  await expect(eden.getByText(en.tools.library.current.replace("{version}", "2.0"))).toBeVisible();
+  await expect(eden.locator("details .version-row", { hasText: "2.0" }).getByText(en.tools.library.inUse)).toBeVisible();
   expect(bodies.use).toEqual({ emulator: "eden", version: "2.0" });
-  await eden.locator(".version-row", { hasText: "1.0" }).getByRole("button", { name: en.tools.library.remove }).click();
+  await eden.locator("details .version-row", { hasText: "1.0" }).getByRole("button", { name: en.tools.library.remove }).click();
   await eden.getByRole("button", { name: en.tools.library.removeConfirm, exact: true }).click();
   await expect(eden.getByText("1.0")).toHaveCount(0);
   expect(bodies.remove).toEqual({ emulator: "eden", version: "1.0" });
@@ -567,6 +580,27 @@ test("volver a español en Ajustes cambia todo y se mantiene al recargar", async
   await expectSearchFits();
   await expectTextFits();
   await page.screenshot({ path: "e2e-results/5-settings-es.png", fullPage: true });
+});
+
+test("Herramientas en español: la barra de arriba en una línea y una tarjeta por emulador en cada consola (#348)", async () => {
+  const one = (emulatorId: string, name: string) => ({ emulatorId, name, kind: "emulator", version: "1.0", origin: "recipe", url: "https://example.com/x.zip", file: null, sha256: null,
+    installedAt: "2026-01-01T00:00:00Z", path: `C:/x/${emulatorId}`, inUse: true });
+  await page.route("**/api/emulators", (route) => route.fulfill({ json: [one("dolphin", "Dolphin"), one("eden", "Eden")] }));
+  await page.goto(`${base()}/tools/?k=emulator`);
+  // «Instalar…», «Cargar perfil» y «Revisar ahora» en una sola barra, sin el panel «Versiones nuevas».
+  const top = async (name: string) => (await page.getByRole("button", { name, exact: true }).boundingBox())!.y;
+  const y = await top(es.tools.install.open.emulator);
+  for (const name of [es.profiles.loadZip, es.tools.updates.checkNow]) expect(await top(name)).toBe(y);
+  await expect(page.getByRole("region", { name: "Dolphin" })).toHaveCount(2);
+  const eden = page.getByRole("region", { name: "Eden" });
+  await expect(eden.getByText(es.tools.library.current.replace("{version}", "1.0"))).toBeVisible();
+  await eden.getByText(es.tools.library.details).click();
+  await expect(eden.getByText("https://example.com/x.zip")).toBeVisible();
+  await expectNoRawKeys();
+  await expectTextFits();
+  await page.screenshot({ path: "e2e-results/8-tools-cards-es.png", fullPage: true });
+  await page.unroute("**/api/emulators");
+  await page.goto(`${base()}/settings/`);
 });
 
 test("Cuentas y claves: pegar una clave la deja guardada sin mostrarla, y borrarla la deja en falta", async () => {
