@@ -14,7 +14,7 @@ namespace Otteretro.Libraries;
 /// instalado a mano). Sin receta, <paramref name="Name"/> dice cómo se llama su carpeta. <paramref name="Reinstall"/>: una versión
 /// registrada que perdió su carpeta vuelve desde la librería (decisión 304). <paramref name="Port"/>: el port del catálogo que se
 /// instala (#287); sus juegos reciben un perfil con él. <paramref name="Repo"/>: desde su repo (#350), <paramref name="Url"/> es el
-/// archivo elegido de una release y al instalar queda una receta local (decisión 346) con <paramref name="Console"/> y el ejecutable
+/// archivo elegido de una release y al instalar queda una receta local con <paramref name="Console"/> y el ejecutable
 /// (<paramref name="Detect"/>, si el archivo trae varios).
 /// </summary>
 public record InstallJob(string Emulator, string? Version = null, string? Url = null, string? Path = null, bool Adopt = false,
@@ -297,7 +297,7 @@ public static class Installs
     static readonly System.Text.RegularExpressions.Regex Installer = new(@"^(vc_?redist|unins|setup|install|crashpad|updater)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
     /// <summary>
-    /// La receta local de lo instalado desde su repo (decisiones 346 y 348): su fuente, el archivo de Windows (por el nombre del
+    /// La receta local de lo instalado desde su repo (#350): su fuente, el archivo de Windows (por el nombre del
     /// elegido), la consola y el ejecutable, que se busca en la carpeta extraída. Si hay varios y no se eligió uno, la tarea termina
     /// con <c>install.pickExe</c> y la lista: el archivo ya quedó en la librería, así que reintentar con el elegido no vuelve a bajar.
     /// Sin argumentos para lanzar un juego: abre el emulador solo hasta completar la receta.

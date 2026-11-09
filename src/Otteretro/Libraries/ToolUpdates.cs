@@ -197,6 +197,8 @@ public static class ToolUpdates
     static string Normalize(string tag) => tag.TrimStart('v', 'V');
 
     static readonly Regex VersionText = new(@"\d+(\.\d+)+(-\d+)?");
+    /// <summary>El número tras una v al final del tag (fritchii-v5 → 5, #350).</summary>
+    static readonly Regex TagNumber = new(@"(?<![A-Za-z])[vV](\d+(\.\d+)*)$");
 
     /// <summary>
     /// La versión de una release: la del tag si empieza por un número (v2.0.3, v0.1-12083, v0.2.0-rc1), si no la del título (RPCS3: tag build-&lt;hash&gt;, título 0.0.37-18146) y, si
@@ -206,6 +208,7 @@ public static class ToolUpdates
         Regex.IsMatch(g.TagName, @"^[vV]?\d") ? Normalize(g.TagName)
         : VersionText.Match(g.TagName) is { Success: true } t ? t.Value
         : VersionText.Match(g.Name ?? "") is { Success: true } n ? n.Value
+        : TagNumber.Match(g.TagName) is { Success: true } v ? v.Groups[1].Value
         : g.PublishedAt is { Length: >= 10 } p ? p[..10].Replace('-', '.') : Normalize(g.TagName);
 
     static string PlainText(string html) =>
@@ -237,13 +240,15 @@ public static class ToolUpdates
         return list;
     }
 
+    static readonly Regex DateVersion = new(@"^\d{4}\.\d{2}\.\d{2}$");
+
     /// <summary>
     /// Esa instalación ya es esta versión (o una más nueva, si la receta versiona por fecha).
     /// ponytail: por fecha se compara la del ejecutable con la de publicación; si se instala por la app (#268) con el nombre de la versión, coincide directo.
     /// </summary>
     static bool Has(Recipe r, string installed, Saved s) =>
         Normalize(installed) == s.Version
-        || r.Version?.From == "date" && s.PublishedAt is { Length: >= 10 } p && string.CompareOrdinal(installed, p[..10].Replace('-', '.')) >= 0;
+        || r.Version?.From == "date" && DateVersion.IsMatch(installed) && s.PublishedAt is { Length: >= 10 } p && string.CompareOrdinal(installed, p[..10].Replace('-', '.')) >= 0;
 
     /// <summary>
     /// Qué juegos de tu colección usa cada emulador (decisión 286): el de su perfil activo o, si no tiene, el emulador base de su

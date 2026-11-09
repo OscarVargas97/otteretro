@@ -345,6 +345,34 @@ test("Herramientas: pestañas por tipo y subir un archivo de sistema con version
   await expectNoRawKeys();
 });
 
+test("Herramientas: un emulador sin receta desde su repo lista sus releases y la instala sin escribir la versión (#350)", async () => {
+  await page.route("**/api/repos/releases?*", (r) => r.fulfill({ json: [
+    { version: "5", channel: "dev", publishedAt: "2026-11-09T02:26:31Z", url: null, assets: [
+      { name: "Fritchii-v5-debug-symbols-not-needed-to-play.zip", url: "https://github.com/Frizti/Fritchii/releases/download/fritchii-v5/Fritchii-v5-debug-symbols-not-needed-to-play.zip", windows: false },
+      { name: "Fritchii-v5-Windows-x64.zip", url: "https://github.com/Frizti/Fritchii/releases/download/fritchii-v5/Fritchii-v5-Windows-x64.zip", windows: true },
+    ] },
+  ] }));
+  let sent: Record<string, unknown> | null = null;
+  await page.route("**/api/emulators/install", (r) => { sent = r.request().postDataJSON(); return r.fulfill({ json: 0 }); });
+  await page.goto(`${base()}/tools/`);
+  await page.getByRole("button", { name: en.tools.install.open.emulator }).click();
+  await page.getByLabel(en.tools.install.what).selectOption(":other");
+  await page.getByLabel(en.tools.install.name, { exact: true }).fill("Mi Fritchii");
+  await page.getByLabel(en.tools.install.console).selectOption("switch2");
+  await page.getByLabel(en.tools.install.fromKind.url).check();
+  await page.getByLabel(en.tools.install.url, { exact: true }).fill("github.com/Frizti/Fritchii");
+  await page.getByRole("button", { name: en.tools.install.findReleases }).click();
+  // La versión sale del tag y, con un solo archivo de Windows, no hay nada que elegir.
+  await expect(page.getByLabel(en.tools.install.version, { exact: true })).toHaveValue("dev|5");
+  await expect(page.getByText("Fritchii-v5-Windows-x64.zip")).toBeVisible();
+  await expectNoRawKeys();
+  await page.locator("section[aria-labelledby=install-title]").getByRole("button", { name: en.tools.install.submit, exact: true }).click();
+  await expect.poll(() => sent).toMatchObject({ emulator: "mi-fritchii", name: "Mi Fritchii", version: "5", repo: "github.com/Frizti/Fritchii", console: "switch2",
+    url: "https://github.com/Frizti/Fritchii/releases/download/fritchii-v5/Fritchii-v5-Windows-x64.zip" });
+  await page.unroute("**/api/repos/releases?*");
+  await page.unroute("**/api/emulators/install");
+});
+
 test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería y los avisos que instalan (#296)", async () => {
   const src = dataDir("srm-a-mano");
   mkdirSync(src, { recursive: true });

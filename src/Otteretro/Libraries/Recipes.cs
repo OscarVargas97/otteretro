@@ -118,7 +118,7 @@ public static class Recipes
     public static Recipe? Find(string id) => All.FirstOrDefault(r => r.Id == id);
 
     /// <summary>
-    /// Las recetas locales (decisión 348): `data\recetas` de la carpeta de datos, las que se crean al agregar un emulador desde su
+    /// Las recetas locales: `data\recetas` de la carpeta de datos, las que se crean al agregar un emulador desde su
     /// repo (#350). Se fija al preparar la carpeta de datos; cambiarla vuelve a leer las recetas.
     /// </summary>
     public static string? LocalFolder
@@ -162,7 +162,7 @@ public static class Recipes
         return r;
     }
 
-    /// <summary>Guarda una receta local (decisión 348) y vuelve a leer las recetas: desde ya se elige en perfiles y avisa de versiones.</summary>
+    /// <summary>Guarda una receta local y vuelve a leer las recetas: desde ya se elige en perfiles y avisa de versiones.</summary>
     public static void SaveLocal(Recipe recipe)
     {
         var folder = localFolder ?? throw new InvalidOperationException("No hay carpeta de recetas locales.");

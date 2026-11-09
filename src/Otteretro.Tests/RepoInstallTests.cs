@@ -7,7 +7,7 @@ using Otteretro.Libraries;
 namespace Otteretro.Tests;
 
 /// <summary>
-/// #350: un emulador desde su repo deja una receta local en la carpeta de datos (decisiones 346 y 348). Sin paralelo: las recetas
+/// #350: un emulador desde su repo deja una receta local en la carpeta de datos. Sin paralelo: las recetas
 /// locales son de la carpeta de datos abierta, que es una sola (cada Fixture la cambia).
 /// </summary>
 [Collection(nameof(RepoInstallTests))]

@@ -126,7 +126,7 @@ const slug = (name: string) => name.toLowerCase().normalize("NFD").replace(/[̀-
 const OTHER = ":other"; // «:» no va en un id de receta: no choca con ninguna
 
 /**
- * Instalar (#268, #296): desde la receta eligiendo una versión publicada, desde la URL de una release o desde una carpeta o un
+ * Instalar (#268, #296): desde la receta eligiendo una versión publicada, desde su repo (#350) o desde una carpeta o un
  * zip de este equipo (o adoptando uno instalado a mano). Cada versión va al lado de las otras: nunca se reemplaza una.
  */
 function InstallPanel({ kind, onClose }: { kind: Installable; onClose: () => void }) {
@@ -181,7 +181,7 @@ function InstallPanel({ kind, onClose }: { kind: Installable; onClose: () => voi
   // Sin ejecutable claro en lo bajado, la tarea pregunta cuál (#350): se elige y se reintenta con lo que ya quedó en la librería.
   const task = useTasks().find((x) => x.id === install.data);
   const exes = task?.detail?.code === "install.pickExe" ? task.detail.params?.files?.split("|") ?? [] : [];
-  // Sin receta: el id sale del nombre y la carpeta se llama como él; desde un repo, queda su receta local (decisión 346).
+  // Sin receta: el id sale del nombre y la carpeta se llama como él; desde un repo, queda su receta local.
   const who = recipe === OTHER ? { emulator: slug(name), name: name.trim(), kind } : { emulator: recipe };
   const ready = (recipe === OTHER ? slug(name) !== "" : !!chosen)
     && (from === "recipe" ? !!picked : from === "url" ? (direct ? url.trim().startsWith("https://") && version.trim() !== "" : !!file) : path.trim() !== "");
