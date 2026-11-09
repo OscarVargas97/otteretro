@@ -490,6 +490,81 @@ public static class Profiles
         return null;
     }
 
+    /// <summary>
+    /// Antes de quitar un emulador (#351): lo de sus perfiles activos sale del programa a la carpeta de cada perfil (copiado y
+    /// verificado) y sus juegos vuelven al perfil por defecto. Si un juego estaba a mitad de partida con `swap`, vuelve la global.
+    /// </summary>
+    internal static ApiError? Release(Database db, string emulator)
+    {
+        var recipe = Recipes.Find(emulator);
+        using var c = db.Open();
+        try
+        {
+            SwapOut(db, emulator);
+            foreach (var p in c.Query<Profile>($"SELECT {Columns} FROM profile WHERE emulator_id = @emulator AND active = 1 AND game_version_id IS NOT NULL", new { emulator }).ToList())
+            {
+                // Sin la clave del juego no se sabe qué es suyo: sus enlaces se borran con el programa, lo enlazado queda en su carpeta.
+                if (Items(recipe, GameKey(c, p.GameVersionId!.Value, p.SourceId)) is { Count: > 0 } items && InstallOf(db, emulator, p.EmulatorVersion) is { } install)
+                    Unload(db, StateOf(db, p), install, items);
+                c.Execute("UPDATE profile SET active = 0 WHERE id = @Id", new { p.Id });
+            }
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return ApiError.Of("profile.switchFailed", ("detail", e.Message));
+        }
+        catch (TaskException e)
+        {
+            return e.Error;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// «Borrar perfil» (#351): borra su configuración y sus mods (lo de la receta por juego). Si era el activo, el juego vuelve antes
+    /// al perfil por defecto, como al elegirlo. Lo demás que hubiera en su carpeta (partidas u otros archivos) se copia, verificado, a
+    /// `perfiles\_respaldos\<fecha>-perfil-borrado\<id>` antes de borrarla. El perfil por defecto de un emulador no se borra.
+    /// </summary>
+    public static ApiError? Delete(Database db, long id)
+    {
+        using var c = db.Open();
+        if (Get(c, id) is not { } p) return ApiError.Of("profile.notFound");
+        if (p.GameVersionId is not { } version) return ApiError.Of("profile.isDefault");
+        if (c.ExecuteScalar<bool>("SELECT active FROM profile WHERE id = @id", new { id }))
+        {
+            var (error, saves) = Switch(db, version, null);
+            if (error is not null) return error;
+            if (saves?.Code == "saves.chooseUser") return ApiError.Of("profile.deleteActive"); // no se movió nada: que elija otro antes
+        }
+        var store = StoreOf(db, id);
+        if (Directory.Exists(store))
+        {
+            // Sin la clave del juego no se sabe qué es configuración o mods: todo va al respaldo.
+            var drop = (Items(Recipes.Find(p.EmulatorId), GameKey(c, version, p.SourceId)) ?? []).Select(i => i.Path.Replace('\\', '/').TrimEnd('/')).ToList();
+            var backup = Path.Combine(Root(db), BackupsFolder, $"{DateTime.Now:yyyy-MM-dd-HHmmss-fff}-perfil-borrado", id.ToString());
+            try
+            {
+                foreach (var file in Directory.EnumerateFiles(store, "*", SearchOption.AllDirectories))
+                {
+                    var rel = Path.GetRelativePath(store, file).Replace('\\', '/');
+                    if (rel != ChangedFile && !drop.Any(d => rel == d || rel.StartsWith(d + "/", StringComparison.Ordinal)))
+                        CopyFile(file, Path.Combine(backup, rel));
+                }
+                Links.DeleteTree(store);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                return ApiError.Of("profile.deleteFailed", ("detail", e.Message));
+            }
+            catch (TaskException e)
+            {
+                return e.Error;
+            }
+        }
+        c.Execute("DELETE FROM profile WHERE id = @id", new { id });
+        return null;
+    }
+
     /// <summary>Los perfiles de cada versión del juego, los emuladores con que se puede jugar (los de su consola y los ports de ese juego) y sus ROMs.</summary>
     public static List<VersionProfiles> OfGame(Database db, long game)
     {

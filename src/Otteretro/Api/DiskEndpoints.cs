@@ -282,6 +282,15 @@ public static class DiskEndpoints
                 : TypedResults.Ok(Installs.List(db));
         });
 
+        // «Quitar el emulador» (#351): todas sus versiones; partidas, configuración y perfiles se quedan para cuando vuelva.
+        api.MapDelete("/emulators/{id}", async Task<Results<Ok<List<EmulatorInstall>>, BadRequest<ApiError>, Conflict<ApiError>>> (string id, AppSession s, CancellationToken ct) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            return await Installs.RemoveEmulator(db, id, ct) is { } error
+                ? error.Code is "install.notInstalled" ? TypedResults.BadRequest(error) : TypedResults.Conflict(error)
+                : TypedResults.Ok(Installs.List(db));
+        });
+
         api.MapPost("/emulators/open", Results<Ok, NotFound, Conflict<ApiError>> (ReinstallRequest request, AppSession s) =>
         {
             if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();

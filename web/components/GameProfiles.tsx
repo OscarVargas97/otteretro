@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useConsoleName } from "@/components/Catalog";
 import { ProfileSettingsForm } from "@/components/ProfileSettings";
 import { request } from "@/lib/client";
@@ -51,10 +51,17 @@ function VersionPanel({ gameId, version: v }: { gameId: number; version: Version
       request<void>(`/api/profiles/${id}`, { method: "PUT", body: JSON.stringify({ name, sourceId: sourceId === null ? null : Number(sourceId) }) }),
     onSettled: refresh,
   });
+  // Borrar un perfil (#351), con confirmación: su configuración y mods; si era el activo, el juego vuelve al por defecto.
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const remove = useMutation({
+    mutationFn: (id: string) => request<void>(`/api/profiles/${id}`, { method: "DELETE" }),
+    onSuccess: () => { setDeleting(null); setEditing(null); },
+    onSettled: refresh,
+  });
   const emulatorName = (id: string) => v.emulators.find((e) => e.id === id)?.name ?? id;
   const base = v.emulators.find((e) => e.base);
   const active = v.profiles.find((p) => p.active);
-  const failure = activate.error ?? save.error;
+  const failure = activate.error ?? save.error ?? remove.error;
   const romName = (r: VersionProfiles["roms"][number]) => r.modified ? (r.label ?? r.path) : t("baseRom", { file: r.path });
 
   return (
@@ -87,7 +94,8 @@ function VersionPanel({ gameId, version: v }: { gameId: number; version: Version
               <thead><tr><th>{t("name")}</th><th>{t("emulator")}</th><th>{t("rom")}</th><th><span className="sr-only">{t("activate")}</span></th></tr></thead>
               <tbody>
                 {v.profiles.map((p) => (
-                  <tr key={String(p.id)}>
+                  <Fragment key={String(p.id)}>
+                  <tr>
                     <td><NameField label={t("rename", { name: p.name })} value={p.name} onSave={(name) => save.mutate({ id: String(p.id), name, sourceId: p.sourceId === null ? null : String(p.sourceId) })} /></td>
                     <td>{emulatorName(p.emulatorId)}{p.emulatorVersion ? ` · ${p.emulatorVersion}` : ""}</td>
                     <td>
@@ -104,8 +112,22 @@ function VersionPanel({ gameId, version: v }: { gameId: number; version: Version
                         : <button className="ot-btn ot-btn-sm" type="button" disabled={activate.isPending} onClick={() => activate.mutate({ profileId: String(p.id) })}>{t("activate")}</button>}
                       {settingsButton(String(p.id), p.name)}
                       {" "}<ShareProfile id={String(p.id)} name={p.name} />
+                      {" "}<button className="ot-btn ot-btn-sm ot-btn-ghost" type="button" aria-label={t("deleteOf", { name: p.name })}
+                        onClick={() => setDeleting(String(p.id))}>{t("delete")}</button>
                     </td>
                   </tr>
+                  {deleting === String(p.id) && (
+                    <tr>
+                      <td colSpan={4}>
+                        <span className="sentence">
+                          <span className="small">{t("deleteAsk", { name: p.name })}</span>
+                          <button className="ot-btn ot-btn-sm" type="button" onClick={() => setDeleting(null)}>{t("deleteKeep")}</button>
+                          <button className="ot-btn ot-btn-sm ot-btn-danger" type="button" disabled={remove.isPending} onClick={() => remove.mutate(String(p.id))}>{t("deleteConfirm")}</button>
+                        </span>
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 ))}
                 {active && base && (
                   <tr>

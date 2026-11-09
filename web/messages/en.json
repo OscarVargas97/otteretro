@@ -594,6 +594,9 @@
       "badName": "The profile needs a name.",
       "badFrom": "The profile can't be created from there.",
       "badRom": "That ROM isn't for this version of the game.",
+      "isDefault": "An emulator's default profile can't be deleted.",
+      "deleteActive": "Before deleting it, activate another profile and choose which user the saves go to.",
+      "deleteFailed": "The profile couldn't be deleted; whatever wasn't settings or mods is in the backup: {detail}",
       "switchFailed": "The profile couldn't be switched; whatever moved is saved and the active profile didn't change: {detail}",
       "share": {
         "badPath": "Enter the full path of the new .zip, in a folder that exists.",
@@ -1319,7 +1322,11 @@
       "no": "No",
       "current": "In use: {version}",
       "more": "{count, plural, one {▾ # more version} other {▾ # more versions}}",
-      "details": "▾ Details"
+      "details": "▾ Details",
+      "uninstall": "Remove the emulator",
+      "uninstallHelp": "Deletes all its installed versions. Its saves, settings and profiles stay and come back if you install it again. Type “{name}” to confirm.",
+      "uninstallName": "Emulator name",
+      "uninstallConfirm": "Remove"
     }
   },
   "downloads": {
@@ -1443,6 +1450,11 @@
     "rom": "ROM",
     "activate": "Activate",
     "isActive": "Active",
+    "delete": "Delete",
+    "deleteOf": "Delete {name}",
+    "deleteAsk": "Delete “{name}”? Its settings and mods are deleted; any saves go to the backup.",
+    "deleteConfirm": "Delete profile",
+    "deleteKeep": "Keep",
     "rename": "Name of {name}",
     "romOf": "ROM of {name}",
     "baseRom": "{file}",

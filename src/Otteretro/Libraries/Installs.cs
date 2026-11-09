@@ -148,10 +148,7 @@ public static class Installs
             if (install.InUse || install.Kind == "port"
                 || c.ExecuteScalar<bool>("SELECT count(*) > 0 FROM profile WHERE emulator_id = @emulator AND emulator_version = @version", new { emulator, version }))
                 return ApiError.Of("install.inUse", ("version", version));
-        if (Disk.DefaultDisk(db) is not { Connected: true } home) return ApiError.Of("library.notConnected");
-        var stored = System.IO.Path.Combine(ShelfPath(home.Path, install.Kind, emulator, version), install.File ?? "");
-        if (install.File is null || !File.Exists(stored)) return ApiError.Of("install.notInLibrary", ("version", version));
-        if (await Sha256(stored, ct) != install.Sha256) return ApiError.Of("install.badHash", ("version", version));
+        if (await InLibrary(db, install, ct) is { } missing) return missing;
         var mine = Mine(Recipes.Find(emulator));
         var backup = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(path)!, SnapshotsFolder, $"{DateTime.Now:yyyy-MM-dd-HHmmss}-instalacion-borrada-{version}");
         try
@@ -167,6 +164,68 @@ public static class Installs
         {
             return e.Error;
         }
+        return null;
+    }
+
+    /// <summary>Su archivo está en la librería del ★ y es el mismo que se instaló: borrar su carpeta no la pierde.</summary>
+    static async Task<ApiError?> InLibrary(Database db, EmulatorInstall install, CancellationToken ct)
+    {
+        if (Disk.DefaultDisk(db) is not { Connected: true } home) return ApiError.Of("library.notConnected");
+        var stored = System.IO.Path.Combine(ShelfPath(home.Path, install.Kind, install.EmulatorId, install.Version), install.File ?? "");
+        if (install.File is null || !File.Exists(stored)) return ApiError.Of("install.notInLibrary", ("version", install.Version));
+        return await Sha256(stored, ct) != install.Sha256 ? ApiError.Of("install.badHash", ("version", install.Version)) : null;
+    }
+
+    /// <summary>
+    /// «Quitar el emulador» (#351): borra el programa, todas sus versiones instaladas, solo si cada archivo está en la librería.
+    /// Lo de sus perfiles activos sale antes a su carpeta y sus juegos vuelven al perfil por defecto. Las partidas y el contenido
+    /// (`_compartido`) y los respaldos se quedan donde están; la configuración y lo que la persona tenía dentro de cada versión se
+    /// copian, verificados, a `_respaldos\<fecha>-emulador-quitado-<versión>`. El emulador y sus perfiles siguen registrados:
+    /// al instalarlo de nuevo vuelven, con las partidas (la versión nueva se enlaza a `_compartido`).
+    /// </summary>
+    /// <remarks>ponytail: una versión en un disco desconectado deja su carpeta (sin registro, aparece como no registrada al volver).</remarks>
+    public static async Task<ApiError?> RemoveEmulator(Database db, string emulator, CancellationToken ct)
+    {
+        var installs = List(db).Where(i => i.EmulatorId == emulator).ToList();
+        if (installs.Count == 0) return ApiError.Of("install.notInstalled");
+        foreach (var install in installs.Where(i => i.Path is not null))
+            if (await InLibrary(db, install, ct) is { } missing) return missing;
+        var recipe = Recipes.Find(emulator);
+        var mine = Mine(recipe).Concat((recipe is null ? [] : recipe.Saves.Concat(recipe.Content))
+            .Select(s => s.Replace('\\', '/').TrimEnd('/')).SelectMany(f => new[] { f, f + ".antes-de-otteretro" })).ToList();
+        if (Profiles.Release(db, emulator) is { } error) return error;
+        try
+        {
+            foreach (var install in installs)
+            {
+                if (install.Path is not { } path) continue;
+                var port = install.Kind == "port"; // `Ports\<Port>` guarda adentro `_compartido` y `_respaldos`
+                var root = port ? path : System.IO.Path.GetDirectoryName(path)!;
+                var backup = System.IO.Path.Combine(root, SnapshotsFolder, $"{DateTime.Now:yyyy-MM-dd-HHmmss}-emulador-quitado-{install.Version}");
+                foreach (var rel in Files(path).Where(rel => rel != Recipes.VersionFile && mine.Any(m => Under(rel, m))))
+                    CopyVerified(System.IO.Path.Combine(path, rel), System.IO.Path.Combine(backup, rel));
+                if (!port) Links.DeleteTree(path); // las partidas son enlaces a `_compartido`: se borra el enlace, no lo enlazado
+                else
+                    foreach (var entry in Directory.EnumerateFileSystemEntries(path).Where(e => System.IO.Path.GetFileName(e) is not (SharedFolder or SnapshotsFolder)))
+                        if (File.Exists(entry)) File.Delete(entry);
+                        else if (Links.IsLink(entry)) Directory.Delete(entry); // el enlace, no lo enlazado
+                        else Links.DeleteTree(entry);
+                if (!Directory.EnumerateFileSystemEntries(root).Any()) Directory.Delete(root);
+            }
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return ApiError.Of("install.removeFailed", ("detail", e.Message));
+        }
+        catch (TaskException e)
+        {
+            return e.Error;
+        }
+        using var c = db.Open();
+        using var t = c.BeginTransaction();
+        c.Execute("DELETE FROM emulator_install WHERE emulator_id = @emulator", new { emulator }, t);
+        c.Execute("UPDATE profile SET emulator_version = NULL WHERE emulator_id = @emulator", new { emulator }, t); // la que se instale
+        t.Commit();
         return null;
     }
 
