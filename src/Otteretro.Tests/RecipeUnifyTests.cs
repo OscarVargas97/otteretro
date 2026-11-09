@@ -19,7 +19,7 @@ public class RecipeUnifyTests
         Assert.Equal("emu-v{version}.exe", (string?)merged["saveAs"]);
         Assert.Equal(("a/emu", "-rc"), ((string?)merged["updates"]!["repo"], (string?)merged["updates"]!["devPattern"]));
 
-        // Choque en un campo: gana la publicada, y la local queda respaldada tal cual; el archivo pasa a ser la unión.
+        // Choque en un campo: gana la publicada, y la local queda respaldada tal cual (el archivo no se toca).
         using var tmp = new TempDir();
         var file = tmp["emu.json"];
         const string local = """{"id":"emu","detect":"otro.exe","link":"x"}""";
@@ -27,10 +27,16 @@ public class RecipeUnifyTests
         (merged, conflict) = Recipes.Unify(published, Obj(local));
         Assert.True(conflict);
         Assert.Equal(("emu.exe", "x"), ((string?)merged["detect"], (string?)merged["link"]));
-        var backup = Recipes.Backup(file, merged);
+        var backup = Recipes.Backup(file)!;
         Assert.Equal(Path.Combine(tmp.Path, "_respaldos"), Path.GetDirectoryName(backup));
         Assert.EndsWith("-emu.json", backup);
         Assert.Equal(local, File.ReadAllText(backup));
-        Assert.False(Recipes.Unify(published, Obj(File.ReadAllText(file))).Conflict); // la próxima vez ya no choca
+        Assert.Equal(local, File.ReadAllText(file));
+        Assert.Null(Recipes.Backup(file)); // la misma local no se respalda ni se avisa otra vez
+
+        // Una versión nueva del catálogo que cambia otro campo no hace chocar de nuevo: la local sigue siendo solo de la persona.
+        var v2 = Obj(published.ToJsonString().Replace("a/emu", "b/emu"));
+        Assert.Equal("b/emu", (string?)Recipes.Unify(v2, Obj(File.ReadAllText(file))).Merged["updates"]!["repo"]);
+        Assert.Null(Recipes.Backup(file));
     }
 }

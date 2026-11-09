@@ -118,7 +118,10 @@ public static class Recipes
     static Data.Database? catalog;
     static List<RecipeBackup> backups = [];
 
-    public static IReadOnlyList<Recipe> All => all ??= Load();
+    static readonly Lock gate = new();
+
+    // Load respalda archivos: con el cerrojo, dos hilos que arrancan a la vez no respaldan dos veces.
+    public static IReadOnlyList<Recipe> All { get { lock (gate) return all ??= Load(); } }
 
     /// <summary>Las recetas locales que chocaron con la publicada en esta sesión: se respaldaron y se avisa en Inicio (decisión 351).</summary>
     public static IReadOnlyList<RecipeBackup> Backups { get { _ = All; return backups; } }
@@ -153,7 +156,11 @@ public static class Recipes
     static List<Recipe> Load()
     {
         var found = new List<RecipeBackup>();
-        var published = FromCatalog() ?? Embedded();
+        var embedded = Embedded();
+        // Las del catálogo mandan; una incrustada cuyo id el catálogo no trae (o trae rota) se mantiene, para no perderla.
+        var published = FromCatalog() is { } fromCatalog
+            ? [.. fromCatalog, .. embedded.Where(e => fromCatalog.All(c => (string?)c.Json["id"] != (string?)e.Json["id"]))]
+            : embedded;
         var list = new List<Recipe>();
         foreach (var (name, json) in published)
             if (TryParse(json, name, "publicada") is { } r) list.Add(r);
@@ -167,7 +174,7 @@ public static class Recipes
                     if (index < 0) { list.Add(Parse(local, file)); continue; }
                     var (merged, conflict) = Unify(published.First(p => p.Json["id"]?.GetValue<string>() == id).Json, local);
                     var recipe = Parse(merged, file);
-                    if (conflict) found.Add(new(recipe.Id, recipe.Name, Backup(file, merged)));
+                    if (conflict && Backup(file) is { } backup) found.Add(new(recipe.Id, recipe.Name, backup));
                     list[index] = recipe;
                 }
                 catch (Exception e) when (e is JsonException or InvalidDataException or InvalidOperationException or IOException)
@@ -243,16 +250,21 @@ public static class Recipes
     }
 
     /// <summary>
-    /// Tras un choque: copia la local a `_respaldos\&lt;fecha&gt;-&lt;id&gt;.json` y deja en su lugar la unión, para que el choque se avise una sola vez.
+    /// Tras un choque: copia la local a `_respaldos\&lt;fecha&gt;-&lt;id&gt;.json`. La local no se reescribe (sigue siendo solo de la persona,
+    /// así una versión nueva del catálogo no choca con una copia vieja de la publicada); si ya hay un respaldo idéntico, no se repite ni se avisa.
     /// </summary>
-    /// <returns>El respaldo.</returns>
-    public static string Backup(string localFile, JsonObject merged)
+    /// <returns>El respaldo nuevo, o null si esa misma local ya estaba respaldada.</returns>
+    public static string? Backup(string localFile)
     {
         var folder = Path.Combine(Path.GetDirectoryName(localFile)!, "_respaldos");
+        var content = File.ReadAllBytes(localFile);
+        if (Directory.Exists(folder) && Directory.EnumerateFiles(folder, "*-" + Path.GetFileName(localFile))
+                .Any(f => File.ReadAllBytes(f).AsSpan().SequenceEqual(content)))
+            return null;
         Directory.CreateDirectory(folder);
         var backup = Path.Combine(folder, $"{DateTime.Now:yyyy-MM-dd-HHmmss}-{Path.GetFileName(localFile)}");
         File.Copy(localFile, backup, overwrite: false);
-        WriteAtomic(localFile, merged.ToJsonString(Local));
+        if (!File.ReadAllBytes(backup).AsSpan().SequenceEqual(content)) throw new IOException($"El respaldo no quedó igual: {backup}");
         return backup;
     }
 
