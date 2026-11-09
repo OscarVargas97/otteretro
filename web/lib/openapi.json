@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:61849/"
+      "url": "http://127.0.0.1:65015/"
     }
   ],
   "paths": {
@@ -4597,6 +4597,58 @@
         }
       }
     },
+    "/api/repos/releases": {
+      "get": {
+        "tags": [
+          "Otteretro"
+        ],
+        "parameters": [
+          {
+            "name": "url",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RepoRelease"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/emulators/reinstall": {
       "post": {
         "tags": [
@@ -6962,6 +7014,24 @@
               "string"
             ],
             "format": "int64"
+          },
+          "repo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "console": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "detect": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -7992,6 +8062,61 @@
         "properties": {
           "name": {
             "type": "string"
+          }
+        }
+      },
+      "RepoAsset": {
+        "required": [
+          "name",
+          "url",
+          "windows"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "windows": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RepoRelease": {
+        "required": [
+          "version",
+          "channel",
+          "publishedAt",
+          "url",
+          "assets"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "assets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RepoAsset"
+            }
           }
         }
       },

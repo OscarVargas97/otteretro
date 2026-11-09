@@ -15,7 +15,8 @@ import { UpdateRow, UpdatesStatus } from "@/components/ToolUpdates";
 import { toolUpdatesQuery } from "@/lib/queries";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
-import type { EmulatorInstall, RecipeRelease, RecipeSummary, SystemConsole, ToolInfo } from "@/lib/types";
+import { useTasks } from "@/components/Tasks";
+import type { EmulatorInstall, RecipeRelease, RecipeSummary, RepoRelease, SystemConsole, ToolInfo } from "@/lib/types";
 
 const KINDS = ["emulator", "port", "complement", "tool", "system"] as const;
 type Kind = (typeof KINDS)[number];
@@ -156,20 +157,40 @@ function InstallPanel({ kind, onClose }: { kind: Installable; onClose: () => voi
     enabled: from === "recipe" && !!chosen?.releases,
     staleTime: 5 * 60_000,
   });
-  const key = (r: RecipeRelease) => `${r.channel}|${r.version}`;
+  const key = (r: { channel: string; version: string }) => `${r.channel}|${r.version}`;
   const picked = releases.data?.find((r) => key(r) === release) ?? releases.data?.[0];
+  // Desde su repo (#350): la URL de un archivo se baja tal cual; la de un repo (GitHub, Forgejo, Gitea) lista sus releases.
+  const direct = /\.(zip|7z|rar|exe|tar\.gz|tgz)$/i.test(url.trim()) || url.includes("/releases/download/");
+  const [repo, setRepo] = useState("");
+  const [asset, setAsset] = useState("");
+  const [exe, setExe] = useState("");
+  const repoReleases = useQuery({
+    queryKey: ["repos", repo, "releases"],
+    queryFn: () => request<RepoRelease[]>(`/api/repos/releases?url=${encodeURIComponent(repo)}`),
+    enabled: from === "url" && !direct && repo !== "",
+    staleTime: 5 * 60_000,
+  });
+  const repoRelease = repoReleases.data?.find((r) => key(r) === release) ?? repoReleases.data?.[0];
+  // El archivo de Windows: si hay uno solo, ese; si hay varios (o ninguno parece de Windows), se elige.
+  const candidates = repoRelease ? (repoRelease.assets.some((a) => a.windows) ? repoRelease.assets.filter((a) => a.windows) : repoRelease.assets) : [];
+  const file = candidates.find((a) => a.url === asset) ?? candidates[0];
   const install = useMutation({
     mutationFn: (job: object) => request<number>("/api/emulators/install", post(job)),
     onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
   });
-  // Sin receta: el id sale del nombre y la carpeta se llama como él.
+  // Sin ejecutable claro en lo bajado, la tarea pregunta cuál (#350): se elige y se reintenta con lo que ya quedó en la librería.
+  const task = useTasks().find((x) => x.id === install.data);
+  const exes = task?.detail?.code === "install.pickExe" ? task.detail.params?.files?.split("|") ?? [] : [];
+  // Sin receta: el id sale del nombre y la carpeta se llama como él; desde un repo, queda su receta local (decisión 346).
   const who = recipe === OTHER ? { emulator: slug(name), name: name.trim(), kind } : { emulator: recipe };
   const ready = (recipe === OTHER ? slug(name) !== "" : !!chosen)
-    && (from === "recipe" ? !!picked : from === "url" ? url.trim().startsWith("https://") && version.trim() !== "" : path.trim() !== "");
-  const submit = () => install.mutate(
+    && (from === "recipe" ? !!picked : from === "url" ? (direct ? url.trim().startsWith("https://") && version.trim() !== "" : !!file) : path.trim() !== "");
+  const job = (): object =>
     from === "recipe" ? { emulator: recipe, version: picked!.version, url: picked!.download }
-    : from === "url" ? { ...who, version: version.trim(), url: url.trim() }
-    : { ...who, version: version.trim() || null, path: path.trim(), adopt });
+    : from === "url" && direct ? { ...who, version: version.trim(), url: url.trim() }
+    : from === "url" ? { ...who, version: repoRelease!.version, url: file!.url, ...(recipe === OTHER ? { repo, console: console_ || null } : {}) }
+    : { ...who, version: version.trim() || null, path: path.trim(), adopt };
+  const submit = () => install.mutate(job());
   const pick = (id: string) => {
     setRecipe(id);
     setRelease("");
@@ -184,7 +205,7 @@ function InstallPanel({ kind, onClose }: { kind: Installable; onClose: () => voi
           <label className="small muted" htmlFor="install-console">{t("console")}</label>
           <select id="install-console" value={console_} onChange={(e) => { const c = e.target.value; setConsole(c); if (recipe !== OTHER && c !== "" && !all.find((r) => r.id === recipe)?.consoles.includes(c)) pick(""); }}>
             <option value="">{t("allConsoles")}</option>
-            {consoles.filter((c) => all.some((r) => r.consoles.includes(c.id))).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {consoles.filter((c) => recipe === OTHER || all.some((r) => r.consoles.includes(c.id))).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </>}
         <label className="small muted" htmlFor="install-recipe">{t("what")}</label>
@@ -219,10 +240,37 @@ function InstallPanel({ kind, onClose }: { kind: Installable; onClose: () => voi
         )
       )}
       {from === "url" && (
-        <div className="sentence">
-          <input aria-label={t("url")} placeholder="https://…" value={url} onChange={(e) => setUrl(e.target.value)} style={{ flex: 1, minWidth: 240 }} />
-          <input aria-label={t("version")} placeholder={t("version")} value={version} onChange={(e) => setVersion(e.target.value)} />
-        </div>
+        <>
+          <div className="sentence">
+            <input aria-label={t("url")} placeholder={t("urlHint")} value={url} onChange={(e) => setUrl(e.target.value)} style={{ flex: 1, minWidth: 240 }} />
+            {direct ? <input aria-label={t("version")} placeholder={t("version")} value={version} onChange={(e) => setVersion(e.target.value)} />
+            : <button className="ot-btn ot-btn-sm" type="button" disabled={url.trim() === ""} onClick={() => { setRepo(url.trim()); setRelease(""); setAsset(""); }}>{t("findReleases")}</button>}
+          </div>
+          {!direct && repo !== "" && (
+            repoReleases.isPending ? <div className="skeleton" style={{ height: 32 }} aria-busy="true" />
+            : repoReleases.isError ? <p className="error small" role="alert" style={{ margin: 0 }}>{describe(repoReleases.error)}</p>
+            : repoReleases.data.length === 0 ? <p className="small muted" style={{ margin: 0 }}>{t("noRepoReleases")}</p>
+            : (
+              <div className="sentence">
+                <label className="small muted" htmlFor="install-repo-version">{t("version")}</label>
+                <select id="install-repo-version" value={repoRelease ? key(repoRelease) : ""} onChange={(e) => { setRelease(e.target.value); setAsset(""); }}>
+                  {repoReleases.data.map((r) => (
+                    <option key={key(r)} value={key(r)}>
+                      {[r.version, r.channel === "dev" ? t("dev") : null, r.publishedAt ? format.dateTime(new Date(r.publishedAt), { dateStyle: "medium" }) : null].filter(Boolean).join(" · ")}
+                    </option>
+                  ))}
+                </select>
+                {candidates.length > 1 && <>
+                  <label className="small muted" htmlFor="install-asset">{t("file")}</label>
+                  <select id="install-asset" value={file?.url ?? ""} onChange={(e) => setAsset(e.target.value)}>
+                    {candidates.map((a) => <option key={a.url} value={a.url}>{a.name}</option>)}
+                  </select>
+                </>}
+                {candidates.length === 1 && <span className="small muted">{file!.name}</span>}
+              </div>
+            )
+          )}
+        </>
       )}
       {from === "path" && (
         <>
@@ -240,6 +288,16 @@ function InstallPanel({ kind, onClose }: { kind: Installable; onClose: () => voi
         <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" disabled={!ready || install.isPending} onClick={submit}>{t("submit")}</button>
       </div>
       {install.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("queued")}</p>}
+      {exes.length > 0 && (
+        <div className="sentence">
+          <label className="small muted" htmlFor="install-exe">{t("pickExe")}</label>
+          <select id="install-exe" value={exe} onChange={(e) => setExe(e.target.value)}>
+            <option value="">{t("pick")}</option>
+            {exes.map((x) => <option key={x} value={x}>{x}</option>)}
+          </select>
+          <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" disabled={exe === "" || install.isPending} onClick={() => install.mutate({ ...job(), detect: exe })}>{t("submit")}</button>
+        </div>
+      )}
       {install.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(install.error)}</p>}
     </section>
   );

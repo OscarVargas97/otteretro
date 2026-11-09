@@ -5234,6 +5234,61 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/repos/releases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    url: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RepoRelease"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/emulators/reinstall": {
         parameters: {
             query?: never;
@@ -6448,6 +6503,9 @@ export interface components {
             reinstall: boolean;
             /** Format: int64 */
             port?: null | number | string;
+            repo?: null | string;
+            console?: null | string;
+            detect?: null | string;
         };
         LanguageRequest: {
             language: string;
@@ -6675,6 +6733,18 @@ export interface components {
         };
         RenameRequest: {
             name: string;
+        };
+        RepoAsset: {
+            name: string;
+            url: string;
+            windows: boolean;
+        };
+        RepoRelease: {
+            version: string;
+            channel: string;
+            publishedAt: null | string;
+            url: null | string;
+            assets: components["schemas"]["RepoAsset"][];
         };
         ResolveFileRequest: {
             /** Format: int64 */

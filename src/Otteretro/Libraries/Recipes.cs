@@ -82,6 +82,7 @@ public record Recipe(string Id, string Name, string Kind, string Folder, string 
     public string? SaveAs { get; init; }
 
     /// <summary>Emuladores, Ports o Complementos: el primer nivel de Herramientas (§5.1). Nombres de carpeta de la persona: en español.</summary>
+    [JsonIgnore]
     public string Group => Kind switch { "emulator" => "Emuladores", "port" => "Ports", "tool" => "Herramientas", _ => "Complementos" };
 }
 
@@ -110,12 +111,26 @@ public static class Recipes
     public const string VersionFile = "otteretro-version.txt";
 
     static List<Recipe>? all;
+    static string? localFolder;
 
     public static IReadOnlyList<Recipe> All => all ??= Load();
 
     public static Recipe? Find(string id) => All.FirstOrDefault(r => r.Id == id);
 
-    /// <summary>Lee las recetas incrustadas. Una receta que no cumple el esquema hace fallar el arranque (y la prueba que las carga).</summary>
+    /// <summary>
+    /// Las recetas locales (decisión 348): `data\recetas` de la carpeta de datos, las que se crean al agregar un emulador desde su
+    /// repo (#350). Se fija al preparar la carpeta de datos; cambiarla vuelve a leer las recetas.
+    /// </summary>
+    public static string? LocalFolder
+    {
+        get => localFolder;
+        set { localFolder = value; all = null; }
+    }
+
+    /// <summary>
+    /// Lee las recetas incrustadas y las locales. Una incrustada que no cumple el esquema hace fallar el arranque (y la prueba que las
+    /// carga); una local rota se salta, y una con el id de una incrustada también: gana la del repo.
+    /// </summary>
     static List<Recipe> Load()
     {
         var assembly = typeof(Recipes).Assembly;
@@ -123,13 +138,46 @@ public static class Recipes
         foreach (var name in assembly.GetManifestResourceNames().Where(n => n.StartsWith("recetas/", StringComparison.Ordinal) && !n.EndsWith(".schema.json", StringComparison.Ordinal)))
         {
             using var stream = assembly.GetManifestResourceStream(name)!;
-            var r = JsonSerializer.Deserialize<Recipe>(stream, Json) ?? throw new InvalidDataException(name);
-            if (!Regex.IsMatch(r.Id, "^[a-z0-9-]+$") || !Kinds.Contains(r.Kind) || (r.Kind == "complement") != (r.Parent is not null && r.Link is not null))
-                throw new InvalidDataException($"Receta inválida: {name}");
-            list.Add(r);
+            list.Add(Parse(stream, name));
         }
+        if (localFolder is not null && Directory.Exists(localFolder))
+            foreach (var file in Directory.EnumerateFiles(localFolder, "*.json"))
+                try
+                {
+                    using var stream = File.OpenRead(file);
+                    if (Parse(stream, file) is var r && list.All(x => x.Id != r.Id)) list.Add(r);
+                }
+                catch (Exception e) when (e is JsonException or InvalidDataException or IOException)
+                {
+                    App.FileLog.Write(Microsoft.Extensions.Logging.LogLevel.Warning, "Recipes", $"Receta local ignorada: {file}: {e.Message}");
+                }
         return list;
     }
+
+    static Recipe Parse(Stream stream, string name)
+    {
+        var r = JsonSerializer.Deserialize<Recipe>(stream, Json) ?? throw new InvalidDataException(name);
+        if (!Regex.IsMatch(r.Id, "^[a-z0-9-]+$") || !Kinds.Contains(r.Kind) || (r.Kind == "complement") != (r.Parent is not null && r.Link is not null))
+            throw new InvalidDataException($"Receta inválida: {name}");
+        return r;
+    }
+
+    /// <summary>Guarda una receta local (decisión 348) y vuelve a leer las recetas: desde ya se elige en perfiles y avisa de versiones.</summary>
+    public static void SaveLocal(Recipe recipe)
+    {
+        var folder = localFolder ?? throw new InvalidOperationException("No hay carpeta de recetas locales.");
+        Directory.CreateDirectory(folder);
+        WriteAtomic(Path.Combine(folder, recipe.Id + ".json"), JsonSerializer.Serialize(recipe, Local));
+        all = null;
+    }
+
+    static readonly JsonSerializerOptions Local = new(JsonSerializerDefaults.Web) { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault };
+
+    /// <summary>
+    /// La expresión del archivo de Windows de una receta local, desde el nombre del que se eligió: los números pasan a `[0-9.]+`, así
+    /// calza con el de la próxima versión (Fritchii-v4.1-Windows-x64.zip → ^Fritchii-v[0-9.]+-Windows-x[0-9.]+\.zip$).
+    /// </summary>
+    public static string AssetPattern(string file) => "^" + Regex.Replace(Regex.Escape(file), @"\d+(\\\.\d+)*", "[0-9.]+") + "$";
 
     /// <summary>
     /// La receta de una carpeta instalada (por su ejecutable) entre los emuladores y ports. Si varias tienen el mismo ejecutable

@@ -146,8 +146,7 @@ public static class ToolUpdates
         // Con devRepo, todo lo de ese repositorio es de desarrollo; si no, las prereleases y lo que calce con devPattern.
         var fromDevRepo = channel == "dev" && u.DevRepo is not null;
         var repo = fromDevRepo ? u.DevRepo : u.Repo;
-        var url = u.Source == "forgejo" ? $"https://{u.Host}/api/v1/repos/{repo}/releases?limit=30" : $"https://api.github.com/repos/{repo}/releases?per_page=30";
-        var list = JsonSerializer.Deserialize<List<GitRelease>>(await GithubApi.GetString(http, url, token, ct), Snake)!;
+        var list = await Fetch(http, u, repo!, ct, token);
         bool IsDev(GitRelease x) => fromDevRepo || x.Prerelease || u.DevPattern is not null && Regex.IsMatch(x.TagName, u.DevPattern);
         // Por fecha: RPCS3 no las lista en orden, y DuckStation o Vita3K reusan tags fijos (latest, preview, continuous).
         return list.Where(x => !x.Draft && IsDev(x) == (channel == "dev")).OrderByDescending(x => x.PublishedAt ?? "")
@@ -155,6 +154,45 @@ public static class ToolUpdates
                 asset is null ? null : g.Assets?.FirstOrDefault(a => Regex.IsMatch(a.Name, asset))?.BrowserDownloadUrl))
             .ToList();
     }
+
+    /// <summary>Las releases de un repo de GitHub, o de Forgejo o Gitea (la misma API, en <c>host</c>).</summary>
+    static async Task<List<GitRelease>> Fetch(HttpClient http, RecipeUpdates u, string repo, CancellationToken ct, string? token)
+    {
+        var url = u.Source == "forgejo" ? $"https://{u.Host}/api/v1/repos/{repo}/releases?limit=30" : $"https://api.github.com/repos/{repo}/releases?per_page=30";
+        return JsonSerializer.Deserialize<List<GitRelease>>(await GithubApi.GetString(http, url, token, ct), Snake)!;
+    }
+
+    /// <summary>
+    /// La fuente de un repo pegado (#350): `github.com/dueño/repo` es GitHub; otro servidor, Forgejo o Gitea (codeberg.org,
+    /// git.eden-emu.dev). Acepta con o sin https, `.git` al final y rutas de más (`/releases`). null si no es un repo.
+    /// </summary>
+    public static RecipeUpdates? Source(string text)
+    {
+        var s = text.Trim();
+        if (!s.Contains("://")) s = "https://" + s;
+        if (!Uri.TryCreate(s, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps || !uri.Host.Contains('.')) return null;
+        var parts = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 2) return null;
+        var repo = $"{parts[0]}/{(parts[1].EndsWith(".git", StringComparison.OrdinalIgnoreCase) ? parts[1][..^4] : parts[1])}";
+        if (!Regex.IsMatch(repo, "^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$")) return null;
+        return uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase) || uri.Host.Equals("www.github.com", StringComparison.OrdinalIgnoreCase)
+            ? new("github", repo, Dev: true) : new("forgejo", repo, uri.Authority, Dev: true);
+    }
+
+    /// <summary>Un archivo de una release.</summary>
+    /// <param name="Windows">Parece el de Windows: ni de otro sistema, ni símbolos de depuración, ni el código fuente.</param>
+    public record RepoAsset(string Name, string Url, bool Windows);
+    /// <summary>Una release de un repo pegado, con sus archivos, para instalar desde ahí (#350).</summary>
+    public record RepoRelease(string Version, string Channel, string? PublishedAt, string? Url, List<RepoAsset> Assets);
+
+    static readonly Regex NotWindows = new(@"linux|macos|darwin|\bmac\b|osx|android|ios|appimage|flatpak|aarch64|arm64|symbol|debug|pdb|source|\.(deb|rpm|dmg|apk|sig|sha\d*|txt|json)$", RegexOptions.IgnoreCase);
+
+    /// <summary>Las releases de un repo pegado, de la más nueva a la más vieja, con los archivos que se pueden instalar.</summary>
+    public static async Task<List<RepoRelease>> RepoReleases(RecipeUpdates u, CancellationToken ct, string? token = null) =>
+        (await Fetch(Http, u, u.Repo!, ct, token)).Where(g => !g.Draft && g.Assets is { Count: > 0 }).OrderByDescending(g => g.PublishedAt ?? "")
+            .Select(g => new RepoRelease(VersionOf(g), g.Prerelease ? "dev" : "stable", g.PublishedAt, g.HtmlUrl,
+                g.Assets!.Where(a => a.BrowserDownloadUrl is not null).Select(a => new RepoAsset(a.Name, a.BrowserDownloadUrl!, !NotWindows.IsMatch(a.Name))).ToList()))
+            .ToList();
 
     static string Normalize(string tag) => tag.TrimStart('v', 'V');
 
