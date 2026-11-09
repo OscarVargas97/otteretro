@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:60933/"
+      "url": "http://127.0.0.1:52376/"
     }
   ],
   "paths": {
@@ -7776,6 +7776,36 @@
           }
         }
       },
+      "ProfileRecommendation": {
+        "required": [
+          "id",
+          "name",
+          "source",
+          "installed",
+          "releases"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "installed": {
+            "type": "boolean"
+          },
+          "releases": {
+            "type": "boolean"
+          }
+        }
+      },
       "ProfileRequest": {
         "required": [
           "name",
@@ -8023,6 +8053,15 @@
         "properties": {
           "game": {
             "type": "string"
+          },
+          "gameId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
           },
           "source": {
             "type": [
@@ -9401,6 +9440,16 @@
             "items": {
               "$ref": "#/components/schemas/RomEntry"
             }
+          },
+          "recommended": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProfileRecommendation"
+              }
+            ]
           }
         }
       },

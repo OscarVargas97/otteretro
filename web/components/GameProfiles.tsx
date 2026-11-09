@@ -8,6 +8,7 @@ import { ProfileSettingsForm } from "@/components/ProfileSettings";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
 import { LoadProfile, ShareProfile } from "@/components/ProfileShare";
+import { ForkInstall } from "@/components/Tools";
 import type { ProfileSwitch, VersionProfiles } from "@/lib/types";
 
 /** Perfiles del juego (§8.0, #269): por versión del juego (decisión 301), cuál está activo, crear, renombrar, elegir ROM y activar. */
@@ -73,6 +74,15 @@ function VersionPanel({ gameId, version: v }: { gameId: number; version: Version
             : base ? t("noneActive", { name: base.defaultName, emulator: base.name }) : t("noEmulator")}
         </span>
       </div>
+      {v.recommended && (
+        // El emulador que la receta recomienda para este juego (#366); si no está, se instala desde acá.
+        <div style={{ display: "grid", gap: 4 }}>
+          <span className="small muted">{v.recommended.source
+            ? t("recommended", { emulator: v.recommended.name, source: v.recommended.source })
+            : t("recommendedNoSource", { emulator: v.recommended.name })}</span>
+          {!v.recommended.installed && <ForkInstall recipe={v.recommended} />}
+        </div>
+      )}
       {failure && <p className="error small" role="alert">{describe(failure)}</p>}
       {saves?.code === "saves.chooseUser" && activate.variables ? (
         <form className="sentence" onSubmit={(e) => { e.preventDefault(); activate.mutate({ profileId: activate.variables!.profileId, saveUser: user || saves.users?.[0] }); }}>
@@ -139,7 +149,7 @@ function VersionPanel({ gameId, version: v }: { gameId: number; version: Version
             </table>
           </div>
           {editing && <ProfileSettingsForm key={editing.id} profileId={editing.id} name={editing.name} />}
-          <CreateProfile version={v} onCreated={refresh} />
+          <CreateProfile key={String(v.recommended?.installed)} version={v} onCreated={refresh} />
           <details className="fold-line">
             <summary className="small muted">{t("defaults")}</summary>
             {v.emulators.map((e) => (
@@ -165,12 +175,12 @@ function NameField({ label, value, onSave }: { label: string; value: string; onS
     onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} />;
 }
 
-/** Crear: vacío, con los valores del perfil por defecto o duplicando otro de esta versión del juego. */
+/** Crear: vacío, con los valores del perfil por defecto o duplicando otro de esta versión del juego. Con el recomendado elegido (#366). */
 function CreateProfile({ version: v, onCreated }: { version: VersionProfiles; onCreated: () => void }) {
   const t = useTranslations("profiles");
   const describe = useDescribeError();
   const [name, setName] = useState("");
-  const [emulator, setEmulator] = useState(v.emulators[0]?.id ?? "");
+  const [emulator, setEmulator] = useState(v.recommended?.installed ? v.recommended.id : v.emulators[0]?.id ?? "");
   const [from, setFrom] = useState("empty");
   const create = useMutation({
     mutationFn: () => request<number>("/api/profiles", {

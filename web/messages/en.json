@@ -1462,6 +1462,8 @@
     "active": "Active: {name} ({emulator})",
     "noneActive": "No profile: uses “{name}” from {emulator}",
     "noEmulator": "No emulator for this console",
+    "recommended": "Recommended: {emulator}, per {source}",
+    "recommendedNoSource": "Recommended: {emulator}",
     "noEmulatorHint": "Install an emulator for this console in Tools to create profiles.",
     "name": "Name",
     "emulator": "Emulator",

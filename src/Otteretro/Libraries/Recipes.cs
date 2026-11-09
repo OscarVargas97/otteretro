@@ -7,7 +7,8 @@ using System.Text.RegularExpressions;
 namespace Otteretro.Libraries;
 
 /// <summary>Un juego para el que se recomienda un fork, con su fuente (#358).</summary>
-public record RecipeGame(string Game, string? Source = null);
+/// <param name="GameId">El id del juego en el catálogo (#366); sin él (recetas viejas), se cruza por nombre.</param>
+public record RecipeGame(string Game, long? GameId = null, string? Source = null);
 
 public record RecipeVersion(string From, string? Value = null);
 /// <param name="Type">file, folder, junction o rename (<paramref name="From"/> pasa a <paramref name="Path"/>).</param>

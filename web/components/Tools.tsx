@@ -473,8 +473,8 @@ function ToolCard({ card, kind, recipe, game, ask, onAsked, forks = [] }: {
   );
 }
 
-/** Un fork que aún no está instalado (#358): su nombre y «Instalar», que baja la última versión de su receta. */
-function ForkInstall({ recipe }: { recipe: RecipeSummary }) {
+/** Un fork que aún no está instalado (#358): su nombre y «Instalar», que baja la última versión de su receta. También en el perfil (#366). */
+export function ForkInstall({ recipe }: { recipe: Pick<RecipeSummary, "id" | "name" | "releases"> }) {
   const t = useTranslations("tools");
   const describe = useDescribeError();
   const cache = useQueryClient();

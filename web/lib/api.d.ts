@@ -6787,6 +6787,13 @@ export interface components {
         ProfilePackageRequest: {
             path: string;
         };
+        ProfileRecommendation: {
+            id: string;
+            name: string;
+            source: null | string;
+            installed: boolean;
+            releases: boolean;
+        };
         ProfileRequest: {
             name: string;
             /** Format: int64 */
@@ -6839,6 +6846,8 @@ export interface components {
         };
         RecipeGame: {
             game: string;
+            /** Format: int64 */
+            gameId?: null | number | string;
             source?: null | string;
         };
         RecipeRelease: {
@@ -7131,6 +7140,7 @@ export interface components {
             emulators: components["schemas"]["ProfileEmulator"][];
             profiles: components["schemas"]["ProfileRow"][];
             roms: components["schemas"]["RomEntry"][];
+            recommended?: null | components["schemas"]["ProfileRecommendation"];
         };
         VersionRow: {
             /** Format: int64 */

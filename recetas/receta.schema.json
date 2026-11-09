@@ -72,7 +72,7 @@
       "type": "array", "description": "Los juegos para los que la comunidad recomienda este fork, con su fuente (#98)",
       "items": {
         "type": "object", "additionalProperties": false, "required": ["game"],
-        "properties": { "game": { "type": "string" }, "source": { "type": "string" } }
+        "properties": { "game": { "type": "string" }, "gameId": { "type": "integer", "description": "El id del juego en el catálogo; sin él, se cruza por nombre (#366)" }, "source": { "type": "string" } }
       }
     },
     "devOnly": { "type": "boolean", "description": "Solo publica versiones de desarrollo: se instala la última con aviso (decisión 292)" },

@@ -18,8 +18,11 @@ public record RomEntry(long Id, string Path, bool Modified, string? Label);
 /// <param name="Base">El emulador base de la consola: su perfil por defecto es el de los juegos sin perfil activo.</param>
 /// <param name="Versions">Las versiones instaladas, de la más vieja a la más nueva.</param>
 public record ProfileEmulator(string Id, string Name, string Kind, bool Base, long DefaultProfileId, string DefaultName, List<string> Versions);
-/// <summary>Los perfiles de una versión del juego (decisión 301), con qué emuladores se puede jugar y sus ROMs.</summary>
-public record VersionProfiles(long VersionId, string Platform, List<ProfileEmulator> Emulators, List<ProfileRow> Profiles, List<RomEntry> Roms);
+/// <summary>El emulador que una receta recomienda para el juego (#366), con su fuente y si ya está instalado.</summary>
+/// <param name="Releases">Se puede instalar la última versión desde la receta.</param>
+public record ProfileRecommendation(string Id, string Name, string? Source, bool Installed, bool Releases);
+/// <summary>Los perfiles de una versión del juego (decisión 301), con qué emuladores se puede jugar, el recomendado y sus ROMs.</summary>
+public record VersionProfiles(long VersionId, string Platform, List<ProfileEmulator> Emulators, List<ProfileRow> Profiles, List<RomEntry> Roms, ProfileRecommendation? Recommended = null);
 
 /// <summary>
 /// Emuladores compartidos y perfiles por juego (§8.0, #267): cada consola tiene un emulador base, cada emulador un perfil por
@@ -592,9 +595,22 @@ public static class Profiles
                 SELECT id, relative_path, modified, label FROM source
                 WHERE version_id = @version AND kind = 'file' AND coalesce(component, 'BASE') = 'BASE' ORDER BY modified, id
                 """, new { version }).Select(r => new RomEntry(r.Id, r.Path, r.Modified == 1, r.Label)).ToList();
-            result.Add(new(version, platform, emulators, profiles, roms));
+            result.Add(new(version, platform, emulators, profiles, roms, Recommended(Recipes.All, game, names, platform, emulators)));
         }
         return result;
+    }
+
+    /// <summary>
+    /// El primer emulador de la consola cuya receta recomienda el juego (#366): por su id del catálogo o, en las recetas viejas
+    /// sin él, por su nombre.
+    /// </summary>
+    public static ProfileRecommendation? Recommended(IEnumerable<Recipe> recipes, long game, (string Es, string? Original) names, string platform, List<ProfileEmulator> emulators)
+    {
+        bool Names(string g) => g.Equals(names.Es, StringComparison.OrdinalIgnoreCase) || g.Equals(names.Original, StringComparison.OrdinalIgnoreCase);
+        foreach (var r in recipes.Where(r => r.Consoles.Contains(platform)))
+            if (r.RecommendedFor.FirstOrDefault(g => g.GameId is { } id ? id == game : Names(g.Game)) is { } hit)
+                return new(r.Id, r.Name, hit.Source, emulators.Any(e => e.Id == r.Id), r.Updates is not null && r.Asset is not null);
+        return null;
     }
 
     // ── Al lanzar (F6) ───────────────────────────────────────────────────────────────────────────────────────────────────────

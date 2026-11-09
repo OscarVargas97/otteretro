@@ -1462,6 +1462,8 @@
     "active": "Activo: {name} ({emulator})",
     "noneActive": "Sin perfil: usa «{name}» de {emulator}",
     "noEmulator": "Sin emulador para esta consola",
+    "recommended": "Recomendado: {emulator}, según {source}",
+    "recommendedNoSource": "Recomendado: {emulator}",
     "noEmulatorHint": "Instala un emulador de esta consola en Herramientas para crear perfiles.",
     "name": "Nombre",
     "emulator": "Emulador",
