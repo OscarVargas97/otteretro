@@ -1215,7 +1215,10 @@
       "useClaude": "Use Claude when no script recognizes it",
       "off": "Off: what isn't recognized goes straight to Review › Unidentified.",
       "month": "This month: {calls, plural, one {# call} other {# calls}} · {cost}",
-      "paused": "Your subscription hit its limit: it resumes on its own on {at}."
+      "paused": "Your subscription hit its limit: it resumes on its own on {at}.",
+      "retry": "Try now",
+      "retrying": "Trying…",
+      "stillLimited": "The limit is still on: it keeps the time Claude gave."
     }
   },
   "tools": {
