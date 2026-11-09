@@ -8009,6 +8009,24 @@
           }
         }
       },
+      "RecipeGame": {
+        "required": [
+          "game",
+          "source"
+        ],
+        "type": "object",
+        "properties": {
+          "game": {
+            "type": "string"
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "RecipeSummary": {
         "required": [
           "id",
@@ -8019,7 +8037,9 @@
           "consoles",
           "baseFor",
           "folder",
-          "game"
+          "game",
+          "forkOf",
+          "recommendedFor"
         ],
         "type": "object",
         "properties": {
@@ -8058,6 +8078,18 @@
               "null",
               "string"
             ]
+          },
+          "forkOf": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "recommendedFor": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecipeGame"
+            }
           }
         }
       },

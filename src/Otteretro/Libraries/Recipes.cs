@@ -6,6 +6,9 @@ using System.Text.RegularExpressions;
 
 namespace Otteretro.Libraries;
 
+/// <summary>Un juego para el que se recomienda un fork, con su fuente (#358).</summary>
+public record RecipeGame(string Game, string? Source = null);
+
 public record RecipeVersion(string From, string? Value = null);
 /// <param name="Type">file, folder, junction o rename (<paramref name="From"/> pasa a <paramref name="Path"/>).</param>
 public record PortableStep(string Type, string Path, string? Link = null, string? System = null, string? From = null);
@@ -61,6 +64,9 @@ public record Recipe(string Id, string Name, string Kind, string Folder, string 
     public List<string> BaseFor { get; init; } = [];
     public string? License { get; init; }
     public bool Experimental { get; init; }
+    /// <summary>Fork de otro emulador: el id de la receta original, y los juegos para los que se recomienda (#98, #358).</summary>
+    public string? ForkOf { get; init; }
+    public List<RecipeGame> RecommendedFor { get; init; } = [];
     /// <summary>Solo publica versiones de desarrollo: se instala la última con aviso (decisión 292).</summary>
     public bool DevOnly { get; init; }
     public RecipeUpdates? Updates { get; init; }

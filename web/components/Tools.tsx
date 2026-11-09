@@ -12,6 +12,7 @@ import { LoadProfile } from "@/components/ProfileShare";
 import { Empty } from "@/components/Shell";
 import { Tabs } from "@/components/Tabs";
 import { UpdateRow, UpdatesStatus } from "@/components/ToolUpdates";
+import { nestedForkIds } from "@/lib/forks";
 import { toolUpdatesQuery } from "@/lib/queries";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
@@ -349,6 +350,10 @@ function ToolCards({ kind }: { kind: Exclude<Kind, "system"> }) {
     add(kind === "complement" ? `${x.folder}|${x.name}|${x.version}` : installs.find((i) => i.path === x.path)?.emulatorId ?? x.recipeId ?? `:${x.name}`, x.name).tools.push(x);
   const list = [...cards.values()].sort((a, b) => a.name.localeCompare(b.name));
   if (list.length === 0) return <p className="missing small">{t("none")}</p>;
+  // Los forks van dentro de la tarjeta de su original (#358); si el original no está en la lista, el fork sale solo.
+  const nested = nestedForkIds(list, (id) => recipes.get(id)?.forkOf);
+  const top = list.filter((k) => !nested.has(k.id));
+  const forksOf = (id: string) => [...recipes.values()].filter((r) => r.forkOf === id && r.kind === kind).sort((a, b) => a.name.localeCompare(b.name));
 
   // Las consolas de una tarjeta: las de su receta (emuladores) o la de su carpeta (ports, y emuladores de antes sin receta).
   const consolesOf = (k: Card) => {
@@ -358,10 +363,10 @@ function ToolCards({ kind }: { kind: Exclude<Kind, "system"> }) {
     return consoles.filter((c) => c.name === folder).map((c) => c.id);
   };
   const sections = kind === "emulator" || kind === "port"
-    ? [...consoles.map((c) => ({ key: c.id, title: c.name, cards: list.filter((k) => consolesOf(k).includes(c.id)) })),
-       { key: OTHER, title: t("otherConsole"), cards: list.filter((k) => !consolesOf(k).some((id) => consoles.some((c) => c.id === id))) }]
+    ? [...consoles.map((c) => ({ key: c.id, title: c.name, cards: top.filter((k) => consolesOf(k).includes(c.id)) })),
+       { key: OTHER, title: t("otherConsole"), cards: top.filter((k) => !consolesOf(k).some((id) => consoles.some((c) => c.id === id))) }]
       .filter((s) => s.cards.length > 0)
-    : [{ key: kind, title: null, cards: list }];
+    : [{ key: kind, title: null, cards: top }];
   return (
     <>
       {kind === "port" && <p className="small muted" style={{ margin: 0 }}>{t("library.portHelp")}</p>}
@@ -370,7 +375,8 @@ function ToolCards({ kind }: { kind: Exclude<Kind, "system"> }) {
           {s.title && <h2 className="console-group">{s.title}</h2>}
           {s.cards.map((k) => (
             <ToolCard key={k.id} card={k} kind={kind} recipe={recipes.has(k.id)} game={recipes.get(k.id)?.game ?? k.tools[0]?.game}
-              ask={ask?.emulatorId === k.id ? ask : null} onAsked={() => setAsk(null)} />
+              ask={ask?.emulatorId === k.id ? ask : null} onAsked={() => setAsk(null)}
+              forks={forksOf(k.id).map((r) => ({ recipe: r, card: list.find((c) => c.id === r.id) }))} />
           ))}
         </div>
       ))}
@@ -382,8 +388,9 @@ function ToolCards({ kind }: { kind: Exclude<Kind, "system"> }) {
  * La tarjeta (#348, decisión 344): en la cabecera el nombre, la versión en uso, su disco y el aviso de versión nueva (o «Sin
  * receta»), con abrir su carpeta y mover a otro disco; debajo los avisos, y plegadas las demás versiones con sus URL.
  */
-function ToolCard({ card, kind, recipe, game, ask, onAsked }: {
+function ToolCard({ card, kind, recipe, game, ask, onAsked, forks = [] }: {
   card: Card; kind: Exclude<Kind, "system">; recipe: boolean; game?: string | null; ask: EmulatorInstall | null; onAsked: () => void;
+  forks?: { recipe: RecipeSummary; card?: Card }[];
 }) {
   const t = useTranslations("tools");
   const describe = useDescribeError();
@@ -449,9 +456,42 @@ function ToolCard({ card, kind, recipe, game, ask, onAsked }: {
           {others.map(({ i, x }) => row(i, x))}
         </details>
       )}
+      {forks.length > 0 && (
+        <div style={{ display: "grid", gap: 6 }}>
+          <h4 style={{ margin: 0 }}>{t("forks.title")}</h4>
+          {forks.map(({ recipe: r, card: c }) => (
+            <div key={r.id} style={{ display: "grid", gap: 4 }}>
+              {r.recommendedFor.length > 0 && <span className="small muted">{t("forks.recommended", { games: r.recommendedFor.map((g) => g.game).join(", ") })}</span>}
+              {c ? <ToolCard card={c} kind={kind} recipe ask={null} onAsked={onAsked} /> : <ForkInstall recipe={r} />}
+            </div>
+          ))}
+        </div>
+      )}
       {act.isSuccess && act.variables.action === "reinstall" && <p className="small muted" role="status" style={{ margin: 0 }}>{t("library.queued")}</p>}
       {act.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(act.error)}</p>}
     </section>
+  );
+}
+
+/** Un fork que aún no está instalado (#358): su nombre y «Instalar», que baja la última versión de su receta. */
+function ForkInstall({ recipe }: { recipe: RecipeSummary }) {
+  const t = useTranslations("tools");
+  const describe = useDescribeError();
+  const cache = useQueryClient();
+  const install = useMutation({
+    mutationFn: async () => {
+      const [r] = await request<RecipeRelease[]>(`/api/recipes/${encodeURIComponent(recipe.id)}/releases`);
+      return request<number>("/api/emulators/install", post({ emulator: recipe.id, version: r.version, url: r.download }));
+    },
+    onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+  return (
+    <div className="version-row">
+      <span className="grow">{recipe.name}</span>
+      <button className="ot-btn ot-btn-sm" type="button" disabled={!recipe.releases || install.isPending || install.isSuccess} onClick={() => install.mutate()}>{t("forks.install")}</button>
+      {install.isSuccess && <span className="small muted" role="status">{t("forks.queued")}</span>}
+      {install.isError && <span className="error small" role="alert">{describe(install.error)}</span>}
+    </div>
   );
 }
 
