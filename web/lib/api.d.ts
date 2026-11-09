@@ -6784,6 +6784,10 @@ export interface components {
             packages: string[];
             diskId: null | string;
         };
+        RecipeGame: {
+            game: string;
+            source: null | string;
+        };
         RecipeRelease: {
             version: string;
             channel: string;
@@ -6801,6 +6805,8 @@ export interface components {
             baseFor: string[];
             folder: string;
             game: null | string;
+            forkOf: null | string;
+            recommendedFor: components["schemas"]["RecipeGame"][];
         };
         RecognizeRequest: {
             useClaude: boolean;

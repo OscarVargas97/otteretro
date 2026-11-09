@@ -1228,6 +1228,12 @@
       "system": "System",
       "tool": "Tools"
     },
+    "forks": {
+      "title": "Forks",
+      "recommended": "Recommended for: {games}",
+      "install": "Install",
+      "queued": "The latest version was queued to install."
+    },
     "noRecipe": "No recipe",
     "noRecipeHelp": "Otteretro does not know yet how to make it portable or rewrite its paths.",
     "sections": "Tool types",

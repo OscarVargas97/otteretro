@@ -1228,6 +1228,12 @@
       "system": "Sistema",
       "tool": "Herramientas"
     },
+    "forks": {
+      "title": "Forks",
+      "recommended": "Recomendado para: {games}",
+      "install": "Instalar",
+      "queued": "Se encoló la instalación de la última versión."
+    },
     "noRecipe": "Sin receta",
     "noRecipeHelp": "Otteretro todavía no sabe cómo dejarlo portable ni reescribir sus rutas.",
     "sections": "Tipos de herramientas",
