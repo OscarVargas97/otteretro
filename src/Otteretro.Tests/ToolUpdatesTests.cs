@@ -204,6 +204,17 @@ public class ToolUpdatesTests
     }
 
     [Fact]
+    public async Task AVersionAtTheEndOfTheTagIsUsedAndADateRecipeStillNotices()
+    {
+        await using var f = new Fixture();
+        // Como Fritchii (#350): tags fritchii-v4.1 y fritchii-v5, todas prerelease; versiona por fecha pero la app la instala con la del tag.
+        Directory.CreateDirectory(Path.Combine(DiskTasks.ToolsOf(f.Db), "Emuladores", "Fritchii", "4.1"));
+        var fake = new Fake(new() { ["repos/Frizti/Fritchii/releases"] = """[{"tag_name":"fritchii-v5","name":"Fritchii v5","draft":false,"prerelease":true,"published_at":"2026-11-09T02:26:31Z"},{"tag_name":"fritchii-v4.1","name":"Fritchii v4.1","draft":false,"prerelease":true,"published_at":"2026-11-08T03:47:11Z"}]""" });
+        await Check(f, fake);
+        Assert.Equal("5", Assert.Single(ToolUpdates.List(f.Db), x => x.RecipeId == "fritchii").Version);
+    }
+
+    [Fact]
     public async Task DevPatternAndDevRepoMarkDevelopmentVersions()
     {
         var fake = new Fake(new()
