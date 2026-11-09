@@ -1,0 +1,61 @@
+{
+ "respuestas": {
+  "a1": {
+   "v": "catalogo",
+   "c": "Lo que no se debe transferir son los perfiles, eso es del usuario ni las versiones, eso tambien es del usuario."
+  },
+  "a2": {
+   "c": "Aqui necesito que especifiques mas a que casos te refiees"
+  },
+  "a3": {
+   "v": "publicada",
+   "c": "Pero se debe resolver los conflictos, para evitar que la persona pierda sus configuraciones, mas bien se podrian unificar, pero la publicada gana."
+  },
+  "b1": {
+   "v": "pantalla"
+  },
+  "b2": {
+   "v": [
+    "esquema",
+    "release"
+   ]
+  },
+  "c1": {
+   "v": [
+    "api",
+    "listas",
+    "claude",
+    "busqueda"
+   ]
+  },
+  "c2": {
+   "v": [
+    "windows",
+    "reciente",
+    "ahead",
+    "estrellas"
+   ],
+   "c": "Mejor si hay discuciones de la comunidad que lo recomiendan para algun juego en particular."
+  },
+  "c3": {
+   "v": "revisar"
+  },
+  "c4": {
+   "v": "tareas"
+  },
+  "d1": {
+   "v": "bajo",
+   "c": "Y se indica a que juegos son mas recomendados, esto es muy importante, por que algunos forks estan literalmente pensados para un juego en especifico, pero siempre se debe confirmar con la comunidad y con las ultimas noticias de emulacion, cual es la mejor opcion."
+  }
+ },
+ "seguimiento": {
+  "a2": {
+   "v": "publicar",
+   "c": "Aclarado por selector: la administración del catálogo del mismo equipo muestra la receta local en «Emuladores» marcada como local, y Publicar la ofrece como un cambio más."
+  },
+  "a3": {
+   "v": "campo",
+   "c": "Aclarado por selector: unificar por campo; si chocan en el mismo campo gana la publicada y la versión local queda en _respaldos con aviso."
+  }
+ }
+}
