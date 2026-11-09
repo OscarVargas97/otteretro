@@ -16,7 +16,7 @@ public static class InitialCatalog
         : null;
 
     /// <summary>Lo que se copia, con cada tabla antes de las que apuntan a ella.</summary>
-    static readonly string[] Shared = ["console", "console_platform", "saga", "game", "version", "version_criterion", "field_value", "route", "route_step", "image", "version_code", "port"];
+    static readonly string[] Shared = ["console", "console_platform", "saga", "game", "version", "version_criterion", "field_value", "route", "route_step", "image", "version_code", "port", "recipe", "recipe_console"];
 
     /// <summary>
     /// Llena un catálogo vacío con el que trae la app. Uno con juegos no se toca: tus datos apuntan a sus ids. Todo o nada, y solo las columnas que

@@ -25,6 +25,7 @@ export default function Home() {
   const missing = notices.data?.filter((n) => n.code === "notices.missingKey") ?? [];
   const unidentified = notices.data?.find((n) => n.code === "notices.unidentified");
   const news = notices.data?.filter((n) => n.code === "notices.toolUpdate") ?? [];
+  const recipeBackups = notices.data?.filter((n) => n.code === "notices.recipeBackup") ?? [];
   // Todo junto (#105): los avisos van arriba y, si llegaran después, empujarían el resto.
   if (notices.isPending || next.isPending || review.isPending || ports.isPending)
     return <div className="content" aria-busy="true"><section className="sec"><div className="sec-h"><h2>{t("next")}</h2></div><NextCards count={2} /></section></div>;
@@ -45,6 +46,12 @@ export default function Home() {
           <Link className="ot-btn" href="/review/?tab=unidentified">{tn("openReview")}</Link>
         </div>
       )}
+      {/* Recetas locales que chocaron con la del catálogo: ganó la publicada y la local quedó respaldada (#357). */}
+      {recipeBackups.map((n) => (
+        <div key={n.params?.file} className="notice" role="note" aria-label={tn("title")}>
+          <span>{tn("recipeBackup", { name: n.params?.name ?? "", file: n.params?.file ?? "" })}</span>
+        </div>
+      ))}
       <div className="content">
         <section className="sec">
           <div className="sec-h"><h2>{t("next")}</h2></div>

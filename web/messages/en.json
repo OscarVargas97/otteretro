@@ -1046,6 +1046,7 @@
     "openCredentials": "Accounts and keys",
     "unidentified": "{count, plural, one {1 unidentified file} other {# unidentified files}}: pick its game in Review.",
     "openReview": "Open Review",
+    "recipeBackup": "The catalog changed the same fields of {name} as your local recipe: the catalog one was kept and yours is backed up at {file}.",
     "toolUpdate": "{name} {version} is available{channel, select, dev { (development)} other {}}.",
     "openTools": "See in Tools"
   },
