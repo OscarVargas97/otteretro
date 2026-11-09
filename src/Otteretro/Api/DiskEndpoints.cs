@@ -256,6 +256,18 @@ public static class DiskEndpoints
             }
         });
 
+        // Las releases de un repo pegado en «Instalar un emulador › Desde su repo» (#350), con sus archivos para elegir.
+        api.MapGet("/repos/releases", async Task<Results<Ok<List<ToolUpdates.RepoRelease>>, BadRequest<ApiError>, Conflict<ApiError>>> (string url, AppSession s, SecretBox box, CancellationToken ct) =>
+        {
+            if (ToolUpdates.Source(url) is not { } source) return TypedResults.BadRequest(ApiError.Of("install.badRepo"));
+            try { return TypedResults.Ok(await ToolUpdates.RepoReleases(source, ct, GithubApi.Token(CatalogEndpoints.CredentialsOf(s, box)))); }
+            catch (GithubRateLimitException e) { return TypedResults.Conflict(e.Error); }
+            catch (Exception e) when (e is HttpRequestException or System.Text.Json.JsonException or TaskCanceledException && !ct.IsCancellationRequested)
+            {
+                return TypedResults.Conflict(ApiError.Of("install.sourceFailed", ("name", source.Repo!), ("detail", e.Message)));
+            }
+        });
+
         // Reinstalar una versión que perdió su carpeta, desde la librería y verificada por hash (decisión 304).
         api.MapPost("/emulators/reinstall", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (ReinstallRequest request, AppSession s) =>
         {

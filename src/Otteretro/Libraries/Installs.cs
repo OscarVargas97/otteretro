@@ -13,10 +13,12 @@ namespace Otteretro.Libraries;
 /// (<paramref name="Url"/>) o de una carpeta o un zip de este equipo (<paramref name="Path"/>; con <paramref name="Adopt"/>, uno
 /// instalado a mano). Sin receta, <paramref name="Name"/> dice cómo se llama su carpeta. <paramref name="Reinstall"/>: una versión
 /// registrada que perdió su carpeta vuelve desde la librería (decisión 304). <paramref name="Port"/>: el port del catálogo que se
-/// instala (#287); sus juegos reciben un perfil con él.
+/// instala (#287); sus juegos reciben un perfil con él. <paramref name="Repo"/>: desde su repo (#350), <paramref name="Url"/> es el
+/// archivo elegido de una release y al instalar queda una receta local con <paramref name="Console"/> y el ejecutable
+/// (<paramref name="Detect"/>, si el archivo trae varios).
 /// </summary>
 public record InstallJob(string Emulator, string? Version = null, string? Url = null, string? Path = null, bool Adopt = false,
-    string? Name = null, string Kind = "emulator", bool Reinstall = false, long? Port = null);
+    string? Name = null, string Kind = "emulator", bool Reinstall = false, long? Port = null, string? Repo = null, string? Console = null, string? Detect = null);
 
 /// <param name="Path">Dónde está instalada; null si su disco no está conectado o la carpeta ya no está (se puede reinstalar).</param>
 public record EmulatorInstall(string EmulatorId, string Name, string Kind, string Version, string Origin, string? Url, string? File,
@@ -102,6 +104,7 @@ public static class Installs
         else if (job.Url is { } url)
         {
             if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps) return (null, ApiError.Of("install.badUrl"));
+            if (job.Repo is { } repo && (ToolUpdates.Source(repo) is null || job.Detect is { } exe && BadName(exe))) return (null, ApiError.Of("install.badRepo"));
         }
         else if (target.Recipe?.Downloads.Any(d => d.Version == job.Version && d.System == Os) != true)
             return (null, ApiError.Of("install.noDownload"));
@@ -315,6 +318,7 @@ public static class Installs
                 Directory.CreateDirectory(partial);
                 File.Copy(stored, System.IO.Path.Combine(partial, target.Recipe?.SaveAs ?? System.IO.Path.GetFileName(stored)));
             }
+            var local = job.Repo is not null && target.Recipe is null ? LocalRecipe(run.Db, job, target, partial, System.IO.Path.GetFileName(stored)) : null;
             Directory.CreateDirectory(System.IO.Path.GetDirectoryName(install)!);
             if (replace) Replace(install, partial, target.Recipe, version);
             else Directory.Move(partial, install);
@@ -324,6 +328,7 @@ public static class Installs
                 Recipes.MakePortable(recipe, install);
                 ShareSaves(recipe, install, version);
             }
+            if (local is not null) Recipes.SaveLocal(local); // antes del perfil: AddEmulator toma de ella sus consolas
 
             if (!job.Reinstall)
             {
@@ -345,6 +350,31 @@ public static class Installs
         {
             Directory.Delete(work, recursive: true);
         }
+    }
+
+    /// <summary>Instaladores que traen algunas releases junto al emulador (Fritchii: vc_redist.x64.exe): no son su ejecutable.</summary>
+    static readonly System.Text.RegularExpressions.Regex Installer = new(@"^(vc_?redist|unins|setup|install|crashpad|updater)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    /// <summary>
+    /// La receta local de lo instalado desde su repo (#350): su fuente, el archivo de Windows (por el nombre del
+    /// elegido), la consola y el ejecutable, que se busca en la carpeta extraída. Si hay varios y no se eligió uno, la tarea termina
+    /// con <c>install.pickExe</c> y la lista: el archivo ya quedó en la librería, así que reintentar con el elegido no vuelve a bajar.
+    /// Sin argumentos para lanzar un juego: abre el emulador solo hasta completar la receta.
+    /// </summary>
+    static Recipe LocalRecipe(Database db, InstallJob job, Target target, string extracted, string file)
+    {
+        var exes = Directory.EnumerateFiles(extracted, "*.exe").Select(System.IO.Path.GetFileName).OfType<string>().Order().ToList();
+        var detect = job.Detect is { } chosen && exes.Contains(chosen) ? chosen
+            : exes.Where(e => !Installer.IsMatch(e)).ToList() is [var only] ? only
+            : throw new TaskException(exes.Count == 0 ? ApiError.Of("install.noExe") : ApiError.Of("install.pickExe", ("files", string.Join('|', exes))));
+        string? folder;
+        using (var c = db.Open()) folder = c.ExecuteScalar<string?>("SELECT name FROM console WHERE id = @Console", job);
+        return new Recipe(job.Emulator, target.Name, target.Kind, folder ?? "", detect)
+        {
+            Consoles = job.Console is { } console ? [console] : [],
+            Updates = ToolUpdates.Source(job.Repo!),
+            Asset = Recipes.AssetPattern(file),
+        };
     }
 
     /// <summary>

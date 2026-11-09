@@ -17,6 +17,7 @@ public static class Startup
         FileLog.Prune();
         DataFolder.Upgrade(folder);
         var db = DataFolder.Open(folder);
+        Libraries.Recipes.LocalFolder = Path.Combine(folder, "data", "recetas"); // las recetas locales (#350)
         var applied = Migrations.Apply(db);
         Catalog.InitialCatalog.Seed(db);
         Migrations.RegisterMachine(db, config.MachineId);
