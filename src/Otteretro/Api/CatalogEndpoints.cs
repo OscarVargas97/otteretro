@@ -385,6 +385,8 @@ public static class CatalogEndpoints
                     notices.Add(ApiError.Of("notices.unidentified", ("count", n.ToString())));
             // Novedades: versiones nuevas de emuladores, ports y complementos (decisión 294).
             notices.AddRange(ToolUpdates.List(db).Select(u => ApiError.Of("notices.toolUpdate", ("name", u.Name), ("version", u.Version), ("channel", u.Channel))));
+            // Recetas locales que chocaron con la publicada: ganó la publicada y la local quedó respaldada (#357, decisión 351).
+            notices.AddRange(Recipes.Backups.Select(b => ApiError.Of("notices.recipeBackup", ("name", b.Name), ("file", b.Backup))));
             return TypedResults.Ok(notices);
         });
     }

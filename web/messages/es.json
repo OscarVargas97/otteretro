@@ -1046,6 +1046,7 @@
     "openCredentials": "Cuentas y claves",
     "unidentified": "{count, plural, one {1 archivo sin identificar} other {# archivos sin identificar}}: elige su juego en Revisar.",
     "openReview": "Abrir Revisar",
+    "recipeBackup": "La receta de {name} del catálogo cambió los mismos campos que tu receta local: quedó la del catálogo y la tuya está respaldada en {file}.",
     "toolUpdate": "{name} {version} disponible{channel, select, dev { (desarrollo)} other {}}.",
     "openTools": "Ver en Herramientas"
   },
