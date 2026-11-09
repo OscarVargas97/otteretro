@@ -44,6 +44,41 @@ public static partial class ClaudeBudget
             throw new ClaudePausedException(paused, ApiError.Of("tasks.claude.limit", ("at", paused.ToString("O"))));
     }
 
+    /// <summary>Si se está esperando al límite (la cola prueba cada 15 minutos mientras tanto, #363).</summary>
+    public static bool Paused(Database db)
+    {
+        using var c = db.Open();
+        return Date(c, PausedUntil) is { } paused && paused > UtcNow();
+    }
+
+    /// <summary>La respuesta de la llamada mínima de <see cref="Retry"/>.</summary>
+    public record Ping(bool Ok);
+
+    /// <summary>
+    /// «Probar ahora» (#363): deja de esperar y hace una llamada mínima. Si responde, las tareas que esperaban al límite
+    /// (`tasks.claude.limit`) vuelven a la cola ya, con su punto de control, y se devuelven sus ids. Si el límite sigue, lanza
+    /// <see cref="ClaudePausedException"/> con la hora nueva, que <see cref="LimitReached"/> ya guardó. Si falla por otra cosa,
+    /// la espera queda como estaba.
+    /// </summary>
+    public static async Task<long[]> Retry(Database db, CancellationToken ct)
+    {
+        string? before;
+        using (var c = db.Open())
+        {
+            before = c.ExecuteScalar<string?>("SELECT value FROM setting WHERE machine_id = '' AND name = @PausedUntil", new { PausedUntil });
+            c.Execute("DELETE FROM setting WHERE machine_id = '' AND name = @PausedUntil", new { PausedUntil });
+        }
+        try { await ClaudeRunner.Run<Ping>(db, null, "retry", "Responde con ok = true.", new { }, ct, "haiku"); }
+        catch (Exception e) when (e is not ClaudePausedException && before is not null)
+        {
+            using var c = db.Open();
+            Set(c, PausedUntil, before);
+            throw;
+        }
+        using (var c = db.Open())
+            return c.Query<long>("UPDATE task SET resume_at = NULL, detail = NULL WHERE status = 'queued' AND detail LIKE '%tasks.claude.limit%' RETURNING id").ToArray();
+    }
+
     /// <summary>
     /// Si el texto es el aviso de límite de `claude` («You've hit your session limit · resets 8:10pm (America/Santiago)»),
     /// guarda hasta cuándo esperar y lo devuelve.

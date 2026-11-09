@@ -229,6 +229,77 @@ public class ClaudeRunnerTests : IDisposable
         Assert.False(ClaudeBudget.Status(db).UseClaude);
     }
 
+    /// <summary>Una tarea que espera al límite y otra pausada a mano; deja la espera hasta las 05:00.</summary>
+    async Task<(long Waiting, long Manual)> PausedByLimit()
+    {
+        Fake(Limit("You've hit your session limit · resets 5am (" + TimeZoneInfo.Local.Id + ")"));
+        await Assert.ThrowsAsync<ClaudePausedException>(() => Run());
+        calls.Clear();
+        using var c = db.Open();
+        var detail = JsonSerializer.Serialize(Api.ApiError.Of("tasks.claude.limit", ("at", Local(5).ToString("O"))), JsonSerializerOptions.Web);
+        var waiting = c.ExecuteScalar<long>("INSERT INTO task (kind, status, data, resume_at, detail, created_at) VALUES ('claude.identify', 'queued', 'lote 2', @at, @detail, @at) RETURNING id",
+            new { at = Local(5).ToString("O"), detail });
+        var manual = c.ExecuteScalar<long>("INSERT INTO task (kind, status, data, resume_at, detail, created_at) VALUES ('claude.identify', 'paused', 'lote 1', @at, @detail, @at) RETURNING id",
+            new { at = Local(5).ToString("O"), detail });
+        return (waiting, manual);
+    }
+
+    (string Status, string? ResumeAt, string? Data) TaskRow(long id)
+    {
+        using var c = db.Open();
+        return c.QuerySingle<(string, string?, string?)>("SELECT status, resume_at, data FROM task WHERE id = @id", new { id });
+    }
+
+    List<string> RetryUsage()
+    {
+        using var c = db.Open();
+        return c.Query<string>("SELECT result FROM claude_usage WHERE prompt = 'retry' ORDER BY id").ToList();
+    }
+
+    /// <summary>#363: con el límite ya reiniciado, «Probar ahora» deja de esperar y la tarea sigue desde su punto de control.</summary>
+    [Fact]
+    public async Task RetryWithTheLimitResetResumesTheWaitingTasks()
+    {
+        var (waiting, manual) = await PausedByLimit();
+        Fake(Reply(new { ok = true }));
+
+        Assert.Equal([waiting], await ClaudeBudget.Retry(db, CancellationToken.None));
+
+        Assert.Equal("haiku", calls[0].Start.ArgumentList[calls[0].Start.ArgumentList.IndexOf("--model") + 1]);
+        Assert.False(ClaudeBudget.Paused(db));
+        Assert.Null(ClaudeBudget.Status(db).PausedUntil);
+        Assert.Equal(("queued", null, "lote 2"), TaskRow(waiting));
+        Assert.Equal(("paused", Local(5).ToString("O"), "lote 1"), TaskRow(manual)); // la pausada a mano no se mueve
+        Assert.Equal(["ok"], RetryUsage());
+    }
+
+    /// <summary>#363: si el límite sigue, la espera queda con la hora nueva que dio Claude y la tarea no se mueve.</summary>
+    [Fact]
+    public async Task RetryWithTheLimitStillOnKeepsWaitingUntilTheNewTime()
+    {
+        var (waiting, _) = await PausedByLimit();
+        Fake(Limit("You've hit your session limit · resets 7am (" + TimeZoneInfo.Local.Id + ")"));
+
+        var e = await Assert.ThrowsAsync<ClaudePausedException>(() => ClaudeBudget.Retry(db, CancellationToken.None));
+
+        Assert.Equal(Local(7), e.Until);
+        Assert.Equal(Local(7).ToString("O"), ClaudeBudget.Status(db).PausedUntil);
+        Assert.Equal(("queued", Local(5).ToString("O"), "lote 2"), TaskRow(waiting));
+        Assert.Equal(["limit"], RetryUsage());
+    }
+
+    /// <summary>#363: si `claude` falla por otra cosa, la espera queda como estaba.</summary>
+    [Fact]
+    public async Task RetryThatFailsKeepsThePause()
+    {
+        await PausedByLimit();
+        Fake(Reply(null, isError: true, result: "boom"));
+
+        await Assert.ThrowsAsync<TaskException>(() => ClaudeBudget.Retry(db, CancellationToken.None));
+
+        Assert.Equal(Local(5).ToString("O"), ClaudeBudget.Status(db).PausedUntil);
+    }
+
     /// <summary>F2.2: la cola devuelve la tarea a la espera con su punto de control y no le cuenta el intento.</summary>
     [Fact]
     public async Task QueuePutsAPausedTaskBackWithItsCheckpoint()

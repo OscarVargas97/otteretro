@@ -1215,7 +1215,10 @@
       "useClaude": "Usar Claude cuando ningún script lo reconoce",
       "off": "Apagado: lo que no se reconoce va directo a Revisar › Sin identificar.",
       "month": "Este mes: {calls, plural, one {# llamada} other {# llamadas}} · {cost}",
-      "paused": "Tu suscripción llegó a su límite: sigue sola el {at}."
+      "paused": "Tu suscripción llegó a su límite: sigue sola el {at}.",
+      "retry": "Probar ahora",
+      "retrying": "Probando…",
+      "stillLimited": "El límite sigue: queda la hora que dio Claude."
     }
   },
   "tools": {

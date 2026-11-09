@@ -49,5 +49,14 @@ public static class ClaudeEndpoints
             ClaudeBudget.Save(db, request);
             return TypedResults.Ok(ClaudeBudget.Status(db));
         });
+
+        // «Probar ahora» (#363): si el límite ya se reinició, las tareas que lo esperaban siguen; si no, queda la hora nueva.
+        api.MapPost("/claude/retry", async Task<Results<Ok<RecognizeStatus>, BadRequest<ApiError>, Conflict<ApiError>>> (AppSession s, TaskQueue queue, CancellationToken ct) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            try { await queue.RetryClaude(db, ct); }
+            catch (TaskException e) { return TypedResults.BadRequest(e.Error); }
+            return TypedResults.Ok(ClaudeBudget.Status(db));
+        });
     }
 }
