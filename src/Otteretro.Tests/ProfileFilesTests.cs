@@ -371,4 +371,80 @@ public class ProfileFilesTests
         Assert.Equal("saves.untested", Activate(f, Create(f, "dusklight", "Dusklight"))?.Code);
         Assert.False(Directory.Exists(Path.Combine(dusk, @"data\USA")));
     }
+
+    /// <summary>Eden instalado por la app desde un zip: su archivo queda en la librería, como para poder quitarlo.</summary>
+    static async Task<string> InstallFromZip(Fixture f)
+    {
+        var src = f.Tmp["eden-src"];
+        Write(Path.Combine(src, "eden.exe"), "programa");
+        var zip = f.Tmp["eden.zip"];
+        if (!File.Exists(zip)) System.IO.Compression.ZipFile.CreateFromDirectory(src, zip);
+        var (task, error) = Installs.Enqueue(f.Db, new InstallJob("eden", "0.1", Path: zip));
+        Assert.Null(error);
+        Assert.Equal("done", (await f.Run(task!.Value)).Status);
+        return f.Tmp[@"E\Emuladores\Eden\0.1"];
+    }
+
+    [Fact]
+    public async Task RemovingTheEmulatorKeepsSavesConfigAndProfilesAndTheyComeBack()
+    {
+        await using var f = Game("switch", Totk);
+        var eden = await InstallFromZip(f);
+        var x2 = Create(f, "eden", "2x");
+        Activate(f, x2);
+        Write(Path.Combine(eden, $@"user\config\custom\{Totk}.ini"), "2x");
+        Write(Path.Combine(eden, $@"user\load\{Totk}\60fps\exefs\p.ips"), "60");
+        Write(Path.Combine(eden, @"user\config\qt-config.ini"), "mía");
+        var save = Path.Combine(eden, @"user\nand\user\save\0000\partida.bin"); // la NAND es un enlace a `_compartido`
+        Write(save, "partida");
+
+        Assert.Null(await Installs.RemoveEmulator(f.Db, "eden", default));
+        // Nada en Herramientas: ni registrado ni en disco; el archivo sigue en la librería.
+        Assert.Empty(Installs.List(f.Db));
+        Assert.DoesNotContain(Recipes.Installed(Disk.ToolRoots(f.Db)), t => t.RecipeId == "eden");
+        Assert.False(Directory.Exists(eden));
+        Assert.True(File.Exists(f.Tmp[@"E\Libreria\Emuladores\eden\0.1\eden.zip"]));
+        // Las partidas, en su lugar; la configuración, respaldada; el perfil, con lo suyo y el juego en el por defecto.
+        Assert.Equal("partida", File.ReadAllText(f.Tmp[@"E\Emuladores\Eden\_compartido\user\nand\user\save\0000\partida.bin"]));
+        Assert.Equal("mía", File.ReadAllText(Assert.Single(Directory.GetFiles(f.Tmp[@"E\Emuladores\Eden\_respaldos"], "qt-config.ini", SearchOption.AllDirectories))));
+        Assert.Equal("2x", File.ReadAllText(Path.Combine(Profiles.StoreOf(f.Db, x2), $@"user\config\custom\{Totk}.ini")));
+        Assert.Equal("60", File.ReadAllText(Path.Combine(Profiles.StoreOf(f.Db, x2), $@"user\load\{Totk}\60fps\exefs\p.ips")));
+        Assert.Null(Profiles.Effective(f.Db, 20)!.GameVersionId);
+        Assert.Equal("install.notInstalled", (await Installs.RemoveEmulator(f.Db, "eden", default))?.Code);
+
+        // Instalarlo de nuevo: vuelven sus perfiles y sus partidas.
+        await InstallFromZip(f);
+        Assert.Equal("partida", File.ReadAllText(save));
+        using (var c = f.Db.Open())
+            Assert.Equal(["2x", "Eden"], c.Query<string>("SELECT name FROM profile WHERE emulator_id = 'eden' ORDER BY name"));
+        Activate(f, x2);
+        Assert.Equal("2x", File.ReadAllText(Path.Combine(eden, $@"user\config\custom\{Totk}.ini")));
+    }
+
+    [Fact]
+    public async Task DeletingAProfileDropsConfigAndModsBacksUpTheRestAndTheGameGoesBackToTheDefault()
+    {
+        await using var f = Game("switch", Totk);
+        var eden = Install(f, "eden", "emulator", "Eden", "eden.exe");
+        var ini = Path.Combine(eden, $@"user\config\custom\{Totk}.ini");
+        Write(ini, "suelto");
+        var x2 = Create(f, "eden", "2x");
+        Activate(f, x2);
+        Write(ini, "2x");
+        Write(Path.Combine(eden, $@"user\load\{Totk}\60fps\exefs\p.ips"), "60");
+        var store = Profiles.StoreOf(f.Db, x2);
+        Write(Path.Combine(store, @"partidas\slot1.sav"), "partida"); // algo que no es configuración ni mods
+
+        Assert.Null(Profiles.Delete(f.Db, x2));
+        Assert.False(Directory.Exists(store));
+        var backup = Assert.Single(Directory.GetFiles(Path.Combine(Profiles.Root(f.Db), Profiles.BackupsFolder), "*", SearchOption.AllDirectories));
+        Assert.Equal(("slot1.sav", "partida"), (Path.GetFileName(backup), File.ReadAllText(backup)));
+        // El juego vuelve al perfil por defecto, con lo que tenía antes en el emulador.
+        Assert.Null(Profiles.Effective(f.Db, 20)!.GameVersionId);
+        Assert.Equal("suelto", File.ReadAllText(ini));
+        Assert.False(Directory.Exists(Path.Combine(eden, $@"user\load\{Totk}")));
+        using (var c = f.Db.Open()) Assert.Equal(0, c.ExecuteScalar<long>("SELECT count(*) FROM profile WHERE id = @x2", new { x2 }));
+        Assert.Equal("profile.notFound", Profiles.Delete(f.Db, x2)?.Code);
+        Assert.Equal("profile.isDefault", Profiles.Delete(f.Db, Profiles.Effective(f.Db, 20)!.Id)?.Code);
+    }
 }

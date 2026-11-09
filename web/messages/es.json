@@ -597,6 +597,9 @@
       "badName": "El perfil necesita un nombre.",
       "badFrom": "No se puede crear el perfil desde ahí.",
       "badRom": "Esa ROM no es de esta versión del juego.",
+      "isDefault": "El perfil por defecto de un emulador no se borra.",
+      "deleteActive": "Antes de borrarlo, activa otro perfil y elige a qué usuario van las partidas.",
+      "deleteFailed": "No se pudo borrar el perfil; lo suyo que no era configuración ni mods quedó en el respaldo: {detail}",
       "switchFailed": "No se pudo cambiar el perfil; lo movido quedó guardado y el perfil activo no cambió: {detail}",
       "share": {
         "badPath": "Indica la ruta completa del .zip nuevo, en una carpeta que exista.",
@@ -1327,7 +1330,11 @@
       "no": "No",
       "current": "En uso: {version}",
       "more": "{count, plural, one {▾ # versión más} other {▾ # versiones más}}",
-      "details": "▾ Detalles"
+      "details": "▾ Detalles",
+      "uninstall": "Quitar el emulador",
+      "uninstallHelp": "Borra todas sus versiones instaladas. Sus partidas, su configuración y sus perfiles se quedan y vuelven si lo instalas de nuevo. Escribe «{name}» para confirmar.",
+      "uninstallName": "Nombre del emulador",
+      "uninstallConfirm": "Quitar"
     }
   },
   "downloads": {
@@ -1451,6 +1458,11 @@
     "rom": "ROM",
     "activate": "Activar",
     "isActive": "Activo",
+    "delete": "Borrar",
+    "deleteOf": "Borrar {name}",
+    "deleteAsk": "¿Borrar «{name}»? Se borran su configuración y sus mods; si tiene partidas, quedan en el respaldo.",
+    "deleteConfirm": "Borrar perfil",
+    "deleteKeep": "Conservar",
     "rename": "Nombre de {name}",
     "romOf": "ROM de {name}",
     "baseRom": "{file}",

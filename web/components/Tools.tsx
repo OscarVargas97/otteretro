@@ -432,6 +432,7 @@ function ToolCard({ card, kind, recipe, game, ask, onAsked }: {
         {current?.path && <button className="ot-btn ot-btn-sm" type="button" disabled={busy} onClick={() => act.mutate({ action: "open", i: current })}>{t("library.open")}</button>}
         {current && !current.path && <button className="ot-btn ot-btn-sm" type="button" disabled={busy} onClick={() => act.mutate({ action: "reinstall", i: current })}>{t("library.reinstall")}</button>}
         {here && <MoveTool tool={here} />}
+        {kind === "emulator" && card.installs.length > 0 && <Uninstall card={card} />}
       </div>
       {ask && (
         <div className="sentence" role="status">
@@ -451,6 +452,32 @@ function ToolCard({ card, kind, recipe, game, ask, onAsked }: {
       {act.isSuccess && act.variables.action === "reinstall" && <p className="small muted" role="status" style={{ margin: 0 }}>{t("library.queued")}</p>}
       {act.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(act.error)}</p>}
     </section>
+  );
+}
+
+/** «Quitar el emulador» (#351): todas sus versiones; se confirma escribiendo su nombre. Partidas, configuración y perfiles se quedan. */
+function Uninstall({ card }: { card: Card }) {
+  const t = useTranslations("tools.library");
+  const describe = useDescribeError();
+  const cache = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState("");
+  const remove = useMutation({
+    mutationFn: () => request<EmulatorInstall[]>(`/api/emulators/${encodeURIComponent(card.id)}`, { method: "DELETE" }),
+    onSuccess: (data) => {
+      cache.setQueryData(["emulators"], data);
+      cache.invalidateQueries({ queryKey: ["tools"] });
+    },
+  });
+  if (!open) return <button className="ot-btn ot-btn-sm ot-btn-ghost" type="button" onClick={() => { setOpen(true); setTyped(""); }}>{t("uninstall")}</button>;
+  return (
+    <form className="sentence" onSubmit={(e) => { e.preventDefault(); if (typed.trim() === card.name) remove.mutate(); }}>
+      <span className="small">{t("uninstallHelp", { name: card.name })}</span>
+      <input aria-label={t("uninstallName")} value={typed} onChange={(e) => setTyped(e.target.value)} />
+      <button className="ot-btn ot-btn-sm" type="button" onClick={() => setOpen(false)}>{t("keep")}</button>
+      <button className="ot-btn ot-btn-sm ot-btn-danger" type="submit" disabled={typed.trim() !== card.name || remove.isPending}>{t("uninstallConfirm")}</button>
+      {remove.isError && <span className="error small" role="alert">{describe(remove.error)}</span>}
+    </form>
   );
 }
 

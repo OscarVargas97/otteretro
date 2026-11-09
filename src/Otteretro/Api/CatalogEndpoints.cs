@@ -309,6 +309,10 @@ public static class CatalogEndpoints
         });
         api.MapPut("/profiles/{id:long}", Results<Ok, BadRequest<ApiError>, Conflict<ApiError>> (long id, ProfileRequest r, AppSession s) =>
             Db(s) is not { } db ? NoData() : Profiles.Update(db, id, r.Name, r.SourceId) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok());
+        // Borrar un perfil (#351): su configuración y sus mods; si era el activo, el juego vuelve al perfil por defecto.
+        api.MapDelete("/profiles/{id:long}", Results<Ok, BadRequest<ApiError>, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is not { } db ? NoData() : Profiles.Delete(db, id) is { } error
+                ? error.Code is "profile.notFound" or "profile.isDefault" or "profile.noGameKey" ? TypedResults.BadRequest(error) : TypedResults.Conflict(error) : TypedResults.Ok());
         // Ajustes y mandos del perfil según la versión del emulador que usa (#276), y abrir el emulador en ese juego.
         api.MapGet("/profiles/{id:long}/settings", Results<Ok<ProfileSettings>, NotFound, Conflict<ApiError>> (long id, AppSession s) =>
             Db(s) is not { } db ? NoData() : EmulatorSettings.View(db, id) is { } view ? TypedResults.Ok(view) : TypedResults.NotFound());
