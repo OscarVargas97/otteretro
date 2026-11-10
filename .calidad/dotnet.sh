@@ -13,6 +13,8 @@ dotnet_ci() {
   dotnet_rapidos
   echo "== dotnet build"
   dotnet_cmd build -warnaserror --nologo -v q
+  # Cambio respecto del catálogo: en GitHub Actions los tests los corre `nix flake check` (necesitan 7z, chdman… del paquete de Nix; en ubuntu pelado fallan 109).
+  if [ -n "$GITHUB_ACTIONS" ]; then echo "== dotnet test: lo cubre nix flake check"; return 0; fi
   echo "== dotnet test"
   dotnet_cmd test --no-build --nologo -v q
 }
