@@ -49,7 +49,7 @@ public class RepoInstallTests
         finally { Installs.Handler = null; }
 
         // El instalador de Visual C++ no cuenta: el ejecutable es el otro.
-        Assert.True(File.Exists(f.Tmp[@"datos\data\recetas\mi-fritchii.json"]));
+        Assert.True(File.Exists(f.Tmp["datos/data/recetas/mi-fritchii.json"]));
         var recipe = Recipes.Find("mi-fritchii");
         Assert.True(recipe is { Name: "Mi Fritchii", Kind: "emulator", Detect: "lichii.exe", Consoles: ["switch2"], Updates: { Source: "github", Repo: "Frizti/Fritchii" } });
         Assert.Matches(recipe!.Asset!, "Fritchii-v4.2-Windows-x64.zip");
