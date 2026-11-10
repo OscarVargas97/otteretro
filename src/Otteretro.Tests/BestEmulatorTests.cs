@@ -75,4 +75,27 @@ public class BestEmulatorTests : IAsyncDisposable
         Assert.Equal([("switch", null, "https://github.com/alguien/fork", "claude"), ("wii", "dolphin", null, "manual")],
             picks.Select(p => (p.Console, p.RecipeId, p.Repo, p.Origin)));
     }
+
+    [Fact]
+    public async Task PickerOnlyQueuesChosenGamesAndShowsLastSearch()
+    {
+        using (var c = f.Db.Open())
+            c.Execute("""
+                INSERT INTO saga (id, name) VALUES (3, 'Zelda');
+                UPDATE game SET saga_id = 3 WHERE id = 8;
+                INSERT INTO game (id, name_es, saga_id, year) VALUES (9, 'Zelda sin consola', 3, 2020), (10, 'Wind Waker', 3, 2002);
+                INSERT INTO version (id, game_id, platform) VALUES (21, 10, 'gc');
+                """);
+        Assert.Equal([(10L, (string?)null), (8L, null)], BestEmulator.SagaGames(f.Db, 3).Select(g => (g.Id, g.SearchedAt)));
+
+        var tasks = BestEmulator.Enqueue(f.Db, [8, 8, 999]);
+        Assert.Equal("done", (await f.Run(Assert.Single(tasks))).Status); // sin repetir y sin el que no existe
+        using (var c = f.Db.Open())
+            Assert.Equal(["8"], c.Query<string>("SELECT data FROM task WHERE kind = @Kind", new { BestEmulator.Kind }));
+
+        // Claude no recomendó nada, pero la búsqueda queda con su fecha.
+        var games = BestEmulator.SagaGames(f.Db, 3);
+        Assert.Null(games[0].SearchedAt);
+        Assert.NotNull(games[1].SearchedAt);
+    }
 }
