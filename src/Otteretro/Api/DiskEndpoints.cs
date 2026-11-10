@@ -23,7 +23,7 @@ public record ReinstallRequest(string Emulator, string Version);
 /// <param name="BaseFor">Las consolas de las que es el emulador base.</param>
 /// <param name="Folder">La consola de un port, por su nombre (#348: Herramientas agrupa los ports por ella).</param>
 /// <param name="Game">Port: el juego que cubre.</param>
-public record RecipeSummary(string Id, string Name, string Kind, bool Experimental, bool Releases, List<string> Consoles, List<string> BaseFor, string Folder, string? Game);
+public record RecipeSummary(string Id, string Name, string Kind, bool Experimental, bool Releases, List<string> Consoles, List<string> BaseFor, string Folder, string? Game, string? ForkOf, List<RecipeGame> RecommendedFor);
 public record DestinationRequest(string? LocationId);
 /// <param name="Path">La carpeta Otteretro del disco (la `folder` de /drives).</param>
 /// <param name="Name">Lo que ve la persona: la unidad (E:).</param>
@@ -243,7 +243,7 @@ public static class DiskEndpoints
 
         // Las recetas que se instalan (emuladores, ports y herramientas) y las versiones publicadas de una, para elegir cuál (#296).
         api.MapGet("/recipes", () => TypedResults.Ok(Recipes.All.Where(r => r.Kind != "complement")
-            .Select(r => new RecipeSummary(r.Id, r.Name, r.Kind, r.Experimental, r.Updates is not null && r.Asset is not null, r.Consoles, r.BaseFor, r.Folder, r.Game)).OrderBy(r => r.Name).ToList()));
+            .Select(r => new RecipeSummary(r.Id, r.Name, r.Kind, r.Experimental, r.Updates is not null && r.Asset is not null, r.Consoles, r.BaseFor, r.Folder, r.Game, r.ForkOf, r.RecommendedFor)).OrderBy(r => r.Name).ToList()));
 
         api.MapGet("/recipes/{id}/releases", async Task<Results<Ok<List<RecipeRelease>>, NotFound, Conflict<ApiError>>> (string id, AppSession s, SecretBox box, CancellationToken ct) =>
         {

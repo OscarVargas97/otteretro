@@ -873,6 +873,19 @@ test("la ficha muestra tus enlaces de ese juego, y se pueden quitar (#210)", asy
   await expect(page.getByRole("heading", { name: es.downloads.gameLinks })).toHaveCount(0);
 });
 
+test("la ficha muestra el emulador recomendado para el juego, con su fuente y «Instalar» si falta (#366)", async () => {
+  await page.route("**/api/recipes", (route) => route.fulfill({ json: [{ id: "fork-prueba", name: "Fork de prueba", kind: "emulator", experimental: true, releases: true,
+    consoles: ["n64"], baseFor: [], folder: "N64", game: null, forkOf: null, recommendedFor: [{ game: "Ocarina of Time", gameId: 10, source: "https://sitio.test/guia" }] }] }));
+  await page.goto(`${base()}/game/?id=10`);
+  await expect(page.getByText(es.profiles.recommended.replace("{emulator}", "Fork de prueba"))).toBeVisible();
+  await expect(page.getByRole("link", { name: es.profiles.recommendedSource.replace("{source}", "sitio.test") })).toHaveAttribute("href", "https://sitio.test/guia");
+  await expect(page.getByRole("button", { name: es.tools.forks.install })).toBeVisible();
+  // Otro juego no lo muestra.
+  await page.goto(`${base()}/game/?id=11`);
+  await expect(page.getByText(es.profiles.recommended.replace("{emulator}", "Fork de prueba"))).toHaveCount(0);
+  await page.unroute("**/api/recipes");
+});
+
 test("ports: Novedades con los nuevos de lo que sigues, la ficha separa los 100 % jugables e instalar pide la URL (#286, #287)", async () => {
   // Sin ningún «Visto», Novedades muestra lo de los últimos 30 días.
   const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);

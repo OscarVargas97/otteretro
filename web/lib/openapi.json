@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:60364/"
+      "url": "http://127.0.0.1:59439/"
     }
   ],
   "paths": {
@@ -3569,6 +3569,45 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RecognizeStatus"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/claude/retry": {
+      "post": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecognizeStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -7976,6 +8015,32 @@
           }
         }
       },
+      "RecipeGame": {
+        "required": [
+          "game"
+        ],
+        "type": "object",
+        "properties": {
+          "game": {
+            "type": "string"
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "gameId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          }
+        }
+      },
       "RecipeRelease": {
         "required": [
           "version",
@@ -8019,7 +8084,9 @@
           "consoles",
           "baseFor",
           "folder",
-          "game"
+          "game",
+          "forkOf",
+          "recommendedFor"
         ],
         "type": "object",
         "properties": {
@@ -8058,6 +8125,18 @@
               "null",
               "string"
             ]
+          },
+          "forkOf": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "recommendedFor": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecipeGame"
+            }
           }
         }
       },

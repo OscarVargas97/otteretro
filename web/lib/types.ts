@@ -56,6 +56,7 @@ export type ToolUpdate = Schemas["ToolUpdate"];
 export type PortInfo = Schemas["PortInfo"];
 export type EmulatorInstall = Schemas["EmulatorInstall"];
 export type RecipeSummary = Schemas["RecipeSummary"];
+export type RecipeGame = Schemas["RecipeGame"];
 export type RecipeRelease = Schemas["RecipeRelease"];
 export type RepoRelease = Schemas["RepoRelease"];
 export type AdoptResult = Schemas["AdoptResult"];

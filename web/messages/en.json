@@ -1046,6 +1046,7 @@
     "openCredentials": "Accounts and keys",
     "unidentified": "{count, plural, one {1 unidentified file} other {# unidentified files}}: pick its game in Review.",
     "openReview": "Open Review",
+    "recipeBackup": "The catalog changed the same fields of {name} as your local recipe: the catalog one was kept and yours is backed up at {file}.",
     "toolUpdate": "{name} {version} is available{channel, select, dev { (development)} other {}}.",
     "openTools": "See in Tools"
   },
@@ -1214,7 +1215,10 @@
       "useClaude": "Use Claude when no script recognizes it",
       "off": "Off: what isn't recognized goes straight to Review › Unidentified.",
       "month": "This month: {calls, plural, one {# call} other {# calls}} · {cost}",
-      "paused": "Your subscription hit its limit: it resumes on its own on {at}."
+      "paused": "Your subscription hit its limit: it resumes on its own on {at}.",
+      "retry": "Try now",
+      "retrying": "Trying…",
+      "stillLimited": "The limit is still on: it keeps the time Claude gave."
     }
   },
   "tools": {
@@ -1226,6 +1230,12 @@
       "complement": "Add-ons",
       "system": "System",
       "tool": "Tools"
+    },
+    "forks": {
+      "title": "Forks",
+      "recommended": "Recommended for: {games}",
+      "install": "Install",
+      "queued": "The latest version was queued to install."
     },
     "noRecipe": "No recipe",
     "noRecipeHelp": "Otteretro does not know yet how to make it portable or rewrite its paths.",
@@ -1449,6 +1459,8 @@
   },
   "profiles": {
     "title": "Profiles",
+    "recommended": "Recommended: {emulator}",
+    "recommendedSource": "according to {source}",
     "active": "Active: {name} ({emulator})",
     "noneActive": "No profile: uses “{name}” from {emulator}",
     "noEmulator": "No emulator for this console",

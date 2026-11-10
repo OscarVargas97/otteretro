@@ -1046,6 +1046,7 @@
     "openCredentials": "Cuentas y claves",
     "unidentified": "{count, plural, one {1 archivo sin identificar} other {# archivos sin identificar}}: elige su juego en Revisar.",
     "openReview": "Abrir Revisar",
+    "recipeBackup": "La receta de {name} del catálogo cambió los mismos campos que tu receta local: quedó la del catálogo y la tuya está respaldada en {file}.",
     "toolUpdate": "{name} {version} disponible{channel, select, dev { (desarrollo)} other {}}.",
     "openTools": "Ver en Herramientas"
   },
@@ -1214,7 +1215,10 @@
       "useClaude": "Usar Claude cuando ningún script lo reconoce",
       "off": "Apagado: lo que no se reconoce va directo a Revisar › Sin identificar.",
       "month": "Este mes: {calls, plural, one {# llamada} other {# llamadas}} · {cost}",
-      "paused": "Tu suscripción llegó a su límite: sigue sola el {at}."
+      "paused": "Tu suscripción llegó a su límite: sigue sola el {at}.",
+      "retry": "Probar ahora",
+      "retrying": "Probando…",
+      "stillLimited": "El límite sigue: queda la hora que dio Claude."
     }
   },
   "tools": {
@@ -1226,6 +1230,12 @@
       "complement": "Complementos",
       "system": "Sistema",
       "tool": "Herramientas"
+    },
+    "forks": {
+      "title": "Forks",
+      "recommended": "Recomendado para: {games}",
+      "install": "Instalar",
+      "queued": "Se encoló la instalación de la última versión."
     },
     "noRecipe": "Sin receta",
     "noRecipeHelp": "Otteretro todavía no sabe cómo dejarlo portable ni reescribir sus rutas.",
@@ -1449,6 +1459,8 @@
   },
   "profiles": {
     "title": "Perfiles",
+    "recommended": "Recomendado: {emulator}",
+    "recommendedSource": "según {source}",
     "active": "Activo: {name} ({emulator})",
     "noneActive": "Sin perfil: usa «{name}» de {emulator}",
     "noEmulator": "Sin emulador para esta consola",

@@ -6,6 +6,9 @@ using System.Text.RegularExpressions;
 
 namespace Otteretro.Libraries;
 
+/// <summary>Un juego para el que se recomienda un fork, con su fuente (#358) y, si el catálogo lo tiene, su id (#366).</summary>
+public record RecipeGame(string Game, string? Source = null, long? GameId = null);
+
 public record RecipeVersion(string From, string? Value = null);
 /// <param name="Type">file, folder, junction o rename (<paramref name="From"/> pasa a <paramref name="Path"/>).</param>
 public record PortableStep(string Type, string Path, string? Link = null, string? System = null, string? From = null);
@@ -61,6 +64,9 @@ public record Recipe(string Id, string Name, string Kind, string Folder, string 
     public List<string> BaseFor { get; init; } = [];
     public string? License { get; init; }
     public bool Experimental { get; init; }
+    /// <summary>Fork de otro emulador: el id de la receta original, y los juegos para los que se recomienda (#98, #358).</summary>
+    public string? ForkOf { get; init; }
+    public List<RecipeGame> RecommendedFor { get; init; } = [];
     /// <summary>Solo publica versiones de desarrollo: se instala la última con aviso (decisión 292).</summary>
     public bool DevOnly { get; init; }
     public RecipeUpdates? Updates { get; init; }
@@ -95,6 +101,9 @@ public record ToolInfo(string Kind, string Folder, string Name, string Version, 
 /// <summary>Una carpeta donde hay instalaciones de un tipo: `<Consola o padre>\<Nombre>\<versión>` adentro (#198).</summary>
 public record ToolRoot(string Kind, string Path, string? LocationId = null);
 
+/// <summary>Una receta local que chocó con la publicada: ganó la publicada y la local quedó en <paramref name="Backup"/> (decisión 351).</summary>
+public record RecipeBackup(string Id, string Name, string Backup);
+
 /// <summary>Las recetas que vienen con la app y lo que se hace con ellas: versión, modo portable, rutas internas y enlaces.</summary>
 public static class Recipes
 {
@@ -112,8 +121,26 @@ public static class Recipes
 
     static List<Recipe>? all;
     static string? localFolder;
+    static Data.Database? catalog;
+    static List<RecipeBackup> backups = [];
 
-    public static IReadOnlyList<Recipe> All => all ??= Load();
+    static readonly Lock gate = new();
+
+    // Load respalda archivos: con el cerrojo, dos hilos que arrancan a la vez no respaldan dos veces.
+    public static IReadOnlyList<Recipe> All { get { lock (gate) return all ??= Load(); } }
+
+    /// <summary>Las recetas locales que chocaron con la publicada en esta sesión: se respaldaron y se avisa en Inicio (decisión 351).</summary>
+    public static IReadOnlyList<RecipeBackup> Backups { get { _ = All; return backups; } }
+
+    /// <summary>De dónde salen las recetas publicadas: la tabla `recipe` del catálogo instalado (#357, decisión 349).</summary>
+    public static Data.Database? Catalog
+    {
+        get => catalog;
+        set { catalog = value; all = null; }
+    }
+
+    /// <summary>Vuelve a leerlas, después de aplicar otra versión del catálogo.</summary>
+    public static void Reload() => all = null;
 
     public static Recipe? Find(string id) => All.FirstOrDefault(r => r.Id == id);
 
@@ -128,38 +155,134 @@ public static class Recipes
     }
 
     /// <summary>
-    /// Lee las recetas incrustadas y las locales. Una incrustada que no cumple el esquema hace fallar el arranque (y la prueba que las
-    /// carga); una local rota se salta, y una con el id de una incrustada también: gana la del repo.
+    /// Las publicadas (las del catálogo instalado o, si ese catálogo no las trae, las incrustadas) y las locales. Una incrustada que no cumple
+    /// el esquema hace fallar el arranque (y la prueba que las carga); una publicada o una local rota se salta. Una local con el id de una
+    /// publicada se unifica con ella por campo (<see cref="Unify"/>).
     /// </summary>
     static List<Recipe> Load()
     {
-        var assembly = typeof(Recipes).Assembly;
+        var found = new List<RecipeBackup>();
+        var embedded = Embedded();
+        // Las del catálogo mandan; una incrustada cuyo id el catálogo no trae (o trae rota) se mantiene, para no perderla.
+        var published = FromCatalog() is { } fromCatalog
+            ? [.. fromCatalog, .. embedded.Where(e => fromCatalog.All(c => (string?)c.Json["id"] != (string?)e.Json["id"]))]
+            : embedded;
         var list = new List<Recipe>();
-        foreach (var name in assembly.GetManifestResourceNames().Where(n => n.StartsWith("recetas/", StringComparison.Ordinal) && !n.EndsWith(".schema.json", StringComparison.Ordinal)))
-        {
-            using var stream = assembly.GetManifestResourceStream(name)!;
-            list.Add(Parse(stream, name));
-        }
+        foreach (var (name, json) in published)
+            if (TryParse(json, name, "publicada") is { } r) list.Add(r);
         if (localFolder is not null && Directory.Exists(localFolder))
             foreach (var file in Directory.EnumerateFiles(localFolder, "*.json"))
                 try
                 {
-                    using var stream = File.OpenRead(file);
-                    if (Parse(stream, file) is var r && list.All(x => x.Id != r.Id)) list.Add(r);
+                    var local = JsonNode.Parse(File.ReadAllText(file)) as JsonObject ?? throw new InvalidDataException(file);
+                    var id = local["id"]?.GetValue<string>();
+                    var index = list.FindIndex(x => x.Id == id);
+                    if (index < 0) { list.Add(Parse(local, file)); continue; }
+                    var (merged, conflict) = Unify(published.First(p => p.Json["id"]?.GetValue<string>() == id).Json, local);
+                    var recipe = Parse(merged, file);
+                    if (conflict && Backup(file) is { } backup) found.Add(new(recipe.Id, recipe.Name, backup));
+                    list[index] = recipe;
                 }
-                catch (Exception e) when (e is JsonException or InvalidDataException or IOException)
+                catch (Exception e) when (e is JsonException or InvalidDataException or InvalidOperationException or IOException)
                 {
                     App.FileLog.Write(Microsoft.Extensions.Logging.LogLevel.Warning, "Recipes", $"Receta local ignorada: {file}: {e.Message}");
                 }
+        backups = [.. backups.Where(b => found.All(f => f.Id != b.Id)), .. found];
         return list;
     }
 
-    static Recipe Parse(Stream stream, string name)
+    /// <summary>Las de la tabla `recipe` del catálogo; null si no hay catálogo o no las trae (uno de antes de #357): se usan las incrustadas.</summary>
+    static List<(string Name, JsonObject Json)>? FromCatalog()
     {
-        var r = JsonSerializer.Deserialize<Recipe>(stream, Json) ?? throw new InvalidDataException(name);
+        if (catalog is null) return null;
+        try
+        {
+            using var c = catalog.Open();
+            if (Dapper.SqlMapper.ExecuteScalar<long>(c, "SELECT count(*) FROM catalog.sqlite_master WHERE name = 'recipe'") == 0) return null;
+            var rows = Dapper.SqlMapper.Query<(string Id, string Json)>(c, "SELECT id, json FROM catalog.recipe ORDER BY id").ToList();
+            var list = new List<(string, JsonObject)>();
+            foreach (var (id, json) in rows)
+                try { list.Add(($"catalogo:{id}", JsonNode.Parse(json) as JsonObject ?? throw new InvalidDataException(id))); }
+                catch (Exception e) when (e is JsonException or InvalidDataException)
+                {
+                    App.FileLog.Write(Microsoft.Extensions.Logging.LogLevel.Warning, "Recipes", $"Receta del catálogo ignorada: {id}: {e.Message}");
+                }
+            return list.Count == 0 ? null : list;
+        }
+        catch (Microsoft.Data.Sqlite.SqliteException) { return null; }
+    }
+
+    static List<(string Name, JsonObject Json)> Embedded()
+    {
+        var assembly = typeof(Recipes).Assembly;
+        return assembly.GetManifestResourceNames()
+            .Where(n => n.StartsWith("recetas/", StringComparison.Ordinal) && !n.EndsWith(".schema.json", StringComparison.Ordinal))
+            .Select(n =>
+            {
+                using var stream = assembly.GetManifestResourceStream(n)!;
+                return (n, (JsonObject)JsonNode.Parse(stream)!);
+            }).ToList();
+    }
+
+    /// <summary>Las incrustadas tienen que estar bien (falla el arranque); una del catálogo que no se entiende se salta con un aviso en el log.</summary>
+    static Recipe? TryParse(JsonObject json, string name, string what)
+    {
+        if (!name.StartsWith("catalogo:", StringComparison.Ordinal)) return Parse(json, name);
+        try { return Parse(json, name); }
+        catch (Exception e) when (e is JsonException or InvalidDataException)
+        {
+            App.FileLog.Write(Microsoft.Extensions.Logging.LogLevel.Warning, "Recipes", $"Receta {what} ignorada: {name}: {e.Message}");
+            return null;
+        }
+    }
+
+    static Recipe Parse(JsonObject json, string name)
+    {
+        var r = json.Deserialize<Recipe>(Json) ?? throw new InvalidDataException(name);
         if (!Regex.IsMatch(r.Id, "^[a-z0-9-]+$") || !Kinds.Contains(r.Kind) || (r.Kind == "complement") != (r.Parent is not null && r.Link is not null))
             throw new InvalidDataException($"Receta inválida: {name}");
         return r;
+    }
+
+    /// <summary>
+    /// Une una receta local con la publicada del mismo id (decisión 351): se queda lo que solo trae cada lado y, en los objetos, campo por campo.
+    /// Si chocan en un campo, gana la publicada.
+    /// </summary>
+    /// <returns>La unión y si algún campo chocó.</returns>
+    public static (JsonObject Merged, bool Conflict) Unify(JsonObject published, JsonObject local)
+    {
+        var merged = (JsonObject)published.DeepClone();
+        return (merged, Merge(merged, local));
+    }
+
+    /// <summary>
+    /// Tras un choque: copia la local a `_respaldos\&lt;fecha&gt;-&lt;id&gt;.json`. La local no se reescribe (sigue siendo solo de la persona,
+    /// así una versión nueva del catálogo no choca con una copia vieja de la publicada); si ya hay un respaldo idéntico, no se repite ni se avisa.
+    /// </summary>
+    /// <returns>El respaldo nuevo, o null si esa misma local ya estaba respaldada.</returns>
+    public static string? Backup(string localFile)
+    {
+        var folder = Path.Combine(Path.GetDirectoryName(localFile)!, "_respaldos");
+        var content = File.ReadAllBytes(localFile);
+        if (Directory.Exists(folder) && Directory.EnumerateFiles(folder, "*-" + Path.GetFileName(localFile))
+                .Any(f => File.ReadAllBytes(f).AsSpan().SequenceEqual(content)))
+            return null;
+        Directory.CreateDirectory(folder);
+        var backup = Path.Combine(folder, $"{DateTime.Now:yyyy-MM-dd-HHmmss}-{Path.GetFileName(localFile)}");
+        File.Copy(localFile, backup, overwrite: false);
+        if (!File.ReadAllBytes(backup).AsSpan().SequenceEqual(content)) throw new IOException($"El respaldo no quedó igual: {backup}");
+        return backup;
+    }
+
+    /// <summary>Suma a <paramref name="into"/> lo de <paramref name="local"/> que no tiene; true si algún campo chocó.</summary>
+    static bool Merge(JsonObject into, JsonObject local)
+    {
+        var conflict = false;
+        foreach (var (key, value) in local)
+            if (!into.TryGetPropertyValue(key, out var mine)) into[key] = value?.DeepClone();
+            else if (mine is JsonObject a && value is JsonObject b) conflict |= Merge(a, b);
+            else conflict |= !JsonNode.DeepEquals(mine, value);
+        return conflict;
     }
 
     /// <summary>Guarda una receta local y vuelve a leer las recetas: desde ya se elige en perfiles y avisa de versiones.</summary>

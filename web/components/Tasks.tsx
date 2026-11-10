@@ -6,6 +6,7 @@ import { useState } from "react";
 import { request } from "@/lib/client";
 import { useDescribeError, useDynamicT } from "@/lib/i18n";
 import type { TaskInfo, TaskLogEntry } from "@/lib/types";
+import { RetryClaude } from "./Recognize";
 
 /** Tareas de la cola (F1.2): lo pendiente y lo reciente; cada cambio llega por el evento "task". */
 export const useTasks = () => useQuery({ queryKey: ["tasks"], queryFn: () => request<TaskInfo[]>("/api/tasks") }).data ?? [];
@@ -24,6 +25,8 @@ export function upsertTask(cache: QueryClient, task: TaskInfo) {
     cache.invalidateQueries({ queryKey: ["tools"] });
     cache.invalidateQueries({ queryKey: ["consoles", "detail"] });
   }
+  // Una tarea de Claude que empieza o deja de esperar al límite cambia el aviso de pausa (#363).
+  if (task.kind.startsWith("claude.") && task.status !== "running") cache.invalidateQueries({ queryKey: ["claude"] });
   // Una revisión de versiones cambia los avisos (decisión 294).
   if (task.kind === "tools.updates" && task.status === "done") {
     cache.invalidateQueries({ queryKey: ["toolUpdates"] });
@@ -89,6 +92,7 @@ export function TaskRows() {
               </>
             ) : (
               <>
+                {task.status === "queued" && task.detail?.code === "tasks.claude.limit" && <RetryClaude />}
                 {task.status === "paused"
                   ? <button type="button" className="ot-btn ot-btn-sm" disabled={act.isPending} onClick={() => act.mutate({ id, action: "resume" })}>{t("tasks.resume")}</button>
                   : <button type="button" className="ot-btn ot-btn-sm" disabled={act.isPending} onClick={() => act.mutate({ id, action: "pause" })}>{t("tasks.pause")}</button>}

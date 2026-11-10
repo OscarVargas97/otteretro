@@ -96,6 +96,11 @@ public static class CatalogUpdate
 
     /// <summary>Con cada tabla antes de las que apuntan a ella. `claude_fingerprint` y lo de Claude no: esos quedaron en el generador.</summary>
     static readonly string[] Published = ["saga", "game", "version", "version_criterion", "field_value", "route", "route_step", "image", "version_code", "port"];
+    /// <summary>
+    /// Las recetas (#357): se reemplazan como lo demás, pero no cuentan para la compatibilidad (<see cref="AppColumns"/>): un catálogo sin ellas
+    /// se aplica igual y la app usa las que trae incrustadas.
+    /// </summary>
+    static readonly string[] RecipeTables = ["recipe", "recipe_console"];
 
     record Asset(string Name, string BrowserDownloadUrl);
     record Release(string TagName, bool Draft, List<Asset> Assets, string? PublishedAt = null);
@@ -315,11 +320,11 @@ public static class CatalogUpdate
                     """).ToList();
             using (var t = c.BeginTransaction())
             {
-                foreach (var table in Published.Reverse()) c.Execute($"DELETE FROM catalog.{table}", transaction: t);
+                foreach (var table in Published.Concat(RecipeTables).Reverse()) c.Execute($"DELETE FROM catalog.{table}", transaction: t);
                 // Las consolas no se borran: tus discos y destinos apuntan a ellas.
                 Copy(c, t, "console", "INSERT OR IGNORE");
                 Copy(c, t, "console_platform", "INSERT OR REPLACE");
-                foreach (var table in Published) Copy(c, t, table, "INSERT");
+                foreach (var table in Published.Concat(RecipeTables)) Copy(c, t, table, "INSERT");
                 t.Commit();
             }
             ImageRefs.Forget(db, changed);
@@ -328,6 +333,8 @@ public static class CatalogUpdate
             c.Execute("UPDATE cache_generation SET value = value + 1"); // Sagas guardado ya no vale (#225)
         }
         finally { c.Execute("DETACH DATABASE initial"); }
+        // Solo las recetas: perfiles, configuraciones, partidas y versiones instaladas son de la persona y no se tocan (decisión 349).
+        Libraries.Recipes.Reload();
     }
 
     static void Copy(SqliteConnection c, SqliteTransaction t, string table, string verb)
