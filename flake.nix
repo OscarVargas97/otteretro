@@ -90,9 +90,9 @@
           })
         ];
         postInstall = ''
-          
-                    cp -r ${web} $out/lib/otteretro/wwwroot
-                    install -Dm644 ${web}/nutria.png $out/share/icons/hicolor/128x128/apps/otteretro.png
+
+          cp -r ${web} $out/lib/otteretro/wwwroot
+          install -Dm644 ${web}/nutria.png $out/share/icons/hicolor/128x128/apps/otteretro.png
         '';
         meta.mainProgram = "Otteretro";
       };
