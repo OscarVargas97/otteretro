@@ -6840,6 +6840,8 @@ export interface components {
         RecipeGame: {
             game: string;
             source?: null | string;
+            /** Format: int64 */
+            gameId?: null | number | string;
         };
         RecipeRelease: {
             version: string;

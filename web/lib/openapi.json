@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:60933/"
+      "url": "http://127.0.0.1:59439/"
     }
   ],
   "paths": {
@@ -8029,6 +8029,15 @@
               "null",
               "string"
             ]
+          },
+          "gameId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
           }
         }
       },

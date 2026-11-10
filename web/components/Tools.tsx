@@ -25,8 +25,8 @@ type Kind = (typeof KINDS)[number];
 type Installable = "emulator" | "port" | "tool";
 
 const post = (body: unknown) => ({ method: "POST", body: JSON.stringify(body) });
-const recipesQuery = { queryKey: ["recipes"], queryFn: () => request<RecipeSummary[]>("/api/recipes"), staleTime: Infinity };
-const emulatorsQuery = { queryKey: ["emulators"], queryFn: () => request<EmulatorInstall[]>("/api/emulators") };
+export const recipesQuery = { queryKey: ["recipes"], queryFn: () => request<RecipeSummary[]>("/api/recipes"), staleTime: Infinity };
+export const emulatorsQuery = { queryKey: ["emulators"], queryFn: () => request<EmulatorInstall[]>("/api/emulators") };
 
 /** Herramientas (§5.1, #193, #194, #200, #296, #304, #348): el inventario por tipo, en pestañas y una sola columna centrada: una barra con instalar, cargar perfil y las versiones nuevas, y una tarjeta por emulador, port o herramienta. */
 export function ToolsPage() {
@@ -474,7 +474,7 @@ function ToolCard({ card, kind, recipe, game, ask, onAsked, forks = [] }: {
 }
 
 /** Un fork que aún no está instalado (#358): su nombre y «Instalar», que baja la última versión de su receta. */
-function ForkInstall({ recipe }: { recipe: RecipeSummary }) {
+export function ForkInstall({ recipe }: { recipe: RecipeSummary }) {
   const t = useTranslations("tools");
   const describe = useDescribeError();
   const cache = useQueryClient();

@@ -145,6 +145,7 @@ public class DiskTests
         Assert.Contains(Recipes.Find("dolphin")!.Options, o => o is { Name: "resolution", Section: "Settings", Key: "InternalResolution" });
         Assert.All(new[] { "dolphin", "dusklight", "eden", "ryubing" }, id => Assert.NotEmpty(Recipes.Find(id)!.Options));
         Assert.Null(Recipes.Find("ryujinx-ss4k")!.Updates); // sin fuente pública: solo desde la librería, sin avisos
+        Assert.Equal(7692, Recipes.Find("ryujinx-ss4k")!.RecommendedFor.Single().GameId); // #366: el gameId del catálogo
         Assert.All(new[] { "eden", "ryubing", "citron", "dolphin", "dusklight" }, id => Assert.NotNull(Recipes.Find(id)!.Asset));
         // #334: Switch 2 en experimental, con Lichii como base; Switch sigue con los suyos.
         Assert.All(new[] { "lichii", "fritchii", "eglantine", "eden-nx2" }, id => Assert.True(Recipes.Find(id) is { Experimental: true, Consoles: ["switch2"], Asset: not null, Updates.Dev: true }));
