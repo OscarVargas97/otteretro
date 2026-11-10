@@ -36,6 +36,13 @@ public static class ClaudeEndpoints
         api.MapGet("/games/{id:long}/compare", Results<Ok<List<VersionCompare>>, Conflict<ApiError>> (long id, AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(ClaudeReview.Compare(db, id)) : NoData());
 
+        // «Buscar el mejor emulador» (#373): encola la búsqueda del juego y devuelve la tarea; lo encontrado queda solo local.
+        api.MapPost("/games/{id:long}/best-emulator", Results<Ok<long>, NotFound, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is not { } db ? NoData() : BestEmulator.Enqueue(db, id) is { } task ? TypedResults.Ok(task) : TypedResults.NotFound());
+
+        api.MapGet("/games/{id:long}/emulator-picks", Results<Ok<List<EmulatorPick>>, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(BestEmulator.Picks(db, id)) : NoData());
+
         api.MapGet("/home/next", Results<Ok<List<NextGame>>, Conflict<ApiError>> (AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(ClaudeReview.Next(db)) : NoData());
 
