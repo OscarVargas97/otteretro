@@ -1,0 +1,12 @@
+# ia-qa, perfil dotnet: base para `dotnet format`. Se copia como .editorconfig si el repo no tiene uno.
+root = true
+
+[*]
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.cs]
+indent_style = space
+indent_size = 4
+dotnet_sort_system_directives_first = true
+csharp_style_namespace_declarations = file_scoped:suggestion
