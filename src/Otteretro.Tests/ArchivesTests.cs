@@ -128,15 +128,15 @@ public class ArchivesTests
     {
         await using var f = new Fixture();
         var (id, _) = Disk.Create(f.Db, f.Tmp["Otteretro"], "E:");
-        Zip(f.Tmp[@"Otteretro\Entrada\raro.zip"], ("raro.gba", "rom"));
+        Zip(f.Tmp["Otteretro/Entrada/raro.zip"], ("raro.gba", "rom"));
         Dats.Handler = new NoNetwork();
         try { Assert.Equal("done", (await f.Run(Import.EnqueueEntry(f.Db, Disk.Get(f.Db, id!)!))).Status); }
         finally { Dats.Handler = null; }
 
-        Assert.Equal(["raro.zip"], Directory.GetFileSystemEntries(f.Tmp[@"Otteretro\Entrada"]).Select(Path.GetFileName));
-        Assert.False(Directory.Exists(f.Tmp[@"Otteretro\.extrayendo"]));
+        Assert.Equal(["raro.zip"], Directory.GetFileSystemEntries(f.Tmp["Otteretro/Entrada"]).Select(Path.GetFileName));
+        Assert.False(Directory.Exists(f.Tmp["Otteretro/.extrayendo"]));
         using var db = f.Db.Open();
-        Assert.Equal(@"Entrada\raro.zip", db.ExecuteScalar<string>("SELECT relative_path FROM source"));
+        Assert.Equal(Path.Combine("Entrada", "raro.zip"), db.ExecuteScalar<string>("SELECT relative_path FROM source"));
     }
 
     sealed class NoNetwork : HttpMessageHandler
