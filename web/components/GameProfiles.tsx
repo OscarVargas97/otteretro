@@ -8,23 +8,48 @@ import { ProfileSettingsForm } from "@/components/ProfileSettings";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
 import { LoadProfile, ShareProfile } from "@/components/ProfileShare";
-import type { ProfileSwitch, VersionProfiles } from "@/lib/types";
+import { emulatorsQuery, ForkInstall, recipesQuery } from "@/components/Tools";
+import type { ProfileSwitch, RecipeSummary, VersionProfiles } from "@/lib/types";
+
+/** Las recetas que recomiendan este juego por su id del catálogo (#366). */
+function useRecommended(gameId: number) {
+  const recipes = useQuery(recipesQuery);
+  return (recipes.data ?? []).flatMap((r) => r.recommendedFor.filter((g) => Number(g.gameId) === gameId).map((g) => ({ recipe: r, source: g.source })));
+}
 
 /** Perfiles del juego (§8.0, #269): por versión del juego (decisión 301), cuál está activo, crear, renombrar, elegir ROM y activar. */
 export function GameProfiles({ gameId }: { gameId: number }) {
   const t = useTranslations("profiles");
   const versions = useQuery({ queryKey: ["profiles", gameId], queryFn: () => request<VersionProfiles[]>(`/api/games/${gameId}/profiles`) });
-  if (!versions.data?.length) return null;
+  const recommended = useRecommended(gameId);
+  if (!versions.data?.length && !recommended.length) return null;
   return (
     <section className="sec">
       <div className="sec-h"><h2>{t("title")}</h2></div>
-      {versions.data.map((v) => <VersionPanel key={String(v.versionId)} gameId={gameId} version={v} />)}
-      <LoadProfile />
+      <Recommended items={recommended} />
+      {versions.data?.map((v) => <VersionPanel key={String(v.versionId)} gameId={gameId} version={v}
+        recommended={recommended.filter((x) => x.recipe.consoles.includes(v.platform)).map((x) => x.recipe.id)} />)}
+      {!!versions.data?.length && <LoadProfile />}
     </section>
   );
 }
 
-function VersionPanel({ gameId, version: v }: { gameId: number; version: VersionProfiles }) {
+/** «Recomendado: <emulador>, según <fuente>» (#366), con «Instalar» si todavía no está. */
+function Recommended({ items }: { items: { recipe: RecipeSummary; source?: string | null }[] }) {
+  const t = useTranslations("profiles");
+  const installs = useQuery(emulatorsQuery);
+  return items.map(({ recipe, source }) => (
+    <div key={recipe.id} className="sentence small">
+      <span>{t("recommended", { emulator: recipe.name })}</span>
+      {source && (source.startsWith("https://")
+        ? <a href={source} target="_blank" rel="noreferrer">{t("recommendedSource", { source: new URL(source).hostname })}</a>
+        : <span className="muted">{t("recommendedSource", { source })}</span>)}
+      {installs.data && !installs.data.some((i) => i.emulatorId === recipe.id) && <ForkInstall recipe={recipe} />}
+    </div>
+  ));
+}
+
+function VersionPanel({ gameId, version: v, recommended }: { gameId: number; version: VersionProfiles; recommended: string[] }) {
   const t = useTranslations("profiles");
   const describe = useDescribeError();
   const consoleName = useConsoleName();
@@ -139,7 +164,8 @@ function VersionPanel({ gameId, version: v }: { gameId: number; version: Version
             </table>
           </div>
           {editing && <ProfileSettingsForm key={editing.id} profileId={editing.id} name={editing.name} />}
-          <CreateProfile version={v} onCreated={refresh} />
+          {/* La clave vuelve a elegir el recomendado cuando llegan las recetas o se instala uno. */}
+          <CreateProfile key={recommended.join() + v.emulators.map((e) => e.id).join()} version={v} recommended={recommended} onCreated={refresh} />
           <details className="fold-line">
             <summary className="small muted">{t("defaults")}</summary>
             {v.emulators.map((e) => (
@@ -166,11 +192,12 @@ function NameField({ label, value, onSave }: { label: string; value: string; onS
 }
 
 /** Crear: vacío, con los valores del perfil por defecto o duplicando otro de esta versión del juego. */
-function CreateProfile({ version: v, onCreated }: { version: VersionProfiles; onCreated: () => void }) {
+function CreateProfile({ version: v, recommended, onCreated }: { version: VersionProfiles; recommended: string[]; onCreated: () => void }) {
   const t = useTranslations("profiles");
   const describe = useDescribeError();
   const [name, setName] = useState("");
-  const [emulator, setEmulator] = useState(v.emulators[0]?.id ?? "");
+  // El recomendado para el juego viene elegido si está instalado (#366).
+  const [emulator, setEmulator] = useState(v.emulators.find((e) => recommended.includes(e.id))?.id ?? v.emulators[0]?.id ?? "");
   const [from, setFrom] = useState("empty");
   const create = useMutation({
     mutationFn: () => request<number>("/api/profiles", {

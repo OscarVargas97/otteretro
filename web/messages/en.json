@@ -1459,6 +1459,8 @@
   },
   "profiles": {
     "title": "Profiles",
+    "recommended": "Recommended: {emulator}",
+    "recommendedSource": "according to {source}",
     "active": "Active: {name} ({emulator})",
     "noneActive": "No profile: uses “{name}” from {emulator}",
     "noEmulator": "No emulator for this console",
