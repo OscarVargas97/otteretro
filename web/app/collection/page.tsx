@@ -6,6 +6,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Suspense, useState } from "react";
 import { GameTile, hours, useConsoles } from "@/components/Catalog";
+import { BestEmulatorButton } from "@/components/BestEmulatorPicker";
 import { ImportFolder } from "@/components/ImportFolder";
 import { Empty } from "@/components/Shell";
 import { useDescribeError } from "@/lib/i18n";
@@ -101,6 +102,7 @@ function Collection() {
             {current?.hasDat && Number(current.owned) > 0 && (
               <button className="ot-btn" type="button" title={t("collection.verifyHelp")} disabled={verify.isPending} onClick={() => verify.mutate()}>{t("collection.verify")}</button>
             )}
+            <BestEmulatorButton />
             <select className="ot-btn" aria-label={t("collection.sortLabel")} value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
               {SORTS.map((s) => <option key={s} value={s}>{t(`collection.sort.${s}`)}</option>)}
             </select>

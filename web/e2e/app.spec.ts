@@ -886,6 +886,27 @@ test("la ficha muestra el emulador recomendado para el juego, con su fuente y «
   await page.unroute("**/api/recipes");
 });
 
+test("«Buscar el mejor emulador» encola solo los juegos elegidos y deja desmarcado lo ya buscado (#374)", async () => {
+  const db = await openDb();
+  db.exec("INSERT INTO emulator_search (game_id, searched_at) VALUES (11, '2026-11-01T12:00:00Z') ON CONFLICT DO NOTHING");
+  db.close();
+  let sent: unknown = null;
+  await page.route("**/api/best-emulator", (route) => { sent = route.request().postDataJSON(); return route.fulfill({ json: [1] }); });
+  await page.goto(`${base()}/saga/?id=1`);
+  await page.getByRole("button", { name: es.catalog.bestEmulator.open }).click();
+  const dialog = page.getByRole("dialog", { name: es.catalog.bestEmulator.title });
+  await expect(dialog.getByRole("checkbox", { name: "The Legend of Zelda" })).toBeChecked();
+  await expect(dialog.getByRole("checkbox", { name: /Ocarina of Time/ })).toBeChecked();
+  const botw = dialog.getByRole("checkbox", { name: /Breath of the Wild/ });
+  await expect(botw).not.toBeChecked();
+  await expect(dialog.getByText(/buscado el/)).toBeVisible();
+  await expect(dialog.getByRole("status")).toHaveText("1 juego elegido");
+  await dialog.getByRole("button", { name: "Buscar en 1 juego" }).click();
+  await expect(dialog).toBeHidden();
+  expect(sent).toEqual({ gameIds: [10] });
+  await page.unroute("**/api/best-emulator");
+});
+
 test("ports: Novedades con los nuevos de lo que sigues, la ficha separa los 100 % jugables e instalar pide la URL (#286, #287)", async () => {
   // Sin ningún «Visto», Novedades muestra lo de los últimos 30 días.
   const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
