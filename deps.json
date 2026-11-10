@@ -10,6 +10,16 @@
     "hash": "sha256-NJlK2Rg5N0+KH3mKTHngFsylHqJd42csa5HtEXZjI+8="
   },
   {
+    "pname": "Downloader",
+    "version": "5.10.2",
+    "hash": "sha256-GOC1SO8JCwzBaJQZwA01ZjHcahT0O20VMZKbPmAymyA="
+  },
+  {
+    "pname": "MegaApiClient",
+    "version": "1.10.5",
+    "hash": "sha256-xDNmQsvjRjIdS7FBJd+gPMspo0ZetsmCnIHUR/q3Suc="
+  },
+  {
     "pname": "Microsoft.AspNetCore.Mvc.Testing",
     "version": "10.0.13",
     "hash": "sha256-CK5wjoK/2NYtcEo6l8v+P/k9xqiisV9fxstTi5mipXs="
@@ -136,6 +146,11 @@
   },
   {
     "pname": "Microsoft.Extensions.Logging.Abstractions",
+    "version": "10.0.12",
+    "hash": "sha256-NOqqYK+2HtPYbi4maergxpDQ4jfopwZrpb20WjhnCec="
+  },
+  {
+    "pname": "Microsoft.Extensions.Logging.Abstractions",
     "version": "10.0.13",
     "hash": "sha256-jAn0MoqAFxa4mXcH+1ZwE9sZOTW0755piXyD3JxWyLE="
   },
@@ -200,9 +215,29 @@
     "hash": "sha256-1cxHWcvHRD7orQ3EEEPPxVGEkTpxom1/zoICC9SInJs="
   },
   {
+    "pname": "Mono.Nat",
+    "version": "3.0.0",
+    "hash": "sha256-KH49R1YQ+8a/rzwwUPrE82QQTi8nxQc6b0KWyy+Tnp4="
+  },
+  {
+    "pname": "MonoTorrent",
+    "version": "3.0.2",
+    "hash": "sha256-R2XANCRRVAe1mOzccWV4So85kQYDU2pWSWOfrbXAigw="
+  },
+  {
+    "pname": "Newtonsoft.Json",
+    "version": "10.0.2",
+    "hash": "sha256-3sh8wVDIKnWDkS0l/C5eAvXdXDhjO52u/fu/CsoM6w8="
+  },
+  {
     "pname": "Newtonsoft.Json",
     "version": "13.0.3",
     "hash": "sha256-hy/BieY4qxBWVVsDqqOPaLy1QobiIapkbrESm6v2PHc="
+  },
+  {
+    "pname": "Newtonsoft.Json",
+    "version": "13.0.4",
+    "hash": "sha256-8JCB1FdAW681qXP6DFDWvycu1oPyVoxaYgpJ2pUvZSk="
   },
   {
     "pname": "Photino.Native",
@@ -213,6 +248,36 @@
     "pname": "Photino.NET",
     "version": "4.0.16",
     "hash": "sha256-cbxDN4nuuwYF4kYoXeZr2HGFwB0GTu8QXrED7Hzz6ps="
+  },
+  {
+    "pname": "ReusableTasks",
+    "version": "4.0.0",
+    "hash": "sha256-8Z6wQaPQMXZFqvSi9WL5jdmLHolnLQwZmmG0+OUyPeo="
+  },
+  {
+    "pname": "SharpCompress",
+    "version": "0.50.7",
+    "hash": "sha256-EV9BV3QMZpCwMV096n+pAOnqzNOVtM7oAZwfu/lJI94="
+  },
+  {
+    "pname": "SkiaSharp",
+    "version": "4.154.0",
+    "hash": "sha256-Wld8lL7KdxdcR5UDr+e8jYtLnngUdot9cz7mqMaWqzo="
+  },
+  {
+    "pname": "SkiaSharp.NativeAssets.Linux.NoDependencies",
+    "version": "4.154.0",
+    "hash": "sha256-ZixzUQd8TscVk8T22564n2edJPdR2yD19GFeirL2UO4="
+  },
+  {
+    "pname": "SkiaSharp.NativeAssets.macOS",
+    "version": "4.154.0",
+    "hash": "sha256-3GSWrYQ6H7wZxfHdocQRTXLHFL6tvYwHY8+efqw+FgA="
+  },
+  {
+    "pname": "SkiaSharp.NativeAssets.Win32",
+    "version": "4.154.0",
+    "hash": "sha256-7HFSLXY3E/k/f+fbqQE3wuQz+K9xZQvPJluTvAp+Hpc="
   },
   {
     "pname": "SQLitePCLRaw.bundle_e_sqlite3",
