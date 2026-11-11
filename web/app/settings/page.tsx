@@ -7,13 +7,14 @@ import { CatalogSettings } from "@/components/CatalogSettings";
 import { ConsoleSettings } from "@/components/ConsoleSettings";
 import { CredentialsSettings } from "@/components/Credentials";
 import { LanguagePicker } from "@/components/LanguagePicker";
+import { PlayOrderSettings } from "@/components/PlayChoice";
 import { StorageSettings } from "@/components/Libraries";
 import { useAppState } from "@/components/Shell";
 import { Tabs } from "@/components/Tabs";
 import { UpdateChannel, VersionAndUpdate } from "@/components/Update";
 
 /** Las pestañas de Ajustes, en orden (#97, #111). La que viene en `?s=` se abre; sin ella, la primera. */
-const SECTIONS = ["storage", "credentials", "consoles", "catalog", "general"] as const;
+const SECTIONS = ["storage", "credentials", "consoles", "catalog", "play", "general"] as const;
 /** Las pestañas de antes (#111, #199; la carpeta de datos es parte de Almacenamiento, #208). */
 const OLD: Record<string, Section> = { language: "general", about: "general", libraries: "storage", dataFolder: "storage", claude: "storage" };
 type Section = (typeof SECTIONS)[number];
@@ -52,6 +53,7 @@ function Panel({ section }: { section: Section }) {
     case "credentials": return <CredentialsSettings />;
     case "consoles": return <ConsoleSettings />;
     case "catalog": return <CatalogSettings />;
+    case "play": return <PlayOrderSettings />;
     case "general": return (
       <div className="settings-blocks">
         <section className="panel"><h2>{t("language")}</h2><LanguagePicker /></section>

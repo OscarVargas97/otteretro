@@ -1018,6 +1018,37 @@ test("la ficha: perfiles de cada versión, crear, activar y volver al por defect
   await expectNoRawKeys();
 });
 
+test("la ficha: cómo jugar elige por la regla, deja cambiar a mano y volver a la automática; Ajustes ordena los criterios (#398)", async () => {
+  // Con la versión de Switch en la colección, su emulador (MiEmu, de la prueba anterior) es la opción.
+  const db = await openDb();
+  db.exec("INSERT INTO source (kind, relative_path, console, version_id) VALUES ('file', 'botw.nsp', 'switch', 110)");
+  db.close();
+  const p = es.play;
+  await page.goto(`${base()}/game/?id=11`);
+  const play = page.locator("section").filter({ has: page.getByRole("heading", { name: p.title }) });
+  await expect(play.getByText(p.emulator.replace("{name}", "MiEmu"))).toBeVisible();
+  await expect(play.getByText(p.reason.playable)).toBeVisible();
+  await play.getByRole("button", { name: p.change }).click();
+  await play.getByRole("combobox").selectOption({ label: p.emulator.replace("{name}", "MiEmu") });
+  await expect(play.getByText(p.reason.manual)).toBeVisible();
+  await play.getByRole("button", { name: p.reset }).click();
+  await expect(play.getByText(p.reason.playable)).toBeVisible();
+  await expect(play.getByRole("button", { name: p.reset })).toHaveCount(0);
+  await expectNoRawKeys();
+
+  await page.goto(`${base()}/settings/?s=play`);
+  const first = p.criterion.pc;
+  await page.getByRole("button", { name: p.down.replace("{criterion}", first) }).click();
+  await expect(page.locator("ol li").first()).toContainText(p.criterion.port);
+  await page.getByRole("button", { name: p.up.replace("{criterion}", first) }).click();
+  await expect(page.locator("ol li").first()).toContainText(first);
+  await expectNoRawKeys();
+
+  const check = await openDb();
+  check.exec("DELETE FROM source WHERE version_id = 110; DELETE FROM play_choice");
+  check.close();
+});
+
 test("la ficha: ajustes del perfil por defecto de Eden según su receta y abrir el emulador (#276)", async () => {
   // Eden registrado sin instalar: muestra los ajustes de su receta, los guarda en el perfil y avisa que no hay versión instalada.
   const db = await openDb();
@@ -1144,7 +1175,7 @@ test("las pestañas nunca tienen barra: en una ventana angosta, lo que no cabe v
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${base()}/settings/`);
   await expect(more).toHaveCount(0);
-  await expect(page.getByRole("tab")).toHaveCount(5); // con Catálogo (#230) y sin Claude (#251)
+  await expect(page.getByRole("tab")).toHaveCount(6); // con Catálogo (#230), Cómo jugar (#398) y sin Claude (#251)
   await noScroll();
   // #200: una sola columna centrada con ancho máximo.
   const content = (await page.locator(".content").boundingBox())!;

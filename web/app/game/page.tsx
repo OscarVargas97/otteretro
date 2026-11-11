@@ -10,6 +10,7 @@ import { Cover, hours, Platforms, useConsoleName, useConsoles, useIdParam } from
 import { useHeroArt } from "@/components/HeroArt";
 import { GamePorts } from "@/components/Ports";
 import { GameProfiles } from "@/components/GameProfiles";
+import { GamePlay } from "@/components/PlayChoice";
 import { Empty } from "@/components/Shell";
 import { request } from "@/lib/client";
 import { PageSkeleton } from "@/components/Skeleton";
@@ -100,6 +101,7 @@ function Game() {
 
         <Versions game={g} compare={compare.data ?? []} />
 
+        <GamePlay gameId={Number(g.id)} />
         <GamePorts gameId={Number(g.id)} />
         <GameProfiles gameId={Number(g.id)} consoles={platforms} />
 
