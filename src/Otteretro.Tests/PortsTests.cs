@@ -21,7 +21,7 @@ public class PortsTests
             INSERT INTO source (kind, library_id, relative_path, console, version_id) VALUES ('file', NULL, 'mario.z64', 'n64', 22);
             INSERT INTO saga_user (saga_id, favorite, following) VALUES (1, 0, 1);
             INSERT INTO port (id, console, game, project, kind, status, delisted, link, source, added, game_id) VALUES
-              (1, 'gc', 'Twilight Princess', 'Dusklight', 'decomp', 'complete', 0, 'https://github.com/TwilitRealm/dusklight', 'recompendium', date('now', '-20 days'), 10),
+              (1, 'gc', 'Twilight Princess', 'Dusklight', 'decomp', 'complete', 0, 'https://github.com/TwilitRealm/Dusklight/', 'recompendium', date('now', '-20 days'), 10),
               (2, 'n64', 'Mario 64', 'Ship', 'decomp', 'playable', 0, 'https://example.com/ship', 'extra', date('now', '-4 days'), 11),
               (3, 'n64', 'Mario 64', 'Viejo', 'port', 'beta', 1, 'https://example.com/viejo', 'extra', date('now', '-25 days'), 11),
               (4, 'n64', 'Mario 64', 'Solo decomp', 'decomp', 'no-port', 0, 'https://example.com/decomp', 'extra', date('now', '-3 days'), 11),
@@ -41,7 +41,7 @@ public class PortsTests
         Assert.True(mario.Single(p => p.Project == "Viejo").Delisted);
         var tp = Assert.Single(Ports.OfGame(f.Db, 10));
         Assert.True(tp.FullyPlayable);
-        Assert.Equal("dusklight", tp.RecipeId); // por su repositorio
+        Assert.Equal("dusklight", tp.RecipeId); // por el «port» de su receta (#384)
         Assert.False(mario[1].FullyPlayable);
 
         // Lo de un juego que no tienes ni sigues no es novedad, y sin ningún «Visto» solo cuentan los últimos 30 días.

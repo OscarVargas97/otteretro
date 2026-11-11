@@ -42,7 +42,7 @@ function Install({ port }: { port: PortInfo }) {
     <div style={{ display: "grid", gap: 6 }}>
       <span className="hero-actions">
         {port.recipeId && <button type="button" className="ot-btn ot-btn-sm ot-btn-primary" disabled={install.isPending} onClick={() => install.mutate({})}>{t("install")}</button>}
-        <button type="button" className="ot-btn ot-btn-sm" aria-expanded={asking} onClick={() => setAsking(!asking)}>{t("installFromUrl")}</button>
+        {!port.recipeId && <button type="button" className="ot-btn ot-btn-sm" aria-expanded={asking} onClick={() => setAsking(!asking)}>{t("installFromUrl")}</button>}
       </span>
       {asking && (
         <form className="hero-actions" onSubmit={(e) => { e.preventDefault(); install.mutate({ url, version: version || undefined }); }}>

@@ -949,7 +949,7 @@ test("«Buscar el mejor emulador» encola solo los juegos elegidos y deja desmar
   await page.unroute("**/api/best-emulator");
 });
 
-test("ports: Novedades con los nuevos de lo que sigues, la ficha separa los 100 % jugables e instalar pide la URL (#286, #287)", async () => {
+test("ports: Novedades con los nuevos de lo que sigues, la ficha separa los 100 % jugables e instalar pide la URL solo sin receta (#286, #287, #384)", async () => {
   // Sin ningún «Visto», Novedades muestra lo de los últimos 30 días.
   const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
   const db = await openDb();
@@ -957,7 +957,8 @@ test("ports: Novedades con los nuevos de lo que sigues, la ficha separa los 100 
     INSERT INTO saga_user (saga_id, favorite, following) VALUES (1, 0, 1) ON CONFLICT (saga_id) DO UPDATE SET following = 1;
     INSERT INTO port (id, console, game, project, kind, status, delisted, link, source, added, game_id) VALUES
       (1, 'n64', 'Ocarina of Time', 'Ship of Harkinian', 'decomp', 'complete', 0, 'https://sitio.test/soh', 'recompendium', '${daysAgo(4)}', 10),
-      (2, 'n64', 'Ocarina of Time', 'Viejo port', 'port', 'beta', 1, 'https://sitio.test/viejo', 'extra', '${daysAgo(20)}', 10);
+      (2, 'n64', 'Ocarina of Time', 'Viejo port', 'port', 'beta', 1, 'https://sitio.test/viejo', 'extra', '${daysAgo(20)}', 10),
+      (3, 'gc', 'Ocarina of Time', 'Dusklight', 'decomp', 'playable', 0, 'https://github.com/TwilitRealm/dusklight', 'extra', '${daysAgo(40)}', 10);
   `);
   db.close();
   await page.goto(`${base()}/`);
@@ -974,10 +975,13 @@ test("ports: Novedades con los nuevos de lo que sigues, la ficha separa los 100 
   await expect(ports.getByText(es.ports.status.complete, { exact: true })).toBeVisible();
   await expect(ports.getByText(es.ports.added.replace("{date}", new Intl.DateTimeFormat("es", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(daysAgo(4)))))).toBeVisible();
   await expect(ports.getByText(es.ports.status.beta, { exact: true })).toBeVisible();
+  // Con receta (su «port» es el enlace), solo «Instalar»; sin receta, solo la URL (#384).
+  await expect(ports.getByRole("button", { name: es.ports.install, exact: true })).toHaveCount(1);
+  await expect(ports.getByRole("button", { name: es.ports.installFromUrl })).toHaveCount(2);
   // Sin receta: con la URL de su release; si el archivo no dice la versión, se pide.
   await ports.getByRole("button", { name: es.ports.installFromUrl }).first().click();
   await ports.getByLabel(es.ports.url.replace("{name}", "Ship of Harkinian")).fill("https://sitio.test/descarga");
-  await ports.getByRole("button", { name: es.ports.installConfirm, exact: true }).click();
+  await ports.locator("form").getByRole("button", { name: es.ports.installConfirm, exact: true }).click();
   await expect(ports.getByRole("alert")).toHaveText(es.errors.install.noVersion);
   await expectTextFits();
 });

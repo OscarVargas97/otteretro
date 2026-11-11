@@ -55,13 +55,12 @@ public static class Ports
         FROM port p JOIN game g ON g.id = p.game_id
         """;
 
-    /// <summary>La receta de un port: la de tipo port cuyo repositorio o nombre es el del port.</summary>
-    public static Recipe? RecipeOf(string project, string link)
-    {
-        var repo = Regex.Match(link, @"^https://github\.com/([^/]+/[^/#?]+)", RegexOptions.IgnoreCase) is { Success: true } m ? m.Groups[1].Value.TrimEnd('/') : null;
-        return Recipes.All.FirstOrDefault(r => r.Kind == "port"
-            && (repo is not null && string.Equals(r.Updates?.Repo, repo, StringComparison.OrdinalIgnoreCase) || string.Equals(r.Name, project, StringComparison.OrdinalIgnoreCase)));
-    }
+    /// <summary>La receta de un port: la de tipo port cuyo <c>port</c> es su enlace (#384). Una receta sin <c>port</c> no se cruza.</summary>
+    public static Recipe? RecipeOf(string link) =>
+        Recipes.All.FirstOrDefault(r => r.Kind == "port" && r.Port is not null && LinkKey(r.Port) == LinkKey(link));
+
+    /// <summary>El enlace como lo compara el catálogo: sin espacios, sin «/» final y sin mayúsculas.</summary>
+    static string LinkKey(string link) => link.Trim().TrimEnd('/').ToLowerInvariant();
 
     /// <summary>Con qué id se instala: el de su receta o, sin ella, uno propio.</summary>
     static string EmulatorId(Recipe? recipe, long id) => recipe?.Id ?? $"port-{id}";
@@ -74,7 +73,7 @@ public static class Ports
         var installed = Installs.List(db).Where(i => i.Path is not null).ToLookup(i => i.EmulatorId, i => i.Version);
         return rows.Select(r =>
         {
-            var recipe = RecipeOf(r.Project, r.Link);
+            var recipe = RecipeOf(r.Link);
             return new PortInfo(r.Id, r.GameId, r.GameName, r.Console, r.Project, r.Kind, r.Toolchain, r.Status, r.Status == Complete, r.Abandoned, r.Delisted,
                 r.Link, r.Added, r.Emulator, (int?)r.EmulatorLevel, recipe?.Id, installed[EmulatorId(recipe, r.Id)].ToList());
         }).ToList();
@@ -142,7 +141,7 @@ public static class Ports
     {
         if (Query(db, "WHERE p.id = @id", new { id }).FirstOrDefault() is not { } port) return (null, ApiError.Of("ports.notFound"));
         if (port.Status == NoPort) return (null, ApiError.Of("ports.noPort"));
-        var recipe = RecipeOf(port.Project, port.Link);
+        var recipe = RecipeOf(port.Link);
         var job = new InstallJob(EmulatorId(recipe, id), request.Version?.Trim() is { Length: > 0 } v ? v : null, Name: port.Project, Kind: "port", Port: id);
         if (request.Url?.Trim() is { Length: > 0 } url)
             job = job with { Url = url, Version = job.Version ?? (VersionText.Match(Uri.TryCreate(url, UriKind.Absolute, out var u) ? Path.GetFileName(u.AbsolutePath) : url) is { Success: true } m ? m.Value : null) };
