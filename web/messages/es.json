@@ -654,6 +654,13 @@
       "openFailed": "No se pudo abrir el emulador: {detail}",
       "opened": "Se abrió el emulador.",
       "openedPlain": "Se abrió el emulador sin el juego (falta la ROM, su disco o el emulador no sabe abrirlo así): busca el juego en su lista."
+    },
+    "play": {
+      "badId": "«jugar» necesita el id de la versión del juego, un número; llegó «{id}».",
+      "noData": "Todavía no hay carpeta de datos: abre Otteretro y elige una.",
+      "noEmulator": "Ese juego no tiene con qué jugarse: instala un emulador o un port para su consola, o elige su emulador base.",
+      "noGame": "El emulador no puede abrir el juego: falta la ROM, su disco no está conectado o el emulador no sabe abrirla.",
+      "launchFailed": "No se pudo abrir el juego: {detail}"
     }
   },
   "credentials": {

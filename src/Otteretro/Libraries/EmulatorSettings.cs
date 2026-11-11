@@ -220,9 +220,9 @@ public static class EmulatorSettings
     /// <summary>
     /// Con qué se abre el emulador para un perfil: en el juego (con `perGame.args`, su mando y sus mods) o, si no se puede armar
     /// (falta la ROM o su disco), normal. Un port es el juego. El perfil de un juego tiene que estar activo: su configuración es la
-    /// que está en el emulador.
+    /// que está en el emulador. Un perfil por defecto se abre en el juego <paramref name="version"/> (al jugar, #399).
     /// </summary>
-    public static (string? Exe, List<string> Args, bool InGame, ApiError? Error) OpenArgs(Database db, long id)
+    public static (string? Exe, List<string> Args, bool InGame, ApiError? Error) OpenArgs(Database db, long id, long? version = null)
     {
         using var c = db.Open();
         if (Profiles.Get(c, id) is not { } p) return (null, [], false, ApiError.Of("profile.notFound"));
@@ -232,8 +232,8 @@ public static class EmulatorSettings
         var exe = Path.Combine(install, recipe.Detect);
         var values = Read(p.Settings);
         List<string> extra = recipe.Input?.Arg is { } arg && values.Input.GetValueOrDefault(arg) is { } name ? [arg, name] : [];
-        if (p.GameVersionId is not { } game) return (exe, extra, false, null);
-        if (recipe.PerGame?.Apply != "swap" && !c.ExecuteScalar<bool>("SELECT active FROM profile WHERE id = @id", new { id }))
+        if ((p.GameVersionId ?? version) is not { } game) return (exe, extra, false, null);
+        if (p.GameVersionId is not null && recipe.PerGame?.Apply != "swap" && !c.ExecuteScalar<bool>("SELECT active FROM profile WHERE id = @id", new { id }))
             return (null, [], false, ApiError.Of("settings.notActive"));
         extra.AddRange(Profiles.LaunchArgs(db, id));
         var args = recipe.PerGame?.Args ?? [];

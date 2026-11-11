@@ -37,15 +37,18 @@ public static class AppMode
     }
 }
 
-/// <summary>Modo JUGAR: `otteretro jugar &lt;id&gt;`. Llega en la fase 4.</summary>
+/// <summary>Modo JUGAR: `otteretro jugar &lt;id de versión&gt;` (#399). No abre la app ni el servidor: ver <see cref="Play.GameLauncher"/>.</summary>
 public static class PlayMode
 {
-    public const int NotImplemented = 2;
-
     public static int Run(string[] args)
     {
-        FileLog.Write(LogLevel.Warning, "Play", $"`jugar {string.Join(' ', args)}` todavía no está implementado (fase 4).");
-        return NotImplemented;
+        var config = AppConfig.Load(AppConfig.DefaultPath);
+        if (args is not [var id] || !long.TryParse(id, out var version))
+            Play.GameLauncher.Fail(Api.ApiError.Of("play.badId", ("id", string.Join(' ', args))), config.EffectiveLanguage);
+        else if (!DataFolder.IsReady(config.DataFolder))
+            Play.GameLauncher.Fail(Api.ApiError.Of("play.noData"), config.EffectiveLanguage);
+        else return Play.GameLauncher.Run(Startup.PrepareData(config), config, version);
+        return 1;
     }
 }
 
@@ -57,7 +60,7 @@ public static class CliMode
 
           (sin comando)          Abre la app.
           --fullscreen           Abre la app a pantalla completa (en la sesión Play es automático).
-          jugar <id>             Lanza un juego (fase 4).
+          jugar <id>             Lanza la versión <id> de un juego, espera a que lo cierres y anota la sesión.
           version                Muestra la versión.
           openapi <archivo>      Escribe el contrato OpenAPI de la API (para generar los tipos del front).
           steam sincronizar      Lee lo que tienes en Steam (con sus horas) y lo enlaza con el catálogo; lo hace la app abierta.
