@@ -34,7 +34,7 @@ export function upsertTask(cache: QueryClient, task: TaskInfo) {
   }
   // Instalar o reinstalar cambia lo instalado, los avisos y la librería (#296).
   if ((task.kind === "tools.install") && task.status === "done") {
-    for (const key of ["tools", "emulators", "toolUpdates"]) cache.invalidateQueries({ queryKey: [key] });
+    for (const key of ["tools", "emulators", "toolUpdates", "play", "ports", "profiles"]) cache.invalidateQueries({ queryKey: [key] });
   }
   // Un escaneo terminado cambia lo que tienes (#178).
   if ((task.kind === "library.scan" || task.kind === "library.verify" || task.kind === "library.import" || task.kind === "library.convert") && task.status === "done") {

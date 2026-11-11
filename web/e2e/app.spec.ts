@@ -832,6 +832,14 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   await page.reload();
   await expect(page.getByRole("radio", { name: es.catalog.status.finished })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByLabel(es.catalog.game.rating)).toHaveValue("9");
+  // #410: con 5 versiones, el Resumen cabe en 1440×900 sin bajar.
+  const five = await openDb();
+  five.exec("INSERT INTO version (id, game_id, platform, kind, year) VALUES (102, 10, 'gc', 'remake', 2003), (103, 10, 'wii', 'remake', 2007), (104, 10, 'switch', 'remake', 2019); UPDATE cache_generation SET value = value + 1");
+  await page.reload();
+  await expect(page.getByRole("tab", { name: es.catalog.game.tab.versions })).toContainText("5");
+  expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
+  five.exec("DELETE FROM version WHERE id IN (102, 103, 104); UPDATE cache_generation SET value = value + 1");
+  five.close();
 
   // F2.18: «Lo tengo» por defecto y el número de cada consola sigue al filtro.
   await page.goto(`${base()}/collection/?console=n64`);
@@ -864,29 +872,35 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
 
 test("la ficha muestra tus enlaces de ese juego, y se pueden quitar (#210)", async () => {
   await page.goto(`${base()}/game/?id=10`);
-  await expect(page.getByRole("heading", { name: es.downloads.gameLinks })).toHaveCount(0);
+  // #410: en su pestaña, con el número de enlaces.
+  const tab = page.getByRole("tab", { name: es.catalog.game.tab.links });
+  await tab.click();
+  await expect(page.getByText(es.downloads.gameLinksNone)).toBeVisible();
   expect((await api("POST", "/api/downloads/links", { text: "https://sitio.test/fusion.zip", gameId: 10 })).ok).toBe(true);
   await page.reload();
+  await expect(page).toHaveURL(/tab=links/);
   await expect(page.getByRole("heading", { name: es.downloads.gameLinks })).toBeVisible();
+  await expect(tab).toContainText("1");
   await expect(page.getByText("fusion.zip")).toBeVisible();
   await page.getByRole("button", { name: es.downloads.removeLink.replace("{name}", "fusion.zip") }).click();
-  await expect(page.getByRole("heading", { name: es.downloads.gameLinks })).toHaveCount(0);
+  await expect(page.getByText(es.downloads.gameLinksNone)).toBeVisible();
 });
 
 test("la ficha muestra el emulador recomendado para el juego, con su fuente y «Instalar» si falta (#366)", async () => {
   await page.route("**/api/recipes", (route) => route.fulfill({ json: [{ id: "fork-prueba", name: "Fork de prueba", kind: "emulator", experimental: true, releases: true,
     consoles: ["n64"], baseFor: [], folder: "N64", game: null, forkOf: null, recommendedFor: [{ game: "Ocarina of Time", gameId: 10, source: "https://sitio.test/guia" }] }] }));
-  await page.goto(`${base()}/game/?id=10`);
-  await expect(page.getByText(es.profiles.recommended.replace("{emulator}", "Fork de prueba"))).toBeVisible();
+  await page.goto(`${base()}/game/?id=10&tab=play`);
+  // #410: sin la versión de N64, va en «Mejor con otra versión».
+  await expect(page.getByRole("region", { name: es.play.better }).getByText(es.profiles.recommended.replace("{emulator}", "Fork de prueba"))).toBeVisible();
   await expect(page.getByRole("link", { name: es.profiles.recommendedSource.replace("{source}", "sitio.test") })).toHaveAttribute("href", "https://sitio.test/guia");
   await expect(page.getByRole("button", { name: es.tools.forks.install })).toBeVisible();
   // Otro juego no lo muestra.
-  await page.goto(`${base()}/game/?id=11`);
+  await page.goto(`${base()}/game/?id=11&tab=play`);
   await expect(page.getByText(es.profiles.recommended.replace("{emulator}", "Fork de prueba"))).toHaveCount(0);
   await page.unroute("**/api/recipes");
 });
 
-test("ports: Novedades con los nuevos de lo que sigues, la ficha separa los 100 % jugables e instalar pide la URL solo sin receta (#286, #287, #384)", async () => {
+test("ports: Novedades con los nuevos de lo que sigues, la ficha los ofrece en «Mejor con otra versión» e instalar pide la URL solo sin receta (#286, #287, #384, #410)", async () => {
   // Sin ningún «Visto», Novedades muestra lo de los últimos 30 días.
   const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
   const db = await openDb();
@@ -907,8 +921,8 @@ test("ports: Novedades con los nuevos de lo que sigues, la ficha separa los 100 
   await expect(page.getByLabel(es.ports.news)).toHaveCount(0);
 
   await page.goto(`${base()}/game/?id=10`);
-  const ports = page.getByRole("region", { name: es.ports.title });
-  await expect(ports.getByRole("heading", { name: es.ports.fullyPlayable })).toBeVisible();
+  await page.getByRole("tab", { name: es.catalog.game.tab.play }).click();
+  const ports = page.getByRole("region", { name: es.play.better });
   await expect(ports.getByText(es.ports.status.complete, { exact: true })).toBeVisible();
   await expect(ports.getByText(es.ports.added.replace("{date}", new Intl.DateTimeFormat("es", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(daysAgo(4)))))).toBeVisible();
   await expect(ports.getByText(es.ports.status.beta, { exact: true })).toBeVisible();
@@ -932,9 +946,11 @@ test("la ficha: perfiles de cada versión, crear, activar y volver al por defect
     INSERT INTO console_emulator (console_id, emulator_id, is_base) VALUES ('switch', 'mi-emu', 1);
   `);
   db.close();
-  await page.goto(`${base()}/game/?id=11`);
-  await expect(page.getByRole("heading", { name: es.profiles.title })).toBeVisible();
+  await page.goto(`${base()}/game/?id=11&tab=play`);
+  // #410: plegados en «Avanzado», con «Nuevo perfil» en vez del formulario abierto.
+  await page.getByText(es.profiles.advanced).click();
   await expect(page.getByText(es.profiles.noneActive.replace("{name}", "MiEmu").replace("{emulator}", "MiEmu"))).toBeVisible();
+  await page.getByRole("button", { name: es.profiles.newProfile }).click();
   await page.getByRole("textbox", { name: es.profiles.newName }).fill("2x");
   await page.getByRole("button", { name: es.profiles.create }).click();
   await expect(page.getByRole("textbox", { name: es.profiles.rename.replace("{name}", "2x") })).toBeVisible();
@@ -958,18 +974,32 @@ test("la ficha: perfiles de cada versión, crear, activar y volver al por defect
 test("la ficha: cómo jugar elige por la regla, deja cambiar a mano y volver a la automática; Ajustes ordena los criterios (#398)", async () => {
   // Con la versión de Switch en la colección, su emulador (MiEmu, de la prueba anterior) es la opción.
   const db = await openDb();
-  db.exec("INSERT INTO source (kind, relative_path, console, version_id) VALUES ('file', 'botw.nsp', 'switch', 110)");
+  // Con su biblioteca: la ficha solo cuenta como tuyos los archivos de una biblioteca (#410).
+  db.exec(`INSERT OR IGNORE INTO library (id, name, kind, path, created_at) VALUES ('e2e-398', 'e2e', 'local', 'C:/e2e', '');
+    INSERT INTO source (kind, relative_path, console, version_id, library_id) VALUES ('file', 'botw.nsp', 'switch', 110, 'e2e-398')`);
   db.close();
   const p = es.play;
   await page.goto(`${base()}/game/?id=11`);
+  // #410: la cabecera dice con qué se juega y por qué; «Cambiar» lleva a «Cómo jugar».
+  const header = page.locator(".play-box");
+  await expect(header.getByRole("button", { name: p.play })).toBeVisible();
+  await expect(header).toContainText(p.with.replace("{name}", p.emulator.replace("{name}", "MiEmu")));
+  await expect(header).toContainText(p.reason.playable);
+  await header.getByRole("button", { name: p.change }).click();
+  await expect(page).toHaveURL(/tab=play/);
   const play = page.locator("section").filter({ has: page.getByRole("heading", { name: p.title }) });
-  await expect(play.getByText(p.emulator.replace("{name}", "MiEmu"))).toBeVisible();
-  await expect(play.getByText(p.reason.playable)).toBeVisible();
-  await play.getByRole("button", { name: p.change }).click();
-  await play.getByRole("combobox").selectOption({ label: p.emulator.replace("{name}", "MiEmu") });
+  const miEmu = play.getByRole("radio", { name: /MiEmu/ });
+  await expect(miEmu).toHaveAttribute("aria-checked", "true");
+  // El base de Switch sin instalar también es opción (un clic): elegido a mano, la cabecera pasa a «Instalar».
+  const eden = play.getByRole("radio", { name: /Eden/ });
+  await expect(eden).toContainText(p.notInstalled);
+  await eden.click();
+  await expect(eden).toHaveAttribute("aria-checked", "true");
   await expect(play.getByText(p.reason.manual)).toBeVisible();
+  await expect(header.getByRole("button", { name: p.install.replace("{name}", "Eden") })).toBeVisible();
   await play.getByRole("button", { name: p.reset }).click();
-  await expect(play.getByText(p.reason.playable)).toBeVisible();
+  await expect(miEmu).toHaveAttribute("aria-checked", "true");
+  await expect(header.getByRole("button", { name: p.play })).toBeVisible();
   await expect(play.getByRole("button", { name: p.reset })).toHaveCount(0);
   await expectNoRawKeys();
 
@@ -982,7 +1012,7 @@ test("la ficha: cómo jugar elige por la regla, deja cambiar a mano y volver a l
   await expectNoRawKeys();
 
   const check = await openDb();
-  check.exec("DELETE FROM source WHERE version_id = 110; DELETE FROM play_choice");
+  check.exec("DELETE FROM source WHERE version_id = 110; DELETE FROM library WHERE id = 'e2e-398'; DELETE FROM play_choice");
   check.close();
 });
 
@@ -995,7 +1025,8 @@ test("la ficha: ajustes del perfil por defecto de Eden según su receta y abrir 
     INSERT OR IGNORE INTO console_emulator (console_id, emulator_id, is_base) VALUES ('switch', 'eden', 0);
   `);
   db.close();
-  await page.goto(`${base()}/game/?id=11`);
+  await page.goto(`${base()}/game/?id=11&tab=play`);
+  await page.getByText(es.profiles.advanced).click();
   await page.getByText(es.profiles.defaults).click();
   await page.getByRole("button", { name: `${es.profiles.settings.open}: Eden` }).click();
   const form = page.getByRole("form", { name: es.profiles.settings.title.replace("{name}", "Eden") });
@@ -1011,6 +1042,7 @@ test("la ficha: ajustes del perfil por defecto de Eden según su receta y abrir 
   await expect(form.getByRole("alert")).toHaveText(es.errors.profile.notInstalled.replace("{emulator}", "eden"));
 
   await page.reload(); // lo guardado vuelve
+  await page.getByText(es.profiles.advanced).click();
   await page.getByText(es.profiles.defaults).click();
   await page.getByRole("button", { name: `${es.profiles.settings.open}: Eden` }).click();
   await expect(page.getByLabel(es.profiles.settings.names.resolution)).toHaveValue("3");

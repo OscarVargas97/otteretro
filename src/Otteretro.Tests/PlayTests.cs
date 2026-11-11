@@ -35,9 +35,20 @@ public class PlayTests
         (string Exe, List<string> Args)? launched = null;
         var shown = Shown(() =>
         {
-            GameLauncher.Launch = (exe, args, _) => { launched = (exe, [.. args]); Thread.Sleep(1100); };
+            GameLauncher.Launch = (exe, args, _) =>
+            {
+                launched = (exe, [.. args]);
+                // Mientras se juega, la sesión está abierta: la ficha dice «Jugando…» (#400).
+                var open = Assert.Single(GameLauncher.Recent(f.Db, 10));
+                Assert.True(open.Playing);
+                Assert.Null(open.EndedAt);
+                Thread.Sleep(1100);
+            };
             Assert.Equal(0, GameLauncher.Run(f.Db, f.Config, 20));
         });
+        var closed = Assert.Single(GameLauncher.Recent(f.Db, 10));
+        Assert.False(closed.Playing);
+        Assert.Equal("switch", closed.Platform);
 
         Assert.Empty(shown); // un lanzamiento normal no muestra ventana
         Assert.EndsWith("eden.exe", launched!.Value.Exe);

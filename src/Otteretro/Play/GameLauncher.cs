@@ -9,6 +9,9 @@ using Otteretro.Libraries;
 
 namespace Otteretro.Play;
 
+/// <summary>Una sesión de juego. EndedAt y Duration: null mientras sigue abierta.</summary>
+public record PlaySession(long VersionId, string Platform, string Launcher, string StartedAt, string? EndedAt, long? Duration, bool Playing);
+
 /// <summary>
 /// `otteretro jugar &lt;id&gt;` (§10, T7, #399): prepara, lanza el emulador o port en el juego, espera a que se cierre todo y anota la
 /// sesión en `play_session`. Solo corre mientras juegas. Si algo falla, lo dice en una ventana pequeña; si no, no muestra nada.
@@ -46,17 +49,43 @@ public static class GameLauncher
         var swap = profile.GameVersionId is not null && Recipes.Find(profile.EmulatorId)?.PerGame?.Apply == "swap";
         if (swap) Profiles.SwapIn(db, profile.Id);
         var started = DateTime.UtcNow;
+        // La sesión queda abierta (sin ended_at) mientras se juega: así la ficha muestra «Jugando…» (#400).
+        long session;
+        using (var c = db.Open())
+            session = c.ExecuteScalar<long>("""
+                INSERT INTO play_session (version_id, machine_id, launcher, started_at) VALUES (@version, @machine, 'otteretro', @start) RETURNING id
+                """, new { version, machine, start = started.ToString("O") });
         try { Launch(exe!, args, Path.GetDirectoryName(exe)!); }
-        catch (Exception e) when (e is Win32Exception or IOException) { return ApiError.Of("play.launchFailed", ("detail", e.Message)); }
+        catch (Exception e) when (e is Win32Exception or IOException)
+        {
+            using var c = db.Open();
+            c.Execute("DELETE FROM play_session WHERE id = @session", new { session });
+            return ApiError.Of("play.launchFailed", ("detail", e.Message));
+        }
         finally { if (swap) Profiles.SwapOut(db, profile.EmulatorId); }
         var ended = DateTime.UtcNow;
 
-        using var c = db.Open();
-        c.Execute("""
-            INSERT INTO play_session (version_id, machine_id, launcher, started_at, ended_at, duration)
-            VALUES (@version, @machine, 'otteretro', @start, @end, @duration)
-            """, new { version, machine, start = started.ToString("O"), end = ended.ToString("O"), duration = (long)(ended - started).TotalSeconds });
+        using (var c = db.Open())
+            c.Execute("UPDATE play_session SET ended_at = @end, duration = @duration WHERE id = @session",
+                new { session, end = ended.ToString("O"), duration = (long)(ended - started).TotalSeconds });
         return null;
+    }
+
+    /// <summary>Las últimas sesiones del juego (#400, #410), la más nueva primero. Playing: abierta en este momento.</summary>
+    /// <remarks>shortcut: una sesión abierta de hace más de un día se da por cortada (el proceso murió sin cerrarla); si molesta,
+    /// guardar el pid y comprobarlo.</remarks>
+    public static List<PlaySession> Recent(Database db, long gameId)
+    {
+        using var c = db.Open();
+        var since = DateTime.UtcNow.AddDays(-1);
+        return c.Query<(long VersionId, string Platform, string Launcher, string StartedAt, string? EndedAt, long? Duration)>("""
+                SELECT s.version_id, v.platform, s.launcher, s.started_at, s.ended_at, s.duration
+                FROM play_session s JOIN version v ON v.id = s.version_id
+                WHERE v.game_id = @gameId ORDER BY s.started_at DESC LIMIT 5
+                """, new { gameId })
+            .Select(s => new PlaySession(s.VersionId, s.Platform, s.Launcher, s.StartedAt, s.EndedAt, s.Duration,
+                s.EndedAt is null && DateTime.Parse(s.StartedAt, null, System.Globalization.DateTimeStyles.RoundtripKind) > since))
+            .ToList();
     }
 
     // shortcut: en Linux espera solo al proceso lanzado (no a lo que abra); pidfd y sus hijos llegan en la fase L.

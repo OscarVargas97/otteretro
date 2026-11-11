@@ -103,6 +103,35 @@ public class PlayChoiceTests
         Assert.Equal("emulator:eden", PlayChoice.OfGame(f.Db, 7693).Single().Chosen);
     }
 
+    /// <summary>#410: el emulador base (y el recomendado) sin instalar son opciones «sin instalar»: la ficha ofrece instalarlos.</summary>
+    [Fact]
+    public async Task RecommendedAndBaseEmulatorsAreOptionsBeforeInstalling()
+    {
+        await using var f = new Fixture();
+        using (var c = f.Db.Open())
+            c.Execute("""
+                INSERT INTO game (id, name_es) VALUES (7692, 'Skyward Sword HD');
+                INSERT INTO version (id, game_id, platform) VALUES (30, 7692, 'switch');
+                INSERT INTO source (kind, relative_path, console, version_id) VALUES ('file', 'ss.nsp', 'switch', 30);
+                """);
+
+        // Sin nada instalado, el base de Switch es una opción «sin instalar» y la elegida: el botón de la ficha ofrece instalarlo.
+        var baseRecipe = Recipes.All.Single(r => r.Kind == "emulator" && r.BaseFor.Contains("switch"));
+        var none = PlayChoice.OfGame(f.Db, 7692).Single();
+        Assert.Equal($"emulator:{baseRecipe.Id}", none.Chosen);
+        Assert.False(none.Options.Single(o => o.Key == none.Chosen).Installed);
+
+        // Con el recomendado instalado, gana él; elegir a mano el base, sin instalar, vuelve a pedir instalarlo.
+        Profiles.AddEmulator(f.Db, "ryujinx-ss4k", "emulator", "Ryujinx SS4K");
+        var after = PlayChoice.OfGame(f.Db, 7692).Single();
+        Assert.Equal("emulator:ryujinx-ss4k", after.Chosen);
+        Assert.True(after.Options[0].Installed);
+        Assert.True(PlayChoice.SetManual(f.Db, 7692, 30, $"emulator:{baseRecipe.Id}"));
+        var manual = PlayChoice.OfGame(f.Db, 7692).Single();
+        Assert.Equal(($"emulator:{baseRecipe.Id}", "manual"), (manual.Chosen, manual.Reason));
+        Assert.False(manual.Options.Single(o => o.Key == manual.Chosen).Installed);
+    }
+
     /// <summary>#407: al quitar la búsqueda local, lo elegido a mano en emulator_pick pasa a play_choice en cada versión de esa consola.</summary>
     [Fact]
     public void ManualEmulatorPicksSurviveAsPlayChoices()

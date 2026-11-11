@@ -473,16 +473,19 @@ function ToolCard({ card, kind, recipe, game, ask, onAsked, forks = [] }: {
   );
 }
 
+/** Instala la última versión de la receta de un emulador; devuelve el id de la tarea. */
+export async function installRecipe(id: string) {
+  const [r] = await request<RecipeRelease[]>(`/api/recipes/${encodeURIComponent(id)}/releases`);
+  return request<number>("/api/emulators/install", post({ emulator: id, version: r.version, url: r.download }));
+}
+
 /** Un fork que aún no está instalado (#358): su nombre y «Instalar», que baja la última versión de su receta. */
 export function ForkInstall({ recipe }: { recipe: RecipeSummary }) {
   const t = useTranslations("tools");
   const describe = useDescribeError();
   const cache = useQueryClient();
   const install = useMutation({
-    mutationFn: async () => {
-      const [r] = await request<RecipeRelease[]>(`/api/recipes/${encodeURIComponent(recipe.id)}/releases`);
-      return request<number>("/api/emulators/install", post({ emulator: recipe.id, version: r.version, url: r.download }));
-    },
+    mutationFn: () => installRecipe(recipe.id),
     onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
   });
   return (
