@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:60431/"
+      "url": "http://127.0.0.1:63585/"
     }
   ],
   "paths": {
@@ -3352,6 +3352,35 @@
           },
           "404": {
             "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/steam": {
+      "get": {
+        "tags": [
+          "Otteretro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SteamStatus"
+                }
+              }
+            }
           },
           "409": {
             "description": "Conflict",
@@ -9437,6 +9466,31 @@
         "properties": {
           "export": {
             "type": "boolean"
+          }
+        }
+      },
+      "SteamStatus": {
+        "required": [
+          "account",
+          "srm",
+          "available"
+        ],
+        "type": "object",
+        "properties": {
+          "account": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "srm": {
+            "type": "boolean"
+          },
+          "available": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SteamEntry"
+            }
           }
         }
       },
