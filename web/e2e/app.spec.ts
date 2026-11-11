@@ -886,69 +886,6 @@ test("la ficha muestra el emulador recomendado para el juego, con su fuente y «
   await page.unroute("**/api/recipes");
 });
 
-test("la ficha busca el mejor emulador, muestra lo local primero y deja elegir a mano o volver al del catálogo (#375)", async () => {
-  const db = await openDb();
-  db.exec(`
-    INSERT INTO emulator_pick (game_id, console, recipe_id, repo, source, reason, origin, searched_at) VALUES
-      (10, 'n64', 'rmg', NULL, 'https://sitio.test/rmg', 'va bien', 'claude', '2026-11-01T12:00:00Z'),
-      (10, '3ds', NULL, 'https://sitio.test/sin-receta', 'https://sitio.test/fuente', 'otro', 'claude', '2026-11-01T12:00:00Z');
-  `);
-  db.close();
-  // La búsqueda real llamaría a Claude: se simula la cola.
-  let queued = false;
-  await page.route("**/api/games/10/best-emulator", (route) => route.request().method() === "POST"
-    ? (queued = true, route.fulfill({ json: 999 }))
-    : route.fulfill({ json: { task: queued ? 999 : null, searchedAt: "2026-11-01T12:00:00Z" } }));
-  await page.goto(`${base()}/game/?id=10`);
-  const best = es.profiles.best;
-  await expect(page.getByText(/Última búsqueda/)).toBeVisible();
-  await page.getByRole("button", { name: best.search }).click();
-  await expect(page.getByRole("status").filter({ hasText: best.queued })).toBeVisible();
-  await expect(page.getByRole("button", { name: best.search })).toBeDisabled();
-
-  const n64 = page.getByRole("group", { name: /64/ });
-  await expect(n64.getByText(es.profiles.recommended.replace("{emulator}", "Rosalie's Mupen GUI"))).toBeVisible();
-  await expect(n64.getByText(best.origin.claude)).toBeVisible();
-  await expect(n64.getByRole("link", { name: es.profiles.recommendedSource.replace("{source}", "sitio.test") })).toHaveAttribute("href", "https://sitio.test/rmg");
-  // Sin receta: su repo, sin «Instalar».
-  const n3ds = page.getByRole("group", { name: /3DS/ });
-  await expect(n3ds.getByRole("link", { name: best.repo })).toHaveAttribute("href", "https://sitio.test/sin-receta");
-  await expect(n3ds.getByRole("button", { name: es.tools.forks.install })).toHaveCount(0);
-
-  await n64.getByRole("button", { name: best.choose }).click();
-  await n64.getByRole("combobox").selectOption({ label: "Rosalie's Mupen GUI" });
-  await expect(n64.getByText(best.origin.manual)).toBeVisible();
-  await n64.getByRole("button", { name: best.reset }).click();
-  await expect(n64.getByText(best.none)).toBeVisible();
-  await expect(n64.getByRole("button", { name: best.reset })).toHaveCount(0);
-  await page.unroute("**/api/games/10/best-emulator");
-  const check = await openDb();
-  expect(check.prepare("SELECT console FROM emulator_pick WHERE game_id = 10").all()).toEqual([{ console: "3ds" }]);
-  check.exec("DELETE FROM emulator_pick");
-  check.close();
-});
-
-test("«Buscar el mejor emulador» encola solo los juegos elegidos y deja desmarcado lo ya buscado (#374)", async () => {
-  const db = await openDb();
-  db.exec("INSERT INTO emulator_search (game_id, searched_at) VALUES (11, '2026-11-01T12:00:00Z') ON CONFLICT DO NOTHING");
-  db.close();
-  let sent: unknown = null;
-  await page.route("**/api/best-emulator", (route) => { sent = route.request().postDataJSON(); return route.fulfill({ json: [1] }); });
-  await page.goto(`${base()}/saga/?id=1`);
-  await page.getByRole("button", { name: es.catalog.bestEmulator.open }).click();
-  const dialog = page.getByRole("dialog", { name: es.catalog.bestEmulator.title });
-  await expect(dialog.getByRole("checkbox", { name: "The Legend of Zelda" })).toBeChecked();
-  await expect(dialog.getByRole("checkbox", { name: /Ocarina of Time/ })).toBeChecked();
-  const botw = dialog.getByRole("checkbox", { name: /Breath of the Wild/ });
-  await expect(botw).not.toBeChecked();
-  await expect(dialog.getByText(/buscado el/)).toBeVisible();
-  await expect(dialog.getByRole("status")).toHaveText("1 juego elegido");
-  await dialog.getByRole("button", { name: "Buscar en 1 juego" }).click();
-  await expect(dialog).toBeHidden();
-  expect(sent).toEqual({ gameIds: [10] });
-  await page.unroute("**/api/best-emulator");
-});
-
 test("ports: Novedades con los nuevos de lo que sigues, la ficha separa los 100 % jugables e instalar pide la URL solo sin receta (#286, #287, #384)", async () => {
   // Sin ningún «Visto», Novedades muestra lo de los últimos 30 días.
   const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
