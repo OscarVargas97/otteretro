@@ -22,10 +22,6 @@ public class ModesTests
     }
 
     [Fact]
-    public void PlayIsNotImplementedYet() =>
-        Assert.Equal(PlayMode.NotImplemented, PlayMode.Run(["123"]));
-
-    [Fact]
     public void OpenApiDescribesTheApi()
     {
         using var tmp = new TempDir();

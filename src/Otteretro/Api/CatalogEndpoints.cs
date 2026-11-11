@@ -351,6 +351,14 @@ public static class CatalogEndpoints
             var (error, saves) = Profiles.Switch(db, id, r.ProfileId, r.SaveUser);
             return error is null ? TypedResults.Ok(new ProfileSwitch(saves)) : TypedResults.BadRequest(error);
         });
+        // Jugar (#399): arranca `otteretro jugar <id>` aparte, que vive mientras juegas y avisa él mismo si algo falla.
+        api.MapPost("/versions/{id:long}/play", Results<Ok, Conflict<ApiError>> (long id, AppSession s) =>
+        {
+            if (Db(s) is null) return NoData();
+            try { System.Diagnostics.Process.Start(Environment.ProcessPath!, ["jugar", id.ToString(CultureInfo.InvariantCulture)])?.Dispose(); }
+            catch (System.ComponentModel.Win32Exception e) { return TypedResults.Conflict(ApiError.Of("play.launchFailed", ("detail", e.Message))); }
+            return TypedResults.Ok();
+        });
 
         api.MapGet("/search", Results<Ok<SearchResults>, Conflict<ApiError>> (AppSession s, string? q) =>
         {

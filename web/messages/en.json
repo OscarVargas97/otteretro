@@ -654,6 +654,13 @@
       "openFailed": "Couldn't open the emulator: {detail}",
       "opened": "The emulator was opened.",
       "openedPlain": "The emulator opened without the game (the ROM or its disk is missing, or the emulator can't open it that way): find the game in its list."
+    },
+    "play": {
+      "badId": "“jugar” needs the game version's id, a number; got “{id}”.",
+      "noData": "There's no data folder yet: open Otteretro and choose one.",
+      "noEmulator": "There's nothing to play this game with: install an emulator or port for its console, or choose its base emulator.",
+      "noGame": "The emulator can't open the game: the ROM is missing, its disk isn't connected or the emulator can't open it.",
+      "launchFailed": "Couldn't open the game: {detail}"
     }
   },
   "credentials": {

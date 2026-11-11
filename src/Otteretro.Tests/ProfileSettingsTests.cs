@@ -9,7 +9,7 @@ public class ProfileSettingsTests
 {
     const string Totk = "0100F2C0115B6000";
 
-    static string Install(Fixture f, string id, string kind, string name, string exe, string version)
+    internal static string Install(Fixture f, string id, string kind, string name, string exe, string version)
     {
         var dir = f.Tmp[$@"E\{(kind == "port" ? "Ports" : "Emuladores")}\{name}\{version}"];
         Directory.CreateDirectory(dir);
@@ -22,7 +22,7 @@ public class ProfileSettingsTests
     }
 
     /// <summary>Un juego con su ROM en el disco ★.</summary>
-    static Fixture Game(string platform, string code, out string rom)
+    internal static Fixture Game(string platform, string code, out string rom)
     {
         var f = new Fixture();
         var (disk, _) = Disk.Create(f.Db, f.Tmp["E"], "E:");
