@@ -51,6 +51,27 @@ public static class WindowsGame
         }
     }
 
+    /// <summary>Cuánto se espera a que arranque un juego abierto por Steam (T7: solo los primeros segundos).</summary>
+    public static TimeSpan SteamStart { get; set; } = TimeSpan.FromSeconds(60);
+
+    /// <summary>
+    /// Un juego de Steam (T7, decisión 386): Steam anota en `RunningAppID` del registro el juego que corre, sea cual sea su ejecutable
+    /// (lanzadores y anticheat incluidos). Si es <paramref name="app"/> en los primeros segundos, devuelve la espera a que deje de
+    /// serlo (cada 5 s); si no, null.
+    /// </summary>
+    [SupportedOSPlatform("windows")]
+    public static Action? FindSteam(string app)
+    {
+        bool Running() => Microsoft.Win32.Registry.GetValue(@"HKEY_CURRENT_USER\Software\Valve\Steam", "RunningAppID", null)?.ToString() == app;
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        while (!Running())
+        {
+            if (clock.Elapsed > SteamStart) return null;
+            Thread.Sleep(1000);
+        }
+        return () => { while (Running()) Thread.Sleep(5000); };
+    }
+
     /// <summary>La ventana pequeña de un error al jugar: un cuadro de mensaje del sistema.</summary>
     [SupportedOSPlatform("windows")]
     public static void ShowError(string text) => MessageBoxW(0, text, "Otteretro", 0x10 /* MB_ICONERROR */);
