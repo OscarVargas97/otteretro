@@ -4,7 +4,7 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.5.1 · Herramientas
 
-F5 (#263, encuestas 19 a 23): emuladores, ports y herramientas instalados y al día, con perfiles por juego, recetas desde el catálogo y el mejor emulador por juego · release a `main` en el canal Estable.
+`chore/263-release-f5`, `chore/version-f5`, `feat/receta-linux`, `feat/384-port-por-enlace` y `feat/375-mejor-emulador-ficha` · F5 (#263, encuestas 19 a 23): emuladores, ports y herramientas instalados y al día, con perfiles por juego, recetas desde el catálogo y el mejor emulador por juego · release a `main` en el canal Estable.
 
 ### Nuevo
 - **«Buscar el mejor emulador» con Claude** (#373): una tarea local que busca con Claude (Sonnet, con búsqueda web) el mejor emulador para un juego en cada una de sus consolas, uno por consola, con su fuente y su motivo. Lo que encuentra queda en esta máquina, no se envía al catálogo. Una búsqueda nueva reemplaza lo que dejó Claude, no lo que elegiste a mano.
