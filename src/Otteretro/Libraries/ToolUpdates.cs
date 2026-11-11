@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Dapper;
 using Otteretro.Api;
@@ -155,9 +156,19 @@ public static class ToolUpdates
             .ToList();
     }
 
-    /// <summary>Las releases de un repo de GitHub, o de Forgejo o Gitea (la misma API, en <c>host</c>).</summary>
+    /// <summary>Las releases de un repo de GitHub, de Forgejo o Gitea (la misma API, en <c>host</c>) o de GitLab (#390).</summary>
     static async Task<List<GitRelease>> Fetch(HttpClient http, RecipeUpdates u, string repo, CancellationToken ct, string? token)
     {
+        if (u.Source == "gitlab")
+        {
+            // Sus archivos son los enlaces de cada release; upcoming_release (una release futura) cuenta como prerelease. Sin clave.
+            var gitlab = $"https://{u.Host}/api/v4/projects/{Uri.EscapeDataString(repo)}/releases?per_page=30";
+            return JsonNode.Parse(await GithubApi.GetString(http, gitlab, null, ct))!.AsArray().OfType<JsonObject>().Select(g => new GitRelease(
+                (string?)g["tag_name"] ?? "", (string?)g["name"], (string?)g["description"], false, g["upcoming_release"]?.GetValue<bool>() == true,
+                (string?)(g["released_at"] ?? g["created_at"]), (string?)g["_links"]?["self"],
+                g["assets"]?["links"]?.AsArray().OfType<JsonObject>().Select(a => new GitAsset((string)a["name"]!, (string?)a["direct_asset_url"] ?? (string?)a["url"])).ToList()))
+                .ToList();
+        }
         var url = u.Source == "forgejo" ? $"https://{u.Host}/api/v1/repos/{repo}/releases?limit=30" : $"https://api.github.com/repos/{repo}/releases?per_page=30";
         return JsonSerializer.Deserialize<List<GitRelease>>(await GithubApi.GetString(http, url, token, ct), Snake)!;
     }
@@ -175,8 +186,10 @@ public static class ToolUpdates
         if (parts.Length < 2) return null;
         var repo = $"{parts[0]}/{(parts[1].EndsWith(".git", StringComparison.OrdinalIgnoreCase) ? parts[1][..^4] : parts[1])}";
         if (!Regex.IsMatch(repo, "^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$")) return null;
-        return uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase) || uri.Host.Equals("www.github.com", StringComparison.OrdinalIgnoreCase)
-            ? new("github", repo, Dev: true) : new("forgejo", repo, uri.Authority, Dev: true);
+        if (uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase) || uri.Host.Equals("www.github.com", StringComparison.OrdinalIgnoreCase)) return new("github", repo, Dev: true);
+        // shortcut: GitLab se reconoce por el nombre del servidor, como en el catálogo (gitlab.com, gitlab.algo, framagit); uno propio con otro nombre pasa por Forgejo.
+        var gitlab = uri.Host is "gitlab.com" or "framagit.org" || uri.Host.StartsWith("gitlab.", StringComparison.Ordinal);
+        return new(gitlab ? "gitlab" : "forgejo", repo, uri.Authority, Dev: true);
     }
 
     /// <summary>Un archivo de una release.</summary>
