@@ -85,8 +85,7 @@ try {
     ["saga", `/saga/?id=${saga}`],
     ["juego", `/game/?id=${game}`],
     ["coleccion", "/collection/"],
-    ["capturador", "/downloads/?tab=links"],
-    ["descargas", "/downloads/?tab=queue"],
+    ["descargas", "/downloads/"],
   ];
   for (const [name, path] of shots) {
     await page.goto(base + path);

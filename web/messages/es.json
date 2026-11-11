@@ -1327,13 +1327,13 @@
     "systemUploadFor": "Subir un archivo para {name}"
   },
   "downloads": {
-    "add": "Capturar enlaces",
+    "add": "Añadir",
     "links": "Pega o arrastra tus enlaces, en cualquier texto: quedan guardados al instante",
     "linksHint": "https://…",
     "disk": "Disco de destino",
     "defaultDisk": "Disco ★",
     "emptyTitle": "Sin descargas",
-    "emptyText": "Agrega enlaces en el capturador: lo que baja se ordena solo en tu disco.",
+    "emptyText": "Pega enlaces en «Añadir»: lo que baja se ordena solo en tu disco.",
     "summary": "{disk} · {done} de {total} archivos",
     "speed": "{speed} MB/s",
     "pause": "Pausar",
@@ -1347,7 +1347,7 @@
       "error": "Con error",
       "canceled": "Cancelada"
     },
-    "addForGame": "Capturar enlaces de {name}",
+    "addForGame": "Añadir enlaces de {name}",
     "check": "Comprobar enlaces",
     "checking": "Comprobando…",
     "noLinks": "No encontré enlaces en ese texto.",
@@ -1363,9 +1363,6 @@
     "connections": "Conexiones",
     "connectionsHelp": "Por archivo. Cada sitio tiene su tope, para no arriesgar tu cuenta: 1fichier usa una.",
     "openBrowser": "Abrir en el navegador",
-    "tabQueue": "Descargas",
-    "tabLinks": "Capturador de enlaces",
-    "tabLinksCount": "Capturador de enlaces ({count})",
     "sections": "Secciones de Descargas",
     "addLinks": "Agregar",
     "clipboard": "Capturar también los enlaces que copie",
@@ -1399,7 +1396,15 @@
       "site": "Verificado por el sitio",
       "none": "Sin verificar"
     },
-    "gameLinksNone": "Aún no guardaste enlaces de este juego."
+    "gameLinksNone": "Aún no guardaste enlaces de este juego.",
+    "tabActive": "En curso",
+    "tabDone": "Terminadas",
+    "activeCount": "{count, plural, one {# en curso} other {# en curso}}",
+    "doneEmpty": "Aún no termina ninguna descarga.",
+    "goesTo": "Va a",
+    "advanced": "Avanzado · conexiones, descargas a la vez, cuentas",
+    "accounts": "Cuentas de descarga (1fichier, Mega)",
+    "openAccounts": "Abrir en Ajustes"
   },
   "ports": {
     "title": "Ports",

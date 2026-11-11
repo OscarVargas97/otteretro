@@ -196,6 +196,7 @@ Estados (§0.5): **vacío** (la nutria, «Escanear una carpeta» y «Explorar sa
 | **Historial** | Lo importado, con fecha, origen y resultado | Ver juego. No hay deshacer: mover es definitivo una vez verificado (P7) |
 
 - **Estado de JDownloader** arriba: conectado o no, y el dispositivo.
+- **Cómo se ve (#417, decisión 392):** arriba la caja **Añadir** (pegar o arrastrar enlaces, los paquetes capturados con Comprobar y Quitar, y en una línea el disco de destino y «Descargar»). Debajo, dos pestañas: **En curso** (con su contador) y **Terminadas**; cada fila con barra, sus enlaces plegados, Pausar/Reanudar/Cancelar y «Volver a bajar» si falló. Conexiones, descargas a la vez por sitio, capturar lo copiado y las cuentas van en un `details` **Avanzado** plegado. Megapack sigue en Colección (importar carpeta); «Ver juego» y «Comprobar al terminar» esperan al backend.
 
 ---
 

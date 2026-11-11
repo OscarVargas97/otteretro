@@ -316,9 +316,10 @@ test("Ajustes › Consolas: el detalle de una consola, su destino y mover sus ju
   await removeDisks();
 });
 
-test("Descargas: el capturador guarda lo pegado, sobrevive a cambiar de pantalla y dice lo que respondió el sitio (#203, #204, #210)", async () => {
-  await page.goto(`${base()}/downloads/?tab=links`);
-  await expect(page.getByRole("tab", { name: en.downloads.tabLinks })).toHaveAttribute("aria-selected", "true");
+test("Descargas: «Añadir» guarda lo pegado, sobrevive a cambiar de pantalla y dice lo que respondió el sitio (#203, #204, #210, #417)", async () => {
+  await page.goto(`${base()}/downloads/`);
+  await expect(page.getByRole("heading", { name: en.downloads.add })).toBeVisible();
+  await expect(page.getByRole("tab", { name: en.downloads.tabActive })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByText(en.downloads.captureEmpty)).toBeVisible();
   // Se guarda sin consultar el sitio, y sigue ahí después de irse y volver.
   await page.getByLabel(en.downloads.links).fill("https://1fichier.com/?abc123&af=9 https://sitio.test/juego.part1.rar https://sitio.test/juego.part2.rar");
@@ -327,8 +328,6 @@ test("Descargas: el capturador guarda lo pegado, sobrevive a cambiar de pantalla
   await expect(page.getByText(en.downloads.state.unchecked)).toHaveCount(3);
   await page.goto(`${base()}/tools/`);
   await page.goto(`${base()}/downloads/`);
-  await expect(page.getByRole("tab", { name: en.downloads.tabLinksCount.replace("{count}", "3") })).toBeVisible();
-  await page.getByRole("tab", { name: /Link grabber/ }).click();
   await expect(page.getByRole("checkbox", { name: /^abc123/ })).toBeVisible();
   await expect(page.getByRole("checkbox", { name: /^juego/ })).toBeVisible();
   await expect(page.getByText("juego.part2.rar")).toBeVisible();
@@ -343,7 +342,12 @@ test("Descargas: el capturador guarda lo pegado, sobrevive a cambiar de pantalla
   // Cada descarga se despliega en sus enlaces, y dice cómo va cada uno.
   await page.route("**/api/downloads", (route) => route.fulfill({ json: [{ id: 999, name: "DKB ROM", disk: "D:", links: 3, done: 1, status: "paused", progress: 40, detail: null, createdAt: "2026-11-01T00:00:00Z",
     items: [{ url: "https://1fichier.com/?parte1", name: "DKB ROM.part1.rar", size: 5242880, check: "crc32" }, { url: "https://1fichier.com/?parte2", name: "DKB ROM.part2.rar", size: null, check: null }, { url: "https://1fichier.com/?parte3", name: "DKB ROM.part3.rar", size: null, check: null }] }] }));
-  await page.goto(`${base()}/downloads/?tab=queue`);
+  await page.goto(`${base()}/downloads/`);
+  await expect(page.locator(".version-row").getByText(en.downloads.status.paused)).toBeVisible();
+  // Terminadas solo muestra lo que acabó.
+  await page.getByRole("tab", { name: en.downloads.tabDone }).click();
+  await expect(page.getByText(en.downloads.doneEmpty)).toBeVisible();
+  await page.getByRole("tab", { name: en.downloads.tabActive }).click();
   await expect(page.getByText("DKB ROM.part1.rar")).toBeHidden();
   await page.getByText("Show 3 links").click();
   const items = page.locator(".download-item");
@@ -352,18 +356,21 @@ test("Descargas: el capturador guarda lo pegado, sobrevive a cambiar de pantalla
   await expect(items.nth(1).getByText(en.downloads.status.paused)).toBeVisible();
   await expect(items.nth(2).getByText(en.downloads.itemPending)).toBeVisible();
   await expect(items.nth(0).getByText(en.downloads.verified.crc32)).toBeVisible();
-  // Cuántas a la vez por sitio: sin cuenta premium, 1fichier solo deja 1.
-  await page.getByText(en.downloads.parallelTitle).click();
+  // Avanzado viene plegado; ahí van cuántas a la vez por sitio (sin cuenta premium, 1fichier solo deja 1), el portapapeles y las cuentas.
+  await expect(page.getByText(en.downloads.parallelTitle)).toBeHidden();
+  await page.getByText(en.downloads.advanced).click();
+  await expect(page.getByLabel(en.downloads.clipboard)).toBeVisible();
+  await expect(page.getByRole("link", { name: en.downloads.openAccounts })).toHaveAttribute("href", /s=credentials/);
   await expect(page.getByText(en.downloads.parallelFree)).toBeVisible();
   const direct = page.getByLabel(new RegExp(en.downloads.site.direct));
   await direct.selectOption("3");
   await page.reload();
-  await page.getByText(en.downloads.parallelTitle).click();
+  await page.getByText(en.downloads.advanced).click();
   await expect(page.getByLabel(new RegExp(en.downloads.site.direct))).toHaveValue("3");
   if (process.env.OTTERETRO_SHOT) await page.locator(".panel").first().screenshot({ path: process.env.OTTERETRO_SHOT });
   await page.unroute("**/api/downloads");
   // Quitar los deja fuera para siempre.
-  await page.goto(`${base()}/downloads/?tab=links`);
+  await page.goto(`${base()}/downloads/`);
   for (const name of ["abc123", "juego.part1.rar", "juego.part2.rar"])
     await page.getByRole("button", { name: en.downloads.removeLink.replace("{name}", name) }).click();
   await expect(page.getByText(en.downloads.captureEmpty)).toBeVisible();

@@ -227,7 +227,7 @@ function GameLinks({ gameId }: { gameId: number }) {
   const links = useQuery(linksQuery(gameId));
   const again = useMutation({
     mutationFn: (url: string) => request<number>("/api/downloads/links", { method: "POST", body: JSON.stringify({ text: url, gameId }) }),
-    onSuccess: () => router.push("/downloads/?tab=links"),
+    onSuccess: () => router.push("/downloads/"),
   });
   const open = useMutation({ mutationFn: (url: string) => request<void>("/api/downloads/open", { method: "POST", body: JSON.stringify({ url }) }) });
   const remove = useMutation({

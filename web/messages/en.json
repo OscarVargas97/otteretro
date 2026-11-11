@@ -1327,13 +1327,13 @@
     "systemUploadFor": "Upload a file for {name}"
   },
   "downloads": {
-    "add": "Grab links",
+    "add": "Add",
     "links": "Paste or drop your links, in any text: they are saved right away",
     "linksHint": "https://…",
     "disk": "Destination disk",
     "defaultDisk": "★ disk",
     "emptyTitle": "No downloads",
-    "emptyText": "Add links in the grabber: what you download sorts itself onto your disk.",
+    "emptyText": "Paste links in “Add”: whatever downloads gets sorted onto your disk.",
     "summary": "{disk} · {done} of {total} files",
     "speed": "{speed} MB/s",
     "pause": "Pause",
@@ -1347,7 +1347,7 @@
       "error": "Failed",
       "canceled": "Canceled"
     },
-    "addForGame": "Grab links for {name}",
+    "addForGame": "Add links for {name}",
     "check": "Check links",
     "checking": "Checking…",
     "noLinks": "No links found in that text.",
@@ -1363,9 +1363,6 @@
     "connections": "Connections",
     "connectionsHelp": "Per file. Each site has its cap, so your account is not at risk: 1fichier uses one.",
     "openBrowser": "Open in browser",
-    "tabQueue": "Downloads",
-    "tabLinks": "Link grabber",
-    "tabLinksCount": "Link grabber ({count})",
     "sections": "Downloads sections",
     "addLinks": "Add",
     "clipboard": "Also grab the links I copy",
@@ -1399,7 +1396,15 @@
       "site": "Verified by the site",
       "none": "Not verified"
     },
-    "gameLinksNone": "You haven't saved any links for this game yet."
+    "gameLinksNone": "You haven't saved any links for this game yet.",
+    "tabActive": "In progress",
+    "tabDone": "Finished",
+    "activeCount": "{count, plural, one {# in progress} other {# in progress}}",
+    "doneEmpty": "No download has finished yet.",
+    "goesTo": "Goes to",
+    "advanced": "Advanced · connections, parallel downloads, accounts",
+    "accounts": "Download accounts (1fichier, Mega)",
+    "openAccounts": "Open in Settings"
   },
   "ports": {
     "title": "Ports",
