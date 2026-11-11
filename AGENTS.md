@@ -13,16 +13,16 @@ App personal, instalada con Velopack y con los datos en una carpeta que elige el
 
 ## Cómo se trabaja
 
-Desde un **espacio** de [ia-workspace](https://github.com/OscarVargas97/ia-workspace) con Otteretro y PlayOS, con el plugin `otter`. Su `AGENTS.md` explica los worktrees (`repos/otteretro/<rama>`), el estado de cada tarea en su issue, el guardián y el flujo completo; este repo es `repos/otteretro/` dentro de él. Para armarlo en otra máquina: `make espacio DIR=<carpeta>` desde un clon de ia-workspace y, adentro, `make repo URL=OscarVargas97/otteretro` y `make repo URL=OscarVargas97/playos`. La config del guardián de este repo (`.claude/otter.json`) y sus adaptaciones (`.claude/adaptaciones/otter.md`) viven acá y el espacio las toma solas. Lo propio de este repo:
+Con Claude Code en un worktree por rama; más adelante, desde [ottercode](https://github.com/OscarVargas97/ottercode) (proyecto `game-system`), que lleva el plan, las tareas y sus worktrees. Lo propio de este repo:
 
-- **Requerimientos y decisiones**: toda decisión de la persona sale de una encuesta (`otter:requerimientos`). Después de cada una:
+- **Requerimientos y decisiones**: toda decisión de la persona sale de una encuesta. Después de cada una:
   1. Respuestas en el issue «Encuesta NN» de la encuesta, sin contenido personal (#146).
   2. Una entrada por decisión en `docs/historial/decisiones.md`. **Solo crece**: si algo cambia, se agrega una entrada que reemplaza a la anterior.
   3. `docs/REQUISITOS.md` actualizado, con su fecha de "Última actualización".
 - **Tareas**: en GitHub. Solicitud = issue con etiqueta `solicitud`; tareas = sus sub-issues; estado en el [Project otteretro](https://github.com/users/OscarVargas97/projects/2); un milestone por fase. **El plan también vive en GitHub** (#143): cada fase es un milestone (qué trae, qué pedir y «Listo cuando»), lo que viene son borradores del Project con el campo `Fase` (vista «Plan») y la fase en curso tiene su issue «Fase N». `docs/plan.md` solo dice el orden de las fases y por qué.
 - **Ramas**: `main` es la rama por defecto y la de las releases; se desarrolla en `dev` (#181). Cada fase en `fase/N-nombre` desde `dev`; lo demás en `feat|fix|refactor|chore|docs/<nombre>`. Todo entra a `dev` por PR. **Una release es un PR de `dev` a `main`**: al fusionarlo, GitHub Actions publica `0.FASE.N` y la app se actualiza sola desde el canal Estable (#180). `VERSION` dice solo la fase (`0.3`) y se edita al abrir una; N sube con cada PR fusionado en `dev` (#207, `scripts/version.ps1`), y cada uno publica la prerelease `0.FASE.N-dev` (canal Pruebas). Como `dev` no es la rama por defecto, los «Closes #n» de los PRs a `dev` no cierran issues: se cierran a mano al fusionar.
 - **Commits** pequeños, en Conventional Commits y en español (`feat(catalog): …`), con `Refs #n` de la tarea.
-- **Tareas fuera del plan**: sin issue no hay trabajo. Lo que aparece pasa por `otter:requerimientos` y queda como issue (o como criterio o sub-issue de la tarea en curso). El registro anterior está en `docs/historial/tareas-no-planificadas.md`.
+- **Tareas fuera del plan**: sin issue no hay trabajo. Lo que aparece pasa por una encuesta y queda como issue (o como criterio o sub-issue de la tarea en curso). El registro anterior está en `docs/historial/tareas-no-planificadas.md`.
 - **Revisión**: `docs/review-checklist.md` tiene los errores propios de este stack.
 - **Mapa funcional**: `docs/mapa/README.md`. Si un cambio agrega o cambia una pantalla, un endpoint, un comando o una tabla, el mapa se actualiza en el mismo PR.
 
