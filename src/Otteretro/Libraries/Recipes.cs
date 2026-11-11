@@ -50,6 +50,8 @@ public record Recipe(string Id, string Name, string Kind, string Folder, string 
     public string? Parent { get; init; }
     /// <summary>Port: el juego que cubre (#193).</summary>
     public string? Game { get; init; }
+    /// <summary>Port: el enlace de su fila de port, que manda en juego y consola (#384, de #382).</summary>
+    public string? Port { get; init; }
     public RecipeVersion? Version { get; init; }
     public List<PortableStep> Portable { get; init; } = [];
     public string? Link { get; init; }
