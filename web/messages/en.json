@@ -150,7 +150,8 @@
       "show": "Show {name}"
     },
     "storage": "Storage",
-    "catalogTab": "Catalog"
+    "catalogTab": "Catalog",
+    "play": "How to play"
   },
   "dataFolder": {
     "dismiss": "Dismiss",
@@ -660,7 +661,9 @@
       "noData": "There's no data folder yet: open Otteretro and choose one.",
       "noEmulator": "There's nothing to play this game with: install an emulator or port for its console, or choose its base emulator.",
       "noGame": "The emulator can't open the game: the ROM is missing, its disk isn't connected or the emulator can't open it.",
-      "launchFailed": "Couldn't open the game: {detail}"
+      "launchFailed": "Couldn't open the game: {detail}",
+      "badOption": "That option no longer applies to this version of the game.",
+      "badOrder": "The order must include the four criteria, once each."
     }
   },
   "credentials": {
@@ -1572,5 +1575,32 @@
         "claude": "from Claude, local"
       }
     }
+  },
+  "play": {
+    "title": "How to play",
+    "pc": "{platform} version",
+    "port": "{name} port",
+    "emulator": "{name} emulator",
+    "notInstalled": "Not installed",
+    "change": "Change",
+    "chooseFor": "How to play on {console}",
+    "reset": "Back to automatic",
+    "reason": {
+      "manual": "chosen by hand",
+      "pc": "you own the official PC version",
+      "port": "100% port",
+      "perfect": "perfect emulator",
+      "playable": "most playable"
+    },
+    "order": "Automatic rule order",
+    "orderHelp": "For each game, the first option that meets a criterion is chosen, in this order. What you choose by hand on the game page overrides the rule.",
+    "criterion": {
+      "pc": "Official PC version you own",
+      "port": "100% port",
+      "perfect": "Perfect emulator",
+      "playable": "Most playable"
+    },
+    "up": "Move “{criterion}” up",
+    "down": "Move “{criterion}” down"
   }
 }

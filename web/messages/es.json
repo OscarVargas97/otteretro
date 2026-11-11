@@ -150,7 +150,8 @@
       "show": "Mostrar {name}"
     },
     "storage": "Almacenamiento",
-    "catalogTab": "Catálogo"
+    "catalogTab": "Catálogo",
+    "play": "Cómo jugar"
   },
   "dataFolder": {
     "dismiss": "Cerrar aviso",
@@ -660,7 +661,9 @@
       "noData": "Todavía no hay carpeta de datos: abre Otteretro y elige una.",
       "noEmulator": "Ese juego no tiene con qué jugarse: instala un emulador o un port para su consola, o elige su emulador base.",
       "noGame": "El emulador no puede abrir el juego: falta la ROM, su disco no está conectado o el emulador no sabe abrirla.",
-      "launchFailed": "No se pudo abrir el juego: {detail}"
+      "launchFailed": "No se pudo abrir el juego: {detail}",
+      "badOption": "Esa opción ya no sirve para esta versión del juego.",
+      "badOrder": "El orden tiene que tener los cuatro criterios, una vez cada uno."
     }
   },
   "credentials": {
@@ -1572,5 +1575,32 @@
         "claude": "de Claude, local"
       }
     }
+  },
+  "play": {
+    "title": "Cómo jugar",
+    "pc": "Versión de {platform}",
+    "port": "Port {name}",
+    "emulator": "Emulador {name}",
+    "notInstalled": "Sin instalar",
+    "change": "Cambiar",
+    "chooseFor": "Cómo jugar en {console}",
+    "reset": "Volver a la automática",
+    "reason": {
+      "manual": "elegida a mano",
+      "pc": "tienes la versión de PC oficial",
+      "port": "port al 100 %",
+      "perfect": "emulador perfecto",
+      "playable": "lo más jugable"
+    },
+    "order": "Orden de la regla automática",
+    "orderHelp": "Para cada juego se elige la primera opción que cumple un criterio, en este orden. Lo elegido a mano en la ficha manda sobre la regla.",
+    "criterion": {
+      "pc": "Versión de PC oficial que tienes",
+      "port": "Port al 100 %",
+      "perfect": "Emulador perfecto",
+      "playable": "Lo más jugable"
+    },
+    "up": "Subir «{criterion}»",
+    "down": "Bajar «{criterion}»"
   }
 }

@@ -5,6 +5,7 @@ using Otteretro.App;
 using Otteretro.Catalog;
 using Otteretro.Data;
 using Otteretro.Libraries;
+using Otteretro.Play;
 
 namespace Otteretro.Api;
 
@@ -359,6 +360,22 @@ public static class CatalogEndpoints
             catch (System.ComponentModel.Win32Exception e) { return TypedResults.Conflict(ApiError.Of("play.launchFailed", ("detail", e.Message))); }
             return TypedResults.Ok();
         });
+
+        // Cómo jugar (#398, §8.3): las opciones de cada versión y la elegida; elegir a mano, volver a la automática y el orden de la regla.
+        api.MapGet("/games/{id:long}/play", Results<Ok<List<VersionPlay>>, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(PlayChoice.OfGame(db, id)) : NoData());
+        api.MapPut("/games/{id:long}/play/{version:long}", Results<Ok<List<VersionPlay>>, BadRequest<ApiError>, Conflict<ApiError>> (long id, long version, PlayChoiceRequest r, AppSession s) =>
+            Db(s) is not { } db ? NoData() : PlayChoice.SetManual(db, id, version, r.Key) ? TypedResults.Ok(PlayChoice.OfGame(db, id)) : TypedResults.BadRequest(ApiError.Of("play.badOption")));
+        api.MapDelete("/games/{id:long}/play/{version:long}", Results<Ok<List<VersionPlay>>, Conflict<ApiError>> (long id, long version, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            PlayChoice.ClearManual(db, version);
+            return TypedResults.Ok(PlayChoice.OfGame(db, id));
+        });
+        api.MapGet("/play/order", Results<Ok<PlayOrder>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(new PlayOrder(PlayChoice.Order(db))) : NoData());
+        api.MapPut("/play/order", Results<Ok<PlayOrder>, BadRequest<ApiError>, Conflict<ApiError>> (PlayOrder r, AppSession s) =>
+            Db(s) is not { } db ? NoData() : PlayChoice.SetOrder(db, r.Criteria) ? TypedResults.Ok(new PlayOrder(PlayChoice.Order(db))) : TypedResults.BadRequest(ApiError.Of("play.badOrder")));
 
         api.MapGet("/search", Results<Ok<SearchResults>, Conflict<ApiError>> (AppSession s, string? q) =>
         {
