@@ -375,7 +375,8 @@
         "failed": "Claude falló: {detail}",
         "invalidOutput": "Claude respondió dos veces algo que no tiene la forma esperada.",
         "limit": "Llegaste al límite de tu suscripción de Claude: sigue sola el {at}.",
-        "identify": "{done} de {total} archivos identificados"
+        "identify": "{done} de {total} archivos identificados",
+        "bestEmulator": "{game}: buscando el mejor emulador"
       },
       "log": {
         "started": "Empezó.",
@@ -400,7 +401,8 @@
         "paused": "En pausa: sigue desde aquí al reanudarla.",
         "resumed": "Reanudada.",
         "canceled": "Cancelada.",
-        "identify": "Dejó {doubtful} en Dudosas y {unidentified} en Sin identificar."
+        "identify": "Dejó {doubtful} en Dudosas y {unidentified} en Sin identificar.",
+        "bestEmulator": "Recomendó un emulador en {count} de {consoles} consolas."
       },
       "tools": {
         "checking": "Revisando {name}",
@@ -724,7 +726,8 @@
         "cleanup": "Depurar el catálogo con Claude",
         "sagas": "Rutas, icónico y mejor versión con Claude",
         "load": "Carga inicial con Claude, por partes",
-        "identify": "Identificar archivos con Claude"
+        "identify": "Identificar archivos con Claude",
+        "bestEmulator": "Buscar el mejor emulador con Claude"
       },
       "catalog": {
         "extra": "Completar con Wikidata y RAWG",
