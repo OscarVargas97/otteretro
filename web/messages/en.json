@@ -1550,6 +1550,20 @@
     "shared": "Done: {path}. It has the emulator, mods and settings; never keys, BIOS, firmware, games or saves.",
     "loadZip": "Load a profile (.zip)",
     "loadConfirm": "Load",
-    "loaded": "Loading the profile: follow it in Tasks."
+    "loaded": "Loading the profile: follow it in Tasks.",
+    "best": {
+      "search": "Find the best emulator",
+      "queued": "Queued",
+      "searched": "Last search: {date}",
+      "none": "No recommendation",
+      "choose": "Choose by hand",
+      "chooseFor": "Emulator for {console}",
+      "reset": "Back to the catalog’s",
+      "repo": "See its repo",
+      "origin": {
+        "manual": "chosen by you",
+        "claude": "from Claude, local"
+      }
+    }
   }
 }

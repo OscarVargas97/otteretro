@@ -1550,6 +1550,20 @@
     "shared": "Listo: {path}. Lleva el emulador, los mods y la configuración; nunca keys, BIOS, firmware, juegos ni partidas.",
     "loadZip": "Cargar un perfil (.zip)",
     "loadConfirm": "Cargar",
-    "loaded": "Cargando el perfil: lo sigues en Tareas."
+    "loaded": "Cargando el perfil: lo sigues en Tareas.",
+    "best": {
+      "search": "Buscar el mejor emulador",
+      "queued": "En cola",
+      "searched": "Última búsqueda: {date}",
+      "none": "Sin recomendado",
+      "choose": "Elegir a mano",
+      "chooseFor": "Emulador para {console}",
+      "reset": "Volver al del catálogo",
+      "repo": "Ver su repo",
+      "origin": {
+        "manual": "elegido por ti",
+        "claude": "de Claude, local"
+      }
+    }
   }
 }
