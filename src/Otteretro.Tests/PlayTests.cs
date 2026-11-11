@@ -83,6 +83,91 @@ public class PlayTests
         Assert.Equal(0, c.ExecuteScalar<long>("SELECT count(*) FROM play_session"));
     }
 
+    static string? Launched(Fixture f, long version)
+    {
+        string? exe = null;
+        var shown = Shown(() =>
+        {
+            GameLauncher.Launch = (e, _, _) => exe = e;
+            Assert.Equal(0, GameLauncher.Run(f.Db, f.Config, version));
+        });
+        Assert.Empty(shown);
+        return exe;
+    }
+
+    /// <summary>#400: Jugar abre lo que nombra la ficha, la opción elegida en «Cómo jugar», no el perfil efectivo.</summary>
+    [Fact]
+    public async Task PlayingLaunchesTheChosenEmulator()
+    {
+        await using var f = Ready(out _);
+        // El perfil efectivo es el de Citron (el base), que no abre en el juego; se elige Eden a mano.
+        ProfileSettingsTests.Install(f, "citron", "emulator", "Citron", "citron.exe", "2026.01.01");
+        Profiles.SetBase(f.Db, "switch", "citron");
+        Assert.True(PlayChoice.SetManual(f.Db, 10, 20, "emulator:eden"));
+        Assert.EndsWith("eden.exe", Launched(f, 20));
+    }
+
+    [Fact]
+    public async Task PlayingLaunchesTheChosenPort()
+    {
+        await using var f = ProfileSettingsTests.Game("gc", "GZ2E01", out _);
+        ProfileSettingsTests.Install(f, "dolphin", "emulator", "Dolphin", "Dolphin.exe", "2512");
+        Profiles.SetBase(f.Db, "gc", "dolphin");
+        ProfileSettingsTests.Install(f, "dusklight", "port", "Dusklight", "dusklight.exe", "1.0");
+        using (var c = f.Db.Open())
+            c.Execute("""
+                INSERT INTO port (id, console, game, project, kind, status, link, source, added, game_id) VALUES
+                  (1, 'gc', 'Twilight Princess', 'Dusklight', 'decomp', 'complete', 'https://github.com/TwilitRealm/dusklight', 'recompendium', '2026-01-01', 10)
+                """);
+        // El port al 100 % gana por la regla, aunque el perfil efectivo sea el de Dolphin.
+        Assert.Equal("port:1", PlayChoice.OfGame(f.Db, 10)[0].Chosen);
+        Assert.EndsWith("dusklight.exe", Launched(f, 20));
+        Assert.True(PlayChoice.SetManual(f.Db, 10, 20, "emulator:dolphin"));
+        Assert.EndsWith("Dolphin.exe", Launched(f, 20));
+    }
+
+    /// <summary>#400 paso 2: lo que tienes en Steam se abre con `steam://rungameid/` y, si el juego arranca, se anota la sesión.</summary>
+    [Fact]
+    public async Task SteamGamesOpenThroughSteamAndRecordTheSessionWhenSeen()
+    {
+        await using var f = new Fixture();
+        using (var c = f.Db.Open())
+            c.Execute("""
+                INSERT INTO game (id, name_es) VALUES (10, 'Hollow Knight');
+                INSERT INTO version (id, game_id, platform) VALUES (20, 10, 'pc');
+                INSERT INTO source (kind, store, store_id, name, version_id) VALUES ('store', 'steam', '367520', 'Hollow Knight', 20);
+                """);
+        var (open, find) = (GameLauncher.OpenUrl, GameLauncher.FindSteamGame);
+        var opened = new List<string>();
+        try
+        {
+            GameLauncher.OpenUrl = url => { opened.Add(url); return true; };
+            // No arrancó en los primeros segundos: sin sesión.
+            GameLauncher.FindSteamGame = _ => null;
+            Assert.Empty(Shown(() => Assert.Equal(0, GameLauncher.Run(f.Db, f.Config, 20))));
+            Assert.Empty(GameLauncher.Recent(f.Db, 10));
+
+            string? watched = null;
+            GameLauncher.FindSteamGame = app =>
+            {
+                watched = app;
+                return () => Assert.True(Assert.Single(GameLauncher.Recent(f.Db, 10)).Playing);
+            };
+            Assert.Empty(Shown(() => Assert.Equal(0, GameLauncher.Run(f.Db, f.Config, 20))));
+            Assert.Equal("367520", watched);
+            Assert.Equal(["steam://rungameid/367520", "steam://rungameid/367520"], opened);
+            var session = Assert.Single(GameLauncher.Recent(f.Db, 10));
+            Assert.Equal(("steam", false), (session.Launcher, session.Playing));
+            Assert.NotNull(session.EndedAt);
+
+            // Sin Steam: lo dice.
+            GameLauncher.OpenUrl = _ => false;
+            f.Config.Language = "es";
+            Assert.Equal([GameLauncher.Text(Api.ApiError.Of("steam.notInstalled"), "es")], Shown(() => Assert.Equal(1, GameLauncher.Run(f.Db, f.Config, 20))));
+        }
+        finally { (GameLauncher.OpenUrl, GameLauncher.FindSteamGame) = (open, find); }
+    }
+
     [Fact]
     public void ArgumentsAreQuotedAsWindowsReadsThem()
     {

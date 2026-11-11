@@ -38,33 +38,93 @@ public static class GameLauncher
         ShowError(Text(error, language));
     }
 
+    /// <summary>Abre un enlace (`steam://…`) con el programa del sistema; false si no hay quién lo abra.</summary>
+    public static Func<string, bool> OpenUrl { get; set; } = Endpoints.Open;
+
+    /// <summary>
+    /// Tras abrir un juego de Steam: si arranca en los primeros segundos, devuelve con qué esperar a que se cierre; null si no se vio.
+    /// </summary>
+    public static Func<string, Action?> FindSteamGame { get; set; } = OperatingSystem.IsWindows() ? WindowsGame.FindSteam : _ => null;
+
+    /// <summary>
+    /// Juega lo que la ficha nombra (#400): la opción elegida en «Cómo jugar» (`play_choice` o la regla). La versión de PC elegida se
+    /// juega como ella misma y, si es de Steam, por Steam; un emulador o un port, con su perfil.
+    /// </summary>
     static ApiError? Play(Database db, string machine, long version)
     {
-        // shortcut: lanza el perfil efectivo; cuando esté la regla de cómo jugar (#398), la opción que elija.
-        if (Profiles.Effective(db, version) is not { } profile) return ApiError.Of("play.noEmulator");
+        var chosen = Chosen(db, version);
+        if (chosen?.Split(':') is ["pc", var pc]) version = long.Parse(pc, System.Globalization.CultureInfo.InvariantCulture);
+        if (SteamApp(db, version) is { } app)
+        {
+            if (!OpenUrl($"steam://rungameid/{app}")) return ApiError.Of("steam.notInstalled");
+            // Sin señal del juego en los primeros segundos no hay sesión: la ficha dice «Jugando…» un rato (decisión 381).
+            return FindSteamGame(app) is { } wait ? Track(db, machine, version, "steam", wait) : null;
+        }
+        if (ProfileOf(db, version, chosen) is not { } profile) return ApiError.Of("play.noEmulator");
         var (exe, args, inGame, error) = EmulatorSettings.OpenArgs(db, profile.Id, version);
         if (error is not null) return error;
         if (!inGame) return ApiError.Of("play.noGame");
 
         var swap = profile.GameVersionId is not null && Recipes.Find(profile.EmulatorId)?.PerGame?.Apply == "swap";
         if (swap) Profiles.SwapIn(db, profile.Id);
+        try { return Track(db, machine, version, "otteretro", () => Launch(exe!, args, Path.GetDirectoryName(exe)!)); }
+        finally { if (swap) Profiles.SwapOut(db, profile.EmulatorId); }
+    }
+
+    /// <summary>La key de la opción elegida para la versión (manual o de la regla); null si la versión no está en «Cómo jugar».</summary>
+    static string? Chosen(Database db, long version)
+    {
+        long? game;
+        using (var c = db.Open()) game = c.ExecuteScalar<long?>("SELECT game_id FROM version WHERE id = @version", new { version });
+        return game is { } g ? PlayChoice.OfGame(db, g).FirstOrDefault(v => v.VersionId == version)?.Chosen : null;
+    }
+
+    /// <summary>El appid de Steam si la versión la tienes en Steam; null si no.</summary>
+    static string? SteamApp(Database db, long version)
+    {
+        using var c = db.Open();
+        return c.ExecuteScalar<string?>("SELECT store_id FROM source WHERE version_id = @version AND kind = 'store' AND store = 'steam' LIMIT 1", new { version });
+    }
+
+    /// <summary>
+    /// El perfil de la opción elegida: el activo del juego si es de ese emulador o port; si no, el por defecto del elegido (null si no
+    /// está instalado). Sin elección (o la versión de PC), el perfil efectivo.
+    /// </summary>
+    static Profile? ProfileOf(Database db, long version, string? chosen)
+    {
+        var emulator = chosen?.Split(':', 2) switch
+        {
+            ["emulator", var e] => e,
+            ["port", var p] => Ports.EmulatorOf(db, long.Parse(p, System.Globalization.CultureInfo.InvariantCulture)),
+            _ => null,
+        };
+        var effective = Profiles.Effective(db, version);
+        if (emulator is null || effective?.EmulatorId == emulator) return effective;
+        using var c = db.Open();
+        return c.ExecuteScalar<long?>("SELECT id FROM profile WHERE emulator_id = @emulator AND game_version_id IS NULL", new { emulator }) is { } id
+            ? Profiles.Get(c, id) : null;
+    }
+
+    /// <summary>
+    /// Anota la sesión mientras <paramref name="wait"/> espera al juego. Queda abierta (sin ended_at) mientras se juega: así la ficha
+    /// muestra «Jugando…» (#400). Si no arranca, se borra.
+    /// </summary>
+    static ApiError? Track(Database db, string machine, long version, string launcher, Action wait)
+    {
         var started = DateTime.UtcNow;
-        // La sesión queda abierta (sin ended_at) mientras se juega: así la ficha muestra «Jugando…» (#400).
         long session;
         using (var c = db.Open())
             session = c.ExecuteScalar<long>("""
-                INSERT INTO play_session (version_id, machine_id, launcher, started_at) VALUES (@version, @machine, 'otteretro', @start) RETURNING id
-                """, new { version, machine, start = started.ToString("O") });
-        try { Launch(exe!, args, Path.GetDirectoryName(exe)!); }
+                INSERT INTO play_session (version_id, machine_id, launcher, started_at) VALUES (@version, @machine, @launcher, @start) RETURNING id
+                """, new { version, machine, launcher, start = started.ToString("O") });
+        try { wait(); }
         catch (Exception e) when (e is Win32Exception or IOException)
         {
             using var c = db.Open();
             c.Execute("DELETE FROM play_session WHERE id = @session", new { session });
             return ApiError.Of("play.launchFailed", ("detail", e.Message));
         }
-        finally { if (swap) Profiles.SwapOut(db, profile.EmulatorId); }
         var ended = DateTime.UtcNow;
-
         using (var c = db.Open())
             c.Execute("UPDATE play_session SET ended_at = @end, duration = @duration WHERE id = @session",
                 new { session, end = ended.ToString("O"), duration = (long)(ended - started).TotalSeconds });

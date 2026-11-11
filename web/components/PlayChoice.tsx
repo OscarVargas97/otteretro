@@ -36,7 +36,7 @@ export function PlayButton({ game, owned, onChange }: { game: GameDetail; owned:
   const label = useLabel();
   const cache = useQueryClient();
   const gameId = Number(game.id);
-  // Lanzar no espera al juego: unos segundos dice «Jugando…» hasta que aparece la sesión (o, por Steam, que no la anota).
+  // Lanzar no espera al juego: unos segundos dice «Jugando…» hasta que aparece la sesión (por Steam, solo si se vio arrancar el juego: decisión 386).
   const [launching, setLaunching] = useState(false);
   useEffect(() => {
     if (!launching) return;
