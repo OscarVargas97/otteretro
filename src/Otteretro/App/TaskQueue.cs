@@ -28,6 +28,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         ["demo"] = Demo,
         [Catalog.CatalogUpdate.Kind] = Catalog.CatalogUpdate.Run,
         ["steam.sync"] = Catalog.Steam.Sync,
+        [Catalog.SteamExport.Kind] = Catalog.SteamExport.Run,
         [Claude.Identify.Kind] = Claude.Identify.Run,
         [Libraries.DiskTasks.Move] = Libraries.DiskTasks.RunMove,
         [Libraries.DiskTasks.Migrate] = Libraries.DiskTasks.RunMigrate,

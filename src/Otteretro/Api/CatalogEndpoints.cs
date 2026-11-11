@@ -10,6 +10,7 @@ using Otteretro.Play;
 namespace Otteretro.Api;
 
 public record SagaFlagsRequest(bool? Favorite, bool? Following);
+public record SteamMarkRequest(bool Export);
 public record CatalogSource(string Repo, bool Official);
 public record CatalogSourceRequest(string? Repo);
 /// <summary>La versión aplicada y, si hay una esperando, qué cambia con ella (#222, #223).</summary>
@@ -355,7 +356,10 @@ public static class CatalogEndpoints
         // Jugar (#399): arranca `otteretro jugar <id>` aparte, que vive mientras juegas y avisa él mismo si algo falla.
         api.MapPost("/versions/{id:long}/play", Results<Ok, Conflict<ApiError>> (long id, AppSession s) =>
         {
-            if (Db(s) is null) return NoData();
+            if (Db(s) is not { } db) return NoData();
+            // Lo exportado a Steam en este equipo se abre por Steam (#130), con su overlay y sus horas.
+            if (Catalog.SteamExport.Exported(db, s.Config.MachineId, id) is { } game)
+                return Endpoints.Open($"steam://rungameid/{game}") ? TypedResults.Ok() : TypedResults.Conflict(ApiError.Of("steam.notInstalled"));
             try { System.Diagnostics.Process.Start(Environment.ProcessPath!, ["jugar", id.ToString(CultureInfo.InvariantCulture)])?.Dispose(); }
             catch (System.ComponentModel.Win32Exception e) { return TypedResults.Conflict(ApiError.Of("play.launchFailed", ("detail", e.Message))); }
             return TypedResults.Ok();
@@ -376,6 +380,22 @@ public static class CatalogEndpoints
             Db(s) is { } db ? TypedResults.Ok(new PlayOrder(PlayChoice.Order(db))) : NoData());
         api.MapPut("/play/order", Results<Ok<PlayOrder>, BadRequest<ApiError>, Conflict<ApiError>> (PlayOrder r, AppSession s) =>
             Db(s) is not { } db ? NoData() : PlayChoice.SetOrder(db, r.Criteria) ? TypedResults.Ok(new PlayOrder(PlayChoice.Order(db))) : TypedResults.BadRequest(ApiError.Of("play.badOrder")));
+
+        // Exportar a Steam (§10, #401): marcar versiones, ver qué cambia en este equipo y exportar con SRM.
+        api.MapPut("/versions/{id:long}/steam", Results<NoContent, NotFound, Conflict<ApiError>> (long id, SteamMarkRequest request, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            using (var c = db.Open())
+                if (c.ExecuteScalar<long?>("SELECT id FROM catalog.version WHERE id = @id", new { id }) is null) return TypedResults.NotFound();
+            Catalog.SteamExport.Mark(db, id, request.Export);
+            return TypedResults.NoContent();
+        });
+
+        api.MapGet("/steam/export", Results<Ok<Catalog.SteamChanges>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(Catalog.SteamExport.Changes(db, s.Config.MachineId, Environment.ProcessPath!)) : NoData());
+
+        api.MapPost("/steam/export", Results<Ok<long>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(Catalog.SteamExport.Enqueue(db, s.Config.MachineId, Environment.ProcessPath!)) : NoData());
 
         api.MapGet("/search", Results<Ok<SearchResults>, Conflict<ApiError>> (AppSession s, string? q) =>
         {
