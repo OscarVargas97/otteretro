@@ -1128,7 +1128,6 @@
     "queued": "It is in the tasks panel.",
     "reconnect": "Reconnect",
     "move": "Move",
-    "remove": "Remove",
     "removeHelp": "«{name}» is removed from Otteretro. No file is deleted: you can add it back whenever you want.",
     "removeConfirm": "Remove without deleting",
     "type": {
@@ -1168,9 +1167,8 @@
       "toDefault": "default drive ★",
       "run": "Move to the standard layout"
     },
-    "disk": "Drive",
     "dataUse": "App data",
-    "moreActions": "More drive options",
+    "moreActions": "More for «{name}»: usage, move and remove",
     "openFolder": "Open folder",
     "useOtherData": "Use another data folder…",
     "removeDisk": "Remove drive…",
@@ -1189,7 +1187,16 @@
       "retry": "Try now",
       "retrying": "Trying…",
       "stillLimited": "The limit is still on: it keeps the time Claude gave."
-    }
+    },
+    "disks": "Drives",
+    "colPath": "Path",
+    "colFree": "Free space",
+    "colStatus": "Status",
+    "colActions": "Actions",
+    "connected": "Connected",
+    "more": "More",
+    "removeNote": "Removing a drive takes it out of Otteretro; it never deletes files.",
+    "contents": "What {name} holds"
   },
   "tools": {
     "emptyTitle": "No emulators or ports yet",
