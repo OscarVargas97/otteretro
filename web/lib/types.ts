@@ -68,4 +68,5 @@ export type VersionProfiles = Schemas["VersionProfiles"];
 export type ProfileSwitch = Schemas["ProfileSwitch"];
 export type ProfileSettings = Schemas["ProfileSettings"];
 export type VersionPlay = Schemas["VersionPlay"];
+export type PlaySession = Schemas["PlaySession"];
 export type PlayOrder = Schemas["PlayOrder"];

@@ -9,7 +9,7 @@ namespace Otteretro.Play;
 /// <param name="Kind">pc, port o emulator.</param>
 /// <param name="Criterion">El criterio de la regla que cumple (§8.3): pc, port (100 %), perfect (emulador perfecto) o playable.</param>
 /// <param name="Level">Qué tan jugable: 3 perfecto, 2 jugable, 1 parcial, 0 no funciona; null sin dato.</param>
-/// <param name="Installed">Se puede jugar ya; false: un port con receta que falta instalar.</param>
+/// <param name="Installed">Se puede jugar ya; false: un port o un emulador con receta que falta instalar.</param>
 public record PlayOption(string Key, string Kind, string Name, string Criterion, int? Level, bool Installed);
 
 /// <summary>Cómo se juega una versión del juego (#398): sus opciones y la elegida.</summary>
@@ -119,12 +119,17 @@ public static class PlayChoice
                 SELECT e.id, e.name FROM console_emulator ce JOIN emulator e ON e.id = ce.emulator_id
                 WHERE ce.console_id = @platform AND e.kind = 'emulator' ORDER BY e.id = @effective DESC, ce.is_base DESC, e.name
                 """, new { platform, effective }).ToList();
+        // Sin instalar (#410): el que recomienda el catálogo para el juego y el base de la consola, si su receta se instala sola.
+        var missing = Recipes.All.Where(r => r.Kind == "emulator" && r.Updates is not null && r.Asset is not null && r.Consoles.Contains(platform)
+                && (r.RecommendedFor.Any(g => g.GameId == gameId) || r.BaseFor.Contains(platform)) && emulators.All(e => e.Id != r.Id))
+            .Select(r => (r.Id, r.Name, Installed: false));
         var compat = ports.Where(p => p.Emulator is not null && p.EmulatorLevel is not null).ToList();
-        return emulators.OrderByDescending(e => Recipes.Find(e.Id)?.RecommendedFor.Any(g => g.GameId == gameId) == true).Select(e =>
+        return emulators.Select(e => (e.Id, e.Name, Installed: true)).Concat(missing)
+            .OrderByDescending(e => Recipes.Find(e.Id)?.RecommendedFor.Any(g => g.GameId == gameId) == true).Select(e =>
         {
             var names = new[] { e.Name, Recipes.Find(e.Id)?.Name }.OfType<string>().ToList();
             var level = compat.Where(p => p.Emulator!.Split('/').Any(r => names.Contains(r.Trim(), StringComparer.OrdinalIgnoreCase))).Max(p => p.EmulatorLevel);
-            return new PlayOption($"emulator:{e.Id}", "emulator", Recipes.Find(e.Id)?.Name ?? e.Name, level == 3 ? Perfect : Playable, level, true);
+            return new PlayOption($"emulator:{e.Id}", "emulator", Recipes.Find(e.Id)?.Name ?? e.Name, level == 3 ? Perfect : Playable, level, e.Installed);
         });
     }
 
