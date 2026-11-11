@@ -101,7 +101,7 @@ function Game() {
         <Versions game={g} compare={compare.data ?? []} />
 
         <GamePorts gameId={Number(g.id)} />
-        <GameProfiles gameId={Number(g.id)} />
+        <GameProfiles gameId={Number(g.id)} consoles={platforms} />
 
         <GameLinks gameId={Number(g.id)} />
 

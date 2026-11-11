@@ -15,6 +15,14 @@ public record EmulatorPick(string Console, string? RecipeId, string? Repo, strin
 /// <param name="SearchedAt">Cuándo se buscó por última vez; null si nunca.</param>
 public record BestEmulatorGame(long Id, string Name, int? Year, string[] Platforms, string? SearchedAt);
 
+/// <summary>La búsqueda de un juego en su ficha (#375).</summary>
+/// <param name="Task">La tarea que la busca ahora (en cola, corriendo o en pausa); null si no hay.</param>
+/// <param name="SearchedAt">Cuándo se buscó por última vez; null si nunca.</param>
+public record BestEmulatorStatus(long? Task, string? SearchedAt);
+
+/// <param name="RecipeId">La receta elegida a mano.</param>
+public record EmulatorPickRequest(string RecipeId);
+
 /// <summary>
 /// «Buscar el mejor emulador» (#373, #369): Sonnet con búsqueda web recomienda un emulador por cada consola donde existe un juego,
 /// con su fuente y su motivo. Queda solo local (no se envía al catálogo): una fila de `emulator_pick` por juego y consola.
@@ -57,6 +65,38 @@ public static class BestEmulator
             SELECT console, recipe_id AS RecipeId, repo, source, reason, origin, searched_at AS SearchedAt
             FROM emulator_pick WHERE game_id = @gameId ORDER BY console
             """, new { gameId }).ToList();
+    }
+
+    public static BestEmulatorStatus Status(Database db, long gameId)
+    {
+        using var c = db.Open();
+        return new(
+            c.ExecuteScalar<long?>("SELECT id FROM task WHERE kind = @Kind AND status IN ('queued', 'paused', 'running') AND data = @data",
+                new { Kind, data = gameId.ToString() }),
+            c.ExecuteScalar<string?>("SELECT searched_at FROM emulator_search WHERE game_id = @gameId", new { gameId }));
+    }
+
+    /// <summary>
+    /// «Elegir a mano» (#375): la receta tiene que ser un emulador que corra esa consola, y el juego tiene que salir en ella.
+    /// Reemplaza lo que hubiera para el juego y la consola (de Claude o a mano). false si algo no calza.
+    /// </summary>
+    public static bool Choose(Database db, long gameId, string console, string recipeId)
+    {
+        if (Recipes.Find(recipeId) is not { Kind: "emulator" } recipe || !recipe.Consoles.Contains(console)) return false;
+        using var c = db.Open();
+        if (c.ExecuteScalar<long>("SELECT count(*) FROM version WHERE game_id = @gameId AND platform = @console", new { gameId, console }) == 0) return false;
+        c.Execute("""
+            INSERT INTO emulator_pick (game_id, console, recipe_id, origin, searched_at) VALUES (@gameId, @console, @recipeId, 'manual', @now)
+            ON CONFLICT (game_id, console) DO UPDATE SET recipe_id = @recipeId, repo = NULL, source = NULL, reason = NULL, origin = 'manual', searched_at = @now
+            """, new { gameId, console, recipeId, now = DateTime.UtcNow.ToString("O") });
+        return true;
+    }
+
+    /// <summary>«Volver al del catálogo» (#375): borra lo local del juego en esa consola, sea de Claude o elegido a mano.</summary>
+    public static void Forget(Database db, long gameId, string console)
+    {
+        using var c = db.Open();
+        c.Execute("DELETE FROM emulator_pick WHERE game_id = @gameId AND console = @console", new { gameId, console });
     }
 
     public static async Task Run(TaskRun run, CancellationToken ct)

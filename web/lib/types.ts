@@ -68,3 +68,5 @@ export type VersionProfiles = Schemas["VersionProfiles"];
 export type ProfileSwitch = Schemas["ProfileSwitch"];
 export type ProfileSettings = Schemas["ProfileSettings"];
 export type BestEmulatorGame = Schemas["BestEmulatorGame"];
+export type BestEmulatorStatus = Schemas["BestEmulatorStatus"];
+export type EmulatorPick = Schemas["EmulatorPick"];

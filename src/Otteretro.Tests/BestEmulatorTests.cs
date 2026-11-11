@@ -98,4 +98,25 @@ public class BestEmulatorTests : IAsyncDisposable
         Assert.Null(games[0].SearchedAt);
         Assert.NotNull(games[1].SearchedAt);
     }
+
+    /// <summary>#375: elegir a mano reemplaza lo de Claude en esa consola, solo con un emulador que la corre; volver al catálogo lo borra.</summary>
+    [Fact]
+    public void ChoosingByHandAndGoingBackToTheCatalog()
+    {
+        BestEmulator.Save(f.Db, 8, ["gc", "wii", "switch"], [new("gc", "dolphin", "", "https://sitio.test/gc", "va bien")]);
+        Assert.False(BestEmulator.Choose(f.Db, 8, "gc", "no-existe"));
+        Assert.False(BestEmulator.Choose(f.Db, 8, "gc", "ryubing")); // no corre GameCube
+        Assert.False(BestEmulator.Choose(f.Db, 8, "n64", "rmg")); // el juego no sale en N64
+        Assert.Equal("claude", Assert.Single(BestEmulator.Picks(f.Db, 8)).Origin);
+
+        Assert.True(BestEmulator.Choose(f.Db, 8, "gc", "dolphin"));
+        var pick = Assert.Single(BestEmulator.Picks(f.Db, 8));
+        Assert.Equal(("dolphin", "manual", null), (pick.RecipeId, pick.Origin, pick.Source));
+
+        BestEmulator.Forget(f.Db, 8, "gc");
+        Assert.Empty(BestEmulator.Picks(f.Db, 8));
+        Assert.Null(BestEmulator.Status(f.Db, 8).Task);
+        Assert.NotNull(BestEmulator.Status(f.Db, 8).SearchedAt);
+        Assert.Equal(BestEmulator.Enqueue(f.Db, 8), BestEmulator.Status(f.Db, 8).Task);
+    }
 }
