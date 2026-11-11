@@ -74,6 +74,8 @@ public record Recipe(string Id, string Name, string Kind, string Folder, string 
     public RecipeUpdates? Updates { get; init; }
     /// <summary>Expresión regular del archivo de Windows en cada release de <see cref="Updates"/>.</summary>
     public string? Asset { get; init; }
+    /// <summary>Lo mismo para Linux (otteretro-catalogo#153): lo usa PlayOS; Otteretro instala solo en Windows.</summary>
+    public string? AssetLinux { get; init; }
     public RecipePerGame? PerGame { get; init; }
     /// <summary>Contenido instalado dentro del emulador; como las partidas, lo comparten todas sus versiones.</summary>
     public List<string> Content { get; init; } = [];

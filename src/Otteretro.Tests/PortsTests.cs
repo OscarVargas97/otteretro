@@ -43,6 +43,10 @@ public class PortsTests
         Assert.True(tp.FullyPlayable);
         Assert.Equal("dusklight", tp.RecipeId); // por el «port» de su receta (#384)
         Assert.False(mario[1].FullyPlayable);
+        // Una receta sin archivo de Windows (otteretro-catalogo#153) no instala con un clic: el port va por URL.
+        var dusklight = Recipes.Find("dusklight")!;
+        Assert.True(Ports.Installable(dusklight));
+        Assert.False(Ports.Installable(dusklight with { Asset = null, AssetLinux = "linux", Downloads = [] }));
 
         // Lo de un juego que no tienes ni sigues no es novedad, y sin ningún «Visto» solo cuentan los últimos 30 días.
         Assert.Equal([4L, 2L, 1L, 3L], Ports.News(f.Db).Select(p => p.Id));

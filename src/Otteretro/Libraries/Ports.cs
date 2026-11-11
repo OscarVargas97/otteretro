@@ -59,6 +59,9 @@ public static class Ports
     public static Recipe? RecipeOf(string link) =>
         Recipes.All.FirstOrDefault(r => r.Kind == "port" && r.Port is not null && LinkKey(r.Port) == LinkKey(link));
 
+    /// <summary>Si la receta instala con un clic. Sin archivo de Windows (aún sin elegir en el catálogo, otteretro-catalogo#153) el port se ofrece por URL.</summary>
+    public static bool Installable(Recipe? r) => r is not null && (r.Asset is not null || r.Downloads.Any(d => d.System == "windows"));
+
     /// <summary>El enlace como lo compara el catálogo: sin espacios, sin «/» final y sin mayúsculas.</summary>
     static string LinkKey(string link) => link.Trim().TrimEnd('/').ToLowerInvariant();
 
@@ -75,7 +78,7 @@ public static class Ports
         {
             var recipe = RecipeOf(r.Link);
             return new PortInfo(r.Id, r.GameId, r.GameName, r.Console, r.Project, r.Kind, r.Toolchain, r.Status, r.Status == Complete, r.Abandoned, r.Delisted,
-                r.Link, r.Added, r.Emulator, (int?)r.EmulatorLevel, recipe?.Id, installed[EmulatorId(recipe, r.Id)].ToList());
+                r.Link, r.Added, r.Emulator, (int?)r.EmulatorLevel, Installable(recipe) ? recipe!.Id : null, installed[EmulatorId(recipe, r.Id)].ToList());
         }).ToList();
     }
 
