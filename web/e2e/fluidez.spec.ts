@@ -90,6 +90,7 @@ test("con un catálogo grande, cada pantalla aparece al instante y no salta", as
     ["Inicio", '.sidebar a[href="/"]', content, ".content .sec"],
     ["Descargas", '.sidebar a[href="/downloads/"]', content, ".content .ot-empty, .content section.panel"],
     ["Herramientas", '.sidebar a[href="/tools/"]', content, ".content .ot-empty, .content .version-row"],
+    ["Steam", '.sidebar a[href="/steam/"]', content, ".content .ot-empty, .content .sec"],
     ["Ajustes", '.sidebar a[href="/settings/"]', content, "#settings-panel .version-row"],
     ["Ajustes › Cuentas y claves", "#tab-credentials", panel, "#settings-panel .cred-line"],
     ["Ajustes › Consolas", "#tab-consoles", panel, "#settings-panel .console-row"],
