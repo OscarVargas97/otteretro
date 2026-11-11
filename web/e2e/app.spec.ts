@@ -116,7 +116,18 @@ test("elegir la carpeta de datos lleva al paso de bibliotecas y, al saltarlo, al
   // Paso 4 (F3): adoptar la estructura antigua, crear una biblioteca o saltar.
   await expect(page.getByRole("heading", { name: en.welcome.librariesTitle })).toBeVisible();
   await expectNoRawKeys();
+  // Paso 5 (#402): la cuenta de Steam detectada (respondida por la prueba: no depende del Steam de este equipo) y saltar.
+  await page.route("**/api/steam", (route) => route.fulfill({ json: { account: "jugador", srm: false, available: [] } }));
   await page.getByRole("button", { name: en.welcome.skip }).click();
+  await expect(page.getByRole("heading", { name: en.welcome.steamTitle })).toBeVisible();
+  await expect(page.getByText(en.steam.account.replace("{account}", "jugador"))).toBeVisible();
+  await expect(page.getByRole("link", { name: /install it from Tools/ })).toHaveAttribute("href", "/tools/?k=tool");
+  await expect(page.getByText(en.welcome.steamNothing)).toBeVisible();
+  await expect(page.getByRole("button", { name: en.steam.export })).toBeDisabled();
+  await expectNoRawKeys();
+  await page.screenshot({ path: "e2e-results/2-steam-en.png" });
+  await page.getByRole("button", { name: en.welcome.skip }).click();
+  await page.unroute("**/api/steam");
   await expect(page.getByRole("heading", { name: en.welcome.accountsTitle })).toBeVisible();
   await page.getByRole("button", { name: en.welcome.done }).click();
   await expect(page).toHaveURL(`${base()}/`);
@@ -142,14 +153,13 @@ test("todas las pantallas se ven en inglés", async () => {
     ["saga", en.catalog.saga.noneTitle],
     ["review", en.review.files.doubtfulEmptyTitle],
     ["tools", en.tools.emptyTitle],
-    ...(["discover", "steam"] as const).map((s) => [s, en.comingSoon[s].title] as const),
+    ["steam", en.steam.emptyTitle],
+    ["discover", en.comingSoon.discover.title],
   ] as const;
   // #169: las de fases futuras se ven atenuadas con su fase y no se abren desde el menú.
   await page.goto(`${base()}/`);
-  for (const s of ["discover", "steam"] as const) {
-    await expect(page.locator(".sidebar").getByRole("link", { name: en.nav[s] })).toHaveCount(0);
-    await expect(page.locator(".sidebar .is-future", { hasText: en.nav[s] })).toHaveAttribute("aria-disabled", "true");
-  }
+  await expect(page.locator(".sidebar").getByRole("link", { name: en.nav.discover })).toHaveCount(0);
+  await expect(page.locator(".sidebar .is-future", { hasText: en.nav.discover })).toHaveAttribute("aria-disabled", "true");
   for (const [screen, title] of screens) {
     await page.goto(`${base()}/${screen}/`);
     await expect(page.getByRole("heading", { level: 1, name: en.nav[screen] })).toBeVisible();
@@ -1046,6 +1056,53 @@ test("la ficha: ajustes del perfil por defecto de Eden según su receta y abrir 
   await page.getByText(es.profiles.defaults).click();
   await page.getByRole("button", { name: `${es.profiles.settings.open}: Eden` }).click();
   await expect(page.getByLabel(es.profiles.settings.names.resolution)).toHaveValue("3");
+});
+
+test("Steam: lo marcado por saga, lo que cambia desde la última exportación y exportar (#402)", async () => {
+  // Tienes Ocarina (N64) y Breath of the Wild; está marcado BotW, y la última exportación de este equipo llevó Ocarina 3DS.
+  const db = await openDb();
+  db.exec(`
+    INSERT INTO source (kind, name, version_id) VALUES ('file', 'oot.z64', 100), ('file', 'botw.nsp', 110);
+    INSERT OR IGNORE INTO steam_mark (version_id) VALUES (110);
+    INSERT OR REPLACE INTO steam_export (machine_id, version_id, title, category, app_id, exported_at)
+      SELECT id, 101, 'Ocarina of Time (Nintendo 3DS)', 'The Legend of Zelda', 1, '2026-01-01T00:00:00Z' FROM machine;
+  `);
+  db.close();
+  // La cuenta la responde la prueba; exportar también: no se toca el Steam ni el Steam ROM Manager de este equipo.
+  await page.route("**/api/steam", async (route) => {
+    const real = await route.fetch();
+    return route.fulfill({ response: real, json: { ...(await real.json()), account: "jugador", srm: false } });
+  });
+  let exported = false;
+  await page.route("**/api/steam/export", (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    exported = true;
+    return route.fulfill({ json: 1 });
+  });
+  await page.goto(`${base()}/steam/`);
+  await expect(page.getByText(es.steam.account.replace("{account}", "jugador"))).toBeVisible();
+  await expect(page.getByRole("link", { name: /instálalo en Herramientas/ })).toHaveAttribute("href", "/tools/?k=tool");
+  const zelda = page.getByRole("group", { name: "The Legend of Zelda" }).first();
+  await expect(zelda.getByRole("checkbox", { name: /Breath of the Wild/ })).toBeChecked();
+  await expect(zelda.getByText(es.steam.new)).toBeVisible();
+  await expect(page.getByText(es.steam.goes, { exact: true })).toBeVisible();
+  await expect(page.getByText("Ocarina of Time (Nintendo 3DS)")).toBeVisible();
+  await expect(page.getByText("+1 se agregan · −1 se quitan")).toBeVisible();
+  // Lo que se puede sumar va plegado: marcar Ocarina (N64) la pasa arriba y suma una diferencia.
+  await page.getByText(/Agregar más juegos/).click();
+  await page.getByRole("checkbox", { name: /Ocarina of Time \(Nintendo 64\)/ }).click();
+  await expect(page.getByText("+2 se agregan · −1 se quitan")).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: /Ocarina of Time \(Nintendo 64\)/ })).toBeChecked();
+  await expectNoRawKeys();
+  await expectTextFits();
+  await page.screenshot({ path: "e2e-results/14-steam-es.png", fullPage: true });
+  await page.getByRole("button", { name: es.steam.export, exact: true }).click();
+  await expect.poll(() => exported).toBe(true);
+  await page.unroute("**/api/steam");
+  await page.unroute("**/api/steam/export");
+  const clean = await openDb();
+  clean.exec("DELETE FROM source WHERE name IN ('oot.z64', 'botw.nsp'); DELETE FROM steam_mark; DELETE FROM steam_export;");
+  clean.close();
 });
 
 test("panel de tareas: terminadas por hora de término, registro al hacer clic y limpiar", async () => {

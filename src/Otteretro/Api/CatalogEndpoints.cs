@@ -395,6 +395,9 @@ public static class CatalogEndpoints
             return TypedResults.NoContent();
         });
 
+        api.MapGet("/steam", Results<Ok<Catalog.SteamStatus>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(Catalog.SteamExport.Status(db, Environment.ProcessPath!)) : NoData());
+
         api.MapGet("/steam/export", Results<Ok<Catalog.SteamChanges>, Conflict<ApiError>> (AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(Catalog.SteamExport.Changes(db, s.Config.MachineId, Environment.ProcessPath!)) : NoData());
 

@@ -145,4 +145,21 @@ public class SteamExportTests
         Assert.True(File.Exists(Path.Combine(f.Config.DataFolder!, "steam", f.Config.MachineId, "userConfigurations.json")));
         Assert.Empty(SteamExport.LastExport(f.Db, f.Config.MachineId));
     }
+
+    /// <summary>#402: la pantalla ve la cuenta, si está SRM y lo que tienes sin marcar (no lo de Steam ni lo ya marcado).</summary>
+    [Fact]
+    public async Task StatusHasAccountSrmAndWhatYouOwnUnmarked()
+    {
+        await using var f = Prepare();
+        using (var c = f.Db.Open())
+            c.Execute("""
+                INSERT INTO catalog.game (id, saga_id, name_es) VALUES (4, NULL, 'Super Mario Bros.');
+                INSERT INTO catalog.version (id, game_id, platform) VALUES (40, 4, 'nes');
+                INSERT INTO source (kind, name, version_id) VALUES ('file', 'smb.nes', 40), ('file', 'zelda.nes', 10);
+                """);
+        SteamExport.Mark(f.Db, 30, false);
+        var status = SteamExport.Status(f.Db, Exe);
+        Assert.Equal(("yo", false), (status.Account, status.Srm));
+        Assert.Equal([40L], status.Available.Select(e => e.VersionId));
+    }
 }

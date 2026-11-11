@@ -9,6 +9,7 @@ import { CredentialsSettings } from "@/components/Credentials";
 import { request } from "@/lib/client";
 import { gb } from "@/lib/format";
 import { useDescribeError } from "@/lib/i18n";
+import { SteamAccount, SteamGroups, steamExportQuery, steamQuery, useExport } from "@/components/Steam";
 import type { AdoptResult, AppState, Drive, FolderRequest, DiskInfo } from "@/lib/types";
 
 // Clave en welcome.steps.* y fase en que se activa cada paso.
@@ -17,11 +18,11 @@ const STEPS = [
   { key: "dataFolder" },
   { key: "backup", phase: 7 },
   { key: "libraries" },
+  { key: "steam" },
   { key: "accounts" },
-  { key: "steam", phase: 6 },
 ] as const;
 
-/** Asistente de primer arranque (pantallas.md §1). Funcionan los pasos 1, 2, 4 (discos) y 5 (cuentas de descarga, #191); el resto llega con su fase. Todo se puede saltar y hacer después en Ajustes. */
+/** Asistente de primer arranque (pantallas.md §1). Funcionan los pasos 1, 2, 4 (discos), 5 (Steam, #402) y 6 (cuentas de descarga, #191); el respaldo llega con su fase. Todo se puede saltar y hacer después en Ajustes. */
 export default function Welcome() {
   const t = useTranslations("welcome");
   const [step, setStep] = useState(1);
@@ -49,7 +50,8 @@ export default function Welcome() {
         {step === 1 ? <WelcomeStep onNext={() => setStep(2)} />
           : step === 2 ? <FolderStep onBack={() => setStep(1)} onNext={() => setStep(4)} />
           : step === 4 ? <LibrariesStep onNext={() => setStep(5)} />
-          : <AccountsStep onBack={() => setStep(4)} />}
+          : step === 5 ? <SteamStep onBack={() => setStep(4)} onNext={() => setStep(6)} />
+          : <AccountsStep onBack={() => setStep(5)} />}
       </main>
     </div>
   );
@@ -142,6 +144,34 @@ function AccountsStep({ onBack }: { onBack: () => void }) {
         <button className="ot-btn ot-btn-primary" type="button" onClick={finish}>{t("done")}</button>
       </div>
       <p className="small muted">{t("nextSteps")}</p>
+    </>
+  );
+}
+
+/** Paso 5 (#402): la cuenta de Steam detectada, marcar qué llevar y exportar, o saltar. Todo se puede hacer después en Steam. */
+function SteamStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
+  const t = useTranslations("welcome");
+  const tSteam = useTranslations("steam");
+  const describe = useDescribeError();
+  const status = useQuery(steamQuery);
+  const changes = useQuery(steamExportQuery);
+  const { run } = useExport();
+  const s = status.data;
+  const marked = changes.data?.entries ?? [];
+  return (
+    <>
+      <h1>{t("steamTitle")}</h1>
+      {s && <div className="panel"><SteamAccount status={s} /></div>}
+      {s?.account && (marked.length + s.available.length === 0
+        ? <p className="small muted">{t("steamNothing")}</p>
+        : <><SteamGroups entries={marked} marked /><SteamGroups entries={s.available} marked={false} /></>)}
+      {(status.error ?? changes.error ?? run.error) && <p className="error">{describe((status.error ?? changes.error ?? run.error)!)}</p>}
+      <div style={{ display: "flex", gap: 8 }}>
+        <button className="ot-btn" type="button" onClick={onBack}>{t("back")}</button>
+        <button className="ot-btn" type="button" onClick={onNext}>{t("skip")}</button>
+        <button className="ot-btn ot-btn-primary" type="button" disabled={!s?.account || marked.length === 0 || run.isPending}
+          onClick={() => run.mutate(undefined, { onSuccess: onNext })}>{tSteam("export")}</button>
+      </div>
     </>
   );
 }

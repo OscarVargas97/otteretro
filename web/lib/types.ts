@@ -70,3 +70,6 @@ export type ProfileSettings = Schemas["ProfileSettings"];
 export type VersionPlay = Schemas["VersionPlay"];
 export type PlaySession = Schemas["PlaySession"];
 export type PlayOrder = Schemas["PlayOrder"];
+export type SteamEntry = Schemas["SteamEntry"];
+export type SteamChanges = Schemas["SteamChanges"];
+export type SteamStatus = Schemas["SteamStatus"];

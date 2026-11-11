@@ -3732,6 +3732,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/steam": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SteamStatus"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/steam/export": {
         parameters: {
             query?: never;
@@ -7491,6 +7535,11 @@ export interface components {
         };
         SteamMarkRequest: {
             export: boolean;
+        };
+        SteamStatus: {
+            account: null | string;
+            srm: boolean;
+            available: components["schemas"]["SteamEntry"][];
         };
         StoreEntry: {
             store: string;

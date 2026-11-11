@@ -21,6 +21,9 @@ public record SteamEntry(long VersionId, string Title, string Category, long App
 /// <summary>Lo que se exportaría ahora y lo que cambia respecto de la última exportación de este equipo.</summary>
 public record SteamChanges(List<SteamEntry> Entries, List<SteamEntry> Added, List<SteamEntry> Changed, List<SteamEntry> Removed);
 
+/// <summary>La cuenta de Steam detectada (su nombre de usuario; null si no hay Steam), si está Steam ROM Manager y lo que se puede marcar.</summary>
+public record SteamStatus(string? Account, bool Srm, List<SteamEntry> Available);
+
 /// <summary>
 /// Exportar a Steam (§10, #401) con Steam ROM Manager: un manifiesto «Manual» por categoría (la saga, o «Emulación») cuyos accesos
 /// abren `otteretro jugar &lt;id&gt;`, con el arte del catálogo. Lo que ya está en Steam no se exporta. Cada equipo guarda su última
@@ -53,19 +56,34 @@ public static class SteamExport
     }
 
     /// <summary>Lo marcado que no está en Steam, como se exportaría con este ejecutable de Otteretro.</summary>
-    public static List<SteamEntry> Entries(Database db, string exe)
+    public static List<SteamEntry> Entries(Database db, string exe) =>
+        Query(db, exe, "SELECT version_id FROM steam_mark");
+
+    /// <summary>Lo que tienes, no está en Steam y aún no se marcó: lo que se puede sumar a la exportación (#402).</summary>
+    public static List<SteamEntry> Available(Database db, string exe) =>
+        Query(db, exe, "SELECT version_id FROM source WHERE version_id IS NOT NULL EXCEPT SELECT version_id FROM steam_mark");
+
+    /// <summary>Las versiones de `ids` (una consulta que da ids: así se recorre lo marcado o lo tuyo, no todo el catálogo).</summary>
+    static List<SteamEntry> Query(Database db, string exe, string ids)
     {
         using var c = db.Open();
         return c.Query<(long VersionId, string Title, string Category)>($"""
             SELECT v.id, g.name_es || ' (' || co.name || ')', COALESCE(s.name, '{NoSaga}')
-            FROM steam_mark m
-            JOIN catalog.version v ON v.id = m.version_id
+            FROM catalog.version v
             JOIN catalog.game g ON g.id = v.game_id
             JOIN catalog.console co ON co.id = v.platform
             LEFT JOIN catalog.saga s ON s.id = g.saga_id
-            WHERE NOT EXISTS (SELECT 1 FROM source x WHERE x.version_id = v.id AND x.kind = 'store' AND x.store = 'steam')
+            WHERE v.id IN ({ids})
+              AND NOT EXISTS (SELECT 1 FROM source x WHERE x.version_id = v.id AND x.kind = 'store' AND x.store = 'steam')
             ORDER BY 3, 2
             """).Select(e => new SteamEntry(e.VersionId, e.Title, e.Category, AppId(Quote(exe), e.Title))).ToList();
+    }
+
+    /// <summary>Lo que muestra la pantalla Steam además de las diferencias: la cuenta detectada, si está SRM y lo que se puede marcar.</summary>
+    public static SteamStatus Status(Database db, string exe)
+    {
+        var vdf = Steam.LoginUsers();
+        return new(Steam.DetectAccount(vdf) is { } id ? Steam.AccountName(vdf!, id) : null, (SrmPath ?? Srm(db)) is not null, Available(db, exe));
     }
 
     public static List<SteamEntry> LastExport(Database db, string machine)
