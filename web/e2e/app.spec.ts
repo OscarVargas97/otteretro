@@ -217,7 +217,7 @@ async function removeDisks() {
   for (const l of JSON.parse((await api("GET", "/api/locations")).text) as { id: string }[]) await api("DELETE", `/api/locations/${l.id}`);
 }
 
-test("Ajustes › Almacenamiento como Steam: discos, uso por tipo, mover lo marcado, ★ y quitar sin borrar (#161, #205)", async () => {
+test("Ajustes › Almacenamiento: tabla de discos, uso por tipo, mover lo marcado, ★ y quitar sin borrar (#161, #205, #419)", async () => {
   const [a, b] = [await addDisk("Disco A"), await addDisk("Disco B")];
   const { existsSync } = await import("node:fs");
   // Cada disco trae sus cinco carpetas.
@@ -227,18 +227,22 @@ test("Ajustes › Almacenamiento como Steam: discos, uso por tipo, mover lo marc
   mkdirSync(join(a, "Juegos", "GBA"), { recursive: true });
   for (const rom of ["metroid.gba", "pokemon.gba"]) writeFileSync(join(a, "Juegos", "GBA", rom), "rom");
   await page.goto(`${base()}/settings/?s=storage`);
-  // #208: el disco ★ es el de la carpeta de datos, se registró solo y se abre primero con sus datos.
-  const picker = page.getByLabel(en.libraries.disk, { exact: true });
-  await expect(picker.locator("option:checked")).toContainText("★");
+  // #419: una tabla de discos; el ★ es el de la carpeta de datos y se registró solo (#208). Lo demás, plegado en «Más».
+  const more = (name: string) => page.getByRole("button", { name: en.libraries.moreActions.replace("{name}", name) });
+  const star = page.locator("tbody tr", { hasText: "★" });
+  await expect(star.getByText(en.libraries.connected)).toBeVisible();
+  await expect(page.getByText(en.libraries.removeNote)).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: en.libraries.appData })).toHaveCount(0);
+  await star.getByRole("button", { name: en.libraries.more }).click();
   // #169: como Steam, los datos de la app son una fila más de la tabla.
   await expect(page.getByRole("checkbox", { name: en.libraries.appData })).toBeVisible();
   await expect(page.locator(".usage-legend").getByText(en.libraries.dataUse, { exact: false })).toBeVisible();
   await expectNoRawKeys();
   await expectTextFits();
   await page.screenshot({ path: "e2e-results/7-storage-en.png", fullPage: true });
-  const pick = async (name: string) => picker.selectOption((await picker.locator("option", { hasText: name }).getAttribute("value"))!);
-  await pick("Disco A");
-  await expect(page.getByRole("heading", { level: 2, name: "Disco A" })).toBeVisible();
+  await star.getByRole("button", { name: en.libraries.more }).click();
+  await more("Disco A").click();
+  await expect(page.getByRole("region", { name: en.libraries.contents.replace("{name}", "Disco A") })).toBeVisible();
   await expect(page.getByText(en.libraries.otherUse, { exact: false })).toBeVisible();
   // #171: grupos desplegables, tipo › consola › cada cosa. Zelda suelto y toda GBA (una sola tarea), a la misma ruta.
   await page.locator(".disk-table").getByRole("button", { name: en.libraries.type.game.title }).click();
@@ -254,14 +258,14 @@ test("Ajustes › Almacenamiento como Steam: discos, uso por tipo, mover lo marc
   await expect.poll(() => existsSync(join(b, "Juegos", "GBA", "pokemon.gba")), { timeout: 15_000 }).toBe(true);
   expect(existsSync(join(a, "Juegos", "GBA"))).toBe(false);
   // Quitar avisa que no borra nada; el marcador sigue en la carpeta.
-  await pick("Disco B");
-  await page.locator(".ot-menu summary").click();
+  await more("Disco A").click();
+  await more("Disco B").click();
   await page.screenshot({ path: "e2e-results/7c-disk-menu-en.png" });
-  await page.getByRole("menuitem", { name: en.libraries.removeDisk }).click();
+  await page.getByRole("button", { name: en.libraries.removeDisk }).click();
   const remove = page.getByRole("dialog", { name: en.libraries.removeDisk });
   await expect(remove.getByText(en.libraries.removeHelp.replace("{name}", "Disco B"))).toBeVisible();
   await remove.getByRole("button", { name: en.libraries.removeConfirm }).click();
-  await expect(picker.locator("option", { hasText: "Disco B" })).toHaveCount(0);
+  await expect(more("Disco B")).toHaveCount(0);
   expect(existsSync(join(b, "otteretro-ubicacion.json"))).toBe(true);
   // «+» abre la ventanita con las unidades (sin tocarlas).
   await page.getByRole("button", { name: en.libraries.addDisk }).click();
@@ -560,14 +564,14 @@ test("Ajustes en inglés: carpeta, idioma y actualización", async () => {
   await expect(page.getByRole("heading", { level: 1, name: en.nav.settings })).toBeVisible();
   // #97: pestañas, una sección a la vez; sin ?s= abre la primera.
   await expect(page.getByRole("tab", { name: en.settings.storage })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("checkbox", { name: en.libraries.appData })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: en.libraries.disks })).toBeVisible();
   await expect(page.getByRole("button", { name: en.update.check })).toHaveCount(0);
   await page.getByRole("tab", { name: en.settings.storage }).focus();
   await page.keyboard.press("End");
   await expect(page).toHaveURL(/\?s=general$/);
   await expect(page.getByRole("tab", { name: en.settings.general })).toHaveAttribute("aria-selected", "true");
   await page.goBack();
-  await expect(page.getByRole("checkbox", { name: en.libraries.appData })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: en.libraries.disks })).toBeVisible();
   // #98: cambiar a una pestaña corta no cambia el ancho (la barra de scroll tiene su lugar reservado).
   const tabsWidth = async () => (await page.getByRole("tablist").boundingBox())!.width;
   const wide = await tabsWidth();
@@ -637,11 +641,11 @@ test("llevar los datos a otro disco muestra el progreso y el resultado traducido
   mkdirSync(join(dataDir("moved"), "Juegos", "GBA"), { recursive: true });
   writeFileSync(join(dataDir("moved"), "Juegos", "GBA", "metroid.gba"), "juego");
   await page.getByRole("tab", { name: en.settings.storage }).click();
-  // «⋯» del disco ★: abrir carpeta (no se toca: abriría el explorador) y usar otra carpeta de datos.
-  await page.locator(".ot-menu summary").click();
-  await expect(page.getByRole("menuitem", { name: en.libraries.openFolder })).toBeVisible();
-  await expect(page.getByRole("menuitem", { name: en.libraries.useOtherData })).toBeVisible();
-  await page.locator(".ot-menu summary").click();
+  // La fila del disco ★: abrir carpeta (no se toca: abriría el explorador) y, en «Más», usar otra carpeta de datos.
+  const star = page.locator("tbody tr", { hasText: "★" });
+  await expect(star.getByRole("button", { name: en.libraries.openFolder })).toBeVisible();
+  await star.getByRole("button", { name: en.libraries.more }).click();
+  await expect(page.getByRole("button", { name: en.libraries.useOtherData })).toBeVisible();
   // #169: se marca la fila de los datos y se mueve como lo demás.
   await page.getByRole("checkbox", { name: en.libraries.appData }).check();
   await page.locator('select[id^="to-"]').selectOption({ label: "Moved" });
@@ -651,7 +655,7 @@ test("llevar los datos a otro disco muestra el progreso y el resultado traducido
   await page.getByRole("button", { name: en.dataFolder.dismiss }).click();
   await expect(page.locator(".result").getByText(en.dataFolder.moved, { exact: true })).toHaveCount(0);
   // Ahora el ★ es ese disco, y el juego que ya tenía sigue ahí.
-  await expect(page.getByLabel(en.libraries.disk, { exact: true }).locator("option:checked")).toContainText("Moved ★");
+  await expect(page.locator("tbody tr", { hasText: "Moved ★" })).toBeVisible();
   const { existsSync } = await import("node:fs");
   expect(existsSync(join(dataDir("moved"), "Juegos", "GBA", "metroid.gba"))).toBe(true);
   expect(existsSync(join(dataDir("data"), "data"))).toBe(false);

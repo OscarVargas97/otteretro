@@ -1123,12 +1123,11 @@
     "cancel": "Cancelar",
     "free": "{free} libres de {total}",
     "network": "En red",
-    "disconnected": "Desconectada",
+    "disconnected": "Desconectado",
     "migrationStarted": "La migración quedó en el panel de tareas. Puedes seguir usando la app mientras tanto.",
     "queued": "Quedó en el panel de tareas.",
     "reconnect": "Reconectar",
     "move": "Mover",
-    "remove": "Quitar",
     "removeHelp": "Se quita «{name}» de Otteretro. No se borra ningún archivo: puedes volver a agregarlo cuando quieras.",
     "removeConfirm": "Quitar sin borrar",
     "type": {
@@ -1168,9 +1167,8 @@
       "toDefault": "disco predeterminado ★",
       "run": "Pasar al estándar"
     },
-    "disk": "Disco",
     "dataUse": "Datos de la app",
-    "moreActions": "Más opciones del disco",
+    "moreActions": "Más de «{name}»: uso, mover y quitar",
     "openFolder": "Abrir carpeta",
     "useOtherData": "Usar otra carpeta de datos…",
     "removeDisk": "Quitar disco…",
@@ -1189,7 +1187,16 @@
       "retry": "Probar ahora",
       "retrying": "Probando…",
       "stillLimited": "El límite sigue: queda la hora que dio Claude."
-    }
+    },
+    "disks": "Discos",
+    "colPath": "Ruta",
+    "colFree": "Espacio libre",
+    "colStatus": "Estado",
+    "colActions": "Acciones",
+    "connected": "Conectado",
+    "more": "Más",
+    "removeNote": "Quitar un disco lo saca de Otteretro; nunca borra archivos.",
+    "contents": "Lo que tiene {name}"
   },
   "tools": {
     "emptyTitle": "Aún no hay emuladores ni ports",
