@@ -36,6 +36,8 @@ export function upsertTask(cache: QueryClient, task: TaskInfo) {
   if ((task.kind === "tools.install") && task.status === "done") {
     for (const key of ["tools", "emulators", "toolUpdates", "play", "ports", "profiles"]) cache.invalidateQueries({ queryKey: [key] });
   }
+  // Una exportación terminada cambia lo exportado y sus diferencias (#402).
+  if (task.kind === "steam.export" && task.status === "done") cache.invalidateQueries({ queryKey: ["steam"] });
   // Un escaneo terminado cambia lo que tienes (#178).
   if ((task.kind === "library.scan" || task.kind === "library.verify" || task.kind === "library.import" || task.kind === "library.convert") && task.status === "done") {
     cache.invalidateQueries({ queryKey: ["game"] });

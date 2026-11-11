@@ -22,7 +22,7 @@ const MAIN: Entry[] = [
 const SECONDARY: Entry[] = [
   { href: "/downloads/", key: "downloads" },
   { href: "/tools/", key: "tools" },
-  { href: "/steam/", key: "steam", phase: 6 },
+  { href: "/steam/", key: "steam" },
   { href: "/settings/", key: "settings" },
 ];
 

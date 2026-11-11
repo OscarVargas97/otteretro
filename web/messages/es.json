@@ -60,10 +60,6 @@
     "tools": {
       "title": "Aún no hay emuladores ni ports",
       "text": "Aquí se instalarán y actualizarán emuladores, ports, complementos y archivos de sistema."
-    },
-    "steam": {
-      "title": "Nada que exportar",
-      "text": "Aquí verás qué juegos se llevan a Steam, con su categoría por saga y su arte."
     }
   },
   "welcome": {
@@ -88,7 +84,7 @@
     "back": "Atrás",
     "preparing": "Preparando…",
     "use": "Usar {path}",
-    "nextSteps": "Respaldo, Steam y el resto de los pasos se activan con su fase.",
+    "nextSteps": "El respaldo se activa con su fase.",
     "librariesTitle": "Tus discos",
     "librariesText": "Elige en qué discos guardar juegos y herramientas: en cada uno se crea la carpeta Otteretro con todo ordenado. Si ya tienes una carpeta con la estructura antigua, adóptala y pasa sola al estándar.",
     "librariesFound": "Encontramos carpetas con la estructura antigua:",
@@ -100,7 +96,9 @@
     "done": "Listo",
     "accountsTitle": "Tus cuentas de descarga",
     "accountsText": "Si pagas 1fichier o Mega, deja aquí tu clave para bajar con tu cuenta. Es opcional: lo puedes hacer después en Ajustes › Cuentas y claves.",
-    "next": "Siguiente"
+    "next": "Siguiente",
+    "steamTitle": "Steam",
+    "steamNothing": "Aún no hay juegos en tus discos: podrás marcarlos después en Steam."
   },
   "settings": {
     "dataFolder": "Carpeta de datos",
@@ -1619,5 +1617,25 @@
     "byHand": "Ports para instalar a mano",
     "recommended": "Recomendado",
     "installNote": "Al pulsar Jugar en la cabecera se instala {name} primero."
+  },
+  "steam": {
+    "title": "Exportar a Steam",
+    "export": "Exportar",
+    "exporting": "Exportando…",
+    "account": "Cuenta de Steam: {account}",
+    "noAccount": "No se encontró Steam en este equipo: ábrelo e inicia sesión una vez.",
+    "noSrm": "Falta Steam ROM Manager: <link>instálalo en Herramientas</link>.",
+    "added": "+{count} se agregan",
+    "removed": "−{count} se quitan",
+    "changed": "{count} cambian",
+    "upToDate": "Steam está al día.",
+    "closeSteam": "Cierra Steam antes de exportar",
+    "new": "Nuevo",
+    "changes": "Cambia",
+    "goes": "Se quitan",
+    "more": "Agregar más juegos ({count})",
+    "noneMarked": "No hay nada marcado: elige abajo qué llevar a Steam.",
+    "emptyTitle": "Nada que exportar",
+    "emptyText": "Cuando tengas juegos en tus discos, márcalos aquí para llevarlos a Steam por saga."
   }
 }

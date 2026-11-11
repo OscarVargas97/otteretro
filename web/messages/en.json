@@ -60,10 +60,6 @@
     "tools": {
       "title": "No emulators or ports yet",
       "text": "Emulators, ports, add-ons and system files will be installed and updated here."
-    },
-    "steam": {
-      "title": "Nothing to export",
-      "text": "Here you will see which games go to Steam, with their saga category and art."
     }
   },
   "welcome": {
@@ -88,7 +84,7 @@
     "back": "Back",
     "preparing": "Preparing…",
     "use": "Use {path}",
-    "nextSteps": "Backup, Steam and the remaining steps turn on with their phase.",
+    "nextSteps": "Backup turns on with its phase.",
     "librariesTitle": "Your drives",
     "librariesText": "Choose which drives keep games and tools: each gets an Otteretro folder with everything in order. If you already have a folder with the old layout, adopt it and it moves to the standard on its own.",
     "librariesFound": "We found folders with the old layout:",
@@ -100,7 +96,9 @@
     "done": "Done",
     "accountsTitle": "Your download accounts",
     "accountsText": "If you pay for 1fichier or Mega, leave your key here to download with your account. It is optional: you can do it later in Settings › Accounts and keys.",
-    "next": "Next"
+    "next": "Next",
+    "steamTitle": "Steam",
+    "steamNothing": "There are no games on your disks yet: you can mark them later in Steam."
   },
   "settings": {
     "dataFolder": "Data folder",
@@ -1619,5 +1617,25 @@
     "byHand": "Ports to install by hand",
     "recommended": "Recommended",
     "installNote": "Pressing Play in the header installs {name} first."
+  },
+  "steam": {
+    "title": "Export to Steam",
+    "export": "Export",
+    "exporting": "Exporting…",
+    "account": "Steam account: {account}",
+    "noAccount": "Steam was not found on this computer: open it and sign in once.",
+    "noSrm": "Steam ROM Manager is missing: <link>install it from Tools</link>.",
+    "added": "+{count} added",
+    "removed": "−{count} removed",
+    "changed": "{count} changed",
+    "upToDate": "Steam is up to date.",
+    "closeSteam": "Close Steam before exporting",
+    "new": "New",
+    "changes": "Changes",
+    "goes": "Removed",
+    "more": "Add more games ({count})",
+    "noneMarked": "Nothing is marked: choose below what goes to Steam.",
+    "emptyTitle": "Nothing to export",
+    "emptyText": "Once you have games on your disks, mark them here to take them to Steam by saga."
   }
 }
