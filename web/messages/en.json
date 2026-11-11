@@ -359,7 +359,12 @@
         "noKey": "The Steam Web API key is missing: paste it in Settings › Accounts and keys.",
         "badKey": "Steam did not accept the Steam Web API key: check it in Settings › Accounts and keys.",
         "noAccount": "No Steam account was found on this computer: open Steam and sign in once.",
-        "failed": "Steam did not answer properly ({status}). Try again later."
+        "failed": "Steam did not answer properly ({status}). Try again later.",
+        "running": "Steam ROM Manager is adding the shortcuts…",
+        "exported": "Exported to Steam: {added} new, {changed} changed and {removed} removed.",
+        "noSrm": "Steam ROM Manager is not installed: the manifests were left in {folder}. Install it in Tools and export again.",
+        "srmFailed": "Steam ROM Manager ended with an error ({code}). Close Steam and try again.",
+        "srmConfig": "Could not read the Steam ROM Manager configuration ({file}): check it before exporting."
       },
       "extra": {
         "progress": "{done} of {total} games",
@@ -728,7 +733,8 @@
         "popularity": "Fetch popularity from IGDB"
       },
       "steam": {
-        "sync": "Read what you own on Steam"
+        "sync": "Read what you own on Steam",
+        "export": "Export to Steam"
       },
       "claude": {
         "cleanup": "Clean up the catalog with Claude",

@@ -359,7 +359,12 @@
         "noKey": "Falta la clave de Steam Web API: pégala en Ajustes › Cuentas y claves.",
         "badKey": "Steam no aceptó la clave de Steam Web API: revísala en Ajustes › Cuentas y claves.",
         "noAccount": "No se encontró una cuenta de Steam en este equipo: abre Steam e inicia sesión una vez.",
-        "failed": "Steam no respondió bien ({status}). Prueba más tarde."
+        "failed": "Steam no respondió bien ({status}). Prueba más tarde.",
+        "running": "Steam ROM Manager está agregando los accesos…",
+        "exported": "Exportado a Steam: {added} nuevos, {changed} cambiados y {removed} quitados.",
+        "noSrm": "Steam ROM Manager no está instalado: los manifiestos quedaron en {folder}. Instálalo en Herramientas y vuelve a exportar.",
+        "srmFailed": "Steam ROM Manager terminó con error ({code}). Cierra Steam y prueba otra vez.",
+        "srmConfig": "No se pudo leer la configuración de Steam ROM Manager ({file}): revísala antes de exportar."
       },
       "extra": {
         "progress": "{done} de {total} juegos",
@@ -728,7 +733,8 @@
         "popularity": "Traer la popularidad desde IGDB"
       },
       "steam": {
-        "sync": "Leer lo que tienes en Steam"
+        "sync": "Leer lo que tienes en Steam",
+        "export": "Exportar a Steam"
       },
       "claude": {
         "cleanup": "Depurar el catálogo con Claude",
