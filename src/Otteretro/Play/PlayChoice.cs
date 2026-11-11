@@ -52,7 +52,8 @@ public static class PlayChoice
 
     /// <summary>
     /// Cada versión del juego que tienes (o cuya versión de PC tienes), con sus opciones y la elegida. Las opciones: la versión de PC
-    /// que tienes, los ports de su consola instalados o con receta, y los emuladores de la consola (el del perfil efectivo primero).
+    /// que tienes, los ports de su consola instalados o con receta, y los emuladores de la consola (el que recomienda el catálogo para
+    /// el juego primero y después el del perfil efectivo).
     /// </summary>
     public static List<VersionPlay> OfGame(Database db, long gameId)
     {
@@ -79,7 +80,7 @@ public static class PlayChoice
             var options = pcOwned.Select(p => new PlayOption($"pc:{p.Id}", Pc, p.Platform, Pc, null, true)).ToList();
             options.AddRange(ports.Where(p => p.Console == v.Platform).Select(p =>
                 new PlayOption($"port:{p.Id}", Port, p.Project, p.FullyPlayable ? Port : Playable, PortLevel(p.Status), p.Installed.Count > 0)));
-            options.AddRange(Emulators(db, v.Id, v.Platform, ports.Where(p => p.Console == v.Platform).ToList()));
+            options.AddRange(Emulators(db, gameId, v.Id, v.Platform, ports.Where(p => p.Console == v.Platform).ToList()));
             var (chosen, reason) = Choose(options, order, manual.GetValueOrDefault(v.Id));
             return new VersionPlay(v.Id, v.Platform, options, chosen, reason);
         }).ToList();
@@ -87,7 +88,7 @@ public static class PlayChoice
 
     /// <summary>
     /// La regla: la manual si sigue siendo una opción; si no, la del primer criterio del orden que tenga alguna y, entre ellas, la
-    /// más jugable (3, 2, 1, sin dato, 0) y la que ya está instalada. A igual nivel, la que viene antes (el emulador efectivo primero).
+    /// más jugable (3, 2, 1, sin dato, 0) y la que ya está instalada. A igual nivel, la que viene antes (el emulador recomendado primero).
     /// </summary>
     public static (string? Chosen, string? Reason) Choose(List<PlayOption> options, List<string> order, string? manual)
     {
@@ -104,12 +105,12 @@ public static class PlayChoice
     static int PortLevel(string status) => status switch { Ports.Complete => 3, "playable" => 2, _ => 1 };
 
     /// <summary>
-    /// Los emuladores de la consola, el del perfil efectivo primero. Su nivel sale de la compatibilidad que publica el catálogo con
-    /// los ports del juego (otteretro-catalogo#70): el emulador de referencia de la consola y cómo corre ahí.
+    /// Los emuladores de la consola: primero el que el catálogo recomienda para el juego (`recommendedFor`, decisión 380) y después el
+    /// del perfil efectivo. Su nivel sale de la compatibilidad que publica el catálogo con los ports del juego (otteretro-catalogo#70): el emulador de referencia de la consola y cómo corre ahí.
     /// </summary>
     /// <remarks>shortcut: solo hay nivel para juegos con port en el catálogo y para su emulador de referencia; los demás quedan sin dato
     /// (cuentan como «lo más jugable»). Cuando el catálogo publique compatibilidad por juego y emulador, se lee de ahí.</remarks>
-    static IEnumerable<PlayOption> Emulators(Database db, long version, string platform, List<PortInfo> ports)
+    static IEnumerable<PlayOption> Emulators(Database db, long gameId, long version, string platform, List<PortInfo> ports)
     {
         var effective = Profiles.Effective(db, version)?.EmulatorId;
         List<(string Id, string Name)> emulators;
@@ -119,7 +120,7 @@ public static class PlayChoice
                 WHERE ce.console_id = @platform AND e.kind = 'emulator' ORDER BY e.id = @effective DESC, ce.is_base DESC, e.name
                 """, new { platform, effective }).ToList();
         var compat = ports.Where(p => p.Emulator is not null && p.EmulatorLevel is not null).ToList();
-        return emulators.Select(e =>
+        return emulators.OrderByDescending(e => Recipes.Find(e.Id)?.RecommendedFor.Any(g => g.GameId == gameId) == true).Select(e =>
         {
             var names = new[] { e.Name, Recipes.Find(e.Id)?.Name }.OfType<string>().ToList();
             var level = compat.Where(p => p.Emulator!.Split('/').Any(r => names.Contains(r.Trim(), StringComparer.OrdinalIgnoreCase))).Max(p => p.EmulatorLevel);

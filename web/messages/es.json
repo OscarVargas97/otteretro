@@ -376,8 +376,7 @@
         "failed": "Claude falló: {detail}",
         "invalidOutput": "Claude respondió dos veces algo que no tiene la forma esperada.",
         "limit": "Llegaste al límite de tu suscripción de Claude: sigue sola el {at}.",
-        "identify": "{done} de {total} archivos identificados",
-        "bestEmulator": "{game}: buscando el mejor emulador"
+        "identify": "{done} de {total} archivos identificados"
       },
       "log": {
         "started": "Empezó.",
@@ -402,8 +401,7 @@
         "paused": "En pausa: sigue desde aquí al reanudarla.",
         "resumed": "Reanudada.",
         "canceled": "Cancelada.",
-        "identify": "Dejó {doubtful} en Dudosas y {unidentified} en Sin identificar.",
-        "bestEmulator": "Recomendó un emulador en {count} de {consoles} consolas."
+        "identify": "Dejó {doubtful} en Dudosas y {unidentified} en Sin identificar."
       },
       "tools": {
         "checking": "Revisando {name}",
@@ -736,8 +734,7 @@
         "cleanup": "Depurar el catálogo con Claude",
         "sagas": "Rutas, icónico y mejor versión con Claude",
         "load": "Carga inicial con Claude, por partes",
-        "identify": "Identificar archivos con Claude",
-        "bestEmulator": "Buscar el mejor emulador con Claude"
+        "identify": "Identificar archivos con Claude"
       },
       "catalog": {
         "extra": "Completar con Wikidata y RAWG",
@@ -856,17 +853,6 @@
       "platform": "Empresa o consola",
       "allPlatforms": "Todas las consolas",
       "total": "{count, plural, one {# saga} other {# sagas}}"
-    },
-    "bestEmulator": {
-      "open": "Buscar el mejor emulador",
-      "title": "Buscar el mejor emulador",
-      "help": "Elige sagas y, dentro de cada una, sus juegos. Claude busca solo en esos, nunca en todo el catálogo. Lo ya buscado viene desmarcado.",
-      "filters": "Qué sagas mostrar",
-      "noGames": "Esta saga no tiene juegos en ninguna consola.",
-      "searched": "buscado el {date}",
-      "count": "{count, plural, =0 {Ningún juego elegido} one {# juego elegido} other {# juegos elegidos}}",
-      "search": "{count, plural, =0 {Buscar} one {Buscar en # juego} other {Buscar en # juegos}}",
-      "cancel": "Cancelar"
     },
     "saga": {
       "back": "← Sagas",
@@ -1560,21 +1546,7 @@
     "shared": "Listo: {path}. Lleva el emulador, los mods y la configuración; nunca keys, BIOS, firmware, juegos ni partidas.",
     "loadZip": "Cargar un perfil (.zip)",
     "loadConfirm": "Cargar",
-    "loaded": "Cargando el perfil: lo sigues en Tareas.",
-    "best": {
-      "search": "Buscar el mejor emulador",
-      "queued": "En cola",
-      "searched": "Última búsqueda: {date}",
-      "none": "Sin recomendado",
-      "choose": "Elegir a mano",
-      "chooseFor": "Emulador para {console}",
-      "reset": "Volver al del catálogo",
-      "repo": "Ver su repo",
-      "origin": {
-        "manual": "elegido por ti",
-        "claude": "de Claude, local"
-      }
-    }
+    "loaded": "Cargando el perfil: lo sigues en Tareas."
   },
   "play": {
     "title": "Cómo jugar",

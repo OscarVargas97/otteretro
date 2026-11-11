@@ -27,11 +27,6 @@ export function upsertTask(cache: QueryClient, task: TaskInfo) {
   }
   // Una tarea de Claude que empieza o deja de esperar al límite cambia el aviso de pausa (#363).
   if (task.kind.startsWith("claude.") && task.status !== "running") cache.invalidateQueries({ queryKey: ["claude"] });
-  // «Buscar el mejor emulador» terminada cambia el recomendado y el estado de la búsqueda en la ficha del juego (#375).
-  if (task.kind === "claude.bestEmulator" && FINISHED.includes(task.status)) {
-    cache.invalidateQueries({ queryKey: ["emulatorPicks"] });
-    cache.invalidateQueries({ queryKey: ["bestEmulator"] });
-  }
   // Una revisión de versiones cambia los avisos (decisión 294).
   if (task.kind === "tools.updates" && task.status === "done") {
     cache.invalidateQueries({ queryKey: ["toolUpdates"] });

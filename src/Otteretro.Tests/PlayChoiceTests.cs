@@ -1,4 +1,6 @@
 using Dapper;
+using Otteretro.App;
+using Otteretro.Data;
 using Otteretro.Libraries;
 using Otteretro.Play;
 
@@ -80,5 +82,53 @@ public class PlayChoiceTests
         var all = PlayChoice.OfGame(f.Db, 10);
         Assert.Equal([20L, 21L, 22L], all.Select(v => v.VersionId));
         Assert.All(all, v => Assert.Equal(("pc:22", "pc"), (v.Chosen, v.Reason)));
+    }
+
+    /// <summary>#407: a igual nivel, gana el emulador que el catálogo recomienda para el juego, aunque no sea el base.</summary>
+    [Fact]
+    public async Task TheCatalogRecommendedEmulatorWinsAtTheSameLevel()
+    {
+        await using var f = new Fixture();
+        using (var c = f.Db.Open())
+            c.Execute("""
+                INSERT INTO game (id, name_es) VALUES (7692, 'Skyward Sword HD'), (7693, 'Otro');
+                INSERT INTO version (id, game_id, platform) VALUES (30, 7692, 'switch'), (31, 7693, 'switch');
+                INSERT INTO source (kind, relative_path, console, version_id) VALUES ('file', 'ss.nsp', 'switch', 30), ('file', 'otro.nsp', 'switch', 31);
+                """);
+        Profiles.AddEmulator(f.Db, "eden", "emulator", "Eden");
+        Profiles.AddEmulator(f.Db, "ryujinx-ss4k", "emulator", "Ryujinx SS4K");
+
+        // ryujinx-ss4k trae el juego 7692 en recommendedFor; para otro juego manda el base.
+        Assert.Equal("emulator:ryujinx-ss4k", PlayChoice.OfGame(f.Db, 7692).Single().Chosen);
+        Assert.Equal("emulator:eden", PlayChoice.OfGame(f.Db, 7693).Single().Chosen);
+    }
+
+    /// <summary>#407: al quitar la búsqueda local, lo elegido a mano en emulator_pick pasa a play_choice en cada versión de esa consola.</summary>
+    [Fact]
+    public void ManualEmulatorPicksSurviveAsPlayChoices()
+    {
+        using var tmp = new TempDir();
+        var folder = tmp["datos"];
+        DataFolder.Prepare(folder);
+        var db = DataFolder.Open(folder);
+        Migrations.Apply(db, until: "0041_play_choice.sql");
+        using (var c = db.Open())
+            c.Execute("""
+                INSERT INTO game (id, name_es) VALUES (10, 'Twilight Princess');
+                INSERT INTO version (id, game_id, platform) VALUES (20, 10, 'gc'), (21, 10, 'gc'), (22, 10, 'wii');
+                INSERT INTO emulator_pick (game_id, console, recipe_id, origin, searched_at) VALUES
+                  (10, 'gc', 'dolphin', 'manual', '2026-11-01'), (10, 'wii', 'dolphin', 'claude', '2026-11-01');
+                INSERT INTO emulator_search (game_id, searched_at) VALUES (10, '2026-11-01');
+                INSERT INTO play_choice (version_id, option, chosen_at) VALUES (21, 'port:1', '2026-11-02');
+                """);
+
+        Migrations.Apply(db);
+
+        using (var c = db.Open())
+        {
+            // La manual pasa a cada versión de GameCube sin pisar una elección que ya había; lo de Claude no pasa.
+            Assert.Equal([(20L, "emulator:dolphin"), (21L, "port:1")], c.Query<(long, string)>("SELECT version_id, option FROM play_choice ORDER BY version_id"));
+            Assert.Equal(0, c.ExecuteScalar<long>("SELECT count(*) FROM sqlite_master WHERE name IN ('emulator_pick', 'emulator_search')"));
+        }
     }
 }
