@@ -4,10 +4,13 @@ Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
 ## 0.5.2
 
-`feat/390-gitlab-releases`
+`feat/390-gitlab-releases` y `fix/392-claude-allowed-tools`
 
 ### Nuevo
 - **Recetas de GitLab** (#390): un emulador o port cuya receta viene de GitLab (gitlab.com, `gitlab.*` o framagit.org) se instala y se actualiza como uno de GitHub. Sus releases se leen sin clave y una release futura cuenta como de desarrollo. Pegar un repo de GitLab en «Instalar desde una URL» también funciona.
+
+### Arreglos
+- **Claude vuelve a buscar en la web** (#392): las tareas que buscan con Claude, como «Buscar el mejor emulador», tenían WebSearch y WebFetch denegados, porque el modo restringido ignora los permisos del usuario, y respondían sin buscar. Ahora se permiten explícitamente.
 
 ## 0.5.1 · Herramientas
 
