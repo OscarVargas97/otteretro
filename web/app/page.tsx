@@ -43,7 +43,7 @@ export default function Home() {
       {unidentified && (
         <div className="notice" role="note" aria-label={tn("title")}>
           <span>{tn("unidentified", { count: Number(unidentified.params?.count) })}</span>
-          <Link className="ot-btn" href="/review/?tab=unidentified">{tn("openReview")}</Link>
+          <Link className="ot-btn" href="/collection/?review=1">{tn("openReview")}</Link>
         </div>
       )}
       {/* Recetas locales que chocaron con la del catálogo: ganó la publicada y la local quedó respaldada (#357). */}
@@ -96,7 +96,7 @@ export default function Home() {
           <section className="sec">
             <div className="sec-h"><h2>{t("review")}</h2></div>
             <div className="panel">
-              <Link className="ot-btn" href="/review/" style={{ alignSelf: "flex-start" }}>{t("reviewCount", { count: pending })}</Link>
+              <Link className="ot-btn" href="/collection/?review=1" style={{ alignSelf: "flex-start" }}>{t("reviewCount", { count: pending })}</Link>
             </div>
           </section>
         )}

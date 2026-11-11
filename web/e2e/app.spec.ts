@@ -151,7 +151,6 @@ test("todas las pantallas se ven en inglés", async () => {
     ["collection", en.catalog.collection.emptyTitle],
     ["game", en.catalog.game.noneTitle],
     ["saga", en.catalog.saga.noneTitle],
-    ["review", en.review.files.doubtfulEmptyTitle],
     ["tools", en.tools.emptyTitle],
     ["steam", en.steam.emptyTitle],
     ["discover", en.comingSoon.discover.title],
@@ -167,6 +166,36 @@ test("todas las pantallas se ven en inglés", async () => {
     await expectNoRawKeys();
     await expectTextFits();
   }
+});
+
+test("Colección avisa de los archivos por revisar solo si los hay, y /review/ lleva ahí (#415)", async () => {
+  // Sin archivos dudosos ni sin identificar, nada; Revisar ya no está en el menú.
+  await page.goto(`${base()}/collection/`);
+  await expect(page.getByText(en.catalog.collection.emptyTitle)).toBeVisible();
+  await expect(page.getByRole("note", { name: /file(s)? to review/ })).toHaveCount(0);
+  await expect(page.locator('.sidebar a[href="/review/"]')).toHaveCount(0);
+  // Con uno dudoso (la API simulada): el aviso, el contador en Colección y la lista al pulsar «Review».
+  const file = { id: 7, kind: "doubtful", sourceId: 1, path: String.raw`E:\Consolas\Switch\Zelda EoW.nsp`, console: "switch", component: null, titleId: null,
+    proposed: "The Legend of Zelda: Echoes of Wisdom", reason: null, gameId: null, gameName: null };
+  await page.route("**/api/review", (r) => r.fulfill({ json: { files: [file], packages: [] } }));
+  await page.route("**/api/review/count", (r) => r.fulfill({ json: 1 }));
+  await page.goto(`${base()}/collection/`);
+  const notice = page.getByRole("note", { name: "1 file to review" });
+  await expect(notice).toBeVisible();
+  await expect(page.locator('.sidebar a[href="/collection/"] .ot-count-review')).toHaveText("1");
+  await expect(page.getByText("Zelda EoW.nsp")).toHaveCount(0);
+  await notice.getByRole("button", { name: en.review.open }).click();
+  await expect(page.getByText("Zelda EoW.nsp")).toBeVisible();
+  await expect(page.getByRole("button", { name: en.review.files.confirm })).toBeVisible();
+  await expect(page.getByRole("button", { name: en.review.files.change })).toBeVisible();
+  await expectNoRawKeys();
+  await expectTextFits();
+  // La vieja /review/ abre Colección con la lista desplegada.
+  await page.goto(`${base()}/review/`);
+  await expect(page).toHaveURL(`${base()}/collection/?review=1`);
+  await expect(page.getByText("Zelda EoW.nsp")).toBeVisible();
+  await page.unroute("**/api/review");
+  await page.unroute("**/api/review/count");
 });
 
 /** Llama a la API desde la página, que tiene la clave de la sesión. */

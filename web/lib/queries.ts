@@ -49,8 +49,10 @@ export function prefetchLink(client: QueryClient, href: string) {
   }
   else if (path === "/sagas")
     client.prefetchInfiniteQuery(sagasQuery("all", "", "recognized"));
-  else if (path === "/collection") client.prefetchQuery(consolesQuery);
-  else if (path === "/review") client.prefetchQuery(reviewQuery);
+  else if (path === "/collection") {
+    client.prefetchQuery(consolesQuery);
+    client.prefetchQuery(reviewQuery);
+  }
   else if (path === "") {
     client.prefetchQuery(noticesQuery);
     client.prefetchQuery(nextQuery);
