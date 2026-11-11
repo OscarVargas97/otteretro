@@ -55,7 +55,8 @@ function Downloads() {
         {list.data && shown.length === 0 && (tab === "done" ? <p className="small muted" style={{ margin: 0 }}>{t("doneEmpty")}</p> : <Empty title={t("emptyTitle")} text={t("emptyText")} />)}
         {shown.map((r) => <Row key={r.d.id} d={r.d} status={r.status} detail={r.task?.detail ?? r.d.detail} progress={Number(r.task?.progress ?? r.d.progress)} />)}
       </div>
-      <Advanced />
+      {/* Avanzado espera a la lista: si llegara antes, la lista lo empujaría hacia abajo (#423). */}
+      {list.data && <Advanced />}
     </div>
   );
 }
@@ -140,7 +141,8 @@ function Capture({ packages }: { packages: LinkPackage[] }) {
             {disks.map((d) => <option key={d.id} value={d.id}>{hint(d)}</option>)}
           </select>
         </label>
-        <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" disabled={queue.isPending || chosen.length === 0} onClick={() => queue.mutate()}>{t("startCount", { count: chosen.length })}</button>
+        {/* A la derecha: el selector crece al llegar los discos y no lo mueve (#423). */}
+        <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" style={{ marginLeft: "auto" }} disabled={queue.isPending || chosen.length === 0} onClick={() => queue.mutate()}>{t("startCount", { count: chosen.length })}</button>
       </div>
     </section>
   );
