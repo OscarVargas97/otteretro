@@ -6,6 +6,7 @@ import { useState } from "react";
 import { request } from "@/lib/client";
 import { useDescribeError, useDynamicT } from "@/lib/i18n";
 import type { TaskInfo, TaskLogEntry } from "@/lib/types";
+import { RetryClaude } from "./Recognize";
 
 /** Tareas de la cola (F1.2): lo pendiente y lo reciente; cada cambio llega por el evento "task". */
 export const useTasks = () => useQuery({ queryKey: ["tasks"], queryFn: () => request<TaskInfo[]>("/api/tasks") }).data ?? [];
@@ -23,6 +24,22 @@ export function upsertTask(cache: QueryClient, task: TaskInfo) {
     cache.invalidateQueries({ queryKey: ["libraries"] });
     cache.invalidateQueries({ queryKey: ["tools"] });
     cache.invalidateQueries({ queryKey: ["consoles", "detail"] });
+  }
+  // Una tarea de Claude que empieza o deja de esperar al límite cambia el aviso de pausa (#363).
+  if (task.kind.startsWith("claude.") && task.status !== "running") cache.invalidateQueries({ queryKey: ["claude"] });
+  // «Buscar el mejor emulador» terminada cambia el recomendado y el estado de la búsqueda en la ficha del juego (#375).
+  if (task.kind === "claude.bestEmulator" && FINISHED.includes(task.status)) {
+    cache.invalidateQueries({ queryKey: ["emulatorPicks"] });
+    cache.invalidateQueries({ queryKey: ["bestEmulator"] });
+  }
+  // Una revisión de versiones cambia los avisos (decisión 294).
+  if (task.kind === "tools.updates" && task.status === "done") {
+    cache.invalidateQueries({ queryKey: ["toolUpdates"] });
+    cache.invalidateQueries({ queryKey: ["notices"] });
+  }
+  // Instalar o reinstalar cambia lo instalado, los avisos y la librería (#296).
+  if ((task.kind === "tools.install") && task.status === "done") {
+    for (const key of ["tools", "emulators", "toolUpdates"]) cache.invalidateQueries({ queryKey: [key] });
   }
   // Un escaneo terminado cambia lo que tienes (#178).
   if ((task.kind === "library.scan" || task.kind === "library.verify" || task.kind === "library.import" || task.kind === "library.convert") && task.status === "done") {
@@ -80,6 +97,7 @@ export function TaskRows() {
               </>
             ) : (
               <>
+                {task.status === "queued" && task.detail?.code === "tasks.claude.limit" && <RetryClaude />}
                 {task.status === "paused"
                   ? <button type="button" className="ot-btn ot-btn-sm" disabled={act.isPending} onClick={() => act.mutate({ id, action: "resume" })}>{t("tasks.resume")}</button>
                   : <button type="button" className="ot-btn ot-btn-sm" disabled={act.isPending} onClick={() => act.mutate({ id, action: "pause" })}>{t("tasks.pause")}</button>}

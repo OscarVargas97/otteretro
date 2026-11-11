@@ -32,7 +32,9 @@ public static class CatalogUpdate
     /// <param name="Available">Se puede bajar: `publicar.yml` conserva solo las últimas; las demás aparecen por su historial de cambios.</param>
     /// <param name="Counts">Cuántos hay de cada cambio en esa versión (renamed, merged, removed, added, changed), según su `cambios.json`.</param>
     /// <param name="Changes">Los cambios de esa versión, hasta <see cref="ChangesShown"/>.</param>
-    public record VersionInfo(string Tag, string? PublishedAt, bool Available, bool Current, Dictionary<string, int> Counts, List<VersionChange> Changes);
+    /// <param name="Compatible">Sus migraciones de catálogo son las de la app (#337, decisión 340). Una que no se puede bajar va en false y sin razón.</param>
+    /// <param name="Reason">Por qué no es compatible: `newer` (necesita Otteretro más nuevo) u `older` (de una versión anterior de Otteretro).</param>
+    public record VersionInfo(string Tag, string? PublishedAt, bool Available, bool Current, bool Compatible, string? Reason, Dictionary<string, int> Counts, List<VersionChange> Changes);
     public record VersionChange(string Kind, string Change, long Id, string? Name, string? From);
     public record VersionsPage(string Repo, string? Current, List<VersionInfo> Versions);
     record HistoryEntry(string Version, string Kind, string Change, long Id, string? Name = null, string? From = null);
@@ -93,11 +95,38 @@ public static class CatalogUpdate
     }
 
     /// <summary>Con cada tabla antes de las que apuntan a ella. `claude_fingerprint` y lo de Claude no: esos quedaron en el generador.</summary>
-    static readonly string[] Published = ["saga", "game", "version", "version_criterion", "field_value", "route", "route_step", "image", "version_code"];
+    static readonly string[] Published = ["saga", "game", "version", "version_criterion", "field_value", "route", "route_step", "image", "version_code", "port"];
+    /// <summary>
+    /// Las recetas (#357): se reemplazan como lo demás, pero no cuentan para la compatibilidad (<see cref="AppColumns"/>): un catálogo sin ellas
+    /// se aplica igual y la app usa las que trae incrustadas.
+    /// </summary>
+    static readonly string[] RecipeTables = ["recipe", "recipe_console"];
 
     record Asset(string Name, string BrowserDownloadUrl);
     record Release(string TagName, bool Draft, List<Asset> Assets, string? PublishedAt = null);
-    record Manifest(string Sha256);
+    /// <param name="Schema">Las columnas de todas las tablas del catálogo publicado, como `tabla.columna` (otteretro-catalogo#78). Sin ella, es de antes de publicarla.</param>
+    record Manifest(string Sha256, List<string>? Schema = null);
+
+    /// <summary>Las columnas de catálogo que usa la app, como `tabla.columna`: las de lo que copia <see cref="Apply"/>.</summary>
+    public static List<string> AppColumns(Database db)
+    {
+        using var c = db.Open();
+        return Published.Concat(["console", "console_platform"])
+            .SelectMany(t => c.Query<string>($"SELECT '{t}.' || name FROM pragma_table_info('{t}', 'catalog')")).ToList();
+    }
+
+    /// <summary>
+    /// Null si el catálogo trae todas las columnas que usa la app (las de más se ignoran, decisión 340). Si falta alguna: `newer` si además trae
+    /// columnas que la app no conoce en esas tablas (es de una app más nueva), si no `older`.
+    /// </summary>
+    static string? Incompatible(Database db, List<string>? schema)
+    {
+        if (schema is null) return "older";
+        var app = AppColumns(db);
+        if (!app.Except(schema).Any()) return null;
+        var tables = app.Select(x => x[..x.IndexOf('.')]).ToHashSet();
+        return schema.Where(x => tables.Contains(x[..x.IndexOf('.')])).Except(app).Any() ? "newer" : "older";
+    }
 
     static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
 
@@ -157,12 +186,20 @@ public static class CatalogUpdate
 
         var current = Version(db) ?? await Identify(db, http, releases, ct);
         var tags = releases.Select(r => r.TagName).Union(history?.Versions ?? []).Distinct().OrderDescending(StringComparer.Ordinal);
+        var reasons = (await Task.WhenAll(releases.Select(async r =>
+        {
+            if (r.Assets.FirstOrDefault(a => a.Name == ManifestAsset) is not { } m) return (r.TagName, "older");
+            try { return (r.TagName, Incompatible(db, JsonSerializer.Deserialize<Manifest>(await http.GetStringAsync(m.BrowserDownloadUrl, ct), JsonSerializerOptions.Web)?.Schema)); }
+            catch (Exception e) when (e is HttpRequestException or JsonException) { return (r.TagName, "older"); }
+        }))).ToDictionary(x => x.TagName, x => x.Item2);
         var byVersion = history?.Entries.GroupBy(e => e.Version).ToDictionary(g => g.Key, g => g.ToList()) ?? [];
         return new(repo, current, tags.Select(tag =>
         {
             var release = releases.FirstOrDefault(r => r.TagName == tag);
             var entries = byVersion.GetValueOrDefault(tag) ?? [];
+            var reason = release is null ? null : reasons.GetValueOrDefault(tag);
             return new VersionInfo(tag, release?.PublishedAt, release?.Assets.Any(a => a.Name == DataAsset) == true, tag == current,
+                release is not null && reason is null, reason,
                 Counts(entries, history?.Images?.GetValueOrDefault(tag) ?? 0),
                 entries.Take(ChangesShown).Select(e => new VersionChange(e.Kind, e.Change, e.Id, e.Name, e.From)).ToList());
         }).ToList());
@@ -206,6 +243,8 @@ public static class CatalogUpdate
         string Url(string name) => latest.Assets.FirstOrDefault(a => a.Name == name)?.BrowserDownloadUrl ?? throw new TaskException(ApiError.Of("catalog.badRelease"));
 
         var manifest = JsonSerializer.Deserialize<Manifest>(await http.GetStringAsync(Url(ManifestAsset), ct), JsonSerializerOptions.Web)!;
+        // Sin tocar nada: ni se baja ni se aplica una versión de otro esquema (#337, decisión 340).
+        if (Incompatible(run.Db, manifest.Schema) is { } reason) throw new TaskException(ApiError.Of(reason == "newer" ? "catalog.needsNewerApp" : "catalog.olderSchema", ("version", latest.TagName)));
         if (Setting(run.Db, Applied) == manifest.Sha256) { Reject(run.Db); return; }
         if (Waiting(run.Db) is { } waiting && waiting.Sha256 == manifest.Sha256 && waiting.Repo == repo) return;
 
@@ -281,11 +320,11 @@ public static class CatalogUpdate
                     """).ToList();
             using (var t = c.BeginTransaction())
             {
-                foreach (var table in Published.Reverse()) c.Execute($"DELETE FROM catalog.{table}", transaction: t);
+                foreach (var table in Published.Concat(RecipeTables).Reverse()) c.Execute($"DELETE FROM catalog.{table}", transaction: t);
                 // Las consolas no se borran: tus discos y destinos apuntan a ellas.
                 Copy(c, t, "console", "INSERT OR IGNORE");
                 Copy(c, t, "console_platform", "INSERT OR REPLACE");
-                foreach (var table in Published) Copy(c, t, table, "INSERT");
+                foreach (var table in Published.Concat(RecipeTables)) Copy(c, t, table, "INSERT");
                 t.Commit();
             }
             ImageRefs.Forget(db, changed);
@@ -294,6 +333,8 @@ public static class CatalogUpdate
             c.Execute("UPDATE cache_generation SET value = value + 1"); // Sagas guardado ya no vale (#225)
         }
         finally { c.Execute("DETACH DATABASE initial"); }
+        // Solo las recetas: perfiles, configuraciones, partidas y versiones instaladas son de la persona y no se tocan (decisión 349).
+        Libraries.Recipes.Reload();
     }
 
     static void Copy(SqliteConnection c, SqliteTransaction t, string table, string verb)

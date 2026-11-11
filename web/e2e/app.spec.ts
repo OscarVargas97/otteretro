@@ -332,7 +332,7 @@ test("Descargas: el capturador guarda lo pegado, sobrevive a cambiar de pantalla
 
 test("Herramientas: pestañas por tipo y subir un archivo de sistema con versiones (#154, #199)", async () => {
   await page.goto(`${base()}/tools/`);
-  for (const k of ["emulator", "port", "complement", "system"] as const) await expect(page.getByRole("tab", { name: en.tools.kind[k] })).toBeVisible();
+  for (const k of ["emulator", "port", "complement", "tool", "system"] as const) await expect(page.getByRole("tab", { name: en.tools.kind[k] })).toBeVisible();
   await expect(page.getByRole("tab", { name: en.tools.kind.emulator })).toHaveAttribute("aria-selected", "true");
   await page.getByRole("tab", { name: en.tools.kind.system }).click();
   await expect(page).toHaveURL(/k=system/);
@@ -343,6 +343,133 @@ test("Herramientas: pestañas por tipo y subir un archivo de sistema con version
   await page.getByLabel(en.tools.systemUpload).setInputFiles({ name: "prueba.bin", mimeType: "application/octet-stream", buffer: Buffer.from("archivo de prueba") });
   await expect(page.getByText(/prueba\.bin/)).toBeVisible();
   await expectNoRawKeys();
+});
+
+test("Herramientas: un emulador sin receta desde su repo lista sus releases y la instala sin escribir la versión (#350)", async () => {
+  await page.route("**/api/repos/releases?*", (r) => r.fulfill({ json: [
+    { version: "5", channel: "dev", publishedAt: "2026-11-09T02:26:31Z", url: null, assets: [
+      { name: "Fritchii-v5-debug-symbols-not-needed-to-play.zip", url: "https://github.com/Frizti/Fritchii/releases/download/fritchii-v5/Fritchii-v5-debug-symbols-not-needed-to-play.zip", windows: false },
+      { name: "Fritchii-v5-Windows-x64.zip", url: "https://github.com/Frizti/Fritchii/releases/download/fritchii-v5/Fritchii-v5-Windows-x64.zip", windows: true },
+    ] },
+  ] }));
+  let sent: Record<string, unknown> | null = null;
+  await page.route("**/api/emulators/install", (r) => { sent = r.request().postDataJSON(); return r.fulfill({ json: 0 }); });
+  await page.goto(`${base()}/tools/`);
+  await page.getByRole("button", { name: en.tools.install.open.emulator }).click();
+  await page.getByLabel(en.tools.install.what).selectOption(":other");
+  await page.getByLabel(en.tools.install.name, { exact: true }).fill("Mi Fritchii");
+  await page.getByLabel(en.tools.install.console).selectOption("switch2");
+  await page.getByLabel(en.tools.install.fromKind.url).check();
+  await page.getByLabel(en.tools.install.url, { exact: true }).fill("github.com/Frizti/Fritchii");
+  await page.getByRole("button", { name: en.tools.install.findReleases }).click();
+  // La versión sale del tag y, con un solo archivo de Windows, no hay nada que elegir.
+  await expect(page.getByLabel(en.tools.install.version, { exact: true })).toHaveValue("dev|5");
+  await expect(page.getByText("Fritchii-v5-Windows-x64.zip")).toBeVisible();
+  await expectNoRawKeys();
+  await page.locator("section[aria-labelledby=install-title]").getByRole("button", { name: en.tools.install.submit, exact: true }).click();
+  await expect.poll(() => sent).toMatchObject({ emulator: "mi-fritchii", name: "Mi Fritchii", version: "5", repo: "github.com/Frizti/Fritchii", console: "switch2",
+    url: "https://github.com/Frizti/Fritchii/releases/download/fritchii-v5/Fritchii-v5-Windows-x64.zip" });
+  await page.unroute("**/api/repos/releases?*");
+  await page.unroute("**/api/emulators/install");
+});
+
+test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería y los avisos que instalan (#296)", async () => {
+  const src = dataDir("srm-a-mano");
+  mkdirSync(src, { recursive: true });
+  writeFileSync(join(src, "Steam-ROM-Manager.exe"), "srm");
+  await addDisk("Disco Copia");
+  // La pestaña Herramientas (decisión 311): instalar desde una carpeta de este equipo.
+  await page.goto(`${base()}/tools/?k=tool`);
+  await expect(page.getByRole("tab", { name: en.tools.kind.tool })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("button", { name: en.tools.install.open.tool }).click();
+  await page.getByLabel(en.tools.install.what).selectOption("steam-rom-manager");
+  await page.getByLabel(en.tools.install.fromKind.path).check();
+  await page.getByLabel(en.tools.install.path, { exact: true }).fill(src);
+  await page.getByLabel(en.tools.install.version, { exact: true }).fill("2.6.2");
+  await expectNoRawKeys();
+  await expectTextFits();
+  await page.locator("section[aria-labelledby=install-title]").getByRole("button", { name: en.tools.install.submit, exact: true }).click();
+  await expect(page.getByText(en.tools.install.queued)).toBeVisible();
+  // Al terminar: una sola tarjeta con lo de disco y lo registrado (#348); su origen, en el plegable.
+  const panel = page.locator("#tools-panel");
+  const card = panel.getByRole("region", { name: "Steam ROM Manager" });
+  await expect(card).toBeVisible({ timeout: 15_000 });
+  await expect(card).toHaveCount(1);
+  await card.getByText(en.tools.library.details).click();
+  await expect(card.getByText(en.tools.library.origin.upload, { exact: false })).toBeVisible();
+  // Una herramienta no se "usa" ni se borra desde aquí: solo se abre su carpeta.
+  await expect(card.getByRole("button", { name: en.tools.library.open })).toBeVisible();
+  await expect(card.getByRole("button", { name: en.tools.library.use })).toHaveCount(0);
+  await page.screenshot({ path: "e2e-results/8-tools-install-en.png", fullPage: true });
+
+  // Ya no hay segunda copia: ni la opción en Ajustes › Almacenamiento ni insignias de copias (decisión 335).
+  await expect(page.getByText(/En dos discos|On two disks|Una sola copia|Only one copy/)).toHaveCount(0);
+
+  // Un aviso con su archivo: «Actualizar» lo instala al lado (con la API de instalar) y dice qué juegos lo usan.
+  const many = ["A", "B", "C", "D", "E", "F", "G", "H"];
+  await page.route("**/api/tools/updates", (route) => route.fulfill({ json: [{ recipeId: "steam-rom-manager", name: "Steam ROM Manager", kind: "tool", channel: "stable", version: "2.6.3",
+    notes: null, url: "https://github.com/SteamGridDB/steam-rom-manager/releases", publishedAt: null, installed: ["2.6.2"], games: many, download: "https://example.com/srm-2.6.3.exe" }] }));
+  let sent: unknown = null;
+  await page.route("**/api/emulators/install", (route) => { sent = route.request().postDataJSON(); return route.fulfill({ json: 1 }); });
+  // Va en su pestaña (decisión 320), con su contador, y en una fila que se abre (decisión 322).
+  await page.goto(`${base()}/tools/`);
+  await expect(page.getByText("Steam ROM Manager")).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: new RegExp(en.tools.kind.tool) }).locator(".ot-count")).toHaveText("1");
+  await page.goto(`${base()}/tools/?k=tool`);
+  const row = page.getByRole("button", { name: /Steam ROM Manager.*2\.6\.2 → 2\.6\.3/ });
+  await expect(row).toHaveAttribute("aria-expanded", "false");
+  await row.click();
+  await page.screenshot({ path: "e2e-results/8-tools-updates-en.png" });
+  await expect(page.getByText(en.tools.updates.gamesMore.replace("{list}", "A, B, C, D, E, F").replace(/\{count.*\}$/, "2 more"))).toBeVisible();
+  await page.getByRole("button", { name: en.tools.updates.update, exact: true }).click();
+  await expect(page.getByText(en.tools.updates.queued)).toBeVisible();
+  expect(sent).toEqual({ emulator: "steam-rom-manager", version: "2.6.3", url: "https://example.com/srm-2.6.3.exe" });
+  await expectNoRawKeys();
+  await page.unroute("**/api/tools/updates");
+  await page.unroute("**/api/emulators/install");
+  // La tarjeta de un emulador (#329): «En uso», usar otra versión y borrar la que no se usa.
+  const ver = (version: string, path: string | null, inUse: boolean) => ({ emulatorId: "eden", name: "Eden", kind: "emulator", version, origin: "recipe", url: null, file: null, sha256: null, installedAt: "2026-01-01T00:00:00Z", path, inUse });
+  const dolphin = { ...ver("2512", "C:/d/2512", true), emulatorId: "dolphin", name: "Dolphin" };
+  let list = [ver("1.0", "C:/e/1.0", true), ver("2.0", "C:/e/2.0", false), ver("0.9", null, false), dolphin];
+  await page.route("**/api/emulators", (route) => route.fulfill({ json: list }));
+  const bodies: Record<string, unknown> = {};
+  for (const action of ["use", "remove"]) await page.route(`**/api/emulators/${action}`, (route) => {
+    bodies[action] = route.request().postDataJSON();
+    list = action === "use" ? [ver("1.0", "C:/e/1.0", false), ver("2.0", "C:/e/2.0", true), ver("0.9", null, false)] : list.filter((i) => i.version !== "1.0");
+    return route.fulfill({ json: list });
+  });
+  await page.goto(`${base()}/tools/?k=emulator`);
+  // Secciones por consola (decisiones 343 y 345): Dolphin sale en GameCube y en Wii; Eden, una vez, en Switch.
+  for (const name of ["GameCube", "Wii"]) await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Dolphin" })).toHaveCount(2);
+  const eden = page.getByRole("region", { name: "Eden" });
+  await expect(eden).toHaveCount(1);
+  // La versión en uso a la vista y las demás plegadas (decisión 344).
+  await expect(eden.getByText(en.tools.library.current.replace("{version}", "1.0"))).toBeVisible();
+  await expect(eden.getByText(en.tools.library.archived)).toBeHidden();
+  await eden.getByText(/2 more versions/).click();
+  await expect(eden.getByText(en.tools.library.archived)).toBeVisible();
+  await expectNoRawKeys();
+  await expectTextFits();
+  await page.screenshot({ path: "e2e-results/8-tools-cards-en.png", fullPage: true });
+  await eden.getByRole("button", { name: en.tools.library.use }).click();
+  await expect(eden.getByText(en.tools.library.current.replace("{version}", "2.0"))).toBeVisible();
+  await expect(eden.locator("details .version-row", { hasText: "2.0" }).getByText(en.tools.library.inUse)).toBeVisible();
+  expect(bodies.use).toEqual({ emulator: "eden", version: "2.0" });
+  await eden.locator("details .version-row", { hasText: "1.0" }).getByRole("button", { name: en.tools.library.remove }).click();
+  await eden.getByRole("button", { name: en.tools.library.removeConfirm, exact: true }).click();
+  await expect(eden.getByText("1.0")).toHaveCount(0);
+  expect(bodies.remove).toEqual({ emulator: "eden", version: "1.0" });
+  for (const action of ["use", "remove"]) await page.unroute(`**/api/emulators/${action}`);
+  await page.unroute("**/api/emulators");
+  // Se limpian la instalación y la copia del panel de tareas, para las pruebas que siguen.
+  await page.getByRole("button", { name: en.topBar.tasks }).click();
+  await expect(async () => {
+    await page.getByRole("dialog", { name: en.topBar.tasksPanel }).getByRole("button", { name: en.tasks.clear }).click({ timeout: 1000 });
+    await expect(page.getByText(en.topBar.noTasksTitle)).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 15_000 });
+  await page.keyboard.press("Escape");
+  await removeDisks();
 });
 
 test("el panel de tareas y la búsqueda están traducidos", async () => {
@@ -481,6 +608,27 @@ test("volver a español en Ajustes cambia todo y se mantiene al recargar", async
   await expectSearchFits();
   await expectTextFits();
   await page.screenshot({ path: "e2e-results/5-settings-es.png", fullPage: true });
+});
+
+test("Herramientas en español: la barra de arriba en una línea y una tarjeta por emulador en cada consola (#348)", async () => {
+  const one = (emulatorId: string, name: string) => ({ emulatorId, name, kind: "emulator", version: "1.0", origin: "recipe", url: "https://example.com/x.zip", file: null, sha256: null,
+    installedAt: "2026-01-01T00:00:00Z", path: `C:/x/${emulatorId}`, inUse: true });
+  await page.route("**/api/emulators", (route) => route.fulfill({ json: [one("dolphin", "Dolphin"), one("eden", "Eden")] }));
+  await page.goto(`${base()}/tools/?k=emulator`);
+  // «Instalar…», «Cargar perfil» y «Revisar ahora» en una sola barra, sin el panel «Versiones nuevas».
+  const top = async (name: string) => (await page.getByRole("button", { name, exact: true }).boundingBox())!.y;
+  const y = await top(es.tools.install.open.emulator);
+  for (const name of [es.profiles.loadZip, es.tools.updates.checkNow]) expect(await top(name)).toBe(y);
+  await expect(page.getByRole("region", { name: "Dolphin" })).toHaveCount(2);
+  const eden = page.getByRole("region", { name: "Eden" });
+  await expect(eden.getByText(es.tools.library.current.replace("{version}", "1.0"))).toBeVisible();
+  await eden.getByText(es.tools.library.details).click();
+  await expect(eden.getByText("https://example.com/x.zip")).toBeVisible();
+  await expectNoRawKeys();
+  await expectTextFits();
+  await page.screenshot({ path: "e2e-results/8-tools-cards-es.png", fullPage: true });
+  await page.unroute("**/api/emulators");
+  await page.goto(`${base()}/settings/`);
 });
 
 test("Cuentas y claves: pegar una clave la deja guardada sin mostrarla, y borrarla la deja en falta", async () => {
@@ -723,6 +871,181 @@ test("la ficha muestra tus enlaces de ese juego, y se pueden quitar (#210)", asy
   await expect(page.getByText("fusion.zip")).toBeVisible();
   await page.getByRole("button", { name: es.downloads.removeLink.replace("{name}", "fusion.zip") }).click();
   await expect(page.getByRole("heading", { name: es.downloads.gameLinks })).toHaveCount(0);
+});
+
+test("la ficha muestra el emulador recomendado para el juego, con su fuente y «Instalar» si falta (#366)", async () => {
+  await page.route("**/api/recipes", (route) => route.fulfill({ json: [{ id: "fork-prueba", name: "Fork de prueba", kind: "emulator", experimental: true, releases: true,
+    consoles: ["n64"], baseFor: [], folder: "N64", game: null, forkOf: null, recommendedFor: [{ game: "Ocarina of Time", gameId: 10, source: "https://sitio.test/guia" }] }] }));
+  await page.goto(`${base()}/game/?id=10`);
+  await expect(page.getByText(es.profiles.recommended.replace("{emulator}", "Fork de prueba"))).toBeVisible();
+  await expect(page.getByRole("link", { name: es.profiles.recommendedSource.replace("{source}", "sitio.test") })).toHaveAttribute("href", "https://sitio.test/guia");
+  await expect(page.getByRole("button", { name: es.tools.forks.install })).toBeVisible();
+  // Otro juego no lo muestra.
+  await page.goto(`${base()}/game/?id=11`);
+  await expect(page.getByText(es.profiles.recommended.replace("{emulator}", "Fork de prueba"))).toHaveCount(0);
+  await page.unroute("**/api/recipes");
+});
+
+test("la ficha busca el mejor emulador, muestra lo local primero y deja elegir a mano o volver al del catálogo (#375)", async () => {
+  const db = await openDb();
+  db.exec(`
+    INSERT INTO emulator_pick (game_id, console, recipe_id, repo, source, reason, origin, searched_at) VALUES
+      (10, 'n64', 'rmg', NULL, 'https://sitio.test/rmg', 'va bien', 'claude', '2026-11-01T12:00:00Z'),
+      (10, '3ds', NULL, 'https://sitio.test/sin-receta', 'https://sitio.test/fuente', 'otro', 'claude', '2026-11-01T12:00:00Z');
+  `);
+  db.close();
+  // La búsqueda real llamaría a Claude: se simula la cola.
+  let queued = false;
+  await page.route("**/api/games/10/best-emulator", (route) => route.request().method() === "POST"
+    ? (queued = true, route.fulfill({ json: 999 }))
+    : route.fulfill({ json: { task: queued ? 999 : null, searchedAt: "2026-11-01T12:00:00Z" } }));
+  await page.goto(`${base()}/game/?id=10`);
+  const best = es.profiles.best;
+  await expect(page.getByText(/Última búsqueda/)).toBeVisible();
+  await page.getByRole("button", { name: best.search }).click();
+  await expect(page.getByRole("status").filter({ hasText: best.queued })).toBeVisible();
+  await expect(page.getByRole("button", { name: best.search })).toBeDisabled();
+
+  const n64 = page.getByRole("group", { name: /64/ });
+  await expect(n64.getByText(es.profiles.recommended.replace("{emulator}", "Rosalie's Mupen GUI"))).toBeVisible();
+  await expect(n64.getByText(best.origin.claude)).toBeVisible();
+  await expect(n64.getByRole("link", { name: es.profiles.recommendedSource.replace("{source}", "sitio.test") })).toHaveAttribute("href", "https://sitio.test/rmg");
+  // Sin receta: su repo, sin «Instalar».
+  const n3ds = page.getByRole("group", { name: /3DS/ });
+  await expect(n3ds.getByRole("link", { name: best.repo })).toHaveAttribute("href", "https://sitio.test/sin-receta");
+  await expect(n3ds.getByRole("button", { name: es.tools.forks.install })).toHaveCount(0);
+
+  await n64.getByRole("button", { name: best.choose }).click();
+  await n64.getByRole("combobox").selectOption({ label: "Rosalie's Mupen GUI" });
+  await expect(n64.getByText(best.origin.manual)).toBeVisible();
+  await n64.getByRole("button", { name: best.reset }).click();
+  await expect(n64.getByText(best.none)).toBeVisible();
+  await expect(n64.getByRole("button", { name: best.reset })).toHaveCount(0);
+  await page.unroute("**/api/games/10/best-emulator");
+  const check = await openDb();
+  expect(check.prepare("SELECT console FROM emulator_pick WHERE game_id = 10").all()).toEqual([{ console: "3ds" }]);
+  check.exec("DELETE FROM emulator_pick");
+  check.close();
+});
+
+test("«Buscar el mejor emulador» encola solo los juegos elegidos y deja desmarcado lo ya buscado (#374)", async () => {
+  const db = await openDb();
+  db.exec("INSERT INTO emulator_search (game_id, searched_at) VALUES (11, '2026-11-01T12:00:00Z') ON CONFLICT DO NOTHING");
+  db.close();
+  let sent: unknown = null;
+  await page.route("**/api/best-emulator", (route) => { sent = route.request().postDataJSON(); return route.fulfill({ json: [1] }); });
+  await page.goto(`${base()}/saga/?id=1`);
+  await page.getByRole("button", { name: es.catalog.bestEmulator.open }).click();
+  const dialog = page.getByRole("dialog", { name: es.catalog.bestEmulator.title });
+  await expect(dialog.getByRole("checkbox", { name: "The Legend of Zelda" })).toBeChecked();
+  await expect(dialog.getByRole("checkbox", { name: /Ocarina of Time/ })).toBeChecked();
+  const botw = dialog.getByRole("checkbox", { name: /Breath of the Wild/ });
+  await expect(botw).not.toBeChecked();
+  await expect(dialog.getByText(/buscado el/)).toBeVisible();
+  await expect(dialog.getByRole("status")).toHaveText("1 juego elegido");
+  await dialog.getByRole("button", { name: "Buscar en 1 juego" }).click();
+  await expect(dialog).toBeHidden();
+  expect(sent).toEqual({ gameIds: [10] });
+  await page.unroute("**/api/best-emulator");
+});
+
+test("ports: Novedades con los nuevos de lo que sigues, la ficha separa los 100 % jugables e instalar pide la URL solo sin receta (#286, #287, #384)", async () => {
+  // Sin ningún «Visto», Novedades muestra lo de los últimos 30 días.
+  const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
+  const db = await openDb();
+  db.exec(`
+    INSERT INTO saga_user (saga_id, favorite, following) VALUES (1, 0, 1) ON CONFLICT (saga_id) DO UPDATE SET following = 1;
+    INSERT INTO port (id, console, game, project, kind, status, delisted, link, source, added, game_id) VALUES
+      (1, 'n64', 'Ocarina of Time', 'Ship of Harkinian', 'decomp', 'complete', 0, 'https://sitio.test/soh', 'recompendium', '${daysAgo(4)}', 10),
+      (2, 'n64', 'Ocarina of Time', 'Viejo port', 'port', 'beta', 1, 'https://sitio.test/viejo', 'extra', '${daysAgo(20)}', 10),
+      (3, 'gc', 'Ocarina of Time', 'Dusklight', 'decomp', 'playable', 0, 'https://github.com/TwilitRealm/dusklight', 'extra', '${daysAgo(40)}', 10);
+  `);
+  db.close();
+  await page.goto(`${base()}/`);
+  const news = page.getByLabel(es.ports.news);
+  await expect(news.getByRole("heading", { name: es.ports.newFullyPlayable })).toBeVisible();
+  await expect(news.getByRole("heading", { name: es.ports.newOthers })).toBeVisible();
+  await expect(news.getByText(es.ports.delisted)).toBeVisible();
+  await news.getByRole("button", { name: es.ports.seen }).click();
+  await expect(page.getByLabel(es.ports.news)).toHaveCount(0);
+
+  await page.goto(`${base()}/game/?id=10`);
+  const ports = page.getByRole("region", { name: es.ports.title });
+  await expect(ports.getByRole("heading", { name: es.ports.fullyPlayable })).toBeVisible();
+  await expect(ports.getByText(es.ports.status.complete, { exact: true })).toBeVisible();
+  await expect(ports.getByText(es.ports.added.replace("{date}", new Intl.DateTimeFormat("es", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(daysAgo(4)))))).toBeVisible();
+  await expect(ports.getByText(es.ports.status.beta, { exact: true })).toBeVisible();
+  // Con receta (su «port» es el enlace), solo «Instalar»; sin receta, solo la URL (#384).
+  await expect(ports.getByRole("button", { name: es.ports.install, exact: true })).toHaveCount(1);
+  await expect(ports.getByRole("button", { name: es.ports.installFromUrl })).toHaveCount(2);
+  // Sin receta: con la URL de su release; si el archivo no dice la versión, se pide.
+  await ports.getByRole("button", { name: es.ports.installFromUrl }).first().click();
+  await ports.getByLabel(es.ports.url.replace("{name}", "Ship of Harkinian")).fill("https://sitio.test/descarga");
+  await ports.locator("form").getByRole("button", { name: es.ports.installConfirm, exact: true }).click();
+  await expect(ports.getByRole("alert")).toHaveText(es.errors.install.noVersion);
+  await expectTextFits();
+});
+
+test("la ficha: perfiles de cada versión, crear, activar y volver al por defecto (#269)", async () => {
+  // Un emulador sin receta, base de Switch: sus perfiles no mueven archivos, así que no hace falta instalarlo.
+  const db = await openDb();
+  db.exec(`
+    INSERT INTO emulator (id, kind, name) VALUES ('mi-emu', 'emulator', 'MiEmu');
+    INSERT INTO profile (emulator_id, name, created_at) VALUES ('mi-emu', 'MiEmu', '');
+    INSERT INTO console_emulator (console_id, emulator_id, is_base) VALUES ('switch', 'mi-emu', 1);
+  `);
+  db.close();
+  await page.goto(`${base()}/game/?id=11`);
+  await expect(page.getByRole("heading", { name: es.profiles.title })).toBeVisible();
+  await expect(page.getByText(es.profiles.noneActive.replace("{name}", "MiEmu").replace("{emulator}", "MiEmu"))).toBeVisible();
+  await page.getByRole("textbox", { name: es.profiles.newName }).fill("2x");
+  await page.getByRole("button", { name: es.profiles.create }).click();
+  await expect(page.getByRole("textbox", { name: es.profiles.rename.replace("{name}", "2x") })).toBeVisible();
+  await page.getByRole("button", { name: es.profiles.activate }).click();
+  await expect(page.getByText(es.profiles.active.replace("{name}", "2x").replace("{emulator}", "MiEmu"))).toBeVisible();
+  await expectNoRawKeys();
+  await page.screenshot({ path: "e2e-results/12-perfiles-es.png", fullPage: true });
+  await page.getByRole("button", { name: es.profiles.activate }).click(); // la fila «sin perfil»
+  await expect(page.getByText(es.profiles.noneActive.replace("{name}", "MiEmu").replace("{emulator}", "MiEmu"))).toBeVisible();
+
+  // Compartir (#282): pide la ruta del .zip y avisa si su carpeta no existe; cargar, si el archivo no está.
+  await page.getByRole("button", { name: es.profiles.shareOf.replace("{name}", "2x") }).click();
+  await page.getByRole("textbox", { name: es.profiles.sharePath.replace("{name}", "2x") }).fill("C:\\no-existe\\2x.zip");
+  await page.getByRole("button", { name: es.profiles.shareConfirm }).click();
+  await expect(page.getByRole("alert").filter({ hasText: es.errors.profile.share.badPath })).toBeVisible();
+  await page.getByLabel(es.profiles.loadZip).setInputFiles({ name: "perfil.zip", mimeType: "application/zip", buffer: Buffer.from("no es un zip") });
+  await expect(page.getByRole("alert").filter({ hasText: es.errors.profile.import.badPackage })).toBeVisible();
+  await expectNoRawKeys();
+});
+
+test("la ficha: ajustes del perfil por defecto de Eden según su receta y abrir el emulador (#276)", async () => {
+  // Eden registrado sin instalar: muestra los ajustes de su receta, los guarda en el perfil y avisa que no hay versión instalada.
+  const db = await openDb();
+  db.exec(`
+    INSERT OR IGNORE INTO emulator (id, kind, name) VALUES ('eden', 'emulator', 'Eden');
+    INSERT INTO profile (emulator_id, name, created_at) SELECT 'eden', 'Eden', '' WHERE NOT EXISTS (SELECT 1 FROM profile WHERE emulator_id = 'eden' AND game_version_id IS NULL);
+    INSERT OR IGNORE INTO console_emulator (console_id, emulator_id, is_base) VALUES ('switch', 'eden', 0);
+  `);
+  db.close();
+  await page.goto(`${base()}/game/?id=11`);
+  await page.getByText(es.profiles.defaults).click();
+  await page.getByRole("button", { name: `${es.profiles.settings.open}: Eden` }).click();
+  const form = page.getByRole("form", { name: es.profiles.settings.title.replace("{name}", "Eden") });
+  await expect(form.getByText(es.profiles.settings.notInstalled)).toBeVisible();
+  await form.getByLabel(es.profiles.settings.names.resolution).fill("3");
+  await form.getByLabel(es.profiles.settings.names.speed).fill("200");
+  await form.getByRole("button", { name: es.profiles.settings.save }).click();
+  await expect(form.getByText(es.profiles.settings.saved)).toBeVisible();
+  await expectNoRawKeys();
+  await expectTextFits();
+  await page.screenshot({ path: "e2e-results/13-ajustes-perfil-es.png", fullPage: true });
+  await form.getByRole("button", { name: es.profiles.settings.openEmulator }).click();
+  await expect(form.getByRole("alert")).toHaveText(es.errors.profile.notInstalled.replace("{emulator}", "eden"));
+
+  await page.reload(); // lo guardado vuelve
+  await page.getByText(es.profiles.defaults).click();
+  await page.getByRole("button", { name: `${es.profiles.settings.open}: Eden` }).click();
+  await expect(page.getByLabel(es.profiles.settings.names.resolution)).toHaveValue("3");
 });
 
 test("panel de tareas: terminadas por hora de término, registro al hacer clic y limpiar", async () => {

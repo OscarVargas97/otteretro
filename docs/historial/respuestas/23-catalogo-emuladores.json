@@ -1,0 +1,88 @@
+{
+  "respuestas": {
+    "respuestas": {
+      "a1": {
+        "v": "merge"
+      },
+      "a2": {
+        "v": "releases"
+      },
+      "a3": {
+        "v": "propio-solo"
+      },
+      "a4": {
+        "v": "mismo"
+      },
+      "a5": {
+        "v": [
+          "en-uso",
+          "versiones",
+          "sin-publicar",
+          "base"
+        ]
+      },
+      "b1": {
+        "v": [
+          "emuladores",
+          "ports",
+          "complementos",
+          "herramientas"
+        ]
+      },
+      "b2": {
+        "v": "recetas"
+      },
+      "b3": {
+        "v": [
+          "consolas",
+          "release",
+          "calza",
+          "estado",
+          "forks"
+        ]
+      },
+      "b4": {
+        "v": [
+          "editar",
+          "duplicar",
+          "probar",
+          "repo",
+          "descartar"
+        ]
+      },
+      "b5": {
+        "v": "como-instalar"
+      },
+      "b6": {
+        "v": "secciones"
+      },
+      "c1": {
+        "v": "copia",
+        "c": "La idea no es tocar Otteretro ni compartir la misma sección exacta, sino integrar un símil en la administración del catálogo."
+      },
+      "d1": {
+        "v": [
+          "release",
+          "patron",
+          "repo",
+          "forks"
+        ]
+      },
+      "d2": {
+        "v": "seguro-solo"
+      },
+      "d3": {
+        "v": "una"
+      },
+      "d4": {
+        "v": "dudoso"
+      }
+    },
+    "actualizado": "2026-11-09T00:00:00Z",
+    "nota": "La persona respondió en el chat: todo lo recomendado, sin comentarios."
+  },
+  "seguimiento": [
+    "Respondida en el chat el 2026-11-09: todo lo recomendado, sin comentarios. La página no pudo publicarse como artifact; se respondió con la copia local.",
+    "Corregido en el chat el 2026-11-09: D4 pasa a «Sin Claude, y Sonnet solo para lo dudoso» (la recomendada era un error de la persona). C1: Otteretro no se modifica; la administración del catálogo tiene su propia versión, parecida, adaptada a lo que necesita, sin código compartido ni script de sincronización."
+  ]
+}

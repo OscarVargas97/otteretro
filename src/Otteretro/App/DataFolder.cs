@@ -13,10 +13,11 @@ public static class DataFolder
     public static readonly string[] Subfolders = ["data", Path.Combine("catalogo", "imagenes"), "logs"];
 
     /// <summary>
-    /// Lo que es de la carpeta de datos y se muda con ella (#208): nada más. `Herramientas` y `cache` son de versiones
-    /// anteriores (#204, #167) y se llevan si quedaron.
+    /// Lo que es de la carpeta de datos y se muda con ella (#208): nada más. `cache` es de versiones anteriores (#167) y se lleva
+    /// si quedó. `Libreria`, la librería privada, va con el disco ★ (decisión 293). `Herramientas` no: es la carpeta fija de cada
+    /// disco (decisión 311), y lo que quede ahí de la estructura de antes (#204) pasa primero al estándar.
     /// </summary>
-    public static readonly string[] Entries = ["data", "catalogo", "logs", "Herramientas", "cache"];
+    public static readonly string[] Entries = ["data", "catalogo", "logs", "Libreria", "cache"];
 
     /// <summary>Crea la carpeta y sus subcarpetas. Devuelve el error o null si quedó lista.</summary>
     public static ApiError? Prepare(string? path)

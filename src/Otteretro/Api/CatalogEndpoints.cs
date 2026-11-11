@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Otteretro.App;
 using Otteretro.Catalog;
 using Otteretro.Data;
+using Otteretro.Libraries;
 
 namespace Otteretro.Api;
 
@@ -18,6 +19,11 @@ public record FieldRequest(string? Value);
 
 /// <summary>Una consola o un juego (#179).</summary>
 public record VerifyRequest(string? Console, long? GameId);
+/// <param name="Emulator">Sin él, el emulador con el que se juega (su perfil o el base de la consola).</param>
+public record PrepareContentRequest(string? Emulator);
+/// <param name="Zrif">La licencia; vacía o null la borra.</param>
+public record LicenseRequest(string? Zrif);
+public record LicenseState(bool Saved);
 
 /// <summary>El ejecutable de un juego de PC suelto, relativo a su carpeta (#182).</summary>
 public record ExecutableRequest(string Path);
@@ -34,6 +40,16 @@ public record RegionsRequest(List<string> Order);
 public record ConvertRequest(string Console);
 /// <param name="Ids">Las filas de <c>source</c> que se quitan del disco (#224).</param>
 public record TrashRequest(List<long> Ids);
+/// <param name="From">empty, default (los valores del perfil por defecto del emulador) o copy (duplicar <paramref name="Copy"/>).</param>
+public record CreateProfileRequest(long VersionId, string Emulator, string Name, string From = "empty", long? Copy = null);
+/// <param name="SourceId">La ROM que usa; null: la base.</param>
+public record ProfileRequest(string Name, long? SourceId);
+/// <param name="Path">El .zip del perfil compartido, en este equipo (#282).</param>
+public record ProfilePackageRequest(string Path);
+/// <param name="ProfileId">null: sin perfil, con el por defecto del emulador base.</param>
+/// <param name="SaveUser">El usuario de consola de destino, cuando la respuesta anterior pidió elegirlo (saves.chooseUser).</param>
+public record ActiveProfileRequest(long? ProfileId, string? SaveUser = null);
+public record ProfileSwitch(SaveNotice? Saves);
 
 /// <summary>Pantallas del catálogo (F1.9): sagas, colección, ficha, seguimiento, búsqueda y avisos de Inicio.</summary>
 public static class CatalogEndpoints
@@ -229,6 +245,25 @@ public static class CatalogEndpoints
             : request.Console is null == request.GameId is null ? TypedResults.BadRequest(ApiError.Of("dat.verifyWhat"))
             : TypedResults.Ok(Libraries.Dats.EnqueueVerify(db, request.Console, request.GameId)));
 
+        // «Preparar para el emulador» (#280): UPD, DLC y lo que se instala dentro del emulador con el que se juega, en una tarea.
+        api.MapPost("/versions/{id:long}/content", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (long id, PrepareContentRequest request, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var (task, error) = Libraries.Content.Enqueue(db, id, request.Emulator);
+            return error is null ? TypedResults.Ok(task!.Value) : TypedResults.BadRequest(error);
+        });
+
+        // La licencia (zRIF) de un juego de Vita, en la base privada: con ella, preparar el juego instala su .pkg en Vita3K. La licencia no
+        // vuelve al front: solo si está guardada.
+        api.MapGet("/versions/{id:long}/license", Results<Ok<LicenseState>, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(new LicenseState(Libraries.Content.HasLicense(db, id))) : NoData());
+
+        api.MapPut("/versions/{id:long}/license", Results<Ok<LicenseState>, BadRequest<ApiError>, Conflict<ApiError>> (long id, LicenseRequest request, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            return Libraries.Content.SetLicense(db, id, request.Zrif) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(new LicenseState(Libraries.Content.HasLicense(db, id)));
+        });
+
         // Cambiar el ejecutable de un juego de PC suelto (#182): uno de los .exe de su carpeta.
         // Quitar un juego del disco (#224): lo marcado va a la papelera y deja de contar como «lo tengo».
         api.MapPost("/sources/trash", Results<Ok, BadRequest<ApiError>, Conflict<ApiError>> (TrashRequest request, AppSession s) =>
@@ -263,6 +298,60 @@ public static class CatalogEndpoints
             return CatalogQueries.SaveProgress(db, id, request) ? TypedResults.Ok(CatalogQueries.Game(db, id)!) : TypedResults.NotFound();
         });
 
+        // Perfiles de cada versión del juego (#269): crearlos, renombrarlos, elegir su ROM y activar uno con sus archivos.
+        api.MapGet("/games/{id:long}/profiles", Results<Ok<List<VersionProfiles>>, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(Profiles.OfGame(db, id)) : NoData());
+        api.MapPost("/profiles", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (CreateProfileRequest r, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var (created, error) = Profiles.Create(db, r.VersionId, r.Emulator, r.Name, r.From, r.Copy);
+            return error is null ? TypedResults.Ok(created!.Value) : TypedResults.BadRequest(error);
+        });
+        api.MapPut("/profiles/{id:long}", Results<Ok, BadRequest<ApiError>, Conflict<ApiError>> (long id, ProfileRequest r, AppSession s) =>
+            Db(s) is not { } db ? NoData() : Profiles.Update(db, id, r.Name, r.SourceId) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok());
+        // Borrar un perfil (#351): su configuración y sus mods; si era el activo, el juego vuelve al perfil por defecto.
+        api.MapDelete("/profiles/{id:long}", Results<Ok, BadRequest<ApiError>, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is not { } db ? NoData() : Profiles.Delete(db, id) is { } error
+                ? error.Code is "profile.notFound" or "profile.isDefault" or "profile.noGameKey" ? TypedResults.BadRequest(error) : TypedResults.Conflict(error) : TypedResults.Ok());
+        // Ajustes y mandos del perfil según la versión del emulador que usa (#276), y abrir el emulador en ese juego.
+        api.MapGet("/profiles/{id:long}/settings", Results<Ok<ProfileSettings>, NotFound, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is not { } db ? NoData() : EmulatorSettings.View(db, id) is { } view ? TypedResults.Ok(view) : TypedResults.NotFound());
+        api.MapPut("/profiles/{id:long}/settings", Results<Ok, BadRequest<ApiError>, Conflict<ApiError>> (long id, ProfileSettingsRequest r, AppSession s) =>
+            Db(s) is not { } db ? NoData() : EmulatorSettings.Save(db, id, r) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok());
+        api.MapPost("/profiles/{id:long}/open", Results<Ok<ApiError>, BadRequest<ApiError>, Conflict<ApiError>> (long id, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var (code, error) = EmulatorSettings.Open(db, id);
+            return error is null ? TypedResults.Ok(ApiError.Of(code!)) : TypedResults.BadRequest(error);
+        });
+        // Compartir un perfil en un .zip y cargar uno (#282): rutas de este equipo, el servidor es local.
+        api.MapPost("/profiles/{id:long}/share", Results<Ok, BadRequest<ApiError>, Conflict<ApiError>> (long id, ProfilePackageRequest r, AppSession s) =>
+            Db(s) is not { } db ? NoData() : ProfileShare.Export(db, id, r.Path) is { } error
+                ? error.Code is "library.notConnected" or "profile.share.exists" ? TypedResults.Conflict(error) : TypedResults.BadRequest(error) : TypedResults.Ok());
+        api.MapPost("/profiles/load", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (ProfilePackageRequest r, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var (task, error) = ProfileShare.EnqueueImport(db, r.Path);
+            return error is null ? TypedResults.Ok(task!.Value) : error.Code is "library.notConnected" ? TypedResults.Conflict(error) : TypedResults.BadRequest(error);
+        });
+        // El .zip llega como cuerpo (selector de archivo del navegador): se deja en la carpeta temporal y se carga como una ruta.
+        api.MapPost("/profiles/load-file", async Task<Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>>> (HttpRequest request, AppSession s, CancellationToken ct) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var path = Path.Combine(Path.GetTempPath(), $"otteretro-perfil-{Guid.NewGuid():N}.zip");
+            await using (var f = File.Create(path)) await request.Body.CopyToAsync(f, ct);
+            var (task, error) = ProfileShare.EnqueueImport(db, path);
+            if (error is not null) File.Delete(path);
+            return error is null ? TypedResults.Ok(task!.Value) : error.Code is "library.notConnected" ? TypedResults.Conflict(error) : TypedResults.BadRequest(error);
+        });
+        // Con las partidas si cambia de emulador (#270): qué pasó con ellas, o null.
+        api.MapPut("/versions/{id:long}/profile", Results<Ok<ProfileSwitch>, BadRequest<ApiError>, Conflict<ApiError>> (long id, ActiveProfileRequest r, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var (error, saves) = Profiles.Switch(db, id, r.ProfileId, r.SaveUser);
+            return error is null ? TypedResults.Ok(new ProfileSwitch(saves)) : TypedResults.BadRequest(error);
+        });
+
         api.MapGet("/search", Results<Ok<SearchResults>, Conflict<ApiError>> (AppSession s, string? q) =>
         {
             if (Db(s) is not { } db) return NoData();
@@ -270,7 +359,21 @@ public static class CatalogEndpoints
             return TypedResults.Ok(text.Length < 2 ? new SearchResults([], []) : CatalogQueries.Search(db, text));
         });
 
-        // Avisos de Inicio: por ahora, las claves que faltan (el código lo traduce el front: notices.*).
+        // Avisos de versiones nuevas (decisión 294): Herramientas, la barra lateral e Inicio › Novedades.
+        api.MapGet("/tools/updates", Results<Ok<List<ToolUpdate>>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(ToolUpdates.List(db)) : NoData());
+
+        // «Revisar ahora»: sin el tope semanal de las versiones de desarrollo.
+        api.MapPost("/tools/updates/check", Results<Ok<long>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(ToolUpdates.Enqueue(db, manual: true)) : NoData());
+
+        api.MapPost("/tools/updates/{recipeId}/{channel}/skip", Results<NoContent, NotFound, Conflict<ApiError>> (string recipeId, string channel, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            return ToolUpdates.Skip(db, recipeId, channel) ? TypedResults.NoContent() : TypedResults.NotFound();
+        });
+
+        // Avisos de Inicio: las claves que faltan, lo sin identificar y las versiones nuevas (el código lo traduce el front: notices.*).
         api.MapGet("/notices", Results<Ok<List<ApiError>>, Conflict<ApiError>> (AppSession s, SecretBox box) =>
         {
             if (Db(s) is not { } db) return NoData();
@@ -280,6 +383,10 @@ public static class CatalogEndpoints
             using (var c = db.Open())
                 if (c.ExecuteScalar<long>("SELECT count(*) FROM review_item WHERE kind = 'unidentified' AND status = 'open'") is > 0 and var n)
                     notices.Add(ApiError.Of("notices.unidentified", ("count", n.ToString())));
+            // Novedades: versiones nuevas de emuladores, ports y complementos (decisión 294).
+            notices.AddRange(ToolUpdates.List(db).Select(u => ApiError.Of("notices.toolUpdate", ("name", u.Name), ("version", u.Version), ("channel", u.Channel))));
+            // Recetas locales que chocaron con la publicada: ganó la publicada y la local quedó respaldada (#357, decisión 351).
+            notices.AddRange(Recipes.Backups.Select(b => ApiError.Of("notices.recipeBackup", ("name", b.Name), ("file", b.Backup))));
             return TypedResults.Ok(notices);
         });
     }
@@ -300,6 +407,8 @@ public static class CatalogEndpoints
 
     internal static Database? Db(AppSession s) =>
         DataFolder.IsReady(s.Config.DataFolder) ? DataFolder.Open(s.Config.DataFolder!) : null;
+
+    internal static Credentials? CredentialsOf(AppSession s, SecretBox box) => Db(s) is { } db ? new(db, s.Config.MachineId, box) : null;
 
     internal static Conflict<ApiError> NoData() => TypedResults.Conflict(ApiError.Of("move.noDataFolder"));
 

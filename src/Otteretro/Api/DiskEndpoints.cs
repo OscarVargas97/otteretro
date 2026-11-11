@@ -17,6 +17,13 @@ public record MoveFolderRequest(string Relative, string? ToLibrary = null, strin
 /// <param name="Path">La instalación (una carpeta de versión de lo instalado).</param>
 /// <param name="ToLocation">Ubicación de su tipo; sin ella, de vuelta a `Herramientas` de la carpeta de datos.</param>
 public record MoveToolRequest(string Path, string? ToLocation = null);
+public record ReinstallRequest(string Emulator, string Version);
+/// <param name="Releases">Su fuente publica el archivo para instalar: se puede elegir la versión.</param>
+/// <param name="Consoles">Las consolas que emula (#317: filtrar «Instalar» por consola).</param>
+/// <param name="BaseFor">Las consolas de las que es el emulador base.</param>
+/// <param name="Folder">La consola de un port, por su nombre (#348: Herramientas agrupa los ports por ella).</param>
+/// <param name="Game">Port: el juego que cubre.</param>
+public record RecipeSummary(string Id, string Name, string Kind, bool Experimental, bool Releases, List<string> Consoles, List<string> BaseFor, string Folder, string? Game, string? ForkOf, List<RecipeGame> RecommendedFor);
 public record DestinationRequest(string? LocationId);
 /// <param name="Path">La carpeta Otteretro del disco (la `folder` de /drives).</param>
 /// <param name="Name">Lo que ve la persona: la unidad (E:).</param>
@@ -223,6 +230,112 @@ public static class DiskEndpoints
         api.MapGet("/tools", Results<Ok<List<ToolInfo>>, Conflict<ApiError>> (AppSession s) =>
             CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Recipes.Installed(Disk.ToolRoots(db))) : CatalogEndpoints.NoData());
 
+        // Emuladores y ports instalados con su origen, versión y hash (#268), e instalar uno nuevo en una tarea.
+        api.MapGet("/emulators", Results<Ok<List<EmulatorInstall>>, Conflict<ApiError>> (AppSession s) =>
+            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Installs.List(db)) : CatalogEndpoints.NoData());
+
+        api.MapPost("/emulators/install", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (InstallJob request, AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            var (task, error) = Installs.Enqueue(db, request);
+            return error is null ? TypedResults.Ok(task!.Value) : error.Code is "install.exists" or "library.notConnected" ? TypedResults.Conflict(error) : TypedResults.BadRequest(error);
+        });
+
+        // Las recetas que se instalan (emuladores, ports y herramientas) y las versiones publicadas de una, para elegir cuál (#296).
+        api.MapGet("/recipes", () => TypedResults.Ok(Recipes.All.Where(r => r.Kind != "complement")
+            .Select(r => new RecipeSummary(r.Id, r.Name, r.Kind, r.Experimental, r.Updates is not null && r.Asset is not null, r.Consoles, r.BaseFor, r.Folder, r.Game, r.ForkOf, r.RecommendedFor)).OrderBy(r => r.Name).ToList()));
+
+        api.MapGet("/recipes/{id}/releases", async Task<Results<Ok<List<RecipeRelease>>, NotFound, Conflict<ApiError>>> (string id, AppSession s, SecretBox box, CancellationToken ct) =>
+        {
+            if (Recipes.Find(id) is not { Kind: not "complement" } recipe) return TypedResults.NotFound();
+            try { return TypedResults.Ok(await ToolUpdates.Installable(recipe, ct, GithubApi.Token(CatalogEndpoints.CredentialsOf(s, box)))); }
+            catch (GithubRateLimitException e) { return TypedResults.Conflict(e.Error); }
+            catch (Exception e) when (e is HttpRequestException or System.Text.Json.JsonException or TaskCanceledException && !ct.IsCancellationRequested)
+            {
+                return TypedResults.Conflict(ApiError.Of("install.sourceFailed", ("name", recipe.Name), ("detail", e.Message)));
+            }
+        });
+
+        // Las releases de un repo pegado en «Instalar un emulador › Desde su repo» (#350), con sus archivos para elegir.
+        api.MapGet("/repos/releases", async Task<Results<Ok<List<ToolUpdates.RepoRelease>>, BadRequest<ApiError>, Conflict<ApiError>>> (string url, AppSession s, SecretBox box, CancellationToken ct) =>
+        {
+            if (ToolUpdates.Source(url) is not { } source) return TypedResults.BadRequest(ApiError.Of("install.badRepo"));
+            try { return TypedResults.Ok(await ToolUpdates.RepoReleases(source, ct, GithubApi.Token(CatalogEndpoints.CredentialsOf(s, box)))); }
+            catch (GithubRateLimitException e) { return TypedResults.Conflict(e.Error); }
+            catch (Exception e) when (e is HttpRequestException or System.Text.Json.JsonException or TaskCanceledException && !ct.IsCancellationRequested)
+            {
+                return TypedResults.Conflict(ApiError.Of("install.sourceFailed", ("name", source.Repo!), ("detail", e.Message)));
+            }
+        });
+
+        // Reinstalar una versión que perdió su carpeta, desde la librería y verificada por hash (decisión 304).
+        api.MapPost("/emulators/reinstall", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (ReinstallRequest request, AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            var (task, error) = Installs.Enqueue(db, new InstallJob(request.Emulator, request.Version, Reinstall: true));
+            return error is null ? TypedResults.Ok(task!.Value) : error.Code is "install.exists" or "library.notConnected" ? TypedResults.Conflict(error) : TypedResults.BadRequest(error);
+        });
+
+        // La versión en uso de un emulador (decisiones 331 a 334): «Usar esta versión» le pasa los perfiles; «Borrar la instalación»
+        // deja su archivo en la librería; «Abrir su carpeta». Las dos primeras devuelven la lista al día.
+        api.MapPost("/emulators/use", Results<Ok<List<EmulatorInstall>>, BadRequest<ApiError>, Conflict<ApiError>> (ReinstallRequest request, AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            return Profiles.UseVersion(db, request.Emulator, request.Version) is { } error
+                ? error.Code is "install.notInstalled" or "profile.noGameKey" ? TypedResults.BadRequest(error) : TypedResults.Conflict(error)
+                : TypedResults.Ok(Installs.List(db));
+        });
+
+        api.MapPost("/emulators/remove", async Task<Results<Ok<List<EmulatorInstall>>, BadRequest<ApiError>, Conflict<ApiError>>> (ReinstallRequest request, AppSession s, CancellationToken ct) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            return await Installs.RemoveInstall(db, request.Emulator, request.Version, ct) is { } error
+                ? error.Code is "install.notInstalled" ? TypedResults.BadRequest(error) : TypedResults.Conflict(error)
+                : TypedResults.Ok(Installs.List(db));
+        });
+
+        // «Quitar el emulador» (#351): todas sus versiones; partidas, configuración y perfiles se quedan para cuando vuelva.
+        api.MapDelete("/emulators/{id}", async Task<Results<Ok<List<EmulatorInstall>>, BadRequest<ApiError>, Conflict<ApiError>>> (string id, AppSession s, CancellationToken ct) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            return await Installs.RemoveEmulator(db, id, ct) is { } error
+                ? error.Code is "install.notInstalled" ? TypedResults.BadRequest(error) : TypedResults.Conflict(error)
+                : TypedResults.Ok(Installs.List(db));
+        });
+
+        api.MapPost("/emulators/open", Results<Ok, NotFound, Conflict<ApiError>> (ReinstallRequest request, AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            if (Installs.List(db).FirstOrDefault(i => i.EmulatorId == request.Emulator && i.Version == request.Version) is not { Path: { } path }) return TypedResults.NotFound();
+            return Endpoints.Open(path) ? TypedResults.Ok() : TypedResults.Conflict(ApiError.Of("link.openFailed"));
+        });
+
+        // Ports (#286, #287): los de un juego, los nuevos para Inicio › Novedades, «Visto» e instalar uno con su receta o con la URL de su release.
+        api.MapGet("/games/{id:long}/ports", Results<Ok<List<PortInfo>>, Conflict<ApiError>> (long id, AppSession s) =>
+            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Ports.OfGame(db, id)) : CatalogEndpoints.NoData());
+
+        api.MapGet("/ports/news", Results<Ok<List<PortInfo>>, Conflict<ApiError>> (AppSession s) =>
+            CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Ports.News(db)) : CatalogEndpoints.NoData());
+
+        api.MapPost("/ports/news/seen", Results<NoContent, Conflict<ApiError>> (AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            Ports.MarkSeen(db);
+            return TypedResults.NoContent();
+        });
+
+        api.MapPost("/ports/{id:long}/install", async Task<Results<Ok<long>, BadRequest<ApiError>, NotFound, Conflict<ApiError>>> (long id, PortInstallRequest request, AppSession s, SecretBox box, CancellationToken ct) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            var (task, error) = await Ports.Install(db, id, request, ct, GithubApi.Token(new Credentials(db, s.Config.MachineId, box)));
+            return error is null ? TypedResults.Ok(task!.Value) : error.Code switch
+            {
+                "ports.notFound" => TypedResults.NotFound(),
+                "install.exists" or "library.notConnected" => TypedResults.Conflict(error),
+                _ => TypedResults.BadRequest(error),
+            };
+        });
+
         // Mover un emulador, port o complemento a otra ubicación de su tipo, o de vuelta a Herramientas (#198), en una tarea.
         api.MapPost("/tools/move", Results<Ok<long>, BadRequest<ApiError>, NotFound, Conflict<ApiError>> (MoveToolRequest request, AppSession s) =>
         {
@@ -237,7 +350,9 @@ public static class DiskEndpoints
                 root = folder;
             }
             else root = Recipes.DefaultRoots(DiskTasks.ToolsOf(db)).First(r => r.Kind == tool.Kind).Path;
-            var (task, error) = DiskTasks.EnqueueMove(db, new(tool.Path, Path.Combine(root, tool.Folder, tool.Name, tool.Version)));
+            // A la misma ruta dentro del destino: `<Emulador>\<versión>`, o `<Consola>\<Instalación>\<versión>` en lo de antes.
+            var from = Disk.ToolRoots(db).First(r => r.Kind == tool.Kind && Disk.Inside(tool.Path, r.Path)).Path;
+            var (task, error) = DiskTasks.EnqueueMove(db, new(tool.Path, Path.Combine(root, Path.GetRelativePath(from, tool.Path))));
             return error is null ? TypedResults.Ok(task!.Value) : TypedResults.BadRequest(error);
         });
     }

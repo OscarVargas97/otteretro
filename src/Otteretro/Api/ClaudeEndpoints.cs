@@ -7,6 +7,7 @@ using static Otteretro.Api.CatalogEndpoints;
 namespace Otteretro.Api;
 
 public record ChooseRouteRequest(long? RouteId);
+public record BestEmulatorRequest(List<long> GameIds);
 
 /// <summary>Lo que preparó Claude (F2.6): Revisar, rutas de la saga, comparativa de versiones, Inicio › Siguiente y Ajustes › Claude.</summary>
 public static class ClaudeEndpoints
@@ -23,6 +24,10 @@ public static class ClaudeEndpoints
         api.MapPost("/review/{id:long}/file", Results<Ok<ReviewPage>, BadRequest<ApiError>, Conflict<ApiError>> (long id, ResolveFileRequest request, AppSession s) =>
             Db(s) is not { } db ? NoData() : Identify.Resolve(db, id, request.GameId) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(ClaudeReview.Page(db)));
 
+        // Reintentar un paquete sin juegos (#310, decisión 322): se vuelve a importar y se resuelve si ahora se reconoce.
+        api.MapPost("/review/{id:long}/retry", Results<Ok<ReviewPage>, BadRequest<ApiError>, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is not { } db ? NoData() : Libraries.Import.Retry(db, id) is { } error ? TypedResults.BadRequest(error) : TypedResults.Ok(ClaudeReview.Page(db)));
+
         api.MapGet("/sagas/{id:long}/routes", Results<Ok<RoutesPage>, Conflict<ApiError>> (long id, AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(ClaudeReview.Routes(db, id)) : NoData());
 
@@ -31,6 +36,34 @@ public static class ClaudeEndpoints
 
         api.MapGet("/games/{id:long}/compare", Results<Ok<List<VersionCompare>>, Conflict<ApiError>> (long id, AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(ClaudeReview.Compare(db, id)) : NoData());
+
+        // «Buscar el mejor emulador» (#373): encola la búsqueda del juego y devuelve la tarea; lo encontrado queda solo local.
+        api.MapPost("/games/{id:long}/best-emulator", Results<Ok<long>, NotFound, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is not { } db ? NoData() : BestEmulator.Enqueue(db, id) is { } task ? TypedResults.Ok(task) : TypedResults.NotFound());
+
+        // El selector (#374): solo los juegos elegidos, una tarea por juego. «Emulación» (0) no se ofrece: serían miles de juegos.
+        api.MapGet("/sagas/{id:long}/best-emulator", Results<Ok<List<BestEmulatorGame>>, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is not { } db ? NoData() : TypedResults.Ok(id == 0 ? [] : BestEmulator.SagaGames(db, id)));
+
+        api.MapPost("/best-emulator", Results<Ok<List<long>>, Conflict<ApiError>> (BestEmulatorRequest request, AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(BestEmulator.Enqueue(db, request.GameIds)) : NoData());
+
+        api.MapGet("/games/{id:long}/emulator-picks", Results<Ok<List<EmulatorPick>>, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(BestEmulator.Picks(db, id)) : NoData());
+
+        // La ficha del juego (#375): si hay una búsqueda en curso y cuándo fue la última; elegir a mano y volver al del catálogo.
+        api.MapGet("/games/{id:long}/best-emulator", Results<Ok<BestEmulatorStatus>, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(BestEmulator.Status(db, id)) : NoData());
+
+        api.MapPut("/games/{id:long}/emulator-picks/{console}", Results<Ok<List<EmulatorPick>>, BadRequest, Conflict<ApiError>> (long id, string console, EmulatorPickRequest request, AppSession s) =>
+            Db(s) is not { } db ? NoData() : BestEmulator.Choose(db, id, console, request.RecipeId) ? TypedResults.Ok(BestEmulator.Picks(db, id)) : TypedResults.BadRequest());
+
+        api.MapDelete("/games/{id:long}/emulator-picks/{console}", Results<Ok<List<EmulatorPick>>, Conflict<ApiError>> (long id, string console, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            BestEmulator.Forget(db, id, console);
+            return TypedResults.Ok(BestEmulator.Picks(db, id));
+        });
 
         api.MapGet("/home/next", Results<Ok<List<NextGame>>, Conflict<ApiError>> (AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(ClaudeReview.Next(db)) : NoData());
@@ -43,6 +76,15 @@ public static class ClaudeEndpoints
         {
             if (Db(s) is not { } db) return NoData();
             ClaudeBudget.Save(db, request);
+            return TypedResults.Ok(ClaudeBudget.Status(db));
+        });
+
+        // «Probar ahora» (#363): si el límite ya se reinició, las tareas que lo esperaban siguen; si no, queda la hora nueva.
+        api.MapPost("/claude/retry", async Task<Results<Ok<RecognizeStatus>, BadRequest<ApiError>, Conflict<ApiError>>> (AppSession s, TaskQueue queue, CancellationToken ct) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            try { await queue.RetryClaude(db, ct); }
+            catch (TaskException e) { return TypedResults.BadRequest(e.Error); }
             return TypedResults.Ok(ClaudeBudget.Status(db));
         });
     }

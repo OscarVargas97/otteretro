@@ -219,6 +219,7 @@
       "noSource": "No hay un origen de actualizaciones configurado.",
       "notInstalled": "Las actualizaciones solo funcionan en la app instalada.",
       "failed": "No se pudo buscar o descargar la actualización. El detalle está en el registro.",
+      "rateLimited": "GitHub limitó las consultas; vuelve a intentar a las {time}. Carga tu token de GitHub en Ajustes › Cuentas y claves para tener más.",
       "withSystem": "Se actualiza con el sistema: llega con la próxima actualización de PlayOS o NixOS."
     },
     "withSystemBadge": "Con el sistema",
@@ -269,6 +270,10 @@
       "goTo": "Usar esta",
       "goBack": "Volver a esta",
       "notAvailable": "Ya no se puede bajar",
+      "reason": {
+        "newer": "Necesita Otteretro más nuevo",
+        "older": "De una versión anterior de Otteretro"
+      },
       "noHistory": "Sin detalle de cambios publicado",
       "inUse": "Catálogo en uso",
       "unknownVersion": "Versión sin identificar",
@@ -281,6 +286,10 @@
     }
   },
   "errors": {
+    "github": {
+      "rateLimited": "GitHub limitó las consultas; vuelve a intentar a las {time}. Para tener más, carga tu token de GitHub en Ajustes › Cuentas y claves.",
+      "rateLimitedNoTime": "GitHub limitó las consultas; vuelve a intentar más tarde. Para tener más, carga tu token de GitHub en Ajustes › Cuentas y claves."
+    },
     "http": "La app respondió con un error ({status}).",
     "unknown": "Algo salió mal ({code}).",
     "path": {
@@ -304,7 +313,8 @@
       "copyMismatch": "No se movió nada; tus datos siguen en {path}. El archivo {detail} no se copió bien.",
       "failedDataAt": "La mudanza se cortó y tus datos quedaron en {path}. Usa «Usar otra carpeta» con esa ruta. {detail}",
       "sourceNotDeleted": "Los datos ya están en la carpeta nueva, pero no se pudo borrar del todo {path}: {detail} Puedes borrarla a mano.",
-      "tasksRunning": "Espera a que terminen las tareas en curso antes de mover la carpeta de datos."
+      "tasksRunning": "Espera a que terminen las tareas en curso antes de mover la carpeta de datos.",
+      "toolsNotStandard": "Antes de llevar los datos a otro disco, pasa al estándar los emuladores y ports que quedaron en Herramientas con la estructura de antes: «Pasar al estándar», arriba en Ajustes › Almacenamiento."
     },
     "update": {
       "channel": "Ese canal no existe.",
@@ -365,7 +375,8 @@
         "failed": "Claude falló: {detail}",
         "invalidOutput": "Claude respondió dos veces algo que no tiene la forma esperada.",
         "limit": "Llegaste al límite de tu suscripción de Claude: sigue sola el {at}.",
-        "identify": "{done} de {total} archivos identificados"
+        "identify": "{done} de {total} archivos identificados",
+        "bestEmulator": "{game}: buscando el mejor emulador"
       },
       "log": {
         "started": "Empezó.",
@@ -390,7 +401,12 @@
         "paused": "En pausa: sigue desde aquí al reanudarla.",
         "resumed": "Reanudada.",
         "canceled": "Cancelada.",
-        "identify": "Dejó {doubtful} en Dudosas y {unidentified} en Sin identificar."
+        "identify": "Dejó {doubtful} en Dudosas y {unidentified} en Sin identificar.",
+        "bestEmulator": "Recomendó un emulador en {count} de {consoles} consolas."
+      },
+      "tools": {
+        "checking": "Revisando {name}",
+        "sourceFailed": "No se pudo revisar {name}: {detail}"
       }
     },
     "progress": {
@@ -417,7 +433,9 @@
       "sourceEmpty": "{repo} no tiene un catálogo publicado: sigues con el anterior.",
       "sourceUnreachable": "No se pudo leer {repo} en GitHub: revisa el nombre o la conexión. Sigues con el anterior.",
       "nothingPending": "No hay ninguna versión esperando: búscala de nuevo.",
-      "versionGone": "La versión {version} ya no está publicada: elige otra."
+      "versionGone": "La versión {version} ya no está publicada: elige otra.",
+      "needsNewerApp": "Actualiza Otteretro para recibir el catálogo nuevo.",
+      "olderSchema": "La versión {version} del catálogo es de una versión anterior de Otteretro: no se puede usar."
     },
     "automation": {
       "notFound": "Esa sugerencia ya no está.",
@@ -441,6 +459,8 @@
       "log": {
         "moved": "Movida {from} a {to}; {paths} rutas de emuladores al día.",
         "tool": "{name} quedó en {path}.",
+        "updated": "{name} pasó a la estructura de su receta actual, en {path}.",
+        "joined": "{name} quedó con una sola versión, la {version}, en {path}. Las partidas de las demás se juntaron ahí y lo anterior está en _respaldos.",
         "notEmpty": "{path} no quedó vacía y no se borró: revisa qué tiene.",
         "skipped": "{name} está desconectada: no se pasó al estándar."
       },
@@ -547,6 +567,93 @@
       "corrupt": "{file} llegó dañado tres veces: el enlace puede estar mal. Vuelve a bajarlo o búscalo en otro lado.",
       "archiveBroken": "{file} llegó dañado: no pasó su CRC al descomprimirlo. No se borró nada; vuelve a bajarlo.",
       "badParallel": "Ese número pasa el tope del sitio con tu cuenta."
+    },
+    "install": {
+      "unknownEmulator": "No se sabe qué emulador es: elige uno con receta o indica su nombre y su consola.",
+      "badUrl": "La dirección de la release tiene que empezar por https://.",
+      "noDownload": "La receta no trae esa versión para este sistema.",
+      "noVersion": "Indica la versión que instalas.",
+      "badRepo": "No se reconoce el repo: pega la dirección de un repo de GitHub, Forgejo o Gitea (https://servidor/dueño/repo).",
+      "pickExe": "Lo bajado trae varios ejecutables: elige cuál abre el emulador.",
+      "noExe": "Lo bajado no trae un ejecutable de Windows: elige otro archivo de la release.",
+      "exists": "La versión {version} ya está instalada: las versiones nunca se reemplazan.",
+      "badHash": "Lo bajado de la versión {version} no coincide con el hash de la receta: no se instaló.",
+      "libraryTaken": "En tu librería ya hay otro archivo en {path}: no se reemplaza.",
+      "fetching": "Consiguiendo la versión {version}",
+      "library": "Guardando en tu librería",
+      "extracting": "Instalando en {path}",
+      "log": {
+        "done": "{name} {version} instalado en {path}"
+      },
+      "notInstalled": "Esa versión no está registrada: instálala primero.",
+      "notInLibrary": "La versión {version} no está en tu librería: no se puede reinstalar sin bajarla.",
+      "inUse": "La versión {version} la usan tus perfiles: pasa los perfiles a otra antes de borrarla.",
+      "removeFailed": "No se pudo borrar la instalación: {detail}",
+      "sourceFailed": "No se pudo leer las versiones de {name}: {detail}",
+      "manyVersions": "{name} todavía tiene varias versiones en su carpeta: se juntan en una al abrir la app y después se puede actualizar."
+    },
+    "profile": {
+      "notFound": "Ese perfil no existe o no es de esta versión del juego.",
+      "noGameKey": "Falta el TitleID o el serial del juego: identifícalo para poder aplicar su perfil.",
+      "notInstalled": "{emulator} no está instalado o su disco no está conectado.",
+      "badName": "El perfil necesita un nombre.",
+      "badFrom": "No se puede crear el perfil desde ahí.",
+      "badRom": "Esa ROM no es de esta versión del juego.",
+      "isDefault": "El perfil por defecto de un emulador no se borra.",
+      "deleteActive": "Antes de borrarlo, activa otro perfil y elige a qué usuario van las partidas.",
+      "deleteFailed": "No se pudo borrar el perfil; lo suyo que no era configuración ni mods quedó en el respaldo: {detail}",
+      "switchFailed": "No se pudo cambiar el perfil; lo movido quedó guardado y el perfil activo no cambió: {detail}",
+      "share": {
+        "badPath": "Indica la ruta completa del .zip nuevo, en una carpeta que exista.",
+        "exists": "Ya hay un archivo en {path}: no se reemplaza.",
+        "notInLibrary": "{emulator} no está en tu librería: sin su archivo original no se puede compartir.",
+        "private": "El perfil no se compartió: {path} tiene la licencia del juego, que nunca sale de tu equipo."
+      },
+      "import": {
+        "notFound": "Ese archivo no existe en este equipo.",
+        "badPackage": "Ese archivo no es un perfil compartido de Otteretro.",
+        "noGame": "«{name}» no está en tu catálogo: no se instaló nada.",
+        "badHash": "El paquete llegó dañado: algún archivo no coincide con su hash. No se instaló nada.",
+        "checking": "Comprobando el paquete",
+        "creating": "Creando el perfil",
+        "log": {
+          "notOwned": "Todavía no tienes «{name}» en tus discos: el perfil queda listo para cuando lo tengas.",
+          "done": "Perfil «{name}» de {game} cargado con {emulator} {version}."
+        }
+      }
+    },
+    "ports": {
+      "notFound": "Ese port ya no está en el catálogo.",
+      "noPort": "Todavía no hay port de este juego: hay una decompilación, pero no se puede instalar.",
+      "needsUrl": "Este port no tiene receta con descarga: indica la URL de su release.",
+      "sourceUnreachable": "No se pudo consultar la última release del port: revisa la conexión o usa su URL."
+    },
+    "content": {
+      "unknownGame": "Ese juego no está en el catálogo.",
+      "noEmulator": "Todavía no hay un emulador instalado para esta consola.",
+      "notInstalled": "{name} no está instalado (o su disco no está conectado).",
+      "log": {
+        "pointed": "Apuntado sin copiar: {file}",
+        "installed": "Instalado en el emulador: {file}",
+        "already": "Ya estaba instalado: {file}",
+        "ps4": "Instálalo a mano en shadPS4 (Otteretro no descifra nada): {file}",
+        "license": "Falta su licencia (zRIF): escríbela en la ficha del juego y vuelve a preparar, o instálalo a mano en Vita3K: {file}",
+        "manual": "Este emulador no lo toma solo: instálalo a mano desde su menú (en Cemu, Archivo › Instalar título, actualización o DLC): {file}",
+        "failed": "El instalador del emulador falló: instálalo a mano: {file}"
+      },
+      "badLicense": "Esa licencia no parece un zRIF: copia el texto completo, sin espacios.",
+      "notVita": "La licencia zRIF es solo para juegos de Vita."
+    },
+    "settings": {
+      "noRecipe": "Este emulador no tiene receta: sus ajustes se cambian en el emulador.",
+      "badVersion": "Esa versión del emulador no está instalada.",
+      "versionWhileActive": "Para cambiar la versión de este perfil, primero activa otro (o «sin perfil»): sus archivos están cargados en la versión actual.",
+      "badValue": "Algún valor no es válido: sin saltos de línea y de hasta 200 caracteres.",
+      "noGameConfig": "Este emulador no tiene configuración por juego que la app sepa escribir.",
+      "notActive": "Activa este perfil para abrir el emulador con su configuración.",
+      "openFailed": "No se pudo abrir el emulador: {detail}",
+      "opened": "Se abrió el emulador.",
+      "openedPlain": "Se abrió el emulador sin el juego (falta la ROM, su disco o el emulador no sabe abrirlo así): busca el juego en su lista."
     }
   },
   "credentials": {
@@ -619,7 +726,8 @@
         "cleanup": "Depurar el catálogo con Claude",
         "sagas": "Rutas, icónico y mejor versión con Claude",
         "load": "Carga inicial con Claude, por partes",
-        "identify": "Identificar archivos con Claude"
+        "identify": "Identificar archivos con Claude",
+        "bestEmulator": "Buscar el mejor emulador con Claude"
       },
       "catalog": {
         "extra": "Completar con Wikidata y RAWG",
@@ -641,6 +749,16 @@
       },
       "download": {
         "package": "Descargar un paquete"
+      },
+      "tools": {
+        "updates": "Revisar versiones de emuladores y ports",
+        "install": "Instalar un emulador"
+      },
+      "content": {
+        "prepare": "Preparar un juego en su emulador"
+      },
+      "profiles": {
+        "import": "Cargar un perfil compartido"
       }
     },
     "status": {
@@ -728,6 +846,17 @@
       "platform": "Empresa o consola",
       "allPlatforms": "Todas las consolas",
       "total": "{count, plural, one {# saga} other {# sagas}}"
+    },
+    "bestEmulator": {
+      "open": "Buscar el mejor emulador",
+      "title": "Buscar el mejor emulador",
+      "help": "Elige sagas y, dentro de cada una, sus juegos. Claude busca solo en esos, nunca en todo el catálogo. Lo ya buscado viene desmarcado.",
+      "filters": "Qué sagas mostrar",
+      "noGames": "Esta saga no tiene juegos en ninguna consola.",
+      "searched": "buscado el {date}",
+      "count": "{count, plural, =0 {Ningún juego elegido} one {# juego elegido} other {# juegos elegidos}}",
+      "search": "{count, plural, =0 {Buscar} one {Buscar en # juego} other {Buscar en # juegos}}",
+      "cancel": "Cancelar"
     },
     "saga": {
       "back": "← Sagas",
@@ -893,7 +1022,17 @@
       "removeHint": "Lo marcado va a la papelera y deja de contar como «lo tengo». Las actualizaciones y DLC solo se van si los marcas.",
       "removeConfirm": "Mandar a la papelera ({count})",
       "removeCancel": "Cancelar",
-      "download": "Descargar"
+      "download": "Descargar",
+      "prepare": "Preparar en el emulador",
+      "prepareFor": "Preparar en el emulador ({console})",
+      "prepareHelp": "Deja sus actualizaciones y DLC listos en el emulador con el que se juega, sin copiarlos si el emulador lo permite.",
+      "prepareQueued": "Preparando: míralo en el panel de tareas.",
+      "license": "Licencia (zRIF) de Vita",
+      "licenseSaved": "Guardada",
+      "licenseMissing": "Falta",
+      "licenseHelp": "Con ella, «Preparar en el emulador» instala el .pkg en Vita3K. Se guarda solo en este equipo: nunca en el catálogo ni en un perfil compartido.",
+      "licenseSave": "Guardar",
+      "licenseDelete": "Borrar"
     },
     "search": {
       "sagas": "Sagas",
@@ -920,7 +1059,10 @@
     "missingKeys": "Otteretro ya funciona. Si quieres portadas y datos nuevos, agrega tus claves de {services}.",
     "openCredentials": "Cuentas y claves",
     "unidentified": "{count, plural, one {1 archivo sin identificar} other {# archivos sin identificar}}: elige su juego en Revisar.",
-    "openReview": "Abrir Revisar"
+    "openReview": "Abrir Revisar",
+    "recipeBackup": "La receta de {name} del catálogo cambió los mismos campos que tu receta local: quedó la del catálogo y la tuya está respaldada en {file}.",
+    "toolUpdate": "{name} {version} disponible{channel, select, dev { (desarrollo)} other {}}.",
+    "openTools": "Ver en Herramientas"
   },
   "review": {
     "tabs": "Secciones de Revisar",
@@ -1002,6 +1144,12 @@
       "change": "Cambiar juego",
       "search": "Buscar el juego",
       "noResults": "Ningún juego de {console} con ese nombre."
+    },
+    "packages": {
+      "noGames": "Sin juegos",
+      "files": "{count, plural, one {Traía # archivo} other {Traía # archivos}}",
+      "hint": "Se descomprimió y no se reconoció ningún juego. Si actualizaste Otteretro o cambiaste el paquete, reinténtalo: si ahora se reconoce, sale de aquí.",
+      "retry": "Reintentar"
     }
   },
   "home": {
@@ -1012,7 +1160,8 @@
     "nextEmptyTitle": "Todavía no sigues ninguna ruta",
     "viewGame": "Ver ficha",
     "routeOf": "{saga} · {route}",
-    "progress": "{done} de {total} jugados"
+    "progress": "{done} de {total} jugados",
+    "news": "Novedades"
   },
   "libraries": {
     "cancel": "Cancelar",
@@ -1041,6 +1190,9 @@
       },
       "system": {
         "title": "Sistema"
+      },
+      "tool": {
+        "title": "Herramientas"
       }
     },
     "addDisk": "+ Agregar disco",
@@ -1077,7 +1229,10 @@
       "useClaude": "Usar Claude cuando ningún script lo reconoce",
       "off": "Apagado: lo que no se reconoce va directo a Revisar › Sin identificar.",
       "month": "Este mes: {calls, plural, one {# llamada} other {# llamadas}} · {cost}",
-      "paused": "Tu suscripción llegó a su límite: sigue sola el {at}."
+      "paused": "Tu suscripción llegó a su límite: sigue sola el {at}.",
+      "retry": "Probar ahora",
+      "retrying": "Probando…",
+      "stillLimited": "El límite sigue: queda la hora que dio Claude."
     }
   },
   "tools": {
@@ -1087,18 +1242,21 @@
       "emulator": "Emuladores",
       "port": "Ports",
       "complement": "Complementos",
-      "system": "Sistema"
+      "system": "Sistema",
+      "tool": "Herramientas"
+    },
+    "forks": {
+      "title": "Forks",
+      "recommended": "Recomendado para: {games}",
+      "install": "Instalar",
+      "queued": "Se encoló la instalación de la última versión."
     },
     "noRecipe": "Sin receta",
     "noRecipeHelp": "Otteretro todavía no sabe cómo dejarlo portable ni reescribir sus rutas.",
     "sections": "Tipos de herramientas",
     "pick": "Elige una herramienta para ver su detalle.",
     "none": "Nada de este tipo todavía.",
-    "version": "Versión",
-    "console": "Consola",
-    "path": "Carpeta",
-    "covers": "Cubre",
-    "location": "Ubicación",
+    "otherConsole": "Otras",
     "recipe": "Receta",
     "move": "Mover a otra ubicación",
     "to": "A",
@@ -1112,7 +1270,96 @@
     "systemUploading": "Subiendo…",
     "systemEmptyTitle": "Sin archivos de sistema",
     "systemEmptyText": "Elige una consola y sube tu BIOS, keys o firmware.",
-    "systemMissing": "Falta {name}"
+    "systemMissing": "Falta {name}",
+    "updates": {
+      "count": "{count, plural, one {# versión nueva} other {# versiones nuevas}}",
+      "checkNow": "Revisar ahora",
+      "checking": "Revisando versiones nuevas: míralo en el panel de tareas.",
+      "none": "Todo al día. Se revisa al abrir la app y una vez al día.",
+      "upToDate": "Todo al día",
+      "dev": "Desarrollo",
+      "installed": "Tienes",
+      "published": "Publicada",
+      "games": "La usan",
+      "gamesUnknown": "Ninguno de tus juegos todavía.",
+      "besideOld": "La nueva se instala al lado de la que tienes: la vieja no se toca y puedes volver a ella.",
+      "replaces": "Un port tiene una sola versión: la nueva reemplaza a la que tienes, en la misma carpeta. Tus partidas, mods y configuración se quedan (antes se respaldan) y el archivo de la vieja queda en tu librería.",
+      "update": "Actualizar",
+      "skip": "Omitir esta versión",
+      "badge": "Versión nueva",
+      "gamesCount": "{count, plural, =0 {Ninguno de tus juegos la usa} one {La usa # juego} other {La usan # juegos}}",
+      "more": "Más acciones de {name}",
+      "gamesMore": "{list} y {count, plural, one {# más} other {# más}}",
+      "queuedReplace": "Actualizando en su carpeta: míralo en el panel de tareas.",
+      "queued": "Instalando al lado de la que tienes: míralo en el panel de tareas."
+    },
+    "install": {
+      "open": {
+        "emulator": "Instalar un emulador",
+        "port": "Instalar un port",
+        "tool": "Instalar una herramienta"
+      },
+      "what": "Qué",
+      "pick": "Elige uno",
+      "console": "Consola",
+      "allConsoles": "Todas",
+      "base": "{name} (base)",
+      "other": "Otro, sin receta",
+      "name": "Su nombre",
+      "experimental": "{name} (experimental)",
+      "from": "Desde dónde",
+      "fromKind": {
+        "recipe": "Su receta",
+        "url": "Desde su repo",
+        "path": "Una carpeta o un zip de este equipo"
+      },
+      "noReleases": "Su fuente no publica el archivo para instalar: instálalo desde su repo o desde una carpeta o un zip.",
+      "version": "Versión",
+      "versionOptional": "Versión (si no, la del ejecutable)",
+      "dev": "desarrollo",
+      "url": "URL del repo o del archivo",
+      "urlHint": "https://github.com/dueño/repo o la URL de un .zip",
+      "findReleases": "Ver sus releases",
+      "noRepoReleases": "El repo no tiene releases con archivos para bajar.",
+      "file": "Archivo",
+      "pickExe": "¿Cuál es el ejecutable?",
+      "path": "Ruta de la carpeta o del zip",
+      "pathHelp": "Escribe la ruta completa en este equipo, por ejemplo D:\\Descargas\\emulador.zip. Se copia: el original no se toca.",
+      "adopt": "Es uno que instalé a mano (se adopta copiándolo)",
+      "beside": "Cada versión va en su propia carpeta, al lado de las otras, y el archivo original queda en tu librería.",
+      "cancel": "Cancelar",
+      "submit": "Instalar",
+      "queued": "Quedó en el panel de tareas."
+    },
+    "library": {
+      "portHelp": "Un port tiene una sola versión instalada. De las anteriores queda su archivo: «Reinstalar» la deja como la instalada, con tus partidas.",
+      "origin": {
+        "recipe": "desde su receta",
+        "url": "desde una URL",
+        "upload": "desde una carpeta o un zip",
+        "adopted": "adoptado"
+      },
+      "archived": "Solo el archivo",
+      "installed": "Instalada",
+      "reinstall": "Reinstalar",
+      "queued": "Quedó en el panel de tareas: vuelve desde tu librería, sin bajar nada.",
+      "inUse": "En uso",
+      "use": "Usar esta versión",
+      "remove": "Borrar la instalación",
+      "removeConfirm": "Borrar",
+      "keep": "Conservar",
+      "open": "Abrir su carpeta",
+      "askProfiles": "¿Pasar los perfiles a la {version}?",
+      "yes": "Sí",
+      "no": "No",
+      "current": "En uso: {version}",
+      "more": "{count, plural, one {▾ # versión más} other {▾ # versiones más}}",
+      "details": "▾ Detalles",
+      "uninstall": "Quitar el emulador",
+      "uninstallHelp": "Borra todas sus versiones instaladas. Sus partidas, su configuración y sus perfiles se quedan y vuelven si lo instalas de nuevo. Escribe «{name}» para confirmar.",
+      "uninstallName": "Nombre del emulador",
+      "uninstallConfirm": "Quitar"
+    }
   },
   "downloads": {
     "add": "Capturar enlaces",
@@ -1186,6 +1433,137 @@
       "size": "Solo tamaño",
       "site": "Verificado por el sitio",
       "none": "Sin verificar"
+    }
+  },
+  "ports": {
+    "title": "Ports",
+    "news": "Ports nuevos",
+    "fullyPlayable": "100 % jugables",
+    "others": "Otros ports: no están al 100 %",
+    "newFullyPlayable": "Ports nuevos 100 % jugables",
+    "newOthers": "Ports nuevos que no están al 100 %",
+    "status": {
+      "complete": "100 % jugable",
+      "playable": "Jugable con fallos",
+      "beta": "Beta",
+      "experimental": "Experimental",
+      "no-port": "Sin port todavía"
+    },
+    "kind": {
+      "decomp": "Decompilación",
+      "recomp": "Recompilación",
+      "remake": "Remake",
+      "port": "Port",
+      "native-layer": "Capa nativa",
+      "engine": "Motor"
+    },
+    "abandoned": "Abandonado",
+    "delisted": "Ya no listado",
+    "installed": "Instalado: {versions}",
+    "added": "En el catálogo desde el {date}",
+    "open": "Ver el proyecto",
+    "install": "Instalar",
+    "installFromUrl": "Instalar desde una URL",
+    "url": "URL de la release de {name}",
+    "version": "Versión",
+    "versionOptional": "Versión (opcional)",
+    "installConfirm": "Instalar",
+    "queued": "Instalación en cola: la sigues en Tareas.",
+    "seen": "Visto"
+  },
+  "profiles": {
+    "title": "Perfiles",
+    "recommended": "Recomendado: {emulator}",
+    "recommendedSource": "según {source}",
+    "active": "Activo: {name} ({emulator})",
+    "noneActive": "Sin perfil: usa «{name}» de {emulator}",
+    "noEmulator": "Sin emulador para esta consola",
+    "noEmulatorHint": "Instala un emulador de esta consola en Herramientas para crear perfiles.",
+    "name": "Nombre",
+    "emulator": "Emulador",
+    "rom": "ROM",
+    "activate": "Activar",
+    "isActive": "Activo",
+    "delete": "Borrar",
+    "deleteOf": "Borrar {name}",
+    "deleteAsk": "¿Borrar «{name}»? Se borran su configuración y sus mods; si tiene partidas, quedan en el respaldo.",
+    "deleteConfirm": "Borrar perfil",
+    "deleteKeep": "Conservar",
+    "rename": "Nombre de {name}",
+    "romOf": "ROM de {name}",
+    "baseRom": "{file}",
+    "baseRomDefault": "La base",
+    "useDefault": "Sin perfil: el por defecto, «{name}» de {emulator}",
+    "defaults": "Perfil por defecto de cada emulador",
+    "base": "base",
+    "newName": "Nombre del perfil nuevo",
+    "from": "Crear desde",
+    "fromEmpty": "Vacío",
+    "fromDefault": "El perfil por defecto",
+    "fromCopy": "Duplicar «{name}»",
+    "create": "Crear",
+    "saves": {
+      "copied": "Las partidas se llevaron al otro emulador. Lo que había ahí quedó respaldado en {backup}.",
+      "none": "No había partidas que llevar al otro emulador.",
+      "needsFirstRun": "Las partidas no se llevaron: abre el juego una vez en el otro emulador, vuelve a «sin perfil» y activa este perfil de nuevo.",
+      "untested": "Las partidas no se llevaron: el formato parece el mismo, pero todavía no está probado. Cópialas a mano si quieres.",
+      "unknown": "Las partidas no se pueden llevar a este emulador: no hay forma conocida. Siguen en el emulador de antes.",
+      "chooseUser": "Este emulador tiene varios usuarios de consola: ¿a cuál van las partidas?",
+      "chooseUserConfirm": "Llevarlas y activar"
+    },
+    "settings": {
+      "open": "Ajustes",
+      "close": "Cerrar ajustes",
+      "title": "Ajustes de «{name}»",
+      "version": "Versión del emulador",
+      "latest": "La más nueva ({version})",
+      "undescribed": "La receta todavía no describe la versión {version}: se usan las claves de la anterior más cercana, que pueden haber cambiado.",
+      "notInstalled": "Sin una versión instalada: los valores se guardan y se escriben al instalarla y volver a guardar.",
+      "current": "En el emulador: {value}",
+      "emulatorValue": "El del emulador",
+      "kept": "Guardado para otra versión: {names}",
+      "input": "Mandos",
+      "inputNone": "Sin elegir",
+      "inputArg": "Perfil de mando al lanzar",
+      "noOptions": "La receta de este emulador todavía no describe sus ajustes.",
+      "save": "Guardar ajustes",
+      "saved": "Ajustes guardados.",
+      "openEmulator": "Abrir la configuración del emulador",
+      "openHint": "Lo demás se configura en el emulador; para un juego, con su perfil activo.",
+      "names": {
+        "resolution": "Resolución",
+        "renderer": "Renderizador",
+        "aspectRatio": "Relación de aspecto",
+        "filter": "Filtro",
+        "vsync": "Sincronización vertical",
+        "speed": "Velocidad",
+        "anisotropy": "Filtrado anisotrópico",
+        "fps": "Límite de fps",
+        "antialiasing": "Antialiasing"
+      }
+    },
+    "share": "Compartir",
+    "shareOf": "Compartir {name}",
+    "sharePath": "Dónde guardar el .zip de {name}",
+    "sharePlaceholder": "Ruta del .zip nuevo, p. ej. D:\\perfil.zip",
+    "shareConfirm": "Guardar el .zip",
+    "shared": "Listo: {path}. Lleva el emulador, los mods y la configuración; nunca keys, BIOS, firmware, juegos ni partidas.",
+    "loadZip": "Cargar un perfil (.zip)",
+    "loadConfirm": "Cargar",
+    "loaded": "Cargando el perfil: lo sigues en Tareas.",
+    "best": {
+      "search": "Buscar el mejor emulador",
+      "queued": "En cola",
+      "searched": "Última búsqueda: {date}",
+      "none": "Sin recomendado",
+      "choose": "Elegir a mano",
+      "chooseFor": "Emulador para {console}",
+      "reset": "Volver al del catálogo",
+      "repo": "Ver su repo",
+      "origin": {
+        "manual": "elegido por ti",
+        "claude": "de Claude, local"
+      }
     }
   }
 }

@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Otteretro.Api;
+using Otteretro.Libraries;
 using Velopack;
 using Velopack.Sources;
 
@@ -18,7 +19,7 @@ public record UpdateState(UpdatePhase Phase, string? Version, int Progress, stri
 /// El origen sale del canal (#180): las releases de GitHub (estables o de prueba) u otro origen que elige la persona.
 /// Velopack solo actualiza en Windows: en Linux, Otteretro se actualiza con el sistema (Nix, #114).
 /// </summary>
-public sealed class Updater(AppSession session, Events events)
+public sealed class Updater(AppSession session, Events events, SecretBox? box = null)
 {
     UpdateManager? manager;
     VelopackAsset? ready;
@@ -40,7 +41,7 @@ public sealed class Updater(AppSession session, Events events)
         var downloading = false;
         try
         {
-            if (SourceFor(session.Config.EffectiveUpdateChannel, Origin(session)) is not { } found)
+            if (SourceFor(session.Config.EffectiveUpdateChannel, Origin(session), Token()) is not { } found)
             {
                 Set(UpdatePhase.Unavailable, null, 0, "noSource");
                 return;
@@ -108,13 +109,13 @@ public sealed class Updater(AppSession session, Events events)
     /// El origen de cada canal (#180) y el canal de Velopack que busca: «win» las releases de main, «dev» las prereleases
     /// de dev. Otro origen: el repo de GitHub, una URL o una carpeta de quien tiene su propia versión. Null si no hay.
     /// </summary>
-    public static (IUpdateSource Source, string Channel)? SourceFor(string channel, string? origin) => channel switch
+    public static (IUpdateSource Source, string Channel)? SourceFor(string channel, string? origin, string? token = null) => channel switch
     {
-        "stable" => (new GithubSource(Repo, null, false), "win"),
-        "testing" => (new GithubSource(Repo, null, true), "dev"),
+        "stable" => (new GithubSource(Repo, token, false), "win"),
+        "testing" => (new GithubSource(Repo, token, true), "dev"),
         _ when string.IsNullOrWhiteSpace(origin) => null,
         "local" => (new SimpleFileSource(new DirectoryInfo(origin)), "win"),
-        _ when origin.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase) => (new GithubSource(origin, null, false), "win"),
+        _ when origin.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase) => (new GithubSource(origin, token, false), "win"),
         _ when Uri.TryCreate(origin, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https" => (new SimpleWebSource(uri), "win"),
         _ => (new SimpleFileSource(new DirectoryInfo(origin)), "win"),
     };
@@ -128,10 +129,16 @@ public sealed class Updater(AppSession session, Events events)
         Set(OperatingSystem.IsWindows() ? UpdatePhase.None : UpdatePhase.Unavailable, null, 0, OperatingSystem.IsWindows() ? null : "withSystem");
     }
 
-    void Fail(Exception e)
+    string? Token() => box is null ? null : GithubApi.Token(CatalogEndpoints.CredentialsOf(session, box));
+
+    async void Fail(Exception e)
     {
-        Set(UpdatePhase.Error, State.Version, 0, "failed");
-        FileLog.Write(LogLevel.Error, "Updater", e.ToString());
+        var text = e.ToString();
+        FileLog.Write(LogLevel.Error, "Updater", text);
+        // Velopack no deja ver las cabeceras: si es el límite de GitHub, se pregunta aparte cuándo se libera (#320).
+        var limit = text.Contains("rate limit", StringComparison.OrdinalIgnoreCase) || text.Contains("403") || text.Contains("429");
+        var reset = limit ? await GithubApi.ResetAt(Token()) : null;
+        Set(UpdatePhase.Error, State.Version, 0, limit ? $"rateLimited|{reset?.ToLocalTime():HH:mm}" : "failed");
     }
 
     /// <summary>Instala la versión descargada y vuelve a abrir la app. Devuelve false si no hay ninguna lista.</summary>

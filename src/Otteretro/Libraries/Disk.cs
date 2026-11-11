@@ -41,13 +41,14 @@ public static class Disk
     /// <summary>Lo que se puede adoptar: un disco, o una carpeta de juegos de antes (como `E:\Consolas`), que pasa al estándar.</summary>
     public static readonly string[] AdoptTypes = ["disk", "game"];
 
-    /// <summary>Las cinco carpetas fijas de cada disco (#201), por tipo. Emuladores, Ports y Complementos son las de Herramientas.</summary>
+    /// <summary>Las carpetas fijas de cada disco (#201), por tipo. Herramientas guarda las que no son emuladores ni ports, como Steam ROM Manager (#274).</summary>
     public static readonly Dictionary<string, string> DiskFolders = new()
     {
         ["game"] = "Juegos",
         ["emulator"] = "Emuladores",
         ["port"] = "Ports",
         ["complement"] = "Complementos",
+        ["tool"] = "Herramientas",
         ["system"] = "Sistema",
     };
 
@@ -246,7 +247,7 @@ public static class Disk
     {
         var roots = Recipes.DefaultRoots(DiskTasks.ToolsOf(db));
         foreach (var l in List(db).Where(l => l.Connected))
-            foreach (var kind in new[] { "emulator", "port", "complement" })
+            foreach (var kind in new[] { "emulator", "port", "complement", "tool" })
                 if (FolderOf(l, kind) is { } folder) roots.Add(new ToolRoot(kind, folder, l.Id));
         return roots;
     }

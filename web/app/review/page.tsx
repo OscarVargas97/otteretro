@@ -13,7 +13,7 @@ import { Tabs } from "@/components/Tabs";
 import { usePaged } from "@/lib/paged";
 import { reviewQuery, sagaQuery } from "@/lib/queries";
 import { Cover, useConsoleName } from "@/components/Catalog";
-import type { FileReview, ReviewPage, SearchResults } from "@/lib/types";
+import type { FileReview, PackageReview, ReviewPage, SearchResults } from "@/lib/types";
 
 const TABS = ["doubtful", "unidentified"] as const;
 type Tab = (typeof TABS)[number];
@@ -57,8 +57,8 @@ function Review() {
 
   if (page.isError) return <div className="content"><p className="error" role="alert">{describe(page.error)}</p></div>;
   if (!page.data) return <div className="content" aria-busy="true"><Panels count={3} /></div>;
-  const { files } = page.data;
-  const count = (k: Tab) => files.filter((f) => f.kind === k).length;
+  const { files, packages } = page.data;
+  const count = (k: Tab) => files.filter((f) => f.kind === k).length + (k === "unidentified" ? packages.length : 0);
 
   return (
     <div className="content">
@@ -72,7 +72,29 @@ function Review() {
         : files.filter((f) => f.kind === tab).map((f) => (
           <FileItem key={f.id} file={f} busy={act.isPending} resolve={(gameId) => act.mutate({ path: `/api/review/${f.id}/file`, body: { gameId } })} />
         )))}
+      {tab === "unidentified" && packages.map((p) => (
+        <PackageItem key={p.id} item={p} busy={act.isPending} retry={() => act.mutate({ path: `/api/review/${p.id}/retry` })} />
+      ))}
 
+      </div>
+    </div>
+  );
+}
+
+/** Un paquete de `Entrada\` sin juegos (#310): su nombre, lo que traía y «Reintentar», que lo vuelve a importar. */
+function PackageItem({ item, busy, retry }: { item: PackageReview; busy: boolean; retry: () => void }) {
+  const t = useTranslations("review");
+  return (
+    <div className="panel" style={{ display: "grid", gap: 6 }}>
+      <div><strong>{item.name}</strong> <span className="ot-badge" style={{ marginLeft: 6 }}>{t("packages.noGames")}</span></div>
+      <span className="folder-path small">{item.path}</span>
+      <details>
+        <summary className="small">{t("packages.files", { count: item.files.length })}</summary>
+        <ul className="small muted">{item.files.map((f) => <li key={f}>{f}</li>)}</ul>
+      </details>
+      <span className="small muted">{t("packages.hint")}</span>
+      <div className="hero-actions">
+        <button className="ot-btn ot-btn-sm" type="button" disabled={busy} onClick={retry}>{t("packages.retry")}</button>
       </div>
     </div>
   );

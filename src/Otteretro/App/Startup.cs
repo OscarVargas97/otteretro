@@ -17,9 +17,12 @@ public static class Startup
         FileLog.Prune();
         DataFolder.Upgrade(folder);
         var db = DataFolder.Open(folder);
+        Libraries.Recipes.LocalFolder = Path.Combine(folder, "data", "recetas"); // las recetas locales (#350)
         var applied = Migrations.Apply(db);
         Catalog.InitialCatalog.Seed(db);
+        Libraries.Recipes.Catalog = db; // las recetas publicadas, del catálogo instalado (#357)
         Migrations.RegisterMachine(db, config.MachineId);
+        Libraries.Import.RetryTriedOnNewVersion(db, Version);
         FolderMove.RememberedSize(folder); // empieza a medirla, para que Ajustes no espere
         FileLog.Write(LogLevel.Information, "Startup", $"Otteretro {Version}; carpeta de datos {folder}; {applied} migraciones nuevas.");
         return db;

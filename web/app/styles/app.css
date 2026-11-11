@@ -301,6 +301,18 @@ a.ot-btn, a.chip { text-decoration: none; }
 .ot-menu-list button { text-align: left; padding: 8px 12px; border: 0; border-radius: 6px; background: none; color: var(--ink); font: inherit; cursor: pointer; }
 .ot-menu-list button:hover:not(:disabled), .ot-menu-list button:focus-visible { background: var(--surface); }
 .ot-menu-list button:disabled { color: var(--ink-muted); cursor: default; }
+.ot-menu-sm > summary { width: 32px; height: 32px; font-size: 16px; }
+/* Avisos de versiones nuevas (decisión 322): una fila que se abre al tocarla. */
+.update-row { display: grid; gap: 6px; padding: 8px 0; border-top: 1px solid var(--line); }
+.update-row-toggle { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; padding: 4px 0; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.update-row-toggle::before { content: "▸"; color: var(--ink-muted); }
+.update-row-toggle[aria-expanded="true"]::before { content: "▾"; }
+/* Herramientas (#348): las otras versiones de una tarjeta, plegadas; el título de cada consola. */
+.tool-versions > summary { list-style: none; cursor: pointer; color: var(--ink-muted); }
+.tool-versions > summary::-webkit-details-marker { display: none; }
+.tool-versions[open] { display: grid; gap: 6px; }
+h2.console-group { font-size: 1rem; }
+.panel.version-row { flex-direction: row; }
 .ot-dialog { width: min(560px, calc(100vw - 32px)); padding: var(--space-4); border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); }
 .ot-dialog::backdrop { background: rgb(0 0 0 / .55); }
 .disk-panel { gap: var(--space-3); }
@@ -321,6 +333,7 @@ a.ot-btn, a.chip { text-decoration: none; }
 .usage-emulator { background: var(--info); }
 .usage-port { background: var(--have); }
 .usage-complement { background: color-mix(in srgb, var(--info) 45%, transparent); }
+.usage-tool { background: color-mix(in srgb, var(--have) 45%, transparent); }
 .usage-system { background: var(--danger); }
 .usage-other { background: var(--ink-muted); }
 .usage-free { background: var(--surface-raised); border: 1px solid var(--line); }

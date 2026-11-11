@@ -1,0 +1,122 @@
+using System.Diagnostics;
+using System.Text.Json;
+using Dapper;
+using Otteretro.Claude;
+
+namespace Otteretro.Tests;
+
+/// <summary>#373 con un `claude` falso: una recomendación por consola, sin lo que no existe, y lo elegido a mano no se toca.</summary>
+[Collection(nameof(ClaudeRunnerTests))] // comparten ClaudeRunner.Launch
+public class BestEmulatorTests : IAsyncDisposable
+{
+    readonly Fixture f = new();
+    readonly List<string> inputs = [];
+    readonly Func<ProcessStartInfo, string, CancellationToken, Task<ProcessOutput>> real = ClaudeRunner.Launch;
+    List<BestEmulator.Pick> reply = [];
+
+    public BestEmulatorTests()
+    {
+        ClaudeRunner.Launch = (start, stdin, ct) =>
+        {
+            inputs.Add(stdin);
+            return Task.FromResult(new ProcessOutput(0, JsonSerializer.Serialize(new
+            {
+                is_error = false,
+                structured_output = new BestEmulator.Reply(reply),
+                total_cost_usd = 0.01,
+                usage = new { input_tokens = 100, output_tokens = 10, cache_read_input_tokens = 0, cache_creation_input_tokens = 0 },
+            }, JsonSerializerOptions.Web), ""));
+        };
+        using var c = f.Db.Open();
+        c.Execute("""
+            INSERT INTO game (id, name_es, original_name, year) VALUES (8, 'The Legend of Zelda: Twilight Princess', NULL, 2006);
+            INSERT INTO version (id, game_id, platform) VALUES (18, 8, 'gc'), (19, 8, 'wii'), (20, 8, 'switch');
+            """);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        ClaudeRunner.Launch = real;
+        await f.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task KeepsOnePickPerConsoleAndDropsWhatDoesNotExist()
+    {
+        // Una elección a mano en Wii: la búsqueda no la toca.
+        using (var c = f.Db.Open())
+            c.Execute("INSERT INTO emulator_pick (game_id, console, recipe_id, origin, searched_at) VALUES (8, 'wii', 'dolphin', 'manual', '2026-01-01')");
+        reply =
+        [
+            new("gc", "dolphin", "", "https://wiki.dolphin-emu.org/", "Corre perfecto."),
+            new("gc", "pcsx2", "", "https://x", "Repetida: se queda la primera."),
+            new("wii", "dolphin", "", "https://x", "Ya elegiste a mano."),
+            new("switch", "no-existe", "", "https://x", "Receta inventada."),
+            new("ps2", "pcsx2", "", "https://x", "Consola que no es del juego."),
+        ];
+        var task = BestEmulator.Enqueue(f.Db, 8)!.Value;
+        Assert.Equal(task, BestEmulator.Enqueue(f.Db, 8)); // la que ya espera
+        Assert.Null(BestEmulator.Enqueue(f.Db, 999));
+        Assert.Equal("done", (await f.Run(task)).Status);
+
+        var input = JsonDocument.Parse(Assert.Single(inputs)).RootElement;
+        Assert.Equal(["gc", "switch", "wii"], input.GetProperty("consoles").EnumerateArray().Select(e => e.GetString()));
+        Assert.Contains(input.GetProperty("recipes").EnumerateArray(), r => r.GetProperty("id").GetString() == "dolphin");
+
+        var picks = BestEmulator.Picks(f.Db, 8);
+        Assert.Equal([("gc", "dolphin", "claude"), ("wii", "dolphin", "manual")], picks.Select(p => (p.Console, p.RecipeId!, p.Origin)));
+        Assert.Equal("Corre perfecto.", picks[0].Reason);
+        Assert.Equal("https://wiki.dolphin-emu.org/", picks[0].Source);
+
+        // Una búsqueda nueva reemplaza lo de Claude: un repo sin receta, y GameCube sin nada esta vez.
+        reply = [new("switch", "", "https://github.com/alguien/fork", "https://x", "Un fork que arregla este juego.")];
+        Assert.Equal("done", (await f.Run(BestEmulator.Enqueue(f.Db, 8)!.Value)).Status);
+        picks = BestEmulator.Picks(f.Db, 8);
+        Assert.Equal([("switch", null, "https://github.com/alguien/fork", "claude"), ("wii", "dolphin", null, "manual")],
+            picks.Select(p => (p.Console, p.RecipeId, p.Repo, p.Origin)));
+    }
+
+    [Fact]
+    public async Task PickerOnlyQueuesChosenGamesAndShowsLastSearch()
+    {
+        using (var c = f.Db.Open())
+            c.Execute("""
+                INSERT INTO saga (id, name) VALUES (3, 'Zelda');
+                UPDATE game SET saga_id = 3 WHERE id = 8;
+                INSERT INTO game (id, name_es, saga_id, year) VALUES (9, 'Zelda sin consola', 3, 2020), (10, 'Wind Waker', 3, 2002);
+                INSERT INTO version (id, game_id, platform) VALUES (21, 10, 'gc');
+                """);
+        Assert.Equal([(10L, (string?)null), (8L, null)], BestEmulator.SagaGames(f.Db, 3).Select(g => (g.Id, g.SearchedAt)));
+
+        var tasks = BestEmulator.Enqueue(f.Db, [8, 8, 999]);
+        Assert.Equal("done", (await f.Run(Assert.Single(tasks))).Status); // sin repetir y sin el que no existe
+        using (var c = f.Db.Open())
+            Assert.Equal(["8"], c.Query<string>("SELECT data FROM task WHERE kind = @Kind", new { BestEmulator.Kind }));
+
+        // Claude no recomendó nada, pero la búsqueda queda con su fecha.
+        var games = BestEmulator.SagaGames(f.Db, 3);
+        Assert.Null(games[0].SearchedAt);
+        Assert.NotNull(games[1].SearchedAt);
+    }
+
+    /// <summary>#375: elegir a mano reemplaza lo de Claude en esa consola, solo con un emulador que la corre; volver al catálogo lo borra.</summary>
+    [Fact]
+    public void ChoosingByHandAndGoingBackToTheCatalog()
+    {
+        BestEmulator.Save(f.Db, 8, ["gc", "wii", "switch"], [new("gc", "dolphin", "", "https://sitio.test/gc", "va bien")]);
+        Assert.False(BestEmulator.Choose(f.Db, 8, "gc", "no-existe"));
+        Assert.False(BestEmulator.Choose(f.Db, 8, "gc", "ryubing")); // no corre GameCube
+        Assert.False(BestEmulator.Choose(f.Db, 8, "n64", "rmg")); // el juego no sale en N64
+        Assert.Equal("claude", Assert.Single(BestEmulator.Picks(f.Db, 8)).Origin);
+
+        Assert.True(BestEmulator.Choose(f.Db, 8, "gc", "dolphin"));
+        var pick = Assert.Single(BestEmulator.Picks(f.Db, 8));
+        Assert.Equal(("dolphin", "manual", null), (pick.RecipeId, pick.Origin, pick.Source));
+
+        BestEmulator.Forget(f.Db, 8, "gc");
+        Assert.Empty(BestEmulator.Picks(f.Db, 8));
+        Assert.Null(BestEmulator.Status(f.Db, 8).Task);
+        Assert.NotNull(BestEmulator.Status(f.Db, 8).SearchedAt);
+        Assert.Equal(BestEmulator.Enqueue(f.Db, 8), BestEmulator.Status(f.Db, 8).Task);
+    }
+}

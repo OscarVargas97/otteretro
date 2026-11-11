@@ -29,6 +29,7 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         [Catalog.CatalogUpdate.Kind] = Catalog.CatalogUpdate.Run,
         ["steam.sync"] = Catalog.Steam.Sync,
         [Claude.Identify.Kind] = Claude.Identify.Run,
+        [Claude.BestEmulator.Kind] = Claude.BestEmulator.Run,
         [Libraries.DiskTasks.Move] = Libraries.DiskTasks.RunMove,
         [Libraries.DiskTasks.Migrate] = Libraries.DiskTasks.RunMigrate,
         [Libraries.Scan.Kind] = Libraries.Scan.Run,
@@ -37,6 +38,10 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         [Libraries.Converter.Kind] = Libraries.Converter.RunTask,
         [Libraries.Dats.UpdateKind] = Libraries.Dats.Update,
         [Libraries.Dats.VerifyKind] = Libraries.Dats.Verify,
+        [Libraries.ToolUpdates.Kind] = Libraries.ToolUpdates.Run,
+        [Libraries.Installs.Kind] = Libraries.Installs.Run,
+        [Libraries.ProfileShare.ImportKind] = Libraries.ProfileShare.RunImport,
+        [Libraries.Content.Kind] = Libraries.Content.Run,
     };
 
     /// <summary>Tipos que no corren a la vez aunque sean distintos: mover y adoptar tocan las mismas carpetas (§5.3).</summary>
@@ -55,6 +60,8 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
 
     readonly Libraries.GamesWatcher games = new();
     ClipboardWatcher? clipboard;
+    DateTime lastBackupCheck;
+    string? connectedDisks;
 
     /// <summary>
     /// Espera antes de cada reintento de un error pasajero (#59): se corta la red, vence el tiempo, o la fuente responde 429 o 5xx.
@@ -150,6 +157,28 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
         return true;
     }
 
+    /// <summary>
+    /// «Probar ahora» (#363): si el límite de Claude ya se reinició, las tareas que lo esperaban siguen desde su punto de
+    /// control. False si sigue (la espera queda con la hora nueva). Las pausadas a mano no se tocan.
+    /// </summary>
+    public async Task<bool> RetryClaude(Database db, CancellationToken ct)
+    {
+        long[] ids;
+        try { ids = await Claude.ClaudeBudget.Retry(db, ct); }
+        catch (Claude.ClaudePausedException) { return false; }
+        foreach (var id in ids)
+        {
+            Log(db, id, ApiError.Of("tasks.log.resumed"));
+            Publish(db, id);
+        }
+        return true;
+    }
+
+    /// <summary>Mientras se espera al límite de Claude, cada cuánto se prueba solo si ya se reinició (#363).</summary>
+    public static TimeSpan ClaudeRetryEvery { get; set; } = TimeSpan.FromMinutes(15);
+    DateTime lastClaudeRetry = DateTime.UtcNow;
+    Task claudeRetry = Task.CompletedTask;
+
     bool Stop(Database db, long id, string status, string[] from)
     {
         lock (gate)
@@ -188,12 +217,36 @@ public sealed class TaskQueue(AppSession session, Events events, FolderMoveServi
                         if (OnOpen && session.Config.DataFolder is { } dataFolder) Libraries.Disk.EnsureDataDisk(db, dataFolder);
                         // Al abrir la app, lo de antes pasa solo al estándar (#219), que al terminar escanea; si no, se escanea ya (#223).
                         if (OnOpen && Libraries.DiskTasks.EnqueueMigrateIfPending(db) is null) Libraries.Scan.Enqueue(db);
+                        // Versiones nuevas de emuladores y ports al abrir (decisión 294); después, una vez al día.
+                        if (OnOpen) Libraries.ToolUpdates.Enqueue(db);
                     }
                     if (OnOpen)
                     {
                         games.Tick(db);
+                        Libraries.ToolUpdates.EnqueueIfDue(db);
                         clipboard ??= new(notify: (found, added) => Notify.LinksCaptured(session.Config.EffectiveLanguage, found, added));
                         clipboard.Tick(db, session.Config.ClipboardCapture ?? true);
+                        if (claudeRetry.IsCompleted && DateTime.UtcNow - lastClaudeRetry >= ClaudeRetryEvery && Claude.ClaudeBudget.Paused(db))
+                        {
+                            lastClaudeRetry = DateTime.UtcNow;
+                            claudeRetry = Task.Run(async () =>
+                            {
+                                try { if (await RetryClaude(db, ct)) Notify.ClaudeResumed(session.Config.EffectiveLanguage); }
+                                catch (Exception e) when (e is not OperationCanceledException) { FileLog.Write(LogLevel.Warning, "Claude", $"Probar el límite: {e.Message}"); }
+                            }, CancellationToken.None);
+                        }
+                        if (DateTime.UtcNow - lastBackupCheck > TimeSpan.FromSeconds(30))
+                        {
+                            lastBackupCheck = DateTime.UtcNow;
+                            // Los ports de antes de un disco que se conectó recién pasan a una sola versión (#316). Solo al cambiar los
+                            // discos conectados: si falla, no se repite cada 30 s, sino al próximo arranque o al reconectarlo.
+                            var connected = string.Join(",", Libraries.Disk.List(db).Where(l => l.Connected).Select(l => l.Id));
+                            if (connected != connectedDisks)
+                            {
+                                if (connectedDisks is not null) Libraries.DiskTasks.EnqueuePortsIfPending(db);
+                                connectedDisks = connected;
+                            }
+                        }
                     }
                     StartPending(db, ct);
                 }
@@ -413,6 +466,11 @@ static class Notify
         (_, false) => "Terminó una tarea en segundo plano. Mírala en el panel de tareas.",
         (_, true) => "Falló una tarea en segundo plano. Mírala en el panel de tareas.",
     });
+
+    /// <summary>La prueba de cada 15 minutos vio que el límite de Claude se reinició (#363).</summary>
+    public static void ClaudeResumed(string language) => Send(language == "en"
+        ? "Claude's limit has reset: the tasks are running again."
+        : "El límite de Claude se reinició: las tareas siguen.");
 
     /// <summary>Lo copiado entró al capturador (#210). Solo dice cuántos: lo que copias no sale a ninguna parte.</summary>
     public static void LinksCaptured(string language, int found, int added) => Send((language, added) switch

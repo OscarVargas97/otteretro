@@ -13,9 +13,13 @@ import type { DiskItem, Drive, FolderInfo, DiskInfo, MigrationPlan, ToolInfo } f
 /** Los discos y las ubicaciones de antes (#198, #201). La clave sigue siendo «libraries»: así se llaman en la base. */
 export const librariesQuery = { queryKey: ["libraries"], queryFn: () => request<DiskInfo[]>("/api/locations") };
 export const toolsQuery = { queryKey: ["tools"], queryFn: () => request<ToolInfo[]>("/api/tools") };
+const contentsQuery = (id: string) => ({ queryKey: ["libraries", "contents", id], queryFn: () => request<DiskItem[]>(`/api/disks/${id}/contents`) });
 
-/** Lo que guarda cada disco, en sus carpetas fijas y en este orden (#201). */
-export const TYPES = ["game", "emulator", "port", "complement", "system"] as const;
+/**
+ * Lo que guarda cada disco, en sus carpetas fijas y en este orden (#201). Herramientas (Steam ROM Manager, decisión 311): en el ★
+ * esa carpeta es también la de antes, así que el backend solo cuenta ahí lo que tiene receta.
+ */
+export const TYPES = ["game", "emulator", "port", "complement", "tool", "system"] as const;
 export type LocationType = (typeof TYPES)[number];
 
 const post = (body: unknown) => ({ method: "POST", body: JSON.stringify(body) });
@@ -36,6 +40,8 @@ export function StorageSettings() {
   const [picked, setPicked] = useState<string | null>(null);
   const addDialog = useRef<HTMLDialogElement>(null);
   const current = disks.find((d) => d.id === picked) ?? disks.find((d) => d.default) ?? disks[0];
+  // Lo del disco llega aparte y agrega filas y tramos al uso: hasta tenerlo, un esqueleto al final, para que nada salte al llegar (#278).
+  const contents = useQuery({ ...contentsQuery(current?.id ?? ""), enabled: !!current?.connected });
   const label = (d: DiskInfo) => `${d.name}${d.default ? " ★" : ""} — ${!d.connected ? t("disconnected")
     : d.free != null && d.total != null ? t("free", { free: gb(d.free, locale), total: gb(d.total, locale) }) : d.path}`;
 
@@ -55,8 +61,12 @@ export function StorageSettings() {
         <AddDisk disks={disks} onDone={(id) => { setPicked(id); addDialog.current?.close(); }} onCancel={() => addDialog.current?.close()} />
       </dialog>
       <DataMoveStatus />
-      {current && <DiskPanel key={current.id} disk={current} others={disks.filter((d) => d.id !== current.id && d.connected)} />}
-      <RecognizeSettings />
+      {current?.connected && contents.isPending ? <div className="panel skeleton" style={{ height: 240 }} aria-busy="true" /> : (
+        <>
+          {current && <DiskPanel key={current.id} disk={current} others={disks.filter((d) => d.id !== current.id && d.connected)} />}
+          <RecognizeSettings />
+        </>
+      )}
     </div>
   );
 }
@@ -192,7 +202,7 @@ function DiskPanel({ disk, others }: { disk: DiskInfo; others: DiskInfo[] }) {
   const locale = useLocale();
   const describe = useDescribeError();
   const cache = useQueryClient();
-  const items = useQuery({ queryKey: ["libraries", "contents", disk.id], queryFn: () => request<DiskItem[]>(`/api/disks/${disk.id}/contents`), enabled: disk.connected });
+  const items = useQuery({ ...contentsQuery(disk.id), enabled: disk.connected });
   const dataUse = Number(useQuery({ queryKey: ["folder"], queryFn: () => request<FolderInfo>("/api/data-folder"), enabled: disk.default }).data?.used ?? 0);
   const moving = useMove()?.running ?? false;
   const [marked, setMarked] = useState<Set<string>>(new Set());
