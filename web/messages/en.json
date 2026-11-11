@@ -967,8 +967,6 @@
       "have": "Owned",
       "where": "Where you have it",
       "tracking": "Tracking",
-      "lastPlayed": "Last played: {date}",
-      "never": "Last played: never",
       "states": "Status",
       "started": "Started",
       "finished": "Finished on",
@@ -978,7 +976,6 @@
       "noRating": "—",
       "notes": "Notes",
       "playtime": "Time played",
-      "pendingHint": "Dates show up once you start it.",
       "saving": "Saving…",
       "saved": "Saved",
       "sources": "Data and sources",
@@ -1024,7 +1021,6 @@
       "removeHint": "What you mark goes to the recycle bin and stops counting as owned. Updates and DLC only go if you mark them.",
       "removeConfirm": "Send to recycle bin ({count})",
       "removeCancel": "Cancel",
-      "download": "Download",
       "prepare": "Prepare in the emulator",
       "prepareFor": "Prepare in the emulator ({console})",
       "prepareHelp": "Makes its updates and DLC ready in the emulator you play it with, without copying them when the emulator allows it.",
@@ -1034,7 +1030,30 @@
       "licenseMissing": "Missing",
       "licenseHelp": "With it, «Prepare in the emulator» installs the .pkg in Vita3K. It is kept only on this computer: never in the catalog or in a shared profile.",
       "licenseSave": "Save",
-      "licenseDelete": "Delete"
+      "licenseDelete": "Delete",
+      "tab": {
+        "summary": "Summary",
+        "play": "How to play",
+        "versions": "Versions",
+        "files": "Files",
+        "links": "Links"
+      },
+      "sections": "Game sections",
+      "more": "More ▾",
+      "downloadOther": "Download another version…",
+      "removeMenu": "Remove from disk…",
+      "favoriteOff": "☆ Favorite",
+      "readMore": "Read more",
+      "readLess": "Read less",
+      "sessions": "Recent sessions",
+      "noSessions": "No sessions yet: they're logged when you play from Otteretro.",
+      "playingNow": "Playing…",
+      "stores": "In your stores",
+      "noFiles": "You don't have this game on any disk or store.",
+      "versionsHint": "Click a version to read why.",
+      "autoSave": "Saves automatically",
+      "lastTime": "Last played",
+      "neverShort": "Never"
     },
     "search": {
       "sagas": "Series",
@@ -1435,13 +1454,12 @@
       "size": "Size only",
       "site": "Verified by the site",
       "none": "Not verified"
-    }
+    },
+    "gameLinksNone": "You haven't saved any links for this game yet."
   },
   "ports": {
     "title": "Ports",
     "news": "New ports",
-    "fullyPlayable": "100% playable",
-    "others": "Other ports: not at 100%",
     "newFullyPlayable": "New 100% playable ports",
     "newOthers": "New ports not at 100%",
     "status": {
@@ -1480,7 +1498,6 @@
     "active": "Active: {name} ({emulator})",
     "noneActive": "No profile: uses “{name}” from {emulator}",
     "noEmulator": "No emulator for this console",
-    "noEmulatorHint": "Install an emulator for this console in Tools to create profiles.",
     "name": "Name",
     "emulator": "Emulator",
     "rom": "ROM",
@@ -1552,7 +1569,11 @@
     "shared": "Done: {path}. It has the emulator, mods and settings; never keys, BIOS, firmware, games or saves.",
     "loadZip": "Load a profile (.zip)",
     "loadConfirm": "Load",
-    "loaded": "Loading the profile: follow it in Tasks."
+    "loaded": "Loading the profile: follow it in Tasks.",
+    "advanced": "Advanced: profiles",
+    "count": "{count, plural, =0 {no profiles} one {# profile} other {# profiles}}",
+    "noEmulatorLine": "{console}: no emulator installed. <link>Go to Tools</link>",
+    "newProfile": "+ New profile"
   },
   "play": {
     "title": "How to play",
@@ -1579,6 +1600,24 @@
       "playable": "Most playable"
     },
     "up": "Move “{criterion}” up",
-    "down": "Move “{criterion}” down"
+    "down": "Move “{criterion}” down",
+    "download": "Download",
+    "notOwned": "You don't have it on any disk or store.",
+    "play": "▶ Play",
+    "install": "Install {name}",
+    "installing": "Installing {name}…",
+    "playing": "Playing…",
+    "playingHint": "When you close the game, the session is logged automatically.",
+    "noOption": "Nothing to play it with.",
+    "openTools": "Open Tools",
+    "with": "With {name}",
+    "lastSession": "Last session: {date} · {time}",
+    "orderLink": "Change the order",
+    "help": "For each version you have, the option it's played with. One click picks another.",
+    "better": "Better with another version",
+    "betterHint": "What you'd need to play it better.",
+    "byHand": "Ports to install by hand",
+    "recommended": "Recommended",
+    "installNote": "Pressing Play in the header installs {name} first."
   }
 }

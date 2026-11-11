@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Fragment, useState } from "react";
 import { useConsoleName } from "@/components/Catalog";
@@ -14,7 +15,7 @@ import type { ProfileSwitch, RecipeSummary, VersionProfiles } from "@/lib/types"
 type Shown = { console: string; recipe: RecipeSummary; source?: string | null };
 
 /** El recomendado de cada consola: el que publica el catálogo (las recetas que traen el juego en `recommendedFor`, #366, decisión 380). */
-function useRecommended(gameId: number, consoles: string[]) {
+export function useRecommended(gameId: number, consoles: string[]) {
   const recipes = useQuery(recipesQuery).data ?? [];
   return consoles.flatMap((console): Shown[] => {
     const recipe = recipes.find((r) => r.consoles.includes(console) && r.recommendedFor.some((g) => Number(g.gameId) === gameId));
@@ -22,28 +23,28 @@ function useRecommended(gameId: number, consoles: string[]) {
   });
 }
 
-/** Perfiles del juego (§8.0, #269): por versión del juego (decisión 301), cuál está activo, crear, renombrar, elegir ROM y activar. */
-export function GameProfiles({ gameId, consoles }: { gameId: number; consoles: string[] }) {
+/**
+ * Perfiles del juego (§8.0, #269), plegados en «Avanzado» (#410): por versión del juego (decisión 301), los que hay, crear,
+ * renombrar, elegir ROM y activar. Una consola sin emulador es una línea con el enlace a Herramientas.
+ */
+export function GameProfiles({ gameId }: { gameId: number }) {
   const t = useTranslations("profiles");
   const versions = useQuery({ queryKey: ["profiles", gameId], queryFn: () => request<VersionProfiles[]>(`/api/games/${gameId}/profiles`) });
-  const recipes = useQuery(recipesQuery).data ?? [];
-  // Solo las consolas del juego que corre algún emulador con receta: en las demás no hay nada que recomendar.
-  const emulated = consoles.filter((c) => recipes.some((r) => r.kind === "emulator" && r.consoles.includes(c)));
-  const recommended = useRecommended(gameId, emulated);
-  if (!versions.data?.length && !recommended.length) return null;
+  const recommended = useRecommended(gameId, [...new Set(versions.data?.map((v) => v.platform))]);
+  if (!versions.data?.length) return null;
+  const count = versions.data.reduce((n, v) => n + v.profiles.length, 0);
   return (
-    <section className="sec">
-      <div className="sec-h"><h2>{t("title")}</h2></div>
-      {recommended.map((x) => <Recommended key={x.console} shown={x} />)}
-      {versions.data?.map((v) => <VersionPanel key={String(v.versionId)} gameId={gameId} version={v}
+    <details className="fold-line advanced">
+      <summary>{t("advanced")} <span className="small muted">{t("count", { count })}</span></summary>
+      {versions.data.map((v) => <VersionPanel key={String(v.versionId)} gameId={gameId} version={v}
         recommended={recommended.flatMap((x) => (x.console === v.platform ? [x.recipe.id] : []))} />)}
-      {!!versions.data?.length && <LoadProfile />}
-    </section>
+      <LoadProfile />
+    </details>
   );
 }
 
 /** El recomendado de una consola (#366): su fuente e «Instalar» si falta. Elegir otro va en «Cómo jugar» (#398). */
-function Recommended({ shown: { console, recipe, source } }: { shown: Shown }) {
+export function Recommended({ shown: { console, recipe, source } }: { shown: Shown }) {
   const t = useTranslations("profiles");
   const consoleName = useConsoleName();
   const installs = useQuery(emulatorsQuery);
@@ -98,6 +99,13 @@ function VersionPanel({ gameId, version: v, recommended }: { gameId: number; ver
   const active = v.profiles.find((p) => p.active);
   const failure = activate.error ?? save.error ?? remove.error;
   const romName = (r: VersionProfiles["roms"][number]) => r.modified ? (r.label ?? r.path) : t("baseRom", { file: r.path });
+  const [creating, setCreating] = useState(false);
+
+  if (v.emulators.length === 0) return (
+    <p className="small muted" style={{ margin: "8px 0" }}>
+      {t.rich("noEmulatorLine", { console: consoleName(v.platform), link: (chunks) => <Link href="/tools/">{chunks}</Link> })}
+    </p>
+  );
 
   return (
     <div className="panel" style={{ gap: 10, marginBottom: 12 }}>
@@ -122,8 +130,7 @@ function VersionPanel({ gameId, version: v, recommended }: { gameId: number; ver
           {t(`saves.${saves.code.slice(6) as "copied"}`, { backup: saves.backup ?? "" })}
         </p>
       )}
-      {v.emulators.length === 0 ? <p className="small muted" style={{ margin: 0 }}>{t("noEmulatorHint")}</p> : (
-        <>
+      {(v.profiles.length > 0 || (active && base)) && (
           <div className="table-wrap">
             <table className="t">
               <thead><tr><th>{t("name")}</th><th>{t("emulator")}</th><th>{t("rom")}</th><th><span className="sr-only">{t("activate")}</span></th></tr></thead>
@@ -173,9 +180,12 @@ function VersionPanel({ gameId, version: v, recommended }: { gameId: number; ver
               </tbody>
             </table>
           </div>
+      )}
           {editing && <ProfileSettingsForm key={editing.id} profileId={editing.id} name={editing.name} />}
           {/* La clave vuelve a elegir el recomendado cuando llegan las recetas o se instala uno. */}
-          <CreateProfile key={recommended.join() + v.emulators.map((e) => e.id).join()} version={v} recommended={recommended} onCreated={refresh} />
+          {creating
+            ? <CreateProfile key={recommended.join() + v.emulators.map((e) => e.id).join()} version={v} recommended={recommended} onCreated={() => { setCreating(false); refresh(); }} />
+            : <button className="ot-btn ot-btn-sm" type="button" style={{ justifySelf: "start" }} onClick={() => setCreating(true)}>{t("newProfile")}</button>}
           <details className="fold-line">
             <summary className="small muted">{t("defaults")}</summary>
             {v.emulators.map((e) => (
@@ -187,8 +197,6 @@ function VersionPanel({ gameId, version: v, recommended }: { gameId: number; ver
               </div>
             ))}
           </details>
-        </>
-      )}
     </div>
   );
 }

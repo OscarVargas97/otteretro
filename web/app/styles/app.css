@@ -266,8 +266,24 @@ a.ot-btn, a.chip { text-decoration: none; }
 .score > span { width: 10px; height: 8px; border-radius: 2px; background: var(--line); }
 .score > span.on { background: var(--ink-muted); }
 .score.is-best > span.on { background: var(--accent); }
-.score-cell { min-width: 120px; }
-.score-cell .small { display: block; }
+/* Ficha (#410): Jugar con su opción debajo, opciones de un clic, menú «Más» con texto, descripción en 3 líneas y archivos nombre/carpeta. */
+.play-box { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.play-box > .ot-btn { align-self: flex-start; }
+.play-box .link-button { padding: 0; color: var(--accent); text-decoration: underline; }
+.opt { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid var(--line); background: var(--surface-raised); color: var(--ink); text-align: left; font: inherit; cursor: pointer; width: 100%; box-sizing: border-box; }
+.opt[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.radio { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line); box-sizing: border-box; flex: none; }
+.opt[aria-checked="true"] .radio { border-color: var(--accent); background: radial-gradient(var(--accent) 45%, transparent 50%); }
+.ot-menu-text > summary { width: auto; padding: 0 14px; font-size: inherit; }
+.ot-menu-text .ot-menu-list { left: 0; right: auto; }
+.ot-menu-list a { padding: 8px 12px; border-radius: 6px; color: var(--ink); text-decoration: none; }
+.ot-menu-list a:hover, .ot-menu-list a:focus-visible { background: var(--surface); }
+.clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
+.advanced > summary { font-weight: 600; }
+.advanced > summary > span { font-weight: 400; color: var(--ink-muted); }
+.row-toggle { cursor: pointer; }
+.file-path { display: inline-flex; flex-direction: column; max-width: 100%; min-width: 0; vertical-align: top; }
+.file-folder { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 48ch; }
 .field-line { display: inline-flex; align-items: center; flex-wrap: wrap; gap: var(--space-1); }
 .field-line .ot-btn-icon { height: 28px; min-width: 28px; font-size: 16px; }
 

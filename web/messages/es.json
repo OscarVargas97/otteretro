@@ -967,8 +967,6 @@
       "have": "Tienes",
       "where": "Dónde lo tienes",
       "tracking": "Seguimiento",
-      "lastPlayed": "Última vez: {date}",
-      "never": "Última vez: nunca",
       "states": "Estado",
       "started": "Empezado",
       "finished": "Terminado el",
@@ -978,7 +976,6 @@
       "noRating": "—",
       "notes": "Notas",
       "playtime": "Tiempo jugado",
-      "pendingHint": "Las fechas aparecen al empezarlo.",
       "saving": "Guardando…",
       "saved": "Guardado",
       "sources": "Datos y fuentes",
@@ -1024,7 +1021,6 @@
       "removeHint": "Lo marcado va a la papelera y deja de contar como «lo tengo». Las actualizaciones y DLC solo se van si los marcas.",
       "removeConfirm": "Mandar a la papelera ({count})",
       "removeCancel": "Cancelar",
-      "download": "Descargar",
       "prepare": "Preparar en el emulador",
       "prepareFor": "Preparar en el emulador ({console})",
       "prepareHelp": "Deja sus actualizaciones y DLC listos en el emulador con el que se juega, sin copiarlos si el emulador lo permite.",
@@ -1034,7 +1030,30 @@
       "licenseMissing": "Falta",
       "licenseHelp": "Con ella, «Preparar en el emulador» instala el .pkg en Vita3K. Se guarda solo en este equipo: nunca en el catálogo ni en un perfil compartido.",
       "licenseSave": "Guardar",
-      "licenseDelete": "Borrar"
+      "licenseDelete": "Borrar",
+      "tab": {
+        "summary": "Resumen",
+        "play": "Cómo jugar",
+        "versions": "Versiones",
+        "files": "Archivos",
+        "links": "Enlaces"
+      },
+      "sections": "Secciones de la ficha",
+      "more": "Más ▾",
+      "downloadOther": "Descargar otra versión…",
+      "removeMenu": "Quitar del disco…",
+      "favoriteOff": "☆ Favorito",
+      "readMore": "Leer más",
+      "readLess": "Leer menos",
+      "sessions": "Últimas sesiones",
+      "noSessions": "Aún no hay sesiones: se anotan al jugar desde Otteretro.",
+      "playingNow": "Jugando…",
+      "stores": "En tus tiendas",
+      "noFiles": "No tienes este juego en ningún disco ni tienda.",
+      "versionsHint": "Pulsa una versión para leer por qué.",
+      "autoSave": "Se guarda solo",
+      "lastTime": "Última vez",
+      "neverShort": "Nunca"
     },
     "search": {
       "sagas": "Sagas",
@@ -1435,13 +1454,12 @@
       "size": "Solo tamaño",
       "site": "Verificado por el sitio",
       "none": "Sin verificar"
-    }
+    },
+    "gameLinksNone": "Aún no guardaste enlaces de este juego."
   },
   "ports": {
     "title": "Ports",
     "news": "Ports nuevos",
-    "fullyPlayable": "100 % jugables",
-    "others": "Otros ports: no están al 100 %",
     "newFullyPlayable": "Ports nuevos 100 % jugables",
     "newOthers": "Ports nuevos que no están al 100 %",
     "status": {
@@ -1480,7 +1498,6 @@
     "active": "Activo: {name} ({emulator})",
     "noneActive": "Sin perfil: usa «{name}» de {emulator}",
     "noEmulator": "Sin emulador para esta consola",
-    "noEmulatorHint": "Instala un emulador de esta consola en Herramientas para crear perfiles.",
     "name": "Nombre",
     "emulator": "Emulador",
     "rom": "ROM",
@@ -1552,7 +1569,11 @@
     "shared": "Listo: {path}. Lleva el emulador, los mods y la configuración; nunca keys, BIOS, firmware, juegos ni partidas.",
     "loadZip": "Cargar un perfil (.zip)",
     "loadConfirm": "Cargar",
-    "loaded": "Cargando el perfil: lo sigues en Tareas."
+    "loaded": "Cargando el perfil: lo sigues en Tareas.",
+    "advanced": "Avanzado: perfiles",
+    "count": "{count, plural, =0 {sin perfiles} one {# perfil} other {# perfiles}}",
+    "noEmulatorLine": "{console}: sin emulador instalado. <link>Ir a Herramientas</link>",
+    "newProfile": "+ Nuevo perfil"
   },
   "play": {
     "title": "Cómo jugar",
@@ -1579,6 +1600,24 @@
       "playable": "Lo más jugable"
     },
     "up": "Subir «{criterion}»",
-    "down": "Bajar «{criterion}»"
+    "down": "Bajar «{criterion}»",
+    "download": "Descargar",
+    "notOwned": "No lo tienes en ningún disco ni tienda.",
+    "play": "▶ Jugar",
+    "install": "Instalar {name}",
+    "installing": "Instalando {name}…",
+    "playing": "Jugando…",
+    "playingHint": "Al cerrar el juego, la sesión se anota sola.",
+    "noOption": "Sin con qué jugarlo.",
+    "openTools": "Ver Herramientas",
+    "with": "Con {name}",
+    "lastSession": "Última sesión: {date} · {time}",
+    "orderLink": "Cambiar el orden",
+    "help": "Para cada versión que tienes, la opción con la que se juega. Un clic elige otra.",
+    "better": "Mejor con otra versión",
+    "betterHint": "Lo que necesitarías para jugarlo mejor.",
+    "byHand": "Ports para instalar a mano",
+    "recommended": "Recomendado",
+    "installNote": "Al pulsar Jugar en la cabecera se instala {name} primero."
   }
 }

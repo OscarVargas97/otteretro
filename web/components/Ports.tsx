@@ -57,7 +57,7 @@ function Install({ port }: { port: PortInfo }) {
   );
 }
 
-function PortRow({ port, withGame }: { port: PortInfo; withGame?: boolean }) {
+export function PortRow({ port, withGame }: { port: PortInfo; withGame?: boolean }) {
   const t = useTranslations("ports");
   const consoleName = useConsoleName();
   const format = useFormatter();
@@ -78,24 +78,6 @@ function PortRow({ port, withGame }: { port: PortInfo; withGame?: boolean }) {
       </span>
       <Install port={port} />
     </li>
-  );
-}
-
-/** Los ports del juego en su ficha: los 100 % jugables aparte de los demás. */
-export function GamePorts({ gameId }: { gameId: number }) {
-  const t = useTranslations("ports");
-  const ports = useQuery({ queryKey: ["ports", "game", gameId], queryFn: () => request<PortInfo[]>(`/api/games/${gameId}/ports`) });
-  if (!ports.data?.length) return null;
-  const full = ports.data.filter((p) => p.fullyPlayable);
-  const rest = ports.data.filter((p) => !p.fullyPlayable);
-  return (
-    <section className="sec" aria-label={t("title")}>
-      <div className="sec-h"><h2>{t("title")}</h2></div>
-      <div className="panel" style={{ display: "grid", gap: 12 }}>
-        {full.length > 0 && <PortGroup title={t("fullyPlayable")} ports={full} />}
-        {rest.length > 0 && <PortGroup title={t("others")} ports={rest} />}
-      </div>
-    </section>
   );
 }
 

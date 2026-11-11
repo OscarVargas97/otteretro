@@ -2,59 +2,72 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
-import { Suspense, useEffect, useState } from "react";
+import { Fragment, Suspense, useEffect, useRef, useState } from "react";
 import { size } from "@/lib/format";
 import { Cover, hours, Platforms, useConsoleName, useConsoles, useIdParam } from "@/components/Catalog";
 import { useHeroArt } from "@/components/HeroArt";
-import { GamePorts } from "@/components/Ports";
-import { GameProfiles } from "@/components/GameProfiles";
-import { GamePlay } from "@/components/PlayChoice";
+import { HowToPlay, PlayButton } from "@/components/PlayChoice";
 import { Empty } from "@/components/Shell";
+import { Tabs } from "@/components/Tabs";
 import { request } from "@/lib/client";
 import { PageSkeleton } from "@/components/Skeleton";
 import { useDescribeError } from "@/lib/i18n";
 import { optimistic } from "@/lib/optimistic";
 import { compareQuery, gameQuery } from "@/lib/queries";
-import type { CapturedLink, FieldRow, GameDetail, LicenseState, ProgressInfo, RoutesPage, VersionCompare } from "@/lib/types";
+import type { CapturedLink, GameDetail, LicenseState, PlaySession, ProgressInfo, RoutesPage, VersionCompare } from "@/lib/types";
 
 const STATUSES = ["pending", "playing", "finished", "completed", "dropped"] as const;
+const TABS = ["summary", "play", "versions", "files", "links"] as const;
+type Tab = (typeof TABS)[number];
+type FileRow = GameDetail["versions"][number]["files"][number] & { platform: string; versionId: number };
 
-// La ficha de un juego se abre como /game/?id=…
+const linksQuery = (gameId: number) => ({ queryKey: ["game-links", gameId], queryFn: () => request<CapturedLink[]>(`/api/games/${gameId}/links`) });
+const sessionsQuery = (gameId: number) => ({ queryKey: ["sessions", gameId], queryFn: () => request<PlaySession[]>(`/api/games/${gameId}/sessions`) });
+
+// La ficha de un juego se abre como /game/?id=…&tab=…
 export default function GameScreen() {
   return <Suspense><Game /></Suspense>;
 }
 
-/** Ficha (§5): cabecera, seguimiento, versiones, dónde lo tienes (PC) y datos con sus fuentes. */
+/** Ficha (§5, #410): cabecera con Jugar, Favorito y «Más», y pestañas Resumen, Cómo jugar, Versiones, Archivos y Enlaces. */
 function Game() {
   const t = useTranslations("catalog");
   const describe = useDescribeError();
-  const consoleName = useConsoleName();
-  const format = useFormatter();
+  const router = useRouter();
   const id = useIdParam();
+  const asked = useSearchParams().get("tab");
+  const tab: Tab = TABS.find((x) => x === asked) ?? "summary";
   const game = useQuery({ ...gameQuery(id ?? ""), enabled: id !== null });
   // La comparativa va a la par con la ficha y se muestran juntas: si llegara después, empujaría lo de abajo (#105).
   const compare = useQuery({ ...compareQuery(id ?? ""), enabled: id !== null });
+  const links = useQuery({ ...linksQuery(Number(id)), enabled: id !== null });
   const hero = useHeroArt(game.data?.hasHero ? Number(game.data.id) : null);
+  // «Quitar del disco…» del menú abre Archivos con lo que se va ya marcado; cada vez, de cero.
+  const [removing, setRemoving] = useState(0);
 
   if (id === null) return <div className="content"><Empty title={t("game.noneTitle")} text={t("game.noneText")}><Link className="ot-btn ot-btn-primary" href="/sagas/">{t("goToSagas")}</Link></Empty></div>;
   if (game.isError) return <div className="content"><p className="error" role="alert">{describe(game.error)}</p></div>;
   if (!game.data || compare.isPending) return <PageSkeleton cover />;
 
   const g = game.data;
+  const go = (to: Tab) => router.replace(`/game/?id=${id}&tab=${to}`, { scroll: false });
   const platforms = [...new Set(g.versions.map((v) => v.platform))];
-  // La traducción aprobada (Claude, F2.5) o, mientras no la haya, la de IGDB.
-  const description = (g.fields.find((f) => f.field === "summary_es") ?? g.fields.find((f) => f.field === "summary"))?.value;
+  const ownedPlatforms = [...new Set(g.versions.filter((v) => v.stores.length || v.files.length).map((v) => v.platform))];
   const stores = g.versions.flatMap((v) => v.stores.map((s) => ({ ...s, platform: v.platform })));
-  const files = g.versions.flatMap((v) => v.files.map((f) => ({ ...f, platform: v.platform, versionId: Number(v.id) })));
+  const files: FileRow[] = g.versions.flatMap((v) => v.files.map((f) => ({ ...f, platform: v.platform, versionId: Number(v.id) })));
   const owned = stores.length > 0 || files.length > 0;
+  const tabs = TABS.map((x) => ({
+    id: x, label: t(`game.tab.${x}`),
+    count: x === "versions" ? g.versions.length : x === "files" ? files.length + stores.length : x === "links" ? links.data?.length : undefined,
+  }));
 
   return (
     <div className="accented" style={hero.style}>
       <section className="hero">
         {hero.art}
-        <Cover gameId={Number(g.id)} name={g.nameEs} hasCover={g.hasCover} platform={platforms[0]} style={{ width: 150, flex: "none" }} />
+        <Cover gameId={Number(g.id)} name={g.nameEs} hasCover={g.hasCover} platform={platforms[0]} style={{ width: 130, flex: "none" }} />
         <div className="hero-main">
           <h2 className="hero-title">{g.nameEs}</h2>
           {g.originalName && g.originalName !== g.nameEs && <span className="small muted">{g.originalName}</span>}
@@ -63,52 +76,145 @@ function Game() {
             {g.year && <span>{g.year}</span>}
             {owned ? <span className="ot-badge ot-badge-have">{t("owned")}</span> : <span className="ot-badge">{t("missing")}</span>}
           </div>
-          <FavoriteButton game={g} />
+          <div className="hero-actions" style={{ alignItems: "flex-start" }}>
+            <PlayButton game={g} owned={owned} onChange={() => go("play")} />
+            <FavoriteButton game={g} />
+            <MoreMenu game={g} files={files} owned={owned} onRemove={() => { setRemoving((n) => n + 1); go("files"); }} />
+          </div>
         </div>
       </section>
       <div className="content">
-        <div className="columns">
-          <Tracking game={g} />
-          {stores.length > 0 && (
-            <section className="sec column">
-              <div className="sec-h"><h2>{t("game.where")}</h2><span className="small muted">{hours(g.playtime)}</span></div>
-              <div className="panel table-wrap" style={{ padding: 0 }}>
-                <table className="t">
-                  <thead><tr><th>{t("collection.store")}</th><th>{t("game.version")}</th><th>{t("collection.hours")}</th><th>{t("collection.lastPlayed")}</th></tr></thead>
-                  <tbody>
-                    {stores.map((s, i) => (
-                      <tr key={i}>
-                        <td>{t(`store.${s.store as "steam"}`)}</td>
-                        <td>{consoleName(s.platform)}</td>
-                        <td className="tabular">{hours(s.playtime)}</td>
-                        <td>{s.lastPlayed ? format.dateTime(new Date(s.lastPlayed), { dateStyle: "medium" }) : "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+        <Tabs tabs={tabs} current={tab} label={t("game.sections")} panel="game-panel" onSelect={(x) => go(x as Tab)} />
+        <div id="game-panel" role="tabpanel" aria-labelledby={`tab-${tab}`}>
+          {tab === "summary" && <Summary game={g} />}
+          {tab === "play" && <HowToPlay gameId={Number(g.id)} consoles={platforms} owned={ownedPlatforms} />}
+          {tab === "versions" && <Versions game={g} compare={compare.data ?? []} />}
+          {tab === "files" && (
+            <>
+              {stores.length > 0 && <Stores stores={stores} />}
+              {files.length > 0 && <Files key={removing} gameId={Number(g.id)} files={files} removing={removing > 0} />}
+              {!owned && <p className="small muted">{t("game.noFiles")}</p>}
+            </>
           )}
-          {files.length > 0 && <Files gameId={Number(g.id)} files={files} />}
+          {tab === "links" && <GameLinks gameId={Number(g.id)} />}
         </div>
-
-        {description && (
-          <section className="sec">
-            <div className="sec-h"><h2>{t("game.description")}</h2></div>
-            <p style={{ margin: 0 }}>{description}</p>
-          </section>
-        )}
-
-        <Versions game={g} compare={compare.data ?? []} />
-
-        <GamePlay gameId={Number(g.id)} />
-        <GamePorts gameId={Number(g.id)} />
-        <GameProfiles gameId={Number(g.id)} consoles={platforms} />
-
-        <GameLinks gameId={Number(g.id)} />
-
       </div>
     </div>
+  );
+}
+
+/** «Más ▾» de la cabecera (#410): lo que antes eran botones sueltos. */
+function MoreMenu({ game, files, owned, onRemove }: { game: GameDetail; files: FileRow[]; owned: boolean; onRemove: () => void }) {
+  const t = useTranslations("catalog");
+  const describe = useDescribeError();
+  const consoleName = useConsoleName();
+  const cache = useQueryClient();
+  const menu = useRef<HTMLDetailsElement>(null);
+  // «Preparar en el emulador» (#280): UPD, DLC y lo que se instala dentro del emulador con el que se juega. Jugar lo hará solo.
+  const versions = [...new Map(files.map((f) => [f.versionId, f.platform])).entries()];
+  const prepare = useMutation({
+    mutationFn: (version: number) => request<number>(`/api/versions/${version}/content`, { method: "POST", body: JSON.stringify({}) }),
+    onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+  if (!owned) return null;
+  const close = () => { if (menu.current) menu.current.open = false; };
+  return (
+    <>
+      <details ref={menu} className="ot-menu ot-menu-text">
+        <summary className="ot-btn">{t("game.more")}</summary>
+        <div className="ot-menu-list" role="menu">
+          <Link role="menuitem" href={`/downloads/?${new URLSearchParams({ game: String(game.id), name: game.nameEs })}`}>{t("game.downloadOther")}</Link>
+          {versions.map(([version, platform]) => (
+            <button key={version} type="button" role="menuitem" title={t("game.prepareHelp")} disabled={prepare.isPending} onClick={() => { close(); prepare.mutate(version); }}>
+              {versions.length > 1 ? t("game.prepareFor", { console: consoleName(platform) }) : t("game.prepare")}
+            </button>
+          ))}
+          {files.length > 0 && <button type="button" role="menuitem" onClick={() => { close(); onRemove(); }}>{t("game.removeMenu")}</button>}
+        </div>
+      </details>
+      {prepare.isSuccess && <p className="small muted" role="status" style={{ margin: 0, alignSelf: "center" }}>{t("game.prepareQueued")}</p>}
+      {prepare.isError && <p className="error small" role="alert" style={{ margin: 0, alignSelf: "center" }}>{describe(prepare.error)}</p>}
+    </>
+  );
+}
+
+/** Resumen (#410): seguimiento compacto, últimas sesiones y la descripción en 3 líneas con «Leer más». */
+function Summary({ game }: { game: GameDetail }) {
+  const t = useTranslations("catalog");
+  const [more, setMore] = useState(false);
+  // La traducción aprobada (Claude, F2.5) o, mientras no la haya, la de IGDB.
+  const description = (game.fields.find((f) => f.field === "summary_es") ?? game.fields.find((f) => f.field === "summary"))?.value;
+  return (
+    <>
+      <div className="columns">
+        <Tracking game={game} />
+        <Sessions gameId={Number(game.id)} />
+      </div>
+      {description && (
+        <section className="sec">
+          <div className="sec-h"><h2>{t("game.description")}</h2></div>
+          <p className={more ? undefined : "clamp"} style={{ margin: 0 }}>{description}</p>
+          {description.length > 280 && (
+            <button className="link-button small" type="button" aria-expanded={more} onClick={() => setMore(!more)}>{t(more ? "game.readLess" : "game.readMore")}</button>
+          )}
+        </section>
+      )}
+    </>
+  );
+}
+
+/** Las últimas sesiones que anotó Otteretro al jugar (#400). */
+function Sessions({ gameId }: { gameId: number }) {
+  const t = useTranslations("catalog");
+  const format = useFormatter();
+  const consoleName = useConsoleName();
+  const sessions = useQuery(sessionsQuery(gameId));
+  return (
+    <section className="sec column">
+      <div className="sec-h"><h2>{t("game.sessions")}</h2></div>
+      {!sessions.data?.length ? <p className="small muted" style={{ margin: 0 }}>{t("game.noSessions")}</p> : (
+        <div className="panel table-wrap" style={{ padding: 0 }}>
+          <table className="t">
+            <tbody>
+              {sessions.data.map((s) => (
+                <tr key={s.startedAt}>
+                  <td>{format.dateTime(new Date(s.startedAt), { dateStyle: "medium", timeStyle: "short" })}</td>
+                  <td className="tabular">{s.playing ? t("game.playingNow") : hours(Math.round(Number(s.duration ?? 0) / 60))}</td>
+                  <td>{consoleName(s.platform)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** Las tiendas donde lo tienes, con sus horas (§5). */
+function Stores({ stores }: { stores: (GameDetail["versions"][number]["stores"][number] & { platform: string })[] }) {
+  const t = useTranslations("catalog");
+  const format = useFormatter();
+  const consoleName = useConsoleName();
+  return (
+    <section className="sec">
+      <div className="sec-h"><h2>{t("game.stores")}</h2></div>
+      <div className="panel table-wrap" style={{ padding: 0 }}>
+        <table className="t">
+          <thead><tr><th>{t("collection.store")}</th><th>{t("game.version")}</th><th>{t("collection.hours")}</th><th>{t("collection.lastPlayed")}</th></tr></thead>
+          <tbody>
+            {stores.map((s, i) => (
+              <tr key={i}>
+                <td>{t(`store.${s.store as "steam"}`)}</td>
+                <td>{consoleName(s.platform)}</td>
+                <td className="tabular">{hours(s.playtime)}</td>
+                <td>{s.lastPlayed ? format.dateTime(new Date(s.lastPlayed), { dateStyle: "medium" }) : "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 
@@ -118,7 +224,7 @@ function GameLinks({ gameId }: { gameId: number }) {
   const describe = useDescribeError();
   const cache = useQueryClient();
   const router = useRouter();
-  const links = useQuery({ queryKey: ["game-links", gameId], queryFn: () => request<CapturedLink[]>(`/api/games/${gameId}/links`) });
+  const links = useQuery(linksQuery(gameId));
   const again = useMutation({
     mutationFn: (url: string) => request<number>("/api/downloads/links", { method: "POST", body: JSON.stringify({ text: url, gameId }) }),
     onSuccess: () => router.push("/downloads/?tab=links"),
@@ -128,24 +234,26 @@ function GameLinks({ gameId }: { gameId: number }) {
     mutationFn: (id: number) => request<void>(`/api/downloads/links/${id}`, { method: "DELETE" }),
     onSettled: () => cache.invalidateQueries({ queryKey: ["game-links", gameId] }),
   });
-  if (!links.data?.length) return null;
+  if (!links.data) return null;
   const failure = again.error ?? open.error ?? remove.error;
   return (
     <section className="sec">
       <div className="sec-h"><h2>{t("gameLinks")}</h2><span className="small muted">{t("gameLinksPrivate")}</span></div>
       {failure && <p className="error small" role="alert">{describe(failure)}</p>}
-      <div className="panel" style={{ gap: 8 }}>
-        {links.data.map((l) => (
-          <div key={l.id} className="version-row small">
-            <span title={l.url}>{l.name}</span>
-            <span className="hero-actions">
-              <button className="ot-btn ot-btn-sm" type="button" onClick={() => again.mutate(l.url)}>{t("downloadAgain")}</button>
-              <button className="ot-btn ot-btn-sm" type="button" onClick={() => open.mutate(l.url)}>{t("openBrowser")}</button>
-              <button className="ot-btn ot-btn-sm" type="button" aria-label={t("removeLink", { name: l.name })} onClick={() => remove.mutate(Number(l.id))}>{t("remove")}</button>
-            </span>
-          </div>
-        ))}
-      </div>
+      {!links.data.length ? <p className="small muted" style={{ margin: 0 }}>{t("gameLinksNone")}</p> : (
+        <div className="panel" style={{ gap: 8 }}>
+          {links.data.map((l) => (
+            <div key={l.id} className="version-row small">
+              <span title={l.url}>{l.name}</span>
+              <span className="hero-actions">
+                <button className="ot-btn ot-btn-sm" type="button" onClick={() => again.mutate(l.url)}>{t("downloadAgain")}</button>
+                <button className="ot-btn ot-btn-sm" type="button" onClick={() => open.mutate(l.url)}>{t("openBrowser")}</button>
+                <button className="ot-btn ot-btn-sm" type="button" aria-label={t("removeLink", { name: l.name })} onClick={() => remove.mutate(Number(l.id))}>{t("remove")}</button>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -169,16 +277,13 @@ function FavoriteButton({ game }: { game: GameDetail }) {
   const save = useSaveProgress(game);
   const p = game.progress;
   return (
-    <div className="hero-actions">
-      <button className="ot-btn" type="button" aria-pressed={p.favorite} onClick={() => save.mutate({ ...p, favorite: !p.favorite })}>
-        {t("game.favorite")}
-      </button>
-      <Link className="ot-btn" href={`/downloads/?${new URLSearchParams({ game: String(game.id), name: game.nameEs })}`}>{t("game.download")}</Link>
-    </div>
+    <button className="ot-btn" type="button" aria-pressed={p.favorite} onClick={() => save.mutate({ ...p, favorite: !p.favorite })}>
+      {t(p.favorite ? "game.favorite" : "game.favoriteOff")}
+    </button>
   );
 }
 
-/** Seguimiento (#133): estado, fechas solo cuando aplican, nota de 1 a 10 y notas. Cada cambio se guarda al momento. */
+/** Seguimiento (#133, #410): estado; tiempo, última vez y nota en una fila; fechas solo al empezarlo y notas plegadas. Se guarda al momento. */
 function Tracking({ game }: { game: GameDetail }) {
   const t = useTranslations("catalog");
   const format = useFormatter();
@@ -214,9 +319,11 @@ function Tracking({ game }: { game: GameDetail }) {
     <section className="sec column">
       <div className="sec-h">
         <h2>{t("game.tracking")}</h2>
-        <span className="small muted">{game.lastPlayed ? t("game.lastPlayed", { date: format.dateTime(new Date(game.lastPlayed), { dateStyle: "medium" }) }) : t("game.never")}</span>
+        <span className="small muted" role="status">
+          {save.isPending ? t("game.saving") : save.isError ? <span className="error">{describe(save.error)}</span> : save.isSuccess ? t("game.saved") : t("game.autoSave")}
+        </span>
       </div>
-      <div className="panel" style={{ gap: 14 }}>
+      <div className="panel" style={{ gap: 12 }}>
         {/* Estado en un control de una línea (#171). */}
         <div className="segmented" role="radiogroup" aria-label={t("game.states")}>
           {STATUSES.map((s) => (
@@ -234,6 +341,16 @@ function Tracking({ game }: { game: GameDetail }) {
           </div>
         )}
         <div className="fields-row">
+          <div className="small muted field">{t("game.playtime")}<span className="stat-value field-value">{hours(game.playtime)}</span></div>
+          <div className="small muted field">{t("game.lastTime")}
+            <span className="stat-value field-value">{game.lastPlayed ? format.dateTime(new Date(game.lastPlayed), { dateStyle: "medium" }) : t("game.neverShort")}</span>
+          </div>
+          <label className="small muted field">{t("game.rating")}
+            <select value={p.rating ?? ""} onChange={(e) => change({ rating: e.target.value ? Number(e.target.value) : null })}>
+              <option value="">{t("game.noRating")}</option>
+              {Array.from({ length: 10 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+            </select>
+          </label>
           {withStart && (
             <label className="small muted field">{t("game.started")}
               <input type="date" value={p.startedAt ?? ""} onChange={(e) => change({ startedAt: e.target.value || null })} />
@@ -244,25 +361,13 @@ function Tracking({ game }: { game: GameDetail }) {
               <input type="date" value={p.finishedAt ?? ""} onChange={(e) => change({ finishedAt: e.target.value || null })} />
             </label>
           )}
-          <label className="small muted field">{t("game.rating")}
-            <select value={p.rating ?? ""} onChange={(e) => change({ rating: e.target.value ? Number(e.target.value) : null })}>
-              <option value="">{t("game.noRating")}</option>
-              {Array.from({ length: 10 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
-            </select>
-          </label>
-          {/* Fechas, nota y tiempo en una fila (#171). */}
-          <div className="small muted field">{t("game.playtime")}<span className="stat-value field-value">{hours(game.playtime)}</span></div>
         </div>
-        {!withStart && <p className="small muted" style={{ margin: 0 }}>{t("game.pendingHint")}</p>}
         {/* Notas plegadas (#171); abiertas si ya hay. */}
         <details className="fold-line" open={!!p.notes}>
           <summary className="small muted">{t("game.notes")}</summary>
           <textarea id="notes" aria-label={t("game.notes")} value={notes} maxLength={10000} onChange={(e) => setNotes(e.target.value)}
             onBlur={() => notes !== (p.notes ?? "") && change({ notes: notes || null })} />
         </details>
-        <p className="small muted" role="status" style={{ margin: 0, minHeight: 18 }}>
-          {save.isPending ? t("game.saving") : save.isError ? <span className="error">{describe(save.error)}</span> : save.isSuccess ? t("game.saved") : ""}
-        </p>
       </div>
     </section>
   );
@@ -279,17 +384,18 @@ function Score({ value, best }: { value: number; best: boolean }) {
   );
 }
 
-/** Versiones y comparativa en una sola tabla (§5.1, §6.4, #171): lo que tienes de cada una y los 4 criterios que aprobaste
- *  en Revisar, con el mejor de cada columna resaltado. */
+/** Versiones y comparativa en una sola tabla (§5.1, §6.4, #171): lo que tienes de cada una y los 4 criterios que aprobaste en Revisar,
+ *  con el mejor de cada columna resaltado. Solo las barras (#410): el texto de cada criterio sale al pulsar la fila. */
 function Versions({ game, compare }: { game: GameDetail; compare: VersionCompare[] }) {
   const t = useTranslations("catalog");
   const consoleName = useConsoleName();
+  const [open, setOpen] = useState<string | null>(null);
   const rated = compare.length > 1 && compare.some((v) => v.criteria.some((c) => c.value));
   const scoreOf = (versionId: number | string, k: string) => Number(compare.find((v) => String(v.versionId) === String(versionId))?.criteria.find((x) => x.criterion === k)?.value ?? 0);
   const top = Object.fromEntries(CRITERIA.map((k) => [k, Math.max(0, ...game.versions.map((v) => scoreOf(v.id, k)))]));
   return (
     <section className="sec">
-      <div className="sec-h"><h2>{t("game.versions")}</h2>{compare.length > 1 && !rated && <span className="small muted">{t("game.noCompare")}</span>}</div>
+      <div className="sec-h"><h2>{t("game.versions")}</h2><span className="small muted">{rated ? t("game.versionsHint") : compare.length > 1 ? t("game.noCompare") : ""}</span></div>
       <div className="panel table-wrap" style={{ padding: 0 }}>
         <table className="t">
           <thead>
@@ -298,16 +404,32 @@ function Versions({ game, compare }: { game: GameDetail; compare: VersionCompare
           <tbody>
             {game.versions.map((v) => {
               const cmp = compare.find((x) => String(x.versionId) === String(v.id));
+              const shown = open === String(v.id);
+              const name = <><b>{consoleName(v.platform)}</b> · {t(`kind.${v.kind as "original"}`)}{v.year ? ` · ${v.year}` : ""}</>;
               return (
-                <tr key={v.id}>
-                  <td><b>{consoleName(v.platform)}</b> · {t(`kind.${v.kind as "original"}`)}{v.year ? ` · ${v.year}` : ""}{cmp?.best && <span className="ot-badge ot-badge-have" style={{ marginLeft: 6 }}>{t("game.best")}</span>}</td>
-                  <td>{v.stores.length ? <span className="ot-badge ot-badge-have">{v.stores.map((s) => t(`store.${s.store as "steam"}`)).join(" · ")}</span> : v.files.length ? <span className="ot-badge ot-badge-have">{t("owned")}</span> : <span className="ot-badge">{t("missing")}</span>}</td>
-                  {rated && CRITERIA.map((k) => {
-                    const c = cmp?.criteria.find((x) => x.criterion === k);
-                    const value = Number(c?.value ?? 0);
-                    return <td key={k} className="score-cell">{value ? <><Score value={value} best={value === top[k]} /><span className="small muted">{c?.text}</span></> : "—"}</td>;
-                  })}
-                </tr>
+                <Fragment key={v.id}>
+                  <tr className={rated ? "row-toggle" : undefined} onClick={rated ? () => setOpen(shown ? null : String(v.id)) : undefined}>
+                    <td>
+                      {rated ? <button className="link-button" type="button" aria-expanded={shown}>{name}</button> : name}
+                      {cmp?.best && <span className="ot-badge ot-badge-have" style={{ marginLeft: 6 }}>{t("game.best")}</span>}
+                    </td>
+                    <td>{v.stores.length ? <span className="ot-badge ot-badge-have">{v.stores.map((s) => t(`store.${s.store as "steam"}`)).join(" · ")}</span> : v.files.length ? <span className="ot-badge ot-badge-have">{t("owned")}</span> : <span className="ot-badge">{t("missing")}</span>}</td>
+                    {rated && CRITERIA.map((k) => {
+                      const value = scoreOf(v.id, k);
+                      return <td key={k}>{value ? <Score value={value} best={value === top[k]} /> : "—"}</td>;
+                    })}
+                  </tr>
+                  {shown && (
+                    <tr>
+                      <td colSpan={2 + CRITERIA.length} className="small">
+                        {CRITERIA.map((k) => {
+                          const text = cmp?.criteria.find((x) => x.criterion === k)?.text;
+                          return text && <p key={k} style={{ margin: "2px 0" }}><b>{t(`game.criterion.${k}`)}.</b> {text}</p>;
+                        })}
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               );
             })}
           </tbody>
@@ -317,8 +439,20 @@ function Versions({ game, compare }: { game: GameDetail; compare: VersionCompare
   );
 }
 
-/** Tus archivos de este juego (#178), con BASE, UPD y DLC, y «Verificar» por hash contra No-Intro o Redump (#179). */
-function Files({ gameId, files }: { gameId: number; files: (GameDetail["versions"][number]["files"][number] & { platform: string; versionId: number })[] }) {
+/** El nombre del archivo arriba y la carpeta debajo, cortada; la ruta entera en el título (#410). */
+function FilePath({ path }: { path: string }) {
+  const cut = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
+  return (
+    <span className="file-path" title={path}>
+      <span>{path.slice(cut + 1)}</span>
+      {cut > 0 && <span className="small muted file-folder">{path.slice(0, cut)}</span>}
+    </span>
+  );
+}
+
+/** Tus archivos de este juego (#178), con BASE, UPD y DLC, y «Verificar» por hash contra No-Intro o Redump (#179).
+ *  `removing`: viene de «Quitar del disco…» del menú y abre la selección (#224). */
+function Files({ gameId, files, removing }: { gameId: number; files: FileRow[]; removing: boolean }) {
   const t = useTranslations("catalog");
   const locale = useLocale();
   const describe = useDescribeError();
@@ -336,14 +470,10 @@ function Files({ gameId, files }: { gameId: number; files: (GameDetail["versions
     mutationFn: () => request<number>("/api/collection/verify", { method: "POST", body: JSON.stringify({ gameId }) }),
     onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
   });
-  // «Preparar en el emulador» (#280): UPD, DLC y lo que se instala dentro del emulador con el que se juega. Jugar lo hará solo.
-  const versions = [...new Map(files.map((f) => [f.versionId, f.platform])).entries()];
-  const prepare = useMutation({
-    mutationFn: (version: number) => request<number>(`/api/versions/${version}/content`, { method: "POST", body: JSON.stringify({}) }),
-    onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
-  });
+  const versions = [...new Set(files.map((f) => f.versionId))];
   // Quitar del disco (#224): lo marcado va a la papelera. UPD y DLC vienen sin marcar: solo se van si los marcas (P7).
-  const [marked, setMarked] = useState<Set<string> | null>(null);
+  const [marked, setMarked] = useState<Set<string> | null>(() =>
+    removing ? new Set(files.filter((f) => f.component !== "UPD" && f.component !== "DLC").map((f) => String(f.id))) : null);
   const trash = useMutation({
     mutationFn: (ids: string[]) => request<void>("/api/sources/trash", { method: "POST", body: JSON.stringify({ ids: ids.map(Number) }) }),
     onSuccess: () => {
@@ -353,25 +483,16 @@ function Files({ gameId, files }: { gameId: number; files: (GameDetail["versions
       cache.invalidateQueries({ queryKey: ["consoles"] });
     },
   });
-  const startRemoving = () => setMarked(new Set(files.filter((f) => f.component !== "UPD" && f.component !== "DLC").map((f) => String(f.id))));
   const toggle = (id: string) => setMarked((m) => {
     const next = new Set(m);
     if (next.has(id)) next.delete(id); else next.add(id);
     return next;
   });
   return (
-    <section className="sec column">
+    <section className="sec">
       <div className="sec-h">
         <h2>{t("game.where")}</h2>
-        <div className="hero-actions">
-          {verifiable && <button className="ot-btn ot-btn-sm" type="button" disabled={verify.isPending || verify.isSuccess} onClick={() => verify.mutate()}>{t("game.verify")}</button>}
-          {versions.map(([version, platform]) => (
-            <button key={version} className="ot-btn ot-btn-sm" type="button" title={t("game.prepareHelp")} disabled={prepare.isPending} onClick={() => prepare.mutate(version)}>
-              {versions.length > 1 ? t("game.prepareFor", { console: consoleName(platform) }) : t("game.prepare")}
-            </button>
-          ))}
-          {!marked && <button className="ot-btn ot-btn-sm" type="button" onClick={startRemoving}>{t("game.remove")}</button>}
-        </div>
+        {verifiable && <button className="ot-btn ot-btn-sm" type="button" disabled={verify.isPending || verify.isSuccess} onClick={() => verify.mutate()}>{t("game.verify")}</button>}
       </div>
       {marked && (
         <div className="panel" role="group" aria-label={t("game.remove")} style={{ display: "grid", gap: 8 }}>
@@ -387,9 +508,7 @@ function Files({ gameId, files }: { gameId: number; files: (GameDetail["versions
       {trash.isError && <p className="error small" role="alert">{describe(trash.error)}</p>}
       {verify.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("game.verifyQueued")}</p>}
       {verify.isError && <p className="error small" role="alert">{describe(verify.error)}</p>}
-      {versions.filter(([, platform]) => platform === "vita").map(([version]) => <VitaLicense key={version} version={version} />)}
-      {prepare.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("game.prepareQueued")}</p>}
-      {prepare.isError && <p className="error small" role="alert">{describe(prepare.error)}</p>}
+      {versions.filter((v) => files.find((f) => f.versionId === v)?.platform === "vita").map((v) => <VitaLicense key={v} version={v} />)}
       {executable.isError && <p className="error small" role="alert">{describe(executable.error)}</p>}
       <div className="panel table-wrap" style={{ padding: 0 }}>
         <table className="t">
@@ -399,7 +518,7 @@ function Files({ gameId, files }: { gameId: number; files: (GameDetail["versions
               <tr key={f.id}>
                 {marked && <td><input type="checkbox" aria-label={f.path} checked={marked.has(String(f.id))} onChange={() => toggle(String(f.id))} /></td>}
                 <td>
-                  <span className="folder-path">{f.path}</span>{f.component && <span className="ot-badge" style={{ marginLeft: 6 }}>{f.component}</span>}
+                  <FilePath path={f.path} />{f.component && <span className="ot-badge" style={{ marginLeft: 6 }}>{f.component}</span>}
                   {f.executable && (f.executables && f.executables.length > 1
                     ? <select className="ot-btn ot-btn-sm" style={{ display: "block", marginTop: 4 }} aria-label={t("game.executable")} value={f.executable}
                         disabled={executable.isPending} onChange={(e) => executable.mutate({ id: Number(f.id), path: e.target.value })}>
