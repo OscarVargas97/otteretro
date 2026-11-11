@@ -379,7 +379,7 @@ test("Herramientas: pestañas por tipo y subir un archivo de sistema con version
   await expectNoRawKeys();
   await expectTextFits();
   await page.getByLabel(en.tools.systemConsole).selectOption("switch");
-  await page.getByLabel(en.tools.systemUpload).setInputFiles({ name: "prueba.bin", mimeType: "application/octet-stream", buffer: Buffer.from("archivo de prueba") });
+  await page.getByLabel(en.tools.systemUpload, { exact: true }).setInputFiles({ name: "prueba.bin", mimeType: "application/octet-stream", buffer: Buffer.from("archivo de prueba") });
   await expect(page.getByText(/prueba\.bin/)).toBeVisible();
   await expectNoRawKeys();
 });
@@ -395,19 +395,25 @@ test("Herramientas: un emulador sin receta desde su repo lista sus releases y la
   await page.route("**/api/emulators/install", (r) => { sent = r.request().postDataJSON(); return r.fulfill({ json: 0 }); });
   await page.goto(`${base()}/tools/`);
   await page.getByRole("button", { name: en.tools.install.open.emulator }).click();
-  await page.getByLabel(en.tools.install.what).selectOption(":other");
-  await page.getByLabel(en.tools.install.name, { exact: true }).fill("Mi Fritchii");
-  await page.getByLabel(en.tools.install.console).selectOption("switch2");
-  await page.getByLabel(en.tools.install.fromKind.url).check();
-  await page.getByLabel(en.tools.install.url, { exact: true }).fill("github.com/Frizti/Fritchii");
-  await page.getByRole("button", { name: en.tools.install.findReleases }).click();
-  // La versión sale del tag y, con un solo archivo de Windows, no hay nada que elegir.
-  await expect(page.getByLabel(en.tools.install.version, { exact: true })).toHaveValue("dev|5");
-  await expect(page.getByText("Fritchii-v5-Windows-x64.zip")).toBeVisible();
+  // Paso 1 (#416): qué y de dónde; lo pegado se reconoce como un repo.
+  const dialog = page.getByRole("dialog", { name: /step 1 of 2/ });
+  await dialog.getByLabel(en.tools.install.what).selectOption(":other");
+  await dialog.getByLabel(en.tools.install.name, { exact: true }).fill("Mi Fritchii");
+  await dialog.getByLabel(en.tools.install.console).selectOption("switch2");
+  await dialog.getByLabel(en.tools.install.origin).fill("github.com/Frizti/Fritchii");
+  await expect(dialog.getByText(en.tools.install.recognized.repo)).toBeVisible();
+  await dialog.getByRole("button", { name: en.tools.install.next }).click();
+  // Paso 2: la versión sale del tag y, con un solo archivo de Windows, no hay nada que elegir; otra versión, en «Más opciones».
+  const confirm = page.getByRole("dialog", { name: /step 2 of 2/ });
+  await expect(confirm.getByText("Fritchii-v5-Windows-x64.zip")).toBeVisible();
+  await confirm.getByText(en.tools.install.moreOptions).click();
+  await expect(confirm.getByLabel(en.tools.install.version, { exact: true })).toHaveValue("dev|5");
   await expectNoRawKeys();
-  await page.locator("section[aria-labelledby=install-title]").getByRole("button", { name: en.tools.install.submit, exact: true }).click();
+  await page.screenshot({ path: "e2e-results/8-tools-install-dialog-en.png" });
+  await confirm.getByRole("button", { name: en.tools.install.submit, exact: true }).click();
   await expect.poll(() => sent).toMatchObject({ emulator: "mi-fritchii", name: "Mi Fritchii", version: "5", repo: "github.com/Frizti/Fritchii", console: "switch2",
     url: "https://github.com/Frizti/Fritchii/releases/download/fritchii-v5/Fritchii-v5-Windows-x64.zip" });
+  await page.keyboard.press("Escape");
   await page.unroute("**/api/repos/releases?*");
   await page.unroute("**/api/emulators/install");
 });
@@ -421,20 +427,24 @@ test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería y
   await page.goto(`${base()}/tools/?k=tool`);
   await expect(page.getByRole("tab", { name: en.tools.kind.tool })).toHaveAttribute("aria-selected", "true");
   await page.getByRole("button", { name: en.tools.install.open.tool }).click();
-  await page.getByLabel(en.tools.install.what).selectOption("steam-rom-manager");
-  await page.getByLabel(en.tools.install.fromKind.path).check();
-  await page.getByLabel(en.tools.install.path, { exact: true }).fill(src);
-  await page.getByLabel(en.tools.install.version, { exact: true }).fill("2.6.2");
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel(en.tools.install.what).selectOption("steam-rom-manager");
+  await dialog.getByLabel(en.tools.install.originOptional).fill(src);
+  await expect(dialog.getByText(en.tools.install.recognized.path)).toBeVisible();
+  await dialog.getByRole("button", { name: en.tools.install.next }).click();
+  await dialog.getByText(en.tools.install.moreOptions).click();
+  await dialog.getByLabel(en.tools.install.version, { exact: true }).fill("2.6.2");
   await expectNoRawKeys();
   await expectTextFits();
-  await page.locator("section[aria-labelledby=install-title]").getByRole("button", { name: en.tools.install.submit, exact: true }).click();
-  await expect(page.getByText(en.tools.install.queued)).toBeVisible();
-  // Al terminar: una sola tarjeta con lo de disco y lo registrado (#348); su origen, en el plegable.
+  await dialog.getByRole("button", { name: en.tools.install.submit, exact: true }).click();
+  await expect(dialog.getByText(en.tools.install.queued)).toBeVisible();
+  await page.keyboard.press("Escape");
+  // Al terminar: un solo detalle con lo de disco y lo registrado (#348, #416); su origen, en el plegable de versiones.
   const panel = page.locator("#tools-panel");
   const card = panel.getByRole("region", { name: "Steam ROM Manager" });
   await expect(card).toBeVisible({ timeout: 15_000 });
   await expect(card).toHaveCount(1);
-  await card.getByText(en.tools.library.details).click();
+  await card.getByText(en.tools.library.versions.replace("{count}", "1")).click();
   await expect(card.getByText(en.tools.library.origin.upload, { exact: false })).toBeVisible();
   // Una herramienta no se "usa" ni se borra desde aquí: solo se abre su carpeta.
   await expect(card.getByRole("button", { name: en.tools.library.open })).toBeVisible();
@@ -452,7 +462,9 @@ test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería y
   await page.route("**/api/emulators/install", (route) => { sent = route.request().postDataJSON(); return route.fulfill({ json: 1 }); });
   // Va en su pestaña (decisión 320), con su contador, y en una fila que se abre (decisión 322).
   await page.goto(`${base()}/tools/`);
-  await expect(page.getByText("Steam ROM Manager")).toHaveCount(0);
+  // El aviso de arriba nombra todas (#416); la lista de Emuladores, no.
+  await expect(page.getByText(/^1 new version: Steam ROM Manager\./)).toBeVisible();
+  await expect(page.locator("#tools-panel").getByText("Steam ROM Manager")).toHaveCount(0);
   await expect(page.getByRole("tab", { name: new RegExp(en.tools.kind.tool) }).locator(".ot-count")).toHaveText("1");
   await page.goto(`${base()}/tools/?k=tool`);
   const row = page.getByRole("button", { name: /Steam ROM Manager.*2\.6\.2 → 2\.6\.3/ });
@@ -478,15 +490,18 @@ test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería y
     return route.fulfill({ json: list });
   });
   await page.goto(`${base()}/tools/?k=emulator`);
-  // Secciones por consola (decisiones 343 y 345): Dolphin sale en GameCube y en Wii; Eden, una vez, en Switch.
-  for (const name of ["GameCube", "Wii"]) await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Dolphin" })).toHaveCount(2);
+  // Una fila por emulador con sus consolas (#416): Dolphin, una vez, para GameCube y Wii; elegir Eden muestra su detalle.
+  const rows = page.locator("#tools-panel .tool-row");
+  await expect(rows.filter({ hasText: "Dolphin" })).toHaveCount(1);
+  for (const name of ["GameCube", "Wii"]) await expect(rows.filter({ hasText: "Dolphin" })).toContainText(name);
+  await rows.filter({ hasText: "Eden" }).click();
+  await expect(rows.filter({ hasText: "Eden" })).toHaveAttribute("aria-pressed", "true");
   const eden = page.getByRole("region", { name: "Eden" });
   await expect(eden).toHaveCount(1);
   // La versión en uso a la vista y las demás plegadas (decisión 344).
   await expect(eden.getByText(en.tools.library.current.replace("{version}", "1.0"))).toBeVisible();
   await expect(eden.getByText(en.tools.library.archived)).toBeHidden();
-  await eden.getByText(/2 more versions/).click();
+  await eden.getByText(en.tools.library.versions.replace("{count}", "3")).click();
   await expect(eden.getByText(en.tools.library.archived)).toBeVisible();
   await expectNoRawKeys();
   await expectTextFits();
@@ -658,10 +673,11 @@ test("Herramientas en español: la barra de arriba en una línea y una tarjeta p
   const top = async (name: string) => (await page.getByRole("button", { name, exact: true }).boundingBox())!.y;
   const y = await top(es.tools.install.open.emulator);
   for (const name of [es.profiles.loadZip, es.tools.updates.checkNow]) expect(await top(name)).toBe(y);
-  await expect(page.getByRole("region", { name: "Dolphin" })).toHaveCount(2);
+  await expect(page.locator(".tool-row", { hasText: "Dolphin" })).toHaveCount(1);
+  await page.locator(".tool-row", { hasText: "Eden" }).click();
   const eden = page.getByRole("region", { name: "Eden" });
   await expect(eden.getByText(es.tools.library.current.replace("{version}", "1.0"))).toBeVisible();
-  await eden.getByText(es.tools.library.details).click();
+  await eden.getByText(es.tools.library.versions.replace("{count}", "1")).click();
   await expect(eden.getByText("https://example.com/x.zip")).toBeVisible();
   await expectNoRawKeys();
   await expectTextFits();

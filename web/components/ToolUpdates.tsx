@@ -12,8 +12,8 @@ import { useState } from "react";
 const GAMES = 6;
 
 /**
- * La parte de los avisos en la barra de una pestaña de Herramientas (#348): cuántas versiones nuevas hay y «Revisar ahora».
- * Cada aviso va en la tarjeta de lo suyo, con {@link UpdateRow}.
+ * La parte de los avisos en la barra de una pestaña de Herramientas (#348, #416): «Al día» o nada, y «Revisar ahora».
+ * Cada aviso va en el detalle de lo suyo, con {@link UpdateRow}.
  */
 export function UpdatesStatus({ kind }: { kind: string }) {
   const t = useTranslations("tools.updates");
@@ -27,7 +27,8 @@ export function UpdatesStatus({ kind }: { kind: string }) {
   const count = (updates.data ?? []).filter((u) => u.kind === kind).length;
   return (
     <span className="sentence">
-      {updates.isSuccess && (count === 0 ? <span className="small muted" title={t("none")}>{t("upToDate")}</span> : <span className="small">{t("count", { count })}</span>)}
+      {/* Cuántas hay lo dice el aviso de arriba de la pantalla (#416). */}
+      {updates.isSuccess && count === 0 && <span className="small muted" title={t("none")}>{t("upToDate")}</span>}
       <button className="ot-btn ot-btn-sm" type="button" disabled={check.isPending} onClick={() => check.mutate()}>{t("checkNow")}</button>
       {check.isSuccess && <span className="small muted" role="status">{t("checking")}</span>}
       {(updates.isError || check.isError) && <span className="error small" role="alert">{describe(updates.error ?? check.error)}</span>}

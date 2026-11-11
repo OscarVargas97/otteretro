@@ -2,10 +2,9 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import Link from "next/link";
 import { useFormatter } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useConsoles } from "@/components/Catalog";
 import { librariesQuery, toolsQuery } from "@/components/Libraries";
 import { LoadProfile } from "@/components/ProfileShare";
@@ -27,25 +26,33 @@ type Installable = "emulator" | "port" | "tool";
 const post = (body: unknown) => ({ method: "POST", body: JSON.stringify(body) });
 export const recipesQuery = { queryKey: ["recipes"], queryFn: () => request<RecipeSummary[]>("/api/recipes"), staleTime: Infinity };
 export const emulatorsQuery = { queryKey: ["emulators"], queryFn: () => request<EmulatorInstall[]>("/api/emulators") };
+const systemQuery = { queryKey: ["system"], queryFn: () => request<SystemConsole[]>("/api/system") };
 
-/** Herramientas (§5.1, #193, #194, #200, #296, #304, #348): el inventario por tipo, en pestañas y una sola columna centrada: una barra con instalar, cargar perfil y las versiones nuevas, y una tarjeta por emulador, port o herramienta. */
+/**
+ * Herramientas (§5.1, #193, #194, #200, #296, #304, #348, #416): el inventario por tipo, en pestañas; arriba, el aviso de
+ * versiones nuevas; en cada pestaña una barra con instalar, cargar perfil y «Revisar ahora», y una lista con el detalle de lo elegido al lado.
+ */
 export function ToolsPage() {
   const t = useTranslations("tools");
+  const format = useFormatter();
   const router = useRouter();
   const asked = useSearchParams().get("k");
   const kind: Kind = KINDS.find((k) => k === asked) ?? "emulator";
-  // Cada pestaña cuenta sus avisos de versiones nuevas (decisión 320).
+  // Cada pestaña cuenta lo pendiente: versiones nuevas (decisión 320) o, en Sistema, las consolas a las que les falta algo.
   const updates = useQuery(toolUpdatesQuery).data ?? [];
-  const count = (k: Kind) => updates.filter((u) => u.kind === k).length;
+  const missing = (useQuery(systemQuery).data ?? []).filter((c) => c.missing.length > 0).length;
+  const count = (k: Kind) => k === "system" ? missing : updates.filter((u) => u.kind === k).length;
+  const names = [...new Set(updates.map((u) => u.name))];
   return (
-    <div className="centered">
-      <Tabs tabs={KINDS.map((k) => ({ id: k, label: t(`kind.${k}`), count: count(k), countLabel: t("updates.count", { count: count(k) }) }))} current={kind} label={t("sections")} panel="tools-panel"
-        onSelect={(k) => router.push(`/tools/?k=${k}`)} />
+    <div className="tools-page">
+      {names.length > 0 && <p className="panel small" role="status" style={{ margin: "0 0 12px" }}>{t("updates.banner", { count: updates.length, names: format.list(names) })}</p>}
+      <Tabs tabs={KINDS.map((k) => ({ id: k, label: t(`kind.${k}`), count: count(k), countLabel: t(k === "system" ? "systemMissingCount" : "updates.count", { count: count(k) }) }))}
+        current={kind} label={t("sections")} panel="tools-panel" onSelect={(k) => router.push(`/tools/?k=${k}`)} />
       <section className="sec" id="tools-panel" role="tabpanel" aria-labelledby={`tab-${kind}`}>
         {kind === "system" ? <SystemPanel /> : (
           <div style={{ display: "grid", gap: 12 }}>
             {kind !== "complement" && <ToolBar key={kind} kind={kind} />}
-            <ToolCards kind={kind} />
+            <ToolList key={kind} kind={kind} />
           </div>
         )}
       </section>
@@ -53,21 +60,34 @@ export function ToolsPage() {
   );
 }
 
-/** La barra de arriba (#348): «Instalar…», «Cargar perfil» (Emuladores), cuántas versiones nuevas hay y «Revisar ahora», en una línea. */
+/** La barra de arriba (#348): «Instalar…» (que abre el diálogo de dos pasos, #416), «Cargar perfil» (Emuladores) y «Revisar ahora». */
 function ToolBar({ kind }: { kind: Installable }) {
   const t = useTranslations("tools.install");
-  const [open, setOpen] = useState(false);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [opened, setOpened] = useState(0); // cada vez que se abre, el diálogo empieza de cero
   return (
     <>
       <div className="panel version-row">
         <span className="sentence">
-          <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" aria-expanded={open} onClick={() => setOpen(!open)}>{t(`open.${kind}`)}</button>
+          <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" onClick={() => { setOpened(opened + 1); dialog.current?.showModal(); }}>{t(`open.${kind}`)}</button>
           {kind === "emulator" && <LoadProfile />}
         </span>
         <UpdatesStatus kind={kind} />
       </div>
-      {open && <InstallPanel kind={kind} onClose={() => setOpen(false)} />}
+      <dialog ref={dialog} className="ot-dialog" aria-labelledby="install-title">
+        {opened > 0 && <InstallDialog key={opened} kind={kind} onClose={() => dialog.current?.close()} />}
+      </dialog>
     </>
+  );
+}
+
+/** Una fila de la lista (#416): nombre, para qué es, la versión y su estado; elegirla muestra su detalle al lado. */
+function ListRow({ name, sub, meta, badge, picked, onPick }: { name: string; sub?: string | null; meta?: string | null; badge: ReactNode; picked: boolean; onPick: () => void }) {
+  return (
+    <button type="button" className="tool-row" aria-pressed={picked} onClick={onPick}>
+      <span className="grow"><b>{name}</b>{sub && <span className="small muted">{sub}</span>}</span>
+      <span style={{ display: "flex", gap: 6, alignItems: "center" }}>{meta && <span className="small muted">{meta}</span>}{badge}</span>
+    </button>
   );
 }
 
@@ -76,13 +96,60 @@ function SystemPanel() {
   const t = useTranslations("tools");
   const format = useFormatter();
   const describe = useDescribeError();
-  const cache = useQueryClient();
   const consoles = useConsoles().data ?? [];
-  const list = useQuery({ queryKey: ["system"], queryFn: () => request<SystemConsole[]>("/api/system") });
+  const list = useQuery(systemQuery);
   const [console_, setConsole] = useState("");
+  const [sel, setSel] = useState<string | null>(null);
+  // Lo elegido en la lista o, si no, la consola elegida arriba para subir.
+  const picked = list.data?.find((c) => c.id === (sel ?? console_)) ?? list.data?.[0];
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      <section className="panel" style={{ display: "grid", gap: 8 }}>
+        <p className="small" style={{ margin: 0 }}>{t("systemHelp")}</p>
+        <div className="hero-actions">
+          <select className="ot-btn ot-btn-sm" aria-label={t("systemConsole")} value={console_} onChange={(e) => { setConsole(e.target.value); setSel(null); }}>
+            <option value="">{t("systemConsole")}</option>
+            {consoles.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <SystemUpload console={console_} label={t("systemUpload")} />
+        </div>
+      </section>
+      {list.isError && <p className="error small" role="alert">{describe(list.error)}</p>}
+      {list.data?.length === 0 && <Empty title={t("systemEmptyTitle")} text={t("systemEmptyText")} />}
+      {picked && (
+        <div className="tool-split">
+          <div className="panel tool-list">
+            {list.data!.map((c) => (
+              <ListRow key={c.id} name={c.name} picked={c === picked} onPick={() => setSel(c.id)}
+                badge={c.missing.length > 0 ? <span className="ot-badge ot-badge-danger">{t("systemMissingCount", { count: c.missing.length })}</span>
+                  : <span className="ot-badge ot-badge-have">{t("systemComplete")}</span>} />
+            ))}
+          </div>
+          <section className="panel" aria-label={picked.name} style={{ gap: 8 }}>
+            <h3 style={{ margin: 0 }}>{picked.name}</h3>
+            {picked.missing.map((m) => <span key={m} className="ot-badge ot-badge-review" style={{ alignSelf: "start" }}>{t("systemMissing", { name: m })}</span>)}
+            <SystemUpload console={picked.id} label={t("systemUploadFor", { name: picked.name })} />
+            {picked.files.map((f) => (
+              <div key={f.path} className="version-row small">
+                <span className="folder-path">{f.name}{f.version && ` · ${f.version}`}</span>
+                <span className="muted">{f.disk} · {format.dateTime(new Date(f.modified), { dateStyle: "medium" })}</span>
+              </div>
+            ))}
+          </section>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Subir un archivo de sistema a una consola, al lado de los que ya hay. */
+function SystemUpload({ console: id, label }: { console: string; label: string }) {
+  const t = useTranslations("tools");
+  const describe = useDescribeError();
+  const cache = useQueryClient();
   const input = useRef<HTMLInputElement>(null);
   const upload = useMutation({
-    mutationFn: (file: File) => request<void>(`/api/system/${encodeURIComponent(console_)}?${new URLSearchParams({ name: file.name })}`,
+    mutationFn: (file: File) => request<void>(`/api/system/${encodeURIComponent(id)}?${new URLSearchParams({ name: file.name })}`,
       { method: "POST", body: file, headers: { "Content-Type": "application/octet-stream" } }),
     onSettled: () => {
       if (input.current) input.current.value = "";
@@ -90,47 +157,26 @@ function SystemPanel() {
     },
   });
   return (
-    <div style={{ display: "grid", gap: 12 }}>
-      <section className="panel" style={{ display: "grid", gap: 8 }}>
-        <p className="small" style={{ margin: 0 }}>{t("systemHelp")}</p>
-        <div className="hero-actions">
-          <select className="ot-btn ot-btn-sm" aria-label={t("systemConsole")} value={console_} onChange={(e) => setConsole(e.target.value)}>
-            <option value="">{t("systemConsole")}</option>
-            {consoles.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <input ref={input} type="file" aria-label={t("systemUpload")} disabled={!console_ || upload.isPending}
-            onChange={(e) => { const file = e.target.files?.[0]; if (file) upload.mutate(file); }} />
-        </div>
-        {upload.isPending && <p className="small muted" role="status" style={{ margin: 0 }}>{t("systemUploading")}</p>}
-        {upload.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(upload.error)}</p>}
-      </section>
-      {list.isError && <p className="error small" role="alert">{describe(list.error)}</p>}
-      {list.data?.length === 0 && <Empty title={t("systemEmptyTitle")} text={t("systemEmptyText")} />}
-      {list.data?.map((c) => (
-        <section className="panel" key={c.id} style={{ display: "grid", gap: 6 }}>
-          <h3 style={{ margin: 0 }}>{c.name}</h3>
-          {c.missing.map((m) => <span key={m} className="ot-badge ot-badge-review" style={{ justifySelf: "start" }}>{t("systemMissing", { name: m })}</span>)}
-          {c.files.map((f) => (
-            <div key={f.path} className="version-row small">
-              <span className="folder-path">{f.name}{f.version && ` · ${f.version}`}</span>
-              <span className="muted">{f.disk} · {format.dateTime(new Date(f.modified), { dateStyle: "medium" })}</span>
-            </div>
-          ))}
-        </section>
-      ))}
-    </div>
+    <span className="sentence">
+      <input ref={input} type="file" style={{ maxWidth: "100%" }} aria-label={label} disabled={!id || upload.isPending}
+        onChange={(e) => { const file = e.target.files?.[0]; if (file) upload.mutate(file); }} />
+      {upload.isPending && <span className="small muted" role="status">{t("systemUploading")}</span>}
+      {upload.isError && <span className="error small" role="alert">{describe(upload.error)}</span>}
+    </span>
   );
 }
 
 /** Un id propio para lo que no tiene receta, desde su nombre: «Mi Emulador» → mi-emulador. */
 const slug = (name: string) => name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const OTHER = ":other"; // «:» no va en un id de receta: no choca con ninguna
+const releaseKey = (r: { channel: string; version: string }) => `${r.channel}|${r.version}`;
 
 /**
- * Instalar (#268, #296): desde la receta eligiendo una versión publicada, desde su repo (#350) o desde una carpeta o un
- * zip de este equipo (o adoptando uno instalado a mano). Cada versión va al lado de las otras: nunca se reemplaza una.
+ * Instalar (#268, #296, #350, #416), en dos pasos. 1) qué y de dónde: la receta, o lo pegado (su repo, la URL de un archivo o
+ * una carpeta o un zip de este equipo), y se dice qué se reconoció. 2) confirmar; la versión, el archivo y adoptar, en
+ * «Más opciones». Cada versión va al lado de las otras: nunca se reemplaza una.
  */
-function InstallPanel({ kind, onClose }: { kind: Installable; onClose: () => void }) {
+function InstallDialog({ kind, onClose }: { kind: Installable; onClose: () => void }) {
   const t = useTranslations("tools.install");
   const format = useFormatter();
   const describe = useDescribeError();
@@ -141,14 +187,19 @@ function InstallPanel({ kind, onClose }: { kind: Installable; onClose: () => voi
   const [console_, setConsole] = useState("");
   const recipes = console_ === "" ? all : all.filter((r) => r.consoles.includes(console_))
     .sort((a, b) => Number(b.baseFor.includes(console_)) - Number(a.baseFor.includes(console_)));
-  const [from, setFrom] = useState<"recipe" | "url" | "path">("recipe");
+  const [step, setStep] = useState<1 | 2>(1);
   const [recipe, setRecipe] = useState("");
   const [name, setName] = useState("");
+  const [origin, setOrigin] = useState("");
   const [release, setRelease] = useState("");
   const [version, setVersion] = useState("");
-  const [url, setUrl] = useState("");
-  const [path, setPath] = useState("");
+  const [asset, setAsset] = useState("");
   const [adopt, setAdopt] = useState(false);
+  const [exe, setExe] = useState("");
+  const src = origin.trim();
+  // Lo pegado dice de dónde: nada es la receta; una URL (o un dominio con ruta, como github.com/x/y), su repo o su archivo; lo demás, una ruta de este equipo.
+  const from = src === "" ? "recipe" : /^https?:\/\//i.test(src) || /^[\w-]+(\.[\w-]+)+\//.test(src) ? "url" : "path";
+  const direct = from === "url" && (/\.(zip|7z|rar|exe|tar\.gz|tgz)$/i.test(src) || src.includes("/releases/download/"));
   const chosen = recipes.find((r) => r.id === recipe);
   // El aviso de «al lado de las otras» solo vale si ese emulador ya tiene una versión instalada (#330, decisión 338).
   const hasOther = (useQuery(emulatorsQuery).data ?? []).some((i) => i.emulatorId === (recipe === OTHER ? slug(name) : recipe));
@@ -158,20 +209,15 @@ function InstallPanel({ kind, onClose }: { kind: Installable; onClose: () => voi
     enabled: from === "recipe" && !!chosen?.releases,
     staleTime: 5 * 60_000,
   });
-  const key = (r: { channel: string; version: string }) => `${r.channel}|${r.version}`;
-  const picked = releases.data?.find((r) => key(r) === release) ?? releases.data?.[0];
-  // Desde su repo (#350): la URL de un archivo se baja tal cual; la de un repo (GitHub, Forgejo, Gitea) lista sus releases.
-  const direct = /\.(zip|7z|rar|exe|tar\.gz|tgz)$/i.test(url.trim()) || url.includes("/releases/download/");
-  const [repo, setRepo] = useState("");
-  const [asset, setAsset] = useState("");
-  const [exe, setExe] = useState("");
+  const picked = releases.data?.find((r) => releaseKey(r) === release) ?? releases.data?.[0];
+  // Un repo (GitHub, Forgejo, Gitea) lista sus releases al pasar al paso 2 (#350).
   const repoReleases = useQuery({
-    queryKey: ["repos", repo, "releases"],
-    queryFn: () => request<RepoRelease[]>(`/api/repos/releases?url=${encodeURIComponent(repo)}`),
-    enabled: from === "url" && !direct && repo !== "",
+    queryKey: ["repos", src, "releases"],
+    queryFn: () => request<RepoRelease[]>(`/api/repos/releases?url=${encodeURIComponent(src)}`),
+    enabled: step === 2 && from === "url" && !direct,
     staleTime: 5 * 60_000,
   });
-  const repoRelease = repoReleases.data?.find((r) => key(r) === release) ?? repoReleases.data?.[0];
+  const repoRelease = repoReleases.data?.find((r) => releaseKey(r) === release) ?? repoReleases.data?.[0];
   // El archivo de Windows: si hay uno solo, ese; si hay varios (o ninguno parece de Windows), se elige.
   const candidates = repoRelease ? (repoRelease.assets.some((a) => a.windows) ? repoRelease.assets.filter((a) => a.windows) : repoRelease.assets) : [];
   const file = candidates.find((a) => a.url === asset) ?? candidates[0];
@@ -184,82 +230,74 @@ function InstallPanel({ kind, onClose }: { kind: Installable; onClose: () => voi
   const exes = task?.detail?.code === "install.pickExe" ? task.detail.params?.files?.split("|") ?? [] : [];
   // Sin receta: el id sale del nombre y la carpeta se llama como él; desde un repo, queda su receta local.
   const who = recipe === OTHER ? { emulator: slug(name), name: name.trim(), kind } : { emulator: recipe };
-  const ready = (recipe === OTHER ? slug(name) !== "" : !!chosen)
-    && (from === "recipe" ? !!picked : from === "url" ? (direct ? url.trim().startsWith("https://") && version.trim() !== "" : !!file) : path.trim() !== "");
+  const canNext = recipe === OTHER ? slug(name) !== "" && src !== "" : !!chosen && (src !== "" || chosen.releases);
+  const ready = canNext && (from === "recipe" ? !!picked : from === "url" ? (direct ? src.startsWith("https://") && version.trim() !== "" : !!file) : true);
   const job = (): object =>
     from === "recipe" ? { emulator: recipe, version: picked!.version, url: picked!.download }
-    : from === "url" && direct ? { ...who, version: version.trim(), url: url.trim() }
-    : from === "url" ? { ...who, version: repoRelease!.version, url: file!.url, ...(recipe === OTHER ? { repo, console: console_ || null } : {}) }
-    : { ...who, version: version.trim() || null, path: path.trim(), adopt };
-  const submit = () => install.mutate(job());
-  const pick = (id: string) => {
-    setRecipe(id);
-    setRelease("");
-    if (id === OTHER && from === "recipe") setFrom("url");
-  };
+    : from === "url" && direct ? { ...who, version: version.trim(), url: src }
+    : from === "url" ? { ...who, version: repoRelease!.version, url: file!.url, ...(recipe === OTHER ? { repo: src, console: console_ || null } : {}) }
+    : { ...who, version: version.trim() || null, path: src, adopt };
+  const label = (r: { version: string; channel: string; publishedAt?: string | null }) =>
+    [r.version, r.channel === "dev" ? t("dev") : null, r.publishedAt ? format.dateTime(new Date(r.publishedAt), { dateStyle: "medium" }) : null].filter(Boolean).join(" · ");
+  const shown = recipe === OTHER ? name.trim() : chosen?.name;
+  const shownVersion = from === "recipe" ? picked?.version : from === "url" && !direct ? repoRelease?.version : version.trim();
 
   return (
-    <section className="panel" style={{ display: "grid", gap: 8 }} aria-labelledby="install-title">
-      <h3 id="install-title" style={{ margin: 0 }}>{t(`open.${kind}`)}</h3>
-      <div className="sentence">
-        {kind === "emulator" && <>
-          <label className="small muted" htmlFor="install-console">{t("console")}</label>
-          <select id="install-console" value={console_} onChange={(e) => { const c = e.target.value; setConsole(c); if (recipe !== OTHER && c !== "" && !all.find((r) => r.id === recipe)?.consoles.includes(c)) pick(""); }}>
-            <option value="">{t("allConsoles")}</option>
-            {consoles.filter((c) => recipe === OTHER || all.some((r) => r.consoles.includes(c.id))).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </>}
-        <label className="small muted" htmlFor="install-recipe">{t("what")}</label>
-        <select id="install-recipe" value={recipe} onChange={(e) => pick(e.target.value)}>
-          <option value="">{t("pick")}</option>
-          {recipes.map((r) => { const label = r.experimental ? t("experimental", { name: r.name }) : r.name; return <option key={r.id} value={r.id}>{console_ !== "" && r.baseFor.includes(console_) ? t("base", { name: label }) : label}</option>; })}
-          {kind !== "tool" && <option value={OTHER}>{t("other")}</option>}
-        </select>
-        {recipe === OTHER && <input aria-label={t("name")} placeholder={t("name")} value={name} onChange={(e) => setName(e.target.value)} />}
-      </div>
-      <div className="sentence" role="radiogroup" aria-label={t("from")}>
-        {(["recipe", "url", "path"] as const).filter((x) => x !== "recipe" || recipe !== OTHER).map((x) => (
-          <label key={x} className="small"><input type="radio" name="install-from" checked={from === x} onChange={() => setFrom(x)} /> {t(`fromKind.${x}`)}</label>
-        ))}
-      </div>
-      {from === "recipe" && chosen && (
-        !chosen.releases ? <p className="small muted" style={{ margin: 0 }}>{t("noReleases")}</p>
-        : releases.isPending ? <div className="skeleton" style={{ height: 32 }} aria-busy="true" />
-        : releases.isError ? <p className="error small" role="alert" style={{ margin: 0 }}>{describe(releases.error)}</p>
-        : releases.data.length === 0 ? <p className="small muted" style={{ margin: 0 }}>{t("noReleases")}</p>
-        : (
-          <div className="sentence">
-            <label className="small muted" htmlFor="install-version">{t("version")}</label>
-            <select id="install-version" value={picked ? key(picked) : ""} onChange={(e) => setRelease(e.target.value)}>
-              {releases.data.map((r) => (
-                <option key={key(r)} value={key(r)}>
-                  {[r.version, r.channel === "dev" ? t("dev") : null, r.publishedAt ? format.dateTime(new Date(r.publishedAt), { dateStyle: "medium" }) : null].filter(Boolean).join(" · ")}
-                </option>
-              ))}
+    <section className="settings-blocks" aria-labelledby="install-title">
+      <h3 id="install-title" style={{ margin: 0 }}>{t("title", { what: t(`open.${kind}`), step })}</h3>
+      {step === 1 ? <>
+        <div className="sentence">
+          {kind === "emulator" && <>
+            <label className="small muted" htmlFor="install-console">{t("console")}</label>
+            <select id="install-console" value={console_} onChange={(e) => { const c = e.target.value; setConsole(c); if (recipe !== OTHER && c !== "" && !all.find((r) => r.id === recipe)?.consoles.includes(c)) setRecipe(""); }}>
+              <option value="">{t("allConsoles")}</option>
+              {consoles.filter((c) => recipe === OTHER || all.some((r) => r.consoles.includes(c.id))).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-          </div>
-        )
-      )}
-      {from === "url" && (
-        <>
-          <div className="sentence">
-            <input aria-label={t("url")} placeholder={t("urlHint")} value={url} onChange={(e) => setUrl(e.target.value)} style={{ flex: 1, minWidth: 240 }} />
-            {direct ? <input aria-label={t("version")} placeholder={t("version")} value={version} onChange={(e) => setVersion(e.target.value)} />
-            : <button className="ot-btn ot-btn-sm" type="button" disabled={url.trim() === ""} onClick={() => { setRepo(url.trim()); setRelease(""); setAsset(""); }}>{t("findReleases")}</button>}
-          </div>
-          {!direct && repo !== "" && (
-            repoReleases.isPending ? <div className="skeleton" style={{ height: 32 }} aria-busy="true" />
-            : repoReleases.isError ? <p className="error small" role="alert" style={{ margin: 0 }}>{describe(repoReleases.error)}</p>
-            : repoReleases.data.length === 0 ? <p className="small muted" style={{ margin: 0 }}>{t("noRepoReleases")}</p>
-            : (
+          </>}
+          <label className="small muted" htmlFor="install-recipe">{t("what")}</label>
+          <select id="install-recipe" value={recipe} onChange={(e) => { setRecipe(e.target.value); setRelease(""); }}>
+            <option value="">{t("pick")}</option>
+            {recipes.map((r) => { const name = r.experimental ? t("experimental", { name: r.name }) : r.name; return <option key={r.id} value={r.id}>{console_ !== "" && r.baseFor.includes(console_) ? t("base", { name }) : name}</option>; })}
+            {kind !== "tool" && <option value={OTHER}>{t("other")}</option>}
+          </select>
+          {recipe === OTHER && <input aria-label={t("name")} placeholder={t("name")} value={name} onChange={(e) => setName(e.target.value)} />}
+        </div>
+        <label className="small muted" htmlFor="install-origin">{t(recipe === OTHER ? "origin" : "originOptional")}</label>
+        <input id="install-origin" placeholder={t("originHint")} value={origin} onChange={(e) => { setOrigin(e.target.value); setRelease(""); setAsset(""); }} />
+        {(chosen || recipe === OTHER) && (
+          from === "recipe" && chosen && !chosen.releases ? <p className="small muted" style={{ margin: 0 }}>{t("noReleases")}</p>
+          : (from !== "recipe" || chosen) && <p className="small" role="status" style={{ margin: 0 }}>✓ {t(`recognized.${from === "url" ? (direct ? "file" : "repo") : from}`)}</p>
+        )}
+        <div className="hero-actions">
+          <button className="ot-btn ot-btn-sm" type="button" onClick={onClose}>{t("cancel")}</button>
+          <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" disabled={!canNext} onClick={() => setStep(2)}>{t("next")}</button>
+        </div>
+      </> : <>
+        <p style={{ margin: 0 }}><b>{shown}</b>{shownVersion && ` ${shownVersion}`} · <span className="muted">{t(`fromKind.${from}`)}</span></p>
+        {from === "recipe" && (releases.isPending ? <div className="skeleton" style={{ height: 32 }} aria-busy="true" />
+          : releases.isError ? <p className="error small" role="alert" style={{ margin: 0 }}>{describe(releases.error)}</p>
+          : releases.data.length === 0 && <p className="small muted" style={{ margin: 0 }}>{t("noReleases")}</p>)}
+        {from === "url" && !direct && (repoReleases.isPending ? <div className="skeleton" style={{ height: 32 }} aria-busy="true" />
+          : repoReleases.isError ? <p className="error small" role="alert" style={{ margin: 0 }}>{describe(repoReleases.error)}</p>
+          : repoReleases.data.length === 0 ? <p className="small muted" style={{ margin: 0 }}>{t("noRepoReleases")}</p>
+          : file && <span className="small muted">{file.name}</span>)}
+        {direct && <input aria-label={t("version")} placeholder={t("version")} value={version} onChange={(e) => setVersion(e.target.value)} />}
+        {!direct && (
+          <details className="tool-versions">
+            <summary className="small">{t("moreOptions")}</summary>
+            {from === "recipe" && !!releases.data?.length && (
+              <div className="sentence">
+                <label className="small muted" htmlFor="install-version">{t("version")}</label>
+                <select id="install-version" value={picked ? releaseKey(picked) : ""} onChange={(e) => setRelease(e.target.value)}>
+                  {releases.data.map((r) => <option key={releaseKey(r)} value={releaseKey(r)}>{label(r)}</option>)}
+                </select>
+              </div>
+            )}
+            {from === "url" && !!repoReleases.data?.length && (
               <div className="sentence">
                 <label className="small muted" htmlFor="install-repo-version">{t("version")}</label>
-                <select id="install-repo-version" value={repoRelease ? key(repoRelease) : ""} onChange={(e) => { setRelease(e.target.value); setAsset(""); }}>
-                  {repoReleases.data.map((r) => (
-                    <option key={key(r)} value={key(r)}>
-                      {[r.version, r.channel === "dev" ? t("dev") : null, r.publishedAt ? format.dateTime(new Date(r.publishedAt), { dateStyle: "medium" }) : null].filter(Boolean).join(" · ")}
-                    </option>
-                  ))}
+                <select id="install-repo-version" value={repoRelease ? releaseKey(repoRelease) : ""} onChange={(e) => { setRelease(e.target.value); setAsset(""); }}>
+                  {repoReleases.data.map((r) => <option key={releaseKey(r)} value={releaseKey(r)}>{label(r)}</option>)}
                 </select>
                 {candidates.length > 1 && <>
                   <label className="small muted" htmlFor="install-asset">{t("file")}</label>
@@ -267,61 +305,61 @@ function InstallPanel({ kind, onClose }: { kind: Installable; onClose: () => voi
                     {candidates.map((a) => <option key={a.url} value={a.url}>{a.name}</option>)}
                   </select>
                 </>}
-                {candidates.length === 1 && <span className="small muted">{file!.name}</span>}
               </div>
-            )
-          )}
-        </>
-      )}
-      {from === "path" && (
-        <>
-          <p className="small muted" style={{ margin: 0 }}>{t("pathHelp")}</p>
-          <div className="sentence">
-            <input aria-label={t("path")} placeholder={t("path")} value={path} onChange={(e) => setPath(e.target.value)} style={{ flex: 1, minWidth: 240 }} />
-            <input aria-label={t("version")} placeholder={t("versionOptional")} value={version} onChange={(e) => setVersion(e.target.value)} />
-          </div>
-          <label className="small"><input type="checkbox" checked={adopt} onChange={(e) => setAdopt(e.target.checked)} /> {t("adopt")}</label>
-        </>
-      )}
-      {hasOther && <p className="small muted" style={{ margin: 0 }}>{t("beside")}</p>}
-      <div className="hero-actions">
-        <button className="ot-btn ot-btn-sm" type="button" onClick={onClose}>{t("cancel")}</button>
-        <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" disabled={!ready || install.isPending} onClick={submit}>{t("submit")}</button>
-      </div>
-      {install.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("queued")}</p>}
-      {exes.length > 0 && (
-        <div className="sentence">
-          <label className="small muted" htmlFor="install-exe">{t("pickExe")}</label>
-          <select id="install-exe" value={exe} onChange={(e) => setExe(e.target.value)}>
-            <option value="">{t("pick")}</option>
-            {exes.map((x) => <option key={x} value={x}>{x}</option>)}
-          </select>
-          <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" disabled={exe === "" || install.isPending} onClick={() => install.mutate({ ...job(), detect: exe })}>{t("submit")}</button>
+            )}
+            {from === "path" && <>
+              <input aria-label={t("version")} placeholder={t("versionOptional")} value={version} onChange={(e) => setVersion(e.target.value)} />
+              <label className="small"><input type="checkbox" checked={adopt} onChange={(e) => setAdopt(e.target.checked)} /> {t("adopt")}</label>
+            </>}
+          </details>
+        )}
+        {hasOther && <p className="small muted" style={{ margin: 0 }}>{t("beside")}</p>}
+        <div className="hero-actions">
+          <button className="ot-btn ot-btn-sm" type="button" onClick={() => setStep(1)}>{t("back")}</button>
+          <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" disabled={!ready || install.isPending || install.isSuccess} onClick={() => install.mutate(job())}>{t("submit")}</button>
         </div>
-      )}
-      {install.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(install.error)}</p>}
+        {install.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("queued")}</p>}
+        {exes.length > 0 && (
+          <div className="sentence">
+            <label className="small muted" htmlFor="install-exe">{t("pickExe")}</label>
+            <select id="install-exe" value={exe} onChange={(e) => setExe(e.target.value)}>
+              <option value="">{t("pick")}</option>
+              {exes.map((x) => <option key={x} value={x}>{x}</option>)}
+            </select>
+            <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" disabled={exe === ""} onClick={() => install.mutate({ ...job(), detect: exe })}>{t("submit")}</button>
+          </div>
+        )}
+        {install.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(install.error)}</p>}
+      </>}
     </section>
   );
 }
-
 
 /** Lo de un emulador, port o herramienta: sus versiones registradas y lo que hay en disco. Un complemento, una instalación. */
 type Card = { id: string; name: string; installs: EmulatorInstall[]; tools: ToolInfo[] };
 type Act = { action: "use" | "remove" | "reinstall" | "open"; i: EmulatorInstall };
 
+/** La versión que se muestra de una tarjeta: la que se usa (o la última registrada) y su carpeta en disco. */
+const currentOf = (card: Card) => {
+  const current = card.installs.find((i) => i.inUse) ?? card.installs.at(-1);
+  return { current, here: current ? card.tools.find((x) => x.path === current.path) : card.tools.at(-1) };
+};
+
 /**
- * Una tarjeta por emulador, port, herramienta o complemento (#268, #329, #348; decisiones 293, 304, 325 y 343 a 345): lo
- * registrado (`/api/emulators`) y lo encontrado en disco (`/api/tools`) juntos. Emuladores y ports, en secciones por consola en
- * el orden de las consolas: un emulador de varias consolas aparece en cada una y un port va en la de su juego.
- * Al terminar una instalación que deja una versión nueva sin usar, pregunta si pasar los perfiles a ella.
+ * La lista de emuladores, ports, herramientas o complementos con el detalle de lo elegido al lado (#268, #329, #348, #416):
+ * lo registrado (`/api/emulators`) y lo encontrado en disco (`/api/tools`) juntos, por nombre; cada fila dice para qué
+ * consola o juego es, la versión y su estado. Al terminar una instalación que deja una versión nueva sin usar, pregunta si
+ * pasar los perfiles a ella.
  */
-function ToolCards({ kind }: { kind: Exclude<Kind, "system"> }) {
+function ToolList({ kind }: { kind: Exclude<Kind, "system"> }) {
   const t = useTranslations("tools");
   const describe = useDescribeError();
   const tools = useQuery(toolsQuery);
   const emulators = useQuery(emulatorsQuery);
   const recipes = new Map((useQuery(recipesQuery).data ?? []).map((r) => [r.id, r]));
   const consoles = useConsoles().data ?? [];
+  const updates = (useQuery(toolUpdatesQuery).data ?? []).filter((u) => u.kind === kind);
+  const [sel, setSel] = useState<string | null>(null);
   const [ask, setAsk] = useState<EmulatorInstall | null>(null);
   const seen = useRef<Set<string> | null>(null);
   // Una versión que aparece después de la primera carga, sin usar y con otra en uso: ofrece pasar los perfiles (decisión de #329).
@@ -334,7 +372,7 @@ function ToolCards({ kind }: { kind: Exclude<Kind, "system"> }) {
     if (!before || kind !== "emulator") return;
     const fresh = list.find((i) => i.kind === kind && i.path && !i.inUse && !before.has(`${i.emulatorId}|${i.version}`)
       && list.some((o) => o.emulatorId === i.emulatorId && o.inUse));
-    if (fresh) setAsk(fresh);
+    if (fresh) { setAsk(fresh); setSel(fresh.emulatorId); }
   }, [emulators.data, kind]);
   const error = tools.error ?? emulators.error;
   if (error) return <p className="error small" role="alert">{describe(error)}</p>;
@@ -350,47 +388,51 @@ function ToolCards({ kind }: { kind: Exclude<Kind, "system"> }) {
     add(kind === "complement" ? `${x.folder}|${x.name}|${x.version}` : installs.find((i) => i.path === x.path)?.emulatorId ?? x.recipeId ?? `:${x.name}`, x.name).tools.push(x);
   const list = [...cards.values()].sort((a, b) => a.name.localeCompare(b.name));
   if (list.length === 0) return <p className="missing small">{t("none")}</p>;
-  // Los forks van dentro de la tarjeta de su original (#358); si el original no está en la lista, el fork sale solo.
+  // Los forks van en el detalle de su original (#358); si el original no está en la lista, el fork sale solo.
   const nested = nestedForkIds(list, (id) => recipes.get(id)?.forkOf);
   const top = list.filter((k) => !nested.has(k.id));
   const forksOf = (id: string) => [...recipes.values()].filter((r) => r.forkOf === id && r.kind === kind).sort((a, b) => a.name.localeCompare(b.name));
+  const picked = list.find((k) => k.id === sel) ?? top[0];
 
-  // Las consolas de una tarjeta: las de su receta (emuladores) o la de su carpeta (ports, y emuladores de antes sin receta).
-  const consolesOf = (k: Card) => {
+  // Para qué es: las consolas de su receta (emuladores) o la de su carpeta; un port, su juego; un complemento, su carpeta.
+  const forWhat = (k: Card) => {
     const r = recipes.get(k.id);
-    if (kind === "emulator" && r?.consoles.length) return r.consoles;
-    const folder = r?.folder || k.tools[0]?.folder;
-    return consoles.filter((c) => c.name === folder).map((c) => c.id);
+    if (kind === "emulator" && r?.consoles.length) return consoles.filter((c) => r.consoles.includes(c.id)).map((c) => c.name).join(" · ");
+    if (kind === "port") return r?.game ?? k.tools[0]?.game;
+    return r?.folder || k.tools[0]?.folder;
   };
-  const sections = kind === "emulator" || kind === "port"
-    ? [...consoles.map((c) => ({ key: c.id, title: c.name, cards: top.filter((k) => consolesOf(k).includes(c.id)) })),
-       { key: OTHER, title: t("otherConsole"), cards: top.filter((k) => !consolesOf(k).some((id) => consoles.some((c) => c.id === id))) }]
-      .filter((s) => s.cards.length > 0)
-    : [{ key: kind, title: null, cards: top }];
+  const badge = (k: Card) => {
+    const u = updates.find((u) => u.recipeId === k.id);
+    const { current } = currentOf(k);
+    return u ? <span className="ot-badge ot-badge-info">{t("updates.newVersion", { version: u.version })}</span>
+      : current && !current.path ? <span className="ot-badge">{t("library.archived")}</span>
+      : <span className="ot-badge ot-badge-have">{t("library.installed")}</span>;
+  };
   return (
     <>
       {kind === "port" && <p className="small muted" style={{ margin: 0 }}>{t("library.portHelp")}</p>}
-      {sections.map((s) => (
-        <div key={s.key} style={{ display: "grid", gap: 8 }}>
-          {s.title && <h2 className="console-group">{s.title}</h2>}
-          {s.cards.map((k) => (
-            <ToolCard key={k.id} card={k} kind={kind} recipe={recipes.has(k.id)} game={recipes.get(k.id)?.game ?? k.tools[0]?.game}
-              ask={ask?.emulatorId === k.id ? ask : null} onAsked={() => setAsk(null)}
-              forks={forksOf(k.id).map((r) => ({ recipe: r, card: list.find((c) => c.id === r.id) }))} />
-          ))}
+      <div className="tool-split">
+        <div className="panel tool-list">
+          {top.map((k) => { const { current, here } = currentOf(k); return (
+            <ListRow key={k.id} name={k.name} sub={forWhat(k)} meta={current?.version ?? here?.version} badge={badge(k)}
+              picked={k === picked} onPick={() => setSel(k.id)} />
+          ); })}
         </div>
-      ))}
+        <ToolDetail key={picked.id} card={picked} kind={kind} recipe={recipes.has(picked.id)} forWhat={forWhat(picked)} badge={badge(picked)}
+          ask={ask?.emulatorId === picked.id ? ask : null} onAsked={() => setAsk(null)} onPick={setSel}
+          forks={forksOf(picked.id).map((r) => ({ recipe: r, card: list.find((c) => c.id === r.id) }))} />
+      </div>
     </>
   );
 }
 
 /**
- * La tarjeta (#348, decisión 344): en la cabecera el nombre, la versión en uso, su disco y el aviso de versión nueva (o «Sin
- * receta»), con abrir su carpeta y mover a otro disco; debajo los avisos, y plegadas las demás versiones con sus URL.
+ * El detalle de lo elegido (#348, #416; decisión 344): nombre, para qué es y su estado; la acción principal (actualizar con el
+ * aviso de versión nueva, abrir su carpeta o reinstalar); plegadas, sus versiones y «Más» (mover a otro disco, quitar el emulador).
  */
-function ToolCard({ card, kind, recipe, game, ask, onAsked, forks = [] }: {
-  card: Card; kind: Exclude<Kind, "system">; recipe: boolean; game?: string | null; ask: EmulatorInstall | null; onAsked: () => void;
-  forks?: { recipe: RecipeSummary; card?: Card }[];
+function ToolDetail({ card, kind, recipe, forWhat, badge, ask, onAsked, onPick, forks }: {
+  card: Card; kind: Exclude<Kind, "system">; recipe: boolean; forWhat?: string | null; badge: ReactNode; ask: EmulatorInstall | null;
+  onAsked: () => void; onPick: (id: string) => void; forks: { recipe: RecipeSummary; card?: Card }[];
 }) {
   const t = useTranslations("tools");
   const describe = useDescribeError();
@@ -407,8 +449,7 @@ function ToolCard({ card, kind, recipe, game, ask, onAsked, forks = [] }: {
       if (action === "reinstall") cache.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
-  const current = card.installs.find((i) => i.inUse) ?? card.installs.at(-1);
-  const here = current ? card.tools.find((x) => x.path === current.path) : card.tools.at(-1);
+  const { current, here } = currentOf(card);
   const others = [
     ...card.installs.filter((i) => i !== current).map((i) => ({ i, x: card.tools.find((x) => x.path === i.path) })),
     ...card.tools.filter((x) => x !== here && !card.installs.some((i) => i.path === x.path)).map((x) => ({ i: undefined, x })),
@@ -419,27 +460,26 @@ function ToolCard({ card, kind, recipe, game, ask, onAsked, forks = [] }: {
     <VersionRow key={i?.version ?? x!.path} kind={kind} i={i} x={x} busy={busy} confirm={!!i && confirm === i.version}
       onConfirm={(on) => setConfirm(on ? i!.version : null)} act={(action) => act.mutate({ action, i: i! })} />
   );
+  const uninstall = kind === "emulator" && card.installs.length > 0;
   return (
-    <section className="panel emulator-card" style={{ display: "grid", gap: 6 }} aria-label={card.name}>
+    <section className="panel emulator-card" style={{ gap: 8 }} aria-label={card.name}>
       <div className="version-row">
         <span className="grow">
           <h3 style={{ margin: 0 }}>{card.name}</h3>
-          {(game || kind === "complement") && <span className="small muted">{game ?? here?.folder}</span>}
+          {forWhat && <span className="small muted">{forWhat}</span>}
         </span>
-        <span style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-          {current?.inUse ? <span className="ot-badge ot-badge-have">{t("library.current", { version: current.version })}</span>
-            : <span className="ot-badge">{current?.version ?? here?.version}</span>}
-          {current && !current.path && <span className="ot-badge">{t("library.archived")}</span>}
-          {here && <span className="ot-badge" title={here.path}>{where}</span>}
-          {updates.length > 0 && <span className="ot-badge ot-badge-info">{t("updates.badge")}</span>}
-          {!recipe && !card.tools.some((x) => x.recipeId) && <span className="ot-badge ot-badge-info" title={t("noRecipeHelp")}>{t("noRecipe")}</span>}
-        </span>
+        {badge}
       </div>
+      <span style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+        {current?.inUse ? <span className="ot-badge ot-badge-have">{t("library.current", { version: current.version })}</span>
+          : <span className="ot-badge">{current?.version ?? here?.version}</span>}
+        {here && <span className="ot-badge" title={here.path}>{where}</span>}
+        {!recipe && !card.tools.some((x) => x.recipeId) && <span className="ot-badge ot-badge-info" title={t("noRecipeHelp")}>{t("noRecipe")}</span>}
+      </span>
+      {updates.map((u) => <UpdateRow key={`${u.recipeId}-${u.channel}`} u={u} />)}
       <div className="sentence">
+        {current && !current.path && <button className="ot-btn ot-btn-sm ot-btn-primary" type="button" disabled={busy} onClick={() => act.mutate({ action: "reinstall", i: current })}>{t("library.reinstall")}</button>}
         {current?.path && <button className="ot-btn ot-btn-sm" type="button" disabled={busy} onClick={() => act.mutate({ action: "open", i: current })}>{t("library.open")}</button>}
-        {current && !current.path && <button className="ot-btn ot-btn-sm" type="button" disabled={busy} onClick={() => act.mutate({ action: "reinstall", i: current })}>{t("library.reinstall")}</button>}
-        {here && <MoveTool tool={here} />}
-        {kind === "emulator" && card.installs.length > 0 && <Uninstall card={card} />}
       </div>
       {ask && (
         <div className="sentence" role="status">
@@ -448,12 +488,18 @@ function ToolCard({ card, kind, recipe, game, ask, onAsked, forks = [] }: {
           <button type="button" className="ot-btn ot-btn-sm ot-btn-primary" disabled={busy} onClick={() => act.mutate({ action: "use", i: ask })}>{t("library.yes")}</button>
         </div>
       )}
-      {updates.map((u) => <UpdateRow key={`${u.recipeId}-${u.channel}`} u={u} />)}
       {kind !== "complement" && (current || others.length > 0) && (
         <details className="tool-versions">
-          <summary className="small">{others.length > 0 ? t("library.more", { count: others.length }) : t("library.details")}</summary>
+          <summary className="small">{t("library.versions", { count: others.length + (current ? 1 : 0) })}</summary>
           {current && row(current, here)}
           {others.map(({ i, x }) => row(i, x))}
+        </details>
+      )}
+      {(here || uninstall) && (
+        <details className="tool-versions">
+          <summary className="small">{t("library.moreActions")}</summary>
+          {here && <MoveTool tool={here} />}
+          {uninstall && <Uninstall card={card} />}
         </details>
       )}
       {forks.length > 0 && (
@@ -462,7 +508,7 @@ function ToolCard({ card, kind, recipe, game, ask, onAsked, forks = [] }: {
           {forks.map(({ recipe: r, card: c }) => (
             <div key={r.id} style={{ display: "grid", gap: 4 }}>
               {r.recommendedFor.length > 0 && <span className="small muted">{t("forks.recommended", { games: r.recommendedFor.map((g) => g.game).join(", ") })}</span>}
-              {c ? <ToolCard card={c} kind={kind} recipe ask={null} onAsked={onAsked} /> : <ForkInstall recipe={r} />}
+              {c ? <button type="button" className="link-button" onClick={() => onPick(c.id)}><b>{c.name}</b></button> : <ForkInstall recipe={r} />}
             </div>
           ))}
         </div>
