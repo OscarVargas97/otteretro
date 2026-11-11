@@ -11,6 +11,10 @@ namespace Otteretro.Claude;
 /// <param name="SearchedAt">Cuándo se buscó o se eligió.</param>
 public record EmulatorPick(string Console, string? RecipeId, string? Repo, string? Source, string? Reason, string Origin, string SearchedAt);
 
+/// <summary>Un juego en el selector de «Buscar el mejor emulador» (#374).</summary>
+/// <param name="SearchedAt">Cuándo se buscó por última vez; null si nunca.</param>
+public record BestEmulatorGame(long Id, string Name, int? Year, string[] Platforms, string? SearchedAt);
+
 /// <summary>
 /// «Buscar el mejor emulador» (#373, #369): Sonnet con búsqueda web recomienda un emulador por cada consola donde existe un juego,
 /// con su fuente y su motivo. Queda solo local (no se envía al catálogo): una fila de `emulator_pick` por juego y consola.
@@ -31,6 +35,19 @@ public static class BestEmulator
         if (c.ExecuteScalar<long>("SELECT count(*) FROM game WHERE id = @gameId", new { gameId }) == 0) return null;
         return c.ExecuteScalar<long?>("SELECT id FROM task WHERE kind = @Kind AND status IN ('queued', 'paused', 'running') AND data = @data",
             new { Kind, data = gameId.ToString() }) ?? TaskQueue.Enqueue(db, Kind, gameId.ToString());
+    }
+
+    /// <summary>Encola una búsqueda por cada juego elegido (#374); devuelve las tareas. Nunca recorre el catálogo: solo lo que llega.</summary>
+    public static List<long> Enqueue(Database db, IEnumerable<long> gameIds) =>
+        gameIds.Distinct().Select(id => Enqueue(db, id)).OfType<long>().ToList();
+
+    /// <summary>Los juegos de una saga que se pueden buscar (los que salen en alguna consola), con la fecha de su última búsqueda.</summary>
+    public static List<BestEmulatorGame> SagaGames(Database db, long sagaId)
+    {
+        var games = Catalog.CatalogQueries.SagaGames(db, sagaId, 0, int.MaxValue).Items.Where(g => g.Platforms.Length > 0).ToList();
+        using var c = db.Open();
+        var searched = c.Query<(long GameId, string SearchedAt)>("SELECT game_id, searched_at FROM emulator_search").ToDictionary(r => r.GameId, r => r.SearchedAt);
+        return games.Select(g => new BestEmulatorGame(g.Id, g.Name, g.Year, g.Platforms, searched.GetValueOrDefault(g.Id))).ToList();
     }
 
     public static List<EmulatorPick> Picks(Database db, long gameId)
@@ -81,6 +98,8 @@ public static class BestEmulator
         using var c = db.Open();
         using var t = c.BeginTransaction();
         c.Execute("DELETE FROM emulator_pick WHERE game_id = @gameId AND origin = 'claude'", new { gameId }, t);
+        c.Execute("INSERT INTO emulator_search (game_id, searched_at) VALUES (@gameId, @now) ON CONFLICT (game_id) DO UPDATE SET searched_at = @now",
+            new { gameId, now }, t);
         var saved = valid.Sum(p => c.Execute("""
             INSERT INTO emulator_pick (game_id, console, recipe_id, repo, source, reason, origin, searched_at)
             VALUES (@gameId, @Console, @recipe, @repo, @Source, @Reason, 'claude', @now) ON CONFLICT DO NOTHING

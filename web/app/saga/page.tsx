@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Suspense, useState } from "react";
 import { Cover, Progress, ShortPlatforms, useConsoleName, useConsoles, useIdParam } from "@/components/Catalog";
 import { Tabs } from "@/components/Tabs";
+import { BestEmulatorButton } from "@/components/BestEmulatorPicker";
 import { useHeroArt } from "@/components/HeroArt";
 import { Empty } from "@/components/Shell";
 import { request } from "@/lib/client";
@@ -68,6 +69,7 @@ function Saga() {
               <button className="ot-btn" type="button" aria-pressed={s.following} onClick={() => flags.mutate({ following: !s.following })}>
                 {s.following ? t("saga.following") : t("saga.follow")}
               </button>
+              <BestEmulatorButton sagaId={String(s.id)} />
             </div>
           )}
           {flags.error && <p className="error small" role="alert">{describe(flags.error)}</p>}
