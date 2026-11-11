@@ -73,15 +73,14 @@
 
 Aparece solo la primera vez, o si la carpeta de datos no está donde se esperaba (P1, §5).
 
+Cuatro pasos (#418, decisión 394):
+
 | Paso | Contenido | Acciones |
 |---|---|---|
-| 1. Bienvenida | Logo. Qué hace la app, en tres líneas | Empezar |
-| 2. Carpeta de datos | Explica qué guarda: base de datos, Herramientas y caché (S7). Muestra el espacio libre de cada disco | Elegir carpeta nueva · **Usar una carpeta existente** (reinstalación o migración, §7.6) |
-| 3. Respaldo | Token de GitHub (#68) y repositorio `otteretro-datos` | Pegar token · Crear el repositorio · **Restaurar desde el respaldo** (PC nuevo) · Saltar por ahora |
-| 4. Bibliotecas | Detecta `E:\Consolas` con la estructura antigua (§5.5) | **Adoptar** · Crear nueva · Saltar |
-| 5. Steam | Cuenta detectada en `loginusers.vdf` (§10) y clave de la Web API | Confirmar cuenta · Pegar clave · Iniciar sesión para el préstamo familiar (T1) · Saltar |
-| 6. Resto de claves | Lista de servicios (§5.6, A3): IGDB, SteamGridDB, ScreenScraper, RetroAchievements, MyJDownloader, IsThereAnyDeal, Epic. Cada uno con su enlace "cómo conseguirla" | Pegar cada clave · Saltar (se puede hacer después en Ajustes) |
-| 7. Carga inicial | Explica que la carga completa dura días y va Nintendo → Sony → Microsoft (#69) | **Empezar la carga** · Más tarde |
+| 1. Bienvenida | Logo. Qué hace la app y que son cuatro pasos. Idioma | Empezar |
+| 2. Dónde guardar | Los discos con su espacio libre, para marcar dónde van juegos, emuladores y ports. Plegado en «Más opciones»: la carpeta de datos (S7; la sugerida, cambiable) y adoptar una carpeta con la estructura antigua escrita a mano (§5.5). El respaldo (#68) llega en la F7 | Seguir (guarda la carpeta de datos, agrega los discos y, si detecta la estructura antigua, ofrece **Adoptar** (§5.5) antes de seguir) · Atrás |
+| 3. Steam y cuentas (opcional) | Cuenta detectada en `loginusers.vdf` (§10) y lo que se puede marcar para Steam. Plegado: claves y cuentas de descarga (§5.6, A3) | Exportar · **Después** · Atrás |
+| 4. Carga inicial | El escaneo de los discos marcados, que sigue solo en segundo plano | Entrar |
 
 - Lo que se salta queda como **aviso en Inicio** hasta que se completa.
 
