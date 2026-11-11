@@ -89,7 +89,7 @@ test("sin carpeta de datos, abre el asistente en español", async () => {
   await page.goto(url());
   await expect(page).toHaveURL(/\/welcome\//);
   await expect(page.getByRole("button", { name: es.welcome.start })).toBeVisible();
-  await expect(page.getByText(es.welcome.steps.dataFolder)).toBeVisible();
+  await expect(page.getByText(es.welcome.steps.where)).toBeVisible();
   await expectNoRawKeys();
 });
 
@@ -103,33 +103,42 @@ test("cambiar a inglés en el asistente cambia la interfaz al momento", async ()
 
 test("una ruta incompleta muestra el error del backend traducido", async () => {
   await page.getByRole("button", { name: en.welcome.start }).click();
-  await expect(page.getByRole("heading", { name: en.welcome.chooseTitle })).toBeVisible();
-  await page.getByLabel(en.welcome.otherPath).fill("relative\\folder");
-  await page.getByRole("button", { name: /^Use / }).click();
+  // Paso 2 (#418): los discos a la vista; la carpeta de datos, plegada en «Más opciones».
+  await expect(page.getByRole("heading", { name: en.welcome.whereTitle })).toBeVisible();
+  await page.getByText(en.welcome.more).click();
+  await page.getByLabel(en.welcome.dataFolder).fill("relative\folder");
+  await page.getByRole("button", { name: en.welcome.next }).click();
   await expect(page.getByText(en.errors.path.notAbsolute)).toBeVisible();
   await page.screenshot({ path: "e2e-results/2-error-en.png" });
 });
 
-test("elegir la carpeta de datos lleva al paso de bibliotecas y, al saltarlo, al inicio", async () => {
-  await page.getByLabel(en.welcome.otherPath).fill(dataDir("data"));
-  await page.getByRole("button", { name: /^Use / }).click();
-  // Paso 4 (F3): adoptar la estructura antigua, crear una biblioteca o saltar.
-  await expect(page.getByRole("heading", { name: en.welcome.librariesTitle })).toBeVisible();
+test("el asistente en 4 pasos: dónde guardar, Steam y cuentas (después) y carga inicial", async () => {
+  await page.getByLabel(en.welcome.dataFolder).fill(dataDir("data"));
+  // Lo que tenga la estructura antigua se ofrece antes de seguir (respondido por la prueba: no depende de los discos de este equipo).
+  await page.route("**/api/locations/detect", (route) => route.fulfill({ json: ["X:\Consolas"] }));
+  await page.getByRole("button", { name: en.welcome.next }).click();
+  await expect(page.getByRole("button", { name: en.welcome.adoptThis.replace("{path}", "X:\Consolas") })).toBeVisible();
+  await expect(page.getByLabel(en.welcome.dataFolder)).toBeDisabled();
   await expectNoRawKeys();
-  // Paso 5 (#402): la cuenta de Steam detectada (respondida por la prueba: no depende del Steam de este equipo) y saltar.
+  await page.unroute("**/api/locations/detect");
+  // Paso 3 (#402, #418): la cuenta de Steam detectada (respondida por la prueba: no depende del Steam de este equipo); claves plegadas.
   await page.route("**/api/steam", (route) => route.fulfill({ json: { account: "jugador", srm: false, available: [] } }));
-  await page.getByRole("button", { name: en.welcome.skip }).click();
+  await page.getByRole("button", { name: en.welcome.next }).click();
   await expect(page.getByRole("heading", { name: en.welcome.steamTitle })).toBeVisible();
   await expect(page.getByText(en.steam.account.replace("{account}", "jugador"))).toBeVisible();
   await expect(page.getByRole("link", { name: /install it from Tools/ })).toHaveAttribute("href", "/tools/?k=tool");
   await expect(page.getByText(en.welcome.steamNothing)).toBeVisible();
   await expect(page.getByRole("button", { name: en.steam.export })).toBeDisabled();
+  await page.getByText(en.welcome.keys).click();
+  await expect(page.getByRole("button", { name: `${en.credentials.configure}: ${en.credentials.service.onefichier}` })).toBeVisible();
   await expectNoRawKeys();
   await page.screenshot({ path: "e2e-results/2-steam-en.png" });
-  await page.getByRole("button", { name: en.welcome.skip }).click();
+  await page.getByRole("button", { name: en.welcome.later }).click();
   await page.unroute("**/api/steam");
-  await expect(page.getByRole("heading", { name: en.welcome.accountsTitle })).toBeVisible();
-  await page.getByRole("button", { name: en.welcome.done }).click();
+  // Paso 4: sin discos marcados no hay escaneo; se entra igual.
+  await expect(page.getByRole("heading", { name: en.welcome.loadTitle })).toBeVisible();
+  await expect(page.getByText(en.welcome.loadNone)).toBeVisible();
+  await page.getByRole("button", { name: en.welcome.enter }).click();
   await expect(page).toHaveURL(`${base()}/`);
   await expect(page.getByRole("heading", { level: 1, name: en.nav.home })).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: en.home.next })).toBeVisible();
