@@ -11,13 +11,12 @@ import type { AppState } from "@/lib/types";
 import { normalizePath, useAppState } from "./Shell";
 
 // Clave en nav.* de cada entrada; `phase`, la fase en que llega: hasta entonces se ve atenuada y no se abre (#169).
-type Entry = { href: string; key: "home" | "sagas" | "collection" | "discover" | "review" | "downloads" | "tools" | "steam" | "settings"; phase?: number };
+type Entry = { href: string; key: "home" | "sagas" | "collection" | "discover" | "downloads" | "tools" | "steam" | "settings"; phase?: number };
 const MAIN: Entry[] = [
   { href: "/", key: "home" },
   { href: "/sagas/", key: "sagas" },
   { href: "/collection/", key: "collection" },
   { href: "/discover/", key: "discover", phase: 9 },
-  { href: "/review/", key: "review" },
 ];
 const SECONDARY: Entry[] = [
   { href: "/downloads/", key: "downloads" },
@@ -32,7 +31,6 @@ const ICONS: Record<Entry["key"], string> = {
   sagas: "M4 5h6v14H4zM14 5h6v6h-6zM14 15h6v4h-6z",
   collection: "M4 7h16v12H4zM8 7V4h8v3",
   discover: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM15.5 8.5l-2 5-5 2 2-5z",
-  review: "M5 12l4 4L19 6",
   downloads: "M12 4v11M7 10l5 5 5-5M5 20h14",
   tools: "M14 6a4 4 0 0 0-5 5l-5 5 3 3 5-5a4 4 0 0 0 5-5l-2 2-3-1-1-3z",
   steam: "M3 12h4l3-6 4 12 3-6h4",
@@ -42,7 +40,7 @@ const Icon = ({ d }: { d: string }) => (
   <svg className="nav-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
 );
 
-/** Barra lateral (componente NavItem del sistema de diseño). Los contadores llegan con cada módulo; Revisar lleva el suyo (D3). */
+/** Barra lateral (componente NavItem del sistema de diseño). Los contadores llegan con cada módulo; Colección lleva el de los archivos por revisar (D3, #415). */
 export function Sidebar() {
   const t = useTranslations("nav");
   const tApp = useTranslations("app");
@@ -52,7 +50,7 @@ export function Sidebar() {
   const review = useQuery({ queryKey: ["review", "count"], queryFn: () => request<number>("/api/review/count"), refetchInterval: 60_000, retry: false, enabled: configured });
   // Versiones nuevas de emuladores y ports (decisión 294).
   const updates = useQuery({ ...toolUpdatesQuery, retry: false, enabled: configured });
-  const counts: Partial<Record<string, number>> = { review: Number(review.data ?? 0), tools: updates.data?.length ?? 0 };
+  const counts: Partial<Record<string, number>> = { collection: Number(review.data ?? 0), tools: updates.data?.length ?? 0 };
   const current = normalizePath(usePathname());
   // Retraída a una franja de íconos (#130): se guarda en config.json y Ctrl+B la alterna.
   const cache = useQueryClient();
@@ -84,7 +82,7 @@ export function Sidebar() {
     <Link key={e.href} className="ot-nav-item" href={e.href} aria-current={isActive(e.href)} title={collapsed ? t(e.key) : undefined}>
       <Icon d={ICONS[e.key]} />
       <span className="nav-label">{t(e.key)}</span>
-      {!!counts[e.key] && <span className="ot-count" aria-label={t("pending", { count: counts[e.key]! })}>{counts[e.key]}</span>}
+      {!!counts[e.key] && <span className={e.key === "collection" ? "ot-count ot-count-review" : "ot-count"} aria-label={t("pending", { count: counts[e.key]! })}>{counts[e.key]}</span>}
     </Link>
   );
 

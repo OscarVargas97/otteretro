@@ -86,7 +86,6 @@ test("con un catálogo grande, cada pantalla aparece al instante y no salta", as
     ["Una saga", "a.ot-saga", content, 'table a[href^="/game/"]'],
     ["Un juego", 'table a[href^="/game/"]', content, ".sec"],
     ["Colección", '.sidebar a[href="/collection/"]', content, ".collection-consoles button"],
-    ["Revisar", '.sidebar a[href="/review/"]', content, '.content [role="tablist"]'],
     ["Inicio", '.sidebar a[href="/"]', content, ".content .sec"],
     ["Descargas", '.sidebar a[href="/downloads/"]', content, ".content .ot-empty, .content section.panel"],
     ["Herramientas", '.sidebar a[href="/tools/"]', content, ".content .ot-empty, .content .version-row"],

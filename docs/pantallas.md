@@ -93,7 +93,7 @@ Secciones, en este **orden fijo** (D2):
 
 1. **Continuar jugando** (#138): lo último que jugaste, de consola o de PC, con cómo se juega, cuándo y las horas. Es lo primero que recibe el foco con mando.
 2. **Siguiente en tus rutas:** el **siguiente juego** de cada ruta que sigues (§6.5), en tarjetas grandes con botón Jugar, o "Conseguirlo" si no lo tienes.
-3. **Revisar:** contadores de identificaciones dudosas, sin identificar y aprendizajes de Claude recientes. Cada uno lleva a la pantalla Revisar (§2.1).
+3. **Revisar:** cuántos archivos esperan revisión; lleva a Colección con la lista abierta (§2.1).
 4. **Novedades:** ports nuevos, cambios de compatibilidad, versiones nuevas de emuladores, ports y complementos, y **bajadas de precio** (#57, #75, D6).
    - **De qué juegos:** los de las **sagas que sigues que no tienes**, más los que marcas **"seguir precio"**.
    - **Cuándo cuenta como bajada:** llega a su **mínimo histórico**, queda **gratis** o tiene un **descuento del 40 % o más** (D6b).
@@ -103,7 +103,7 @@ Secciones, en este **orden fijo** (D2):
 Estados (§0.5): **vacío** (la nutria, «Escanear una carpeta» y «Explorar sagas»), **cargando** (esqueletos de las tarjetas), **error** (qué carpeta no responde, que tus datos no se tocaron, Reintentar y Abrir Ajustes) y **con datos**.
 
 ### 2.1 Revisar (D3)
-**Pantalla propia.** Se llega desde Inicio y desde un **contador en la barra lateral**. Es la cola de lo que la app decidió con dudas (P6, §9.4):
+**Desde la decisión 390 (#415) ya no es una pantalla:** Colección muestra el aviso «N archivos por revisar» solo si hay archivos dudosos o sin identificar, y «Revisar» despliega ahí mismo la lista (archivo, carpeta, propuesta, Confirmar / Es otro juego); el contador va en Colección de la barra lateral. La tabla de abajo es el diseño original. Es la cola de lo que la app decidió con dudas (P6, §9.4):
 
 | Pestaña | Cada elemento muestra | Acciones |
 |---|---|---|
@@ -267,7 +267,7 @@ Estados (§0.5): **vacío** (la nutria, «Escanear una carpeta» y «Explorar sa
 |---|---|
 | D1 | Búsqueda global en la barra superior, `Ctrl+K` |
 | D2 | Inicio con el orden de §2, fijo |
-| D3 | Revisar es una pantalla propia, con contador en la barra lateral |
+| D3 | ~~Revisar es una pantalla propia, con contador en la barra lateral~~ Reemplazada por la decisión 390: un aviso desplegable en Colección, con el contador en Colección |
 | D4 | Colección en cuadrícula, con alternativa de lista compacta |
 | D4b | La tarjeta muestra: lo tengo, consola, año, progreso, versión PC, Game Pass, cómo se juega y tamaño |
 | D5 | Puntuación de 1 a 10 |

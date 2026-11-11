@@ -22,7 +22,6 @@ const TITLES = {
   "/collection": "collection",
   "/game": "game",
   "/discover": "discover",
-  "/review": "review",
   "/downloads": "downloads",
   "/tools": "tools",
   "/steam": "steam",
