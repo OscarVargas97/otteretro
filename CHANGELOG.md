@@ -2,9 +2,9 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
-## 0.5.2
+## 0.5.4 · GitLab y búsqueda web
 
-`feat/390-gitlab-releases` y `fix/392-claude-allowed-tools`
+`chore/394-release-054`, `feat/390-gitlab-releases` y `fix/392-claude-allowed-tools` · release a `main` en el canal Estable
 
 ### Nuevo
 - **Recetas de GitLab** (#390): un emulador o port cuya receta viene de GitLab (gitlab.com, `gitlab.*` o framagit.org) se instala y se actualiza como uno de GitHub. Sus releases se leen sin clave y una release futura cuenta como de desarrollo. Pegar un repo de GitLab en «Instalar desde una URL» también funciona.
