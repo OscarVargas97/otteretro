@@ -237,6 +237,26 @@ public class ToolUpdatesTests
         Assert.Equal("1.3.200", (await ToolUpdates.Latest(http, ryubing, "dev", default))!.Version);
     }
 
+    /// <summary>#390: GitLab da sus releases por su API; los archivos son los enlaces y la release futura es de desarrollo.</summary>
+    [Fact]
+    public async Task GitLabReleasesAreRead()
+    {
+        var fake = new Fake(new()
+        {
+            ["https://gitlab.com/api/v4/projects/a%2Fb/releases"] = """
+                [{"tag_name":"v2.0","upcoming_release":true,"released_at":"2026-12-01T00:00:00Z","assets":{"links":[]}},
+                 {"tag_name":"v1.0","description":"Notas","released_at":"2026-10-01T00:00:00Z","_links":{"self":"https://gitlab.com/a/b/-/releases/v1.0"},
+                  "assets":{"links":[{"name":"juego-win64.zip","url":"https://x/1","direct_asset_url":"https://gitlab.com/a/b/-/releases/v1.0/downloads/juego-win64.zip"}]}}]
+                """,
+        });
+        using var http = new HttpClient(fake);
+        var u = ToolUpdates.Source("https://gitlab.com/a/b")!;
+        Assert.Equal(new RecipeUpdates("gitlab", "a/b", "gitlab.com", Dev: true), u);
+        var stable = (await ToolUpdates.Latest(http, u, "stable", default, asset: @"^juego-win64\.zip$"))!;
+        Assert.Equal(("1.0", "https://gitlab.com/a/b/-/releases/v1.0/downloads/juego-win64.zip"), (stable.Version, stable.Download));
+        Assert.Equal("2.0", (await ToolUpdates.Latest(http, u, "dev", default))!.Version);
+    }
+
     [Fact]
     public async Task TheLatestIsTheNewestThatBringsTheWindowsFile()
     {

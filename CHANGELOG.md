@@ -2,6 +2,13 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
+## 0.5.2
+
+`feat/390-gitlab-releases`
+
+### Nuevo
+- **Recetas de GitLab** (#390): un emulador o port cuya receta viene de GitLab (gitlab.com, `gitlab.*` o framagit.org) se instala y se actualiza como uno de GitHub. Sus releases se leen sin clave y una release futura cuenta como de desarrollo. Pegar un repo de GitLab en «Instalar desde una URL» también funciona.
+
 ## 0.5.1 · Herramientas
 
 `chore/263-release-f5`, `chore/version-f5`, `feat/receta-linux`, `feat/384-port-por-enlace` y `feat/375-mejor-emulador-ficha` · F5 (#263, encuestas 19 a 23): emuladores, ports y herramientas instalados y al día, con perfiles por juego, recetas desde el catálogo y el mejor emulador por juego · release a `main` en el canal Estable.

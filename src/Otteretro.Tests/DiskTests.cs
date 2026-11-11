@@ -194,7 +194,7 @@ public class DiskTests
                 Assert.NotNull(r.Updates);
                 _ = new System.Text.RegularExpressions.Regex(r.Asset);
             }
-            if (r.Updates is { } u) Assert.Contains(u.Source, new[] { "github", "forgejo", "dolphin" });
+            if (r.Updates is { } u) Assert.Contains(u.Source, new[] { "github", "forgejo", "gitlab", "dolphin" });
             if (r.Updates?.DevPattern is { } dev) _ = new System.Text.RegularExpressions.Regex(dev);
             foreach (var path in r.Saves.Concat(r.Config).Concat(r.Content).Append(r.Detect)) Relative(r.Id, path);
             if (r.PerGame is { } g)
