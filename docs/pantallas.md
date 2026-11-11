@@ -210,6 +210,7 @@ Estados (§0.5): **vacío** (la nutria, «Escanear una carpeta» y «Explorar sa
 | **Recetas** | Lista de recetas, quién las escribió (Claude o el repositorio) y cuándo | Ver · Pedir a Claude la receta de algo nuevo |
 
 - Cuando hay **versiones nuevas**, aparece un contador y el botón **Actualizar seleccionados**. Nunca se actualiza solo (§8.4).
+- **Cómo se ve (#416, decisión 391):** cada pestaña es una lista (nombre, para qué es, insignia de estado) y la fila elegida abre su detalle a la derecha (una columna en pantallas angostas): acción principal, «Abrir su carpeta», versiones plegadas y «Más» (mover a otro disco, quitar). Las versiones nuevas salen en un aviso arriba y en el contador de cada pestaña; «Actualizar todo» espera a que el backend lo tenga. **Instalar** es un diálogo de 2 pasos: qué y desde dónde, y luego versión y archivo.
 
 ---
 

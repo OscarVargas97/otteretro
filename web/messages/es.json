@@ -1210,10 +1210,8 @@
     "noRecipe": "Sin receta",
     "noRecipeHelp": "Otteretro todavía no sabe cómo dejarlo portable ni reescribir sus rutas.",
     "sections": "Tipos de herramientas",
-    "pick": "Elige una herramienta para ver su detalle.",
     "none": "Nada de este tipo todavía.",
     "otherConsole": "Otras",
-    "recipe": "Receta",
     "move": "Mover a otra ubicación",
     "to": "A",
     "cancel": "Cancelar",
@@ -1242,12 +1240,13 @@
       "replaces": "Un port tiene una sola versión: la nueva reemplaza a la que tienes, en la misma carpeta. Tus partidas, mods y configuración se quedan (antes se respaldan) y el archivo de la vieja queda en tu librería.",
       "update": "Actualizar",
       "skip": "Omitir esta versión",
-      "badge": "Versión nueva",
       "gamesCount": "{count, plural, =0 {Ninguno de tus juegos la usa} one {La usa # juego} other {La usan # juegos}}",
       "more": "Más acciones de {name}",
       "gamesMore": "{list} y {count, plural, one {# más} other {# más}}",
       "queuedReplace": "Actualizando en su carpeta: míralo en el panel de tareas.",
-      "queued": "Instalando al lado de la que tienes: míralo en el panel de tareas."
+      "queued": "Instalando al lado de la que tienes: míralo en el panel de tareas.",
+      "banner": "{count, plural, one {# versión nueva} other {# versiones nuevas}}: {names}. Cada una se instala al lado de la que tienes, por si hay que volver (un port, en su lugar).",
+      "newVersion": "{version} nueva"
     },
     "install": {
       "open": {
@@ -1263,7 +1262,6 @@
       "other": "Otro, sin receta",
       "name": "Su nombre",
       "experimental": "{name} (experimental)",
-      "from": "Desde dónde",
       "fromKind": {
         "recipe": "Su receta",
         "url": "Desde su repo",
@@ -1273,19 +1271,27 @@
       "version": "Versión",
       "versionOptional": "Versión (si no, la del ejecutable)",
       "dev": "desarrollo",
-      "url": "URL del repo o del archivo",
-      "urlHint": "https://github.com/dueño/repo o la URL de un .zip",
-      "findReleases": "Ver sus releases",
       "noRepoReleases": "El repo no tiene releases con archivos para bajar.",
       "file": "Archivo",
       "pickExe": "¿Cuál es el ejecutable?",
-      "path": "Ruta de la carpeta o del zip",
-      "pathHelp": "Escribe la ruta completa en este equipo, por ejemplo D:\\Descargas\\emulador.zip. Se copia: el original no se toca.",
       "adopt": "Es uno que instalé a mano (se adopta copiándolo)",
       "beside": "Cada versión va en su propia carpeta, al lado de las otras, y el archivo original queda en tu librería.",
       "cancel": "Cancelar",
       "submit": "Instalar",
-      "queued": "Quedó en el panel de tareas."
+      "queued": "Quedó en el panel de tareas.",
+      "title": "{what} · paso {step} de 2",
+      "origin": "Pega su repo, la URL de un archivo o la ruta de una carpeta o un zip de este equipo",
+      "originOptional": "O pega su repo, la URL de un archivo o la ruta de una carpeta o un zip (si no, desde su receta)",
+      "originHint": "https://github.com/dueño/repo, la URL de un .zip o D:Descargasemulador.zip",
+      "recognized": {
+        "recipe": "Desde su receta del catálogo: en el paso 2 eliges la versión.",
+        "repo": "Es un repo: en el paso 2 salen sus releases.",
+        "file": "Es la URL de un archivo: se baja tal cual.",
+        "path": "Es una carpeta o un zip de este equipo: se copia, el original no se toca."
+      },
+      "next": "Seguir",
+      "back": "Atrás",
+      "moreOptions": "Más opciones · otra versión, otro archivo, adoptar"
     },
     "library": {
       "portHelp": "Un port tiene una sola versión instalada. De las anteriores queda su archivo: «Reinstalar» la deja como la instalada, con tus partidas.",
@@ -1309,13 +1315,16 @@
       "yes": "Sí",
       "no": "No",
       "current": "En uso: {version}",
-      "more": "{count, plural, one {▾ # versión más} other {▾ # versiones más}}",
-      "details": "▾ Detalles",
       "uninstall": "Quitar el emulador",
       "uninstallHelp": "Borra todas sus versiones instaladas. Sus partidas, su configuración y sus perfiles se quedan y vuelven si lo instalas de nuevo. Escribe «{name}» para confirmar.",
       "uninstallName": "Nombre del emulador",
-      "uninstallConfirm": "Quitar"
-    }
+      "uninstallConfirm": "Quitar",
+      "versions": "Versiones ({count}) · la marcada es la que se usa",
+      "moreActions": "Más · mover de disco, quitar"
+    },
+    "systemMissingCount": "{count, plural, one {Falta #} other {Faltan #}}",
+    "systemComplete": "Completo",
+    "systemUploadFor": "Subir un archivo para {name}"
   },
   "downloads": {
     "add": "Capturar enlaces",

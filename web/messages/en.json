@@ -1210,10 +1210,8 @@
     "noRecipe": "No recipe",
     "noRecipeHelp": "Otteretro does not know yet how to make it portable or rewrite its paths.",
     "sections": "Tool types",
-    "pick": "Pick a tool to see its details.",
     "none": "Nothing of this type yet.",
     "otherConsole": "Other",
-    "recipe": "Recipe",
     "move": "Move to another location",
     "to": "To",
     "cancel": "Cancel",
@@ -1242,12 +1240,13 @@
       "replaces": "A port has a single version: the new one replaces the one you have, in the same folder. Your saves, mods and settings stay (they are backed up first) and the old one's file stays in your library.",
       "update": "Update",
       "skip": "Skip this version",
-      "badge": "New version",
       "gamesCount": "{count, plural, =0 {None of your games use it} one {Used by # game} other {Used by # games}}",
       "more": "More actions for {name}",
       "gamesMore": "{list} and {count, plural, one {# more} other {# more}}",
       "queuedReplace": "Updating in its folder: see it in the tasks panel.",
-      "queued": "Installing next to the one you have: see it in the tasks panel."
+      "queued": "Installing next to the one you have: see it in the tasks panel.",
+      "banner": "{count, plural, one {# new version} other {# new versions}}: {names}. Each one is installed next to the one you have, in case you need to go back (a port, in its place).",
+      "newVersion": "{version} new"
     },
     "install": {
       "open": {
@@ -1263,7 +1262,6 @@
       "other": "Other, without a recipe",
       "name": "Its name",
       "experimental": "{name} (experimental)",
-      "from": "From where",
       "fromKind": {
         "recipe": "Its recipe",
         "url": "From its repo",
@@ -1273,19 +1271,27 @@
       "version": "Version",
       "versionOptional": "Version (otherwise the executable's)",
       "dev": "development",
-      "url": "Repo or file URL",
-      "urlHint": "https://github.com/owner/repo or the URL of a .zip",
-      "findReleases": "See its releases",
       "noRepoReleases": "The repo has no releases with files to download.",
       "file": "File",
       "pickExe": "Which one is the executable?",
-      "path": "Path of the folder or zip",
-      "pathHelp": "Type the full path on this computer, for example D:\\Downloads\\emulator.zip. It is copied: the original is left untouched.",
       "adopt": "I installed it by hand (it is adopted by copying it)",
       "beside": "Each version goes in its own folder, next to the others, and the original file stays in your library.",
       "cancel": "Cancel",
       "submit": "Install",
-      "queued": "Added to the tasks panel."
+      "queued": "Added to the tasks panel.",
+      "title": "{what} · step {step} of 2",
+      "origin": "Paste its repo, a file URL or the path of a folder or zip on this computer",
+      "originOptional": "Or paste its repo, a file URL or the path of a folder or zip (otherwise, from its recipe)",
+      "originHint": "https://github.com/owner/repo, the URL of a .zip or D:Downloadsemulator.zip",
+      "recognized": {
+        "recipe": "From its catalog recipe: you pick the version in step 2.",
+        "repo": "It is a repo: its releases show up in step 2.",
+        "file": "It is a file URL: it is downloaded as is.",
+        "path": "It is a folder or zip on this computer: it is copied, the original is left untouched."
+      },
+      "next": "Continue",
+      "back": "Back",
+      "moreOptions": "More options · another version, another file, adopt"
     },
     "library": {
       "portHelp": "A port has a single installed version. The earlier ones keep their file: «Reinstall» makes it the installed one, with your saves.",
@@ -1309,13 +1315,16 @@
       "yes": "Yes",
       "no": "No",
       "current": "In use: {version}",
-      "more": "{count, plural, one {▾ # more version} other {▾ # more versions}}",
-      "details": "▾ Details",
       "uninstall": "Remove the emulator",
       "uninstallHelp": "Deletes all its installed versions. Its saves, settings and profiles stay and come back if you install it again. Type “{name}” to confirm.",
       "uninstallName": "Emulator name",
-      "uninstallConfirm": "Remove"
-    }
+      "uninstallConfirm": "Remove",
+      "versions": "Versions ({count}) · the marked one is in use",
+      "moreActions": "More · move to another disk, remove"
+    },
+    "systemMissingCount": "{count, plural, one {# missing} other {# missing}}",
+    "systemComplete": "Complete",
+    "systemUploadFor": "Upload a file for {name}"
   },
   "downloads": {
     "add": "Grab links",
