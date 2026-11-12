@@ -659,7 +659,7 @@
       "noEmulator": "Ese juego no tiene con qué jugarse: instala un emulador o un port para su consola, o elige su emulador base.",
       "noGame": "El emulador no puede abrir el juego: falta la ROM, su disco no está conectado o el emulador no sabe abrirla.",
       "launchFailed": "No se pudo abrir el juego: {detail}",
-      "exeMissing": "No está «{exe}» en {folder}: la instalación quedó incompleta o la receta no coincide con lo que se bajó. Reinstálalo desde Herramientas.",
+      "exeMissing": "No está «{exe}» en {folder}: la instalación quedó incompleta o la receta no coincide con lo que se bajó. Vuelve a instalarlo con «Instalar», en la ficha del juego.",
       "badOption": "Esa opción ya no sirve para esta versión del juego.",
       "badOrder": "El orden tiene que tener los cuatro criterios, una vez cada uno."
     }
@@ -1358,9 +1358,11 @@
       "yes": "Sí",
       "no": "No",
       "current": "En uso: {version}",
-      "uninstall": "Quitar el emulador",
+      "uninstall": "Desinstalar",
+      "broken": "A esta instalación le falta su programa: quedó incompleta o es de una versión vieja de la receta.",
+      "installAgain": "Instalar de nuevo desde la receta",
       "uninstallHelp": "Borra todas sus versiones instaladas. Sus partidas, su configuración y sus perfiles se quedan y vuelven si lo instalas de nuevo. Escribe «{name}» para confirmar.",
-      "uninstallName": "Nombre del emulador",
+      "uninstallName": "Nombre",
       "uninstallConfirm": "Quitar",
       "versions": "Versiones ({count}) · la marcada es la que se usa",
       "moreActions": "Más · mover de disco, quitar"

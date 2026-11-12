@@ -7123,6 +7123,7 @@ export interface components {
             installedAt: string;
             path: null | string;
             inUse?: boolean;
+            broken?: boolean;
         };
         ExecutableRequest: {
             path: string;

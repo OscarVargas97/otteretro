@@ -80,7 +80,8 @@ public static class Ports
         using var c = db.Open();
         var rows = c.Query<Row>($"{Select} {where}", args).ToList();
         // La instalada, no las que solo quedan en la librería (decisión 325).
-        var installed = Installs.List(db).Where(i => i.Path is not null).ToLookup(i => i.EmulatorId, i => i.Version);
+        // Sin el ejecutable de su receta no cuenta: la ficha ofrece «Instalar» (#446).
+        var installed = Installs.List(db).Where(i => i.Path is not null && !i.Broken).ToLookup(i => i.EmulatorId, i => i.Version);
         return rows.Select(r =>
         {
             var recipe = RecipeOf(r.Link);

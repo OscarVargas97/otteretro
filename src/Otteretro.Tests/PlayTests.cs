@@ -89,7 +89,7 @@ public class PlayTests
             GameLauncher.Launch = (_, _, _) => Assert.Fail("no debería lanzar");
             Assert.Equal(1, GameLauncher.Run(f.Db, f.Config, 20));
         });
-        Assert.Equal([$"No está «eden.exe» en {folder}: la instalación quedó incompleta o la receta no coincide con lo que se bajó. Reinstálalo desde Herramientas."], shown);
+        Assert.Equal([$"No está «eden.exe» en {folder}: la instalación quedó incompleta o la receta no coincide con lo que se bajó. Vuelve a instalarlo con «Instalar», en la ficha del juego."], shown);
         using var c = f.Db.Open();
         Assert.Equal(0, c.ExecuteScalar<long>("SELECT count(*) FROM play_session"));
     }

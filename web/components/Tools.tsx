@@ -457,7 +457,12 @@ function ToolDetail({ card, kind, recipe, forWhat, badge, ask, onAsked, onPick, 
     <VersionRow key={i?.version ?? x!.path} kind={kind} i={i} x={x} busy={busy} confirm={!!i && confirm === i.version}
       onConfirm={(on) => setConfirm(on ? i!.version : null)} act={(action) => act.mutate({ action, i: i! })} />
   );
-  const uninstall = kind === "emulator" && card.installs.length > 0;
+  // Desde la receta, no desde la librería: lo guardado puede ser lo que dejó la instalación rota (#446).
+  const again = useMutation({
+    mutationFn: () => installRecipe(card.id),
+    onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+  const uninstall = kind !== "complement" && card.installs.length > 0;
   return (
     <section className="panel emulator-card" style={{ gap: 8 }} aria-label={card.name}>
       <div className="version-row">
@@ -474,10 +479,12 @@ function ToolDetail({ card, kind, recipe, forWhat, badge, ask, onAsked, onPick, 
         {!recipe && !card.tools.some((x) => x.recipeId) && <span className="ot-badge ot-badge-info" title={t("noRecipeHelp")}>{t("noRecipe")}</span>}
       </span>
       {updates.map((u) => <UpdateRow key={`${u.recipeId}-${u.channel}`} u={u} />)}
+      {current?.broken && <p className="small" role="status" style={{ margin: 0 }}>{t("library.broken")}</p>}
       <div className="sentence">
-        {current && !current.path && <button className="ot-btn ot-btn-sm ot-btn-primary" type="button" disabled={busy} onClick={() => act.mutate({ action: "reinstall", i: current })}>{t("library.reinstall")}</button>}
+        {current?.broken && recipe && <button className="ot-btn ot-btn-sm ot-btn-primary" type="button" disabled={again.isPending || again.isSuccess} onClick={() => again.mutate()}>{t("library.installAgain")}</button>}
+        {current && !current.path &&<button className="ot-btn ot-btn-sm ot-btn-primary" type="button" disabled={busy} onClick={() => act.mutate({ action: "reinstall", i: current })}>{t("library.reinstall")}</button>}
         {/* «Abrir» el programa y «Abrir carpeta» (#432); un complemento no se abre solo. */}
-        {current?.path && kind !== "complement" && <button className="ot-btn ot-btn-sm" type="button" disabled={busy} onClick={() => act.mutate({ action: "launch", i: current })}>{t("library.launch")}</button>}
+        {current?.path && !current.broken && kind !== "complement" && <button className="ot-btn ot-btn-sm" type="button" disabled={busy} onClick={() => act.mutate({ action: "launch", i: current })}>{t("library.launch")}</button>}
         {current?.path && <button className="ot-btn ot-btn-sm ot-btn-ghost" type="button" disabled={busy} onClick={() => act.mutate({ action: "open", i: current })}>{t("library.open")}</button>}
       </div>
       {ask && (
@@ -512,7 +519,9 @@ function ToolDetail({ card, kind, recipe, forWhat, badge, ask, onAsked, onPick, 
           ))}
         </div>
       )}
-      {act.isSuccess && act.variables.action === "reinstall" && <p className="small muted" role="status" style={{ margin: 0 }}>{t("library.queued")}</p>}
+      {again.isSuccess && <p className="small muted" role="status" style={{ margin: 0 }}>{t("forks.queued")}</p>}
+      {again.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(again.error)}</p>}
+      {act.isSuccess && act.variables.action === "reinstall" &&<p className="small muted" role="status" style={{ margin: 0 }}>{t("library.queued")}</p>}
       {act.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(act.error)}</p>}
     </section>
   );
