@@ -365,6 +365,10 @@ public static class CatalogEndpoints
             return TypedResults.Ok();
         });
 
+        // «Detener» (#454): termina el juego abierto por Otteretro; la sesión la cierra quien la abrió.
+        api.MapPost("/games/{id:long}/stop", Results<Ok, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is not { } db ? NoData() : GameLauncher.Stop(db, id) is { } error ? TypedResults.Conflict(error) : TypedResults.Ok());
+
         // Las últimas sesiones del juego y si hay una abierta («Jugando…», #400).
         api.MapGet("/games/{id:long}/sessions", Results<Ok<List<PlaySession>>, Conflict<ApiError>> (long id, AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(GameLauncher.Recent(db, id)) : NoData());

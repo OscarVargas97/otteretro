@@ -659,6 +659,8 @@
       "noEmulator": "There's nothing to play this game with: install an emulator or port for its console, or choose its base emulator.",
       "noGame": "The emulator can't open the game: the ROM is missing, its disk isn't connected or the emulator can't open it.",
       "launchFailed": "Couldn't open the game: {detail}",
+      "notPlaying": "There's no game opened by Otteretro to stop.",
+      "stopFailed": "Couldn't stop the game. Close it from Task Manager.",
       "exeMissing": "\"{exe}\" isn't in {folder}: the install is incomplete or the recipe doesn't match what was downloaded. Install it again with \"Install\" on the game's page.",
       "badOption": "That option no longer applies to this version of the game.",
       "badOrder": "The order must include the four criteria, once each."
@@ -1600,6 +1602,8 @@
     "installing": "Installing {name}…",
     "playing": "Playing…",
     "playingHint": "When you close the game, the session is logged automatically.",
+    "stop": "Stop",
+    "stopConfirm": "Stop? Unsaved progress is lost",
     "noOption": "Nothing to play it with.",
     "openTools": "Open Tools",
     "with": "With {name}",

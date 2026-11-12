@@ -18,7 +18,7 @@ public static class WindowsGame
     [SupportedOSPlatform("windows")]
     public static void Run(string exe, IReadOnlyList<string> args, string folder)
     {
-        var job = CreateJobObjectW(0, null);
+        var job = CreateJobObjectW(0, JobName(Environment.ProcessId));
         var port = CreateIoCompletionPort(-1, 0, 0, 1);
         try
         {
@@ -49,6 +49,22 @@ public static class WindowsGame
             if (port != 0) CloseHandle(port);
             if (job != 0) CloseHandle(job);
         }
+    }
+
+    /// <summary>El nombre del job de un `otteretro jugar` (#454): con él, «Detener» lo encuentra desde la app.</summary>
+    static string JobName(int waiter) => $@"Local\Otteretro-jugar-{waiter}";
+
+    /// <summary>
+    /// «Detener» (#454): termina el job del `otteretro jugar` <paramref name="waiter"/>, el juego y lo que abrió. Ese proceso ve el job
+    /// vacío y cierra la sesión como al salir. False si ya no está.
+    /// </summary>
+    [SupportedOSPlatform("windows")]
+    public static bool Stop(int waiter)
+    {
+        var job = OpenJobObjectW(0x8 /* JOB_OBJECT_TERMINATE */, false, JobName(waiter));
+        if (job == 0) return false;
+        try { return TerminateJobObject(job, 1); }
+        finally { CloseHandle(job); }
     }
 
     /// <summary>Cuánto se espera a que arranque un juego abierto por Steam (T7: solo los primeros segundos).</summary>
@@ -128,6 +144,10 @@ public static class WindowsGame
 
     [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     static extern nint CreateJobObjectW(nint attributes, string? name);
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    static extern nint OpenJobObjectW(uint access, bool inherit, string name);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern bool TerminateJobObject(nint job, uint exitCode);
     [DllImport("kernel32.dll", SetLastError = true)]
     static extern nint CreateIoCompletionPort(nint file, nint existing, nint key, uint threads);
     [DllImport("kernel32.dll", SetLastError = true)]

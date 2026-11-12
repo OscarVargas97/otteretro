@@ -60,6 +60,12 @@ export function PlayButton({ game, owned, onChange, compact }: { game: Pick<Game
     mutationFn: (version: number) => request<void>(`/api/versions/${version}/play`, { method: "POST" }),
     onSuccess: () => { setLaunching(true); cache.invalidateQueries({ queryKey: ["sessions", gameId] }); },
   });
+  // «Detener» (#454) pide un segundo clic: se pierde lo no guardado.
+  const [confirmStop, setConfirmStop] = useState(false);
+  const stop = useMutation({
+    mutationFn: () => request<void>(`/api/games/${gameId}/stop`, { method: "POST" }),
+    onSettled: () => { setConfirmStop(false); setLaunching(false); cache.invalidateQueries({ queryKey: ["sessions", gameId] }); },
+  });
 
   const box = compact ? "play-box is-compact" : "play-box";
   if (!owned) return (
@@ -78,7 +84,9 @@ export function PlayButton({ game, owned, onChange, compact }: { game: Pick<Game
   const installing = install.isPending || (install.isSuccess && (!task || task.status === "queued" || task.status === "running"));
   const playing = launching || !!sessions.data?.some((s) => s.playing);
   const last = sessions.data?.find((s) => !s.playing);
-  const failure = install.error ?? start.error;
+  // Lo abierto por Steam lo lleva Steam: solo se detiene lo que abrió Otteretro.
+  const stoppable = !!sessions.data?.some((s) => s.playing && s.launcher === "otteretro");
+  const failure = install.error ?? start.error ?? stop.error;
   if (play.isPending) return <div className={box}><button className="ot-btn ot-btn-primary" type="button" disabled>{t("play")}</button></div>;
 
   return (
@@ -98,6 +106,12 @@ export function PlayButton({ game, owned, onChange, compact }: { game: Pick<Game
               {playing ? t("playing") : t("play")}
             </button>
           )}
+      {stoppable && (
+        <button className="ot-btn" type="button" disabled={stop.isPending}
+          onClick={() => (confirmStop ? stop.mutate() : setConfirmStop(true))}>
+          {confirmStop ? t("stopConfirm") : t("stop")}
+        </button>
+      )}
       {compact && chosen && <span className="small muted">{label(chosen)}</span>}
       {!compact && <span className="small muted">
         {!v || !chosen ? <>{t("noOption")} <Link href="/tools/">{t("openTools")}</Link></> : (
