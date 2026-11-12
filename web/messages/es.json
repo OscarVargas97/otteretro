@@ -1365,7 +1365,7 @@
       "uninstallName": "Nombre",
       "uninstallConfirm": "Quitar",
       "versions": "Versiones ({count}) · la marcada es la que se usa",
-      "moreActions": "Más · mover de disco, quitar"
+      "moreActions": "Más · mover de disco"
     },
     "systemMissingCount": "{count, plural, one {Falta #} other {Faltan #}}",
     "systemComplete": "Completo",
