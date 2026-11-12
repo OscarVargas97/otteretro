@@ -324,6 +324,12 @@ public static class Installs
                     Directory.Move(partial + ".x", partial);
                 }
             }
+            else if (target.Recipe?.Installer is { } args)
+            {
+                // Un instalador (NX2navi-Setup.exe, #443): se corre en silencio sobre la carpeta a medias y de ahí sigue como un zip.
+                Directory.CreateDirectory(partial);
+                await RunInstaller(stored, args.Select(a => a.Replace("{dir}", partial)), partial, ct);
+            }
             else
             {
                 // Un .exe con la versión en el nombre (Steam ROM Manager) va con el nombre que busca la receta (`saveAs`, #274).
@@ -371,6 +377,23 @@ public static class Installs
     }
 
     /// <summary>Instaladores que traen algunas releases junto al emulador (Fritchii: vc_redist.x64.exe): no son su ejecutable.</summary>
+    static async Task RunInstaller(string exe, IEnumerable<string> args, string partial, CancellationToken ct)
+    {
+        using var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe, args) { WorkingDirectory = System.IO.Path.GetDirectoryName(exe)! })
+            ?? throw new TaskException(ApiError.Of("install.installerFailed", ("code", "-1")));
+        try { await p.WaitForExitAsync(ct); }
+        catch (OperationCanceledException)
+        {
+            p.Kill(entireProcessTree: true);
+            await p.WaitForExitAsync(CancellationToken.None);
+            Directory.Delete(partial, recursive: true);
+            throw;
+        }
+        if (p.ExitCode == 0) return;
+        Directory.Delete(partial, recursive: true);
+        throw new TaskException(ApiError.Of("install.installerFailed", ("code", p.ExitCode.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+    }
+
     static readonly System.Text.RegularExpressions.Regex Installer = new(@"^(vc_?redist|unins|setup|install|crashpad|updater)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
     /// <summary>
