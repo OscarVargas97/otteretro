@@ -581,6 +581,7 @@
         "done": "{name} {version} installed to {path}"
       },
       "notInstalled": "That version isn't registered: install it first.",
+      "noProgram": "Its program wasn't found in the folder: open it with “Open folder”.",
       "notInLibrary": "Version {version} isn't in your library: it can't be reinstalled without downloading it.",
       "inUse": "Your profiles use version {version}: move them to another one before deleting it.",
       "removeFailed": "The installation couldn't be deleted: {detail}",
@@ -1199,7 +1200,7 @@
       "emulator": "Emulators",
       "port": "Ports",
       "complement": "Add-ons",
-      "system": "System",
+      "system": "BIOS and firmware",
       "tool": "Tools"
     },
     "forks": {
@@ -1246,10 +1247,14 @@
       "gamesMore": "{list} and {count, plural, one {# more} other {# more}}",
       "queuedReplace": "Updating in its folder: see it in the tasks panel.",
       "queued": "Installing next to the one you have: see it in the tasks panel.",
-      "banner": "{count, plural, one {# new version} other {# new versions}}: {names}. Each one is installed next to the one you have, in case you need to go back (a port, in its place).",
+      "banner": "{count, plural, one {# new version} other {# new versions}}: {names}",
+      "bannerBeside": "the current version stays next to it, in case you need to go back (a port is updated in place)",
+      "updateAll": "Update all",
+      "queuedAll": "Updating: see it in the tasks panel.",
       "newVersion": "{version} new"
     },
     "install": {
+      "header": "Install…",
       "open": {
         "emulator": "Install an emulator",
         "port": "Install a port",
@@ -1311,7 +1316,8 @@
       "remove": "Delete the installation",
       "removeConfirm": "Delete",
       "keep": "Keep",
-      "open": "Open its folder",
+      "open": "Open folder",
+      "launch": "Open",
       "askProfiles": "Move the profiles to {version}?",
       "yes": "Yes",
       "no": "No",

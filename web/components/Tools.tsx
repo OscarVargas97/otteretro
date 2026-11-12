@@ -4,13 +4,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useFormatter } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useConsoles } from "@/components/Catalog";
 import { librariesQuery, toolsQuery } from "@/components/Libraries";
 import { LoadProfile } from "@/components/ProfileShare";
 import { Empty } from "@/components/Shell";
 import { Tabs } from "@/components/Tabs";
-import { UpdateRow, UpdatesStatus } from "@/components/ToolUpdates";
+import { UpdateRow, UpdatesNotice } from "@/components/ToolUpdates";
 import { nestedForkIds } from "@/lib/forks";
 import { toolUpdatesQuery } from "@/lib/queries";
 import { request } from "@/lib/client";
@@ -29,51 +30,47 @@ export const emulatorsQuery = { queryKey: ["emulators"], queryFn: () => request<
 const systemQuery = { queryKey: ["system"], queryFn: () => request<SystemConsole[]>("/api/system") };
 
 /**
- * Herramientas (§5.1, #193, #194, #200, #296, #304, #348, #416): el inventario por tipo, en pestañas; arriba, el aviso de
- * versiones nuevas; en cada pestaña una barra con instalar, cargar perfil y «Revisar ahora», y una lista con el detalle de lo elegido al lado.
+ * Herramientas (§5.1, #193, #194, #200, #296, #304, #348, #416, #432): el inventario por tipo, en pestañas; debajo, el aviso de
+ * versiones nuevas con «Actualizar todo»; una lista con el detalle de lo elegido al lado. «Instalar…» va en la cabecera.
  */
 export function ToolsPage() {
   const t = useTranslations("tools");
-  const format = useFormatter();
   const router = useRouter();
   const asked = useSearchParams().get("k");
   const kind: Kind = KINDS.find((k) => k === asked) ?? "emulator";
-  // Cada pestaña cuenta lo pendiente: versiones nuevas (decisión 320) o, en Sistema, las consolas a las que les falta algo.
+  // Cada pestaña cuenta lo pendiente: versiones nuevas (decisión 320) o, en BIOS y firmware, las consolas a las que les falta algo.
   const updates = useQuery(toolUpdatesQuery).data ?? [];
   const missing = (useQuery(systemQuery).data ?? []).filter((c) => c.missing.length > 0).length;
   const count = (k: Kind) => k === "system" ? missing : updates.filter((u) => u.kind === k).length;
-  const names = [...new Set(updates.map((u) => u.name))];
   return (
     <div className="tools-page">
-      {names.length > 0 && <p className="panel small" role="status" style={{ margin: "0 0 12px" }}>{t("updates.banner", { count: updates.length, names: format.list(names) })}</p>}
+      {kind !== "complement" && kind !== "system" && <TopActions key={kind} kind={kind} />}
       <Tabs tabs={KINDS.map((k) => ({ id: k, label: t(`kind.${k}`), count: count(k), countLabel: t(k === "system" ? "systemMissingCount" : "updates.count", { count: count(k) }) }))}
         current={kind} label={t("sections")} panel="tools-panel" onSelect={(k) => router.push(`/tools/?k=${k}`)} />
+      <UpdatesNotice />
       <section className="sec" id="tools-panel" role="tabpanel" aria-labelledby={`tab-${kind}`}>
-        {kind === "system" ? <SystemPanel /> : (
-          <div style={{ display: "grid", gap: 12 }}>
-            {kind !== "complement" && <ToolBar key={kind} kind={kind} />}
-            <ToolList key={kind} kind={kind} />
-          </div>
-        )}
+        {kind === "system" ? <SystemPanel /> : <ToolList key={kind} kind={kind} />}
       </section>
     </div>
   );
 }
 
-/** La barra de arriba (#348): «Instalar…» (que abre el diálogo de dos pasos, #416), «Cargar perfil» (Emuladores) y «Revisar ahora». */
-function ToolBar({ kind }: { kind: Installable }) {
+/**
+ * En la cabecera, como en el diseño (#432): «Instalar…» (que abre el diálogo de dos pasos, #416) y, en Emuladores, «Cargar perfil».
+ * Van por un portal a la barra de arriba; con useLayoutEffect llegan antes de pintar, así no se ve el salto.
+ */
+function TopActions({ kind }: { kind: Installable }) {
   const t = useTranslations("tools.install");
   const dialog = useRef<HTMLDialogElement>(null);
   const [opened, setOpened] = useState(0); // cada vez que se abre, el diálogo empieza de cero
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => setSlot(document.getElementById("top-actions")), []);
   return (
     <>
-      <div className="panel version-row">
-        <span className="sentence">
-          <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" onClick={() => { setOpened(opened + 1); dialog.current?.showModal(); }}>{t(`open.${kind}`)}</button>
-          {kind === "emulator" && <LoadProfile />}
-        </span>
-        <UpdatesStatus kind={kind} />
-      </div>
+      {slot && createPortal(<>
+        {kind === "emulator" && <LoadProfile />}
+        <button className="ot-btn ot-btn-primary" type="button" onClick={() => { setOpened(opened + 1); dialog.current?.showModal(); }}>{t("header")}</button>
+      </>, slot)}
       <dialog ref={dialog} className="ot-dialog" aria-labelledby="install-title">
         {opened > 0 && <InstallDialog key={opened} kind={kind} onClose={() => dialog.current?.close()} />}
       </dialog>
@@ -337,7 +334,7 @@ function InstallDialog({ kind, onClose }: { kind: Installable; onClose: () => vo
 
 /** Lo de un emulador, port o herramienta: sus versiones registradas y lo que hay en disco. Un complemento, una instalación. */
 type Card = { id: string; name: string; installs: EmulatorInstall[]; tools: ToolInfo[] };
-type Act = { action: "use" | "remove" | "reinstall" | "open"; i: EmulatorInstall };
+type Act = { action: "use" | "remove" | "reinstall" | "open" | "launch"; i: EmulatorInstall };
 
 /** La versión que se muestra de una tarjeta: la que se usa (o la última registrada) y su carpeta en disco. */
 const currentOf = (card: Card) => {
@@ -479,7 +476,9 @@ function ToolDetail({ card, kind, recipe, forWhat, badge, ask, onAsked, onPick, 
       {updates.map((u) => <UpdateRow key={`${u.recipeId}-${u.channel}`} u={u} />)}
       <div className="sentence">
         {current && !current.path && <button className="ot-btn ot-btn-sm ot-btn-primary" type="button" disabled={busy} onClick={() => act.mutate({ action: "reinstall", i: current })}>{t("library.reinstall")}</button>}
-        {current?.path && <button className="ot-btn ot-btn-sm" type="button" disabled={busy} onClick={() => act.mutate({ action: "open", i: current })}>{t("library.open")}</button>}
+        {/* «Abrir» el programa y «Abrir carpeta» (#432); un complemento no se abre solo. */}
+        {current?.path && kind !== "complement" && <button className="ot-btn ot-btn-sm" type="button" disabled={busy} onClick={() => act.mutate({ action: "launch", i: current })}>{t("library.launch")}</button>}
+        {current?.path && <button className="ot-btn ot-btn-sm ot-btn-ghost" type="button" disabled={busy} onClick={() => act.mutate({ action: "open", i: current })}>{t("library.open")}</button>}
       </div>
       {ask && (
         <div className="sentence" role="status">

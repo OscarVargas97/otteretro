@@ -581,6 +581,7 @@
         "done": "{name} {version} instalado en {path}"
       },
       "notInstalled": "Esa versión no está registrada: instálala primero.",
+      "noProgram": "No se encontró su programa en la carpeta: ábrela con «Abrir carpeta».",
       "notInLibrary": "La versión {version} no está en tu librería: no se puede reinstalar sin bajarla.",
       "inUse": "La versión {version} la usan tus perfiles: pasa los perfiles a otra antes de borrarla.",
       "removeFailed": "No se pudo borrar la instalación: {detail}",
@@ -1199,7 +1200,7 @@
       "emulator": "Emuladores",
       "port": "Ports",
       "complement": "Complementos",
-      "system": "Sistema",
+      "system": "BIOS y firmware",
       "tool": "Herramientas"
     },
     "forks": {
@@ -1246,10 +1247,14 @@
       "gamesMore": "{list} y {count, plural, one {# más} other {# más}}",
       "queuedReplace": "Actualizando en su carpeta: míralo en el panel de tareas.",
       "queued": "Instalando al lado de la que tienes: míralo en el panel de tareas.",
-      "banner": "{count, plural, one {# versión nueva} other {# versiones nuevas}}: {names}. Cada una se instala al lado de la que tienes, por si hay que volver (un port, en su lugar).",
+      "banner": "{count, plural, one {# versión nueva} other {# versiones nuevas}}: {names}",
+      "bannerBeside": "la versión de ahora queda al lado, por si hay que volver (un port se actualiza en su lugar)",
+      "updateAll": "Actualizar todo",
+      "queuedAll": "Actualizando: míralo en el panel de tareas.",
       "newVersion": "{version} nueva"
     },
     "install": {
+      "header": "Instalar…",
       "open": {
         "emulator": "Instalar un emulador",
         "port": "Instalar un port",
@@ -1311,7 +1316,8 @@
       "remove": "Borrar la instalación",
       "removeConfirm": "Borrar",
       "keep": "Conservar",
-      "open": "Abrir su carpeta",
+      "open": "Abrir carpeta",
+      "launch": "Abrir",
       "askProfiles": "¿Pasar los perfiles a la {version}?",
       "yes": "Sí",
       "no": "No",

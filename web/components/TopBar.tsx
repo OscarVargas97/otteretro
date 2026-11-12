@@ -67,6 +67,8 @@ export function TopBar({ title, crumbs }: { title: string; crumbs?: "/saga" | "/
     <header className="top" ref={header}>
       <h1 className={crumbs ? "sr-only" : undefined}>{title}</h1>
       {crumbs && <Suspense fallback={null}><Crumbs path={crumbs} /></Suspense>}
+      {/* Las acciones de la pantalla (Herramientas › «Instalar…», #432) llegan aquí con un portal. */}
+      <span id="top-actions" style={{ display: "contents" }} />
       <button className="search" type="button" onClick={() => setSearching(true)}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
           <circle cx="11" cy="11" r="7" />

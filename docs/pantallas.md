@@ -206,11 +206,11 @@ Estados (§0.5): **vacío** (la nutria, «Escanear una carpeta» y «Explorar sa
 | **Emuladores** | Por consola: predeterminado y alternativos (#72), versiones instaladas lado a lado, cuál usa cada juego, compatibilidad | Instalar · **Actualizar** (con migración y copia previa, §8.4) · Volver a una versión · Hacer predeterminado · Abrir configuración · Detectar instalados a mano |
 | **Ports** | Ports instalados y **ports nuevos** de la lista (Recompendium, §11.1), con su estado; cada port aparece también en su consola y en la ficha del juego (#193) | Instalar · Actualizar · Ver qué juego cubre |
 | **Complementos** | Texturas, shaders, ReShade y mods, agrupados por emulador o port | Instalar · Actualizar · Activar o desactivar |
-| **Sistema** | BIOS, keys y firmware por consola, con versión y si están bien (§8.5) | **Subir archivo** · Ver qué emuladores lo usan · Avisos de lo que falta |
+| **BIOS y firmware** (antes «Sistema», #432) | BIOS, keys y firmware por consola, con versión y si están bien (§8.5) | **Subir archivo** · Ver qué emuladores lo usan · Avisos de lo que falta |
 | **Recetas** | Lista de recetas, quién las escribió (Claude o el repositorio) y cuándo | Ver · Pedir a Claude la receta de algo nuevo |
 
 - Cuando hay **versiones nuevas**, aparece un contador y el botón **Actualizar seleccionados**. Nunca se actualiza solo (§8.4).
-- **Cómo se ve (#416, decisión 391):** cada pestaña es una lista (nombre, para qué es, insignia de estado) y la fila elegida abre su detalle a la derecha (una columna en pantallas angostas): acción principal, «Abrir su carpeta», versiones plegadas y «Más» (mover a otro disco, quitar). Las versiones nuevas salen en un aviso arriba y en el contador de cada pestaña; «Actualizar todo» espera a que el backend lo tenga. **Instalar** es un diálogo de 2 pasos: qué y desde dónde, y luego versión y archivo.
+- **Cómo se ve (#416, decisión 391):** cada pestaña es una lista (nombre, para qué es, insignia de estado) y la fila elegida abre su detalle a la derecha (una columna en pantallas angostas): acción principal, «Abrir» (lanza el programa), «Abrir carpeta», versiones plegadas y «Más» (mover a otro disco, quitar). Las versiones nuevas salen en un aviso bajo las pestañas, con «Actualizar todo» (instala cada versión nueva al lado de la actual, #432), y en el contador de cada pestaña; el aviso está siempre (sin novedades dice «Todo al día» y «Revisar ahora») para no empujar el contenido al llegar. **Instalar…** va en la cabecera de la página (Emuladores, Ports y Herramientas; en Emuladores, con «Cargar perfil»), y es un diálogo de 2 pasos: qué y desde dónde, y luego versión y archivo.
 
 ---
 
