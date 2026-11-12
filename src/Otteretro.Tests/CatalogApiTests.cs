@@ -206,4 +206,24 @@ public class CatalogApiTests : IAsyncLifetime
         var notices = (await Get<List<ApiError>>("/api/notices"))!;
         Assert.Equal(["steam"], notices.Select(n => n.Params!["service"])); // #221: las imágenes ya no piden clave
     }
+
+    /// <summary>#428: Inicio › Continuar jugando junta las sesiones de Otteretro y lo jugado en Steam, el último primero.</summary>
+    [Fact]
+    public async Task RecentGamesJoinSessionsAndStorePlaytime()
+    {
+        Assert.Equal([20L], (await Get<List<Otteretro.Play.RecentGame>>("/api/home/recent"))!.Select(g => g.GameId)); // solo lo de Steam
+        var now = DateTime.UtcNow.ToString("O");
+        using (var c = f.Db.Open())
+            c.Execute("""
+                INSERT INTO play_session (version_id, machine_id, launcher, started_at, ended_at, duration) VALUES
+                    (100, @machine, 'otteretro', '2026-10-05T10:00:00.0000000Z', '2026-10-05T11:00:00.0000000Z', 3600),
+                    (101, @machine, 'otteretro', @now, NULL, NULL),
+                    (200, @machine, 'steam', '2026-09-01T10:00:00.0000000Z', '2026-09-01T12:00:00.0000000Z', 7200);
+                """, new { machine = f.Config.MachineId, now });
+        var recent = (await Get<List<Otteretro.Play.RecentGame>>("/api/home/recent"))!;
+        Assert.Equal(
+            [(10L, "Ocarina of Time", "3ds", "otteretro", 60L, true), (20L, "Half-Life", "pc", "steam", 600L, false)],
+            recent.Select(g => (g.GameId, g.Name, g.Platform, g.Launcher, g.Minutes, g.Playing)));
+        Assert.Equal(now, recent[0].LastPlayed);
+    }
 }

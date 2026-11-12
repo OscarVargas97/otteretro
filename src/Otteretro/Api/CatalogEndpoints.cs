@@ -368,6 +368,9 @@ public static class CatalogEndpoints
         // Las últimas sesiones del juego y si hay una abierta («Jugando…», #400).
         api.MapGet("/games/{id:long}/sessions", Results<Ok<List<PlaySession>>, Conflict<ApiError>> (long id, AppSession s) =>
             Db(s) is { } db ? TypedResults.Ok(GameLauncher.Recent(db, id)) : NoData());
+        // Inicio › Continuar jugando (#428): los últimos juegos jugados, de cualquier juego.
+        api.MapGet("/home/recent", Results<Ok<List<RecentGame>>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(GameLauncher.RecentGames(db)) : NoData());
 
         // Cómo jugar (#398, §8.3): las opciones de cada versión y la elegida; elegir a mano, volver a la automática y el orden de la regla.
         api.MapGet("/games/{id:long}/play", Results<Ok<List<VersionPlay>>, Conflict<ApiError>> (long id, AppSession s) =>

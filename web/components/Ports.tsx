@@ -1,13 +1,12 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
 import { useState } from "react";
 import { useConsoleName } from "@/components/Catalog";
 import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
-import { portNewsQuery } from "@/lib/queries";
 import type { PortInfo } from "@/lib/types";
 
 /** El estado tal cual lo publica el catálogo; 100 % jugable se distingue de todo lo demás (pedido de la persona en #286). */
@@ -78,35 +77,5 @@ export function PortRow({ port, withGame }: { port: PortInfo; withGame?: boolean
       </span>
       <Install port={port} />
     </li>
-  );
-}
-
-function PortGroup({ title, ports, withGame }: { title: string; ports: PortInfo[]; withGame?: boolean }) {
-  return (
-    <div style={{ display: "grid", gap: 6 }}>
-      <h3 style={{ margin: 0 }}>{title}</h3>
-      <ul className="detail-list">{ports.map((p) => <PortRow key={p.id} port={p} withGame={withGame} />)}</ul>
-    </div>
-  );
-}
-
-/** Inicio › Novedades (decisión 296): los ports nuevos de juegos que tienes o sigues, desde la última vez que los viste. */
-export function PortNews() {
-  const t = useTranslations("ports");
-  const cache = useQueryClient();
-  const news = useQuery(portNewsQuery);
-  const seen = useMutation({
-    mutationFn: () => request<void>("/api/ports/news/seen", { method: "POST" }),
-    onSettled: () => cache.invalidateQueries({ queryKey: ["ports"] }),
-  });
-  if (!news.data?.length) return null;
-  const full = news.data.filter((p) => p.fullyPlayable);
-  const rest = news.data.filter((p) => !p.fullyPlayable);
-  return (
-    <div className="panel" style={{ display: "grid", gap: 12 }} aria-label={t("news")}>
-      {full.length > 0 && <PortGroup title={t("newFullyPlayable")} ports={full} withGame />}
-      {rest.length > 0 && <PortGroup title={t("newOthers")} ports={rest} withGame />}
-      <button type="button" className="ot-btn ot-btn-sm" style={{ justifySelf: "start" }} disabled={seen.isPending} onClick={() => seen.mutate()}>{t("seen")}</button>
-    </div>
   );
 }

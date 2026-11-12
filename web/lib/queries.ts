@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { request } from "./client";
 import { pagedOptions } from "./paged";
-import type { ApiError, ConsoleCount, GameDetail, NextGame, PortInfo, ReviewPage, RoutesPage, SagaDetail, SagaPage, ToolUpdate, VersionCompare } from "./types";
+import type { ApiError, ConsoleCount, GameDetail, NextGame, PortInfo, RecentGame, ReviewPage, RoutesPage, SagaDetail, SagaPage, ToolUpdate, VersionCompare } from "./types";
 
 /** Consultas que se piden por adelantado (#105): la pantalla y el enlace usan la misma clave, así el clic encuentra los datos. */
 export const sagaQuery = (id: string) => ({ queryKey: ["saga", id], queryFn: () => request<SagaDetail>(`/api/sagas/${id}`) });
@@ -17,6 +17,9 @@ export const toolUpdatesQuery = { queryKey: ["toolUpdates"], queryFn: () => requ
 
 /** Inicio › Novedades: los ports nuevos de juegos que tienes o sigues (decisión 296). */
 export const portNewsQuery = { queryKey: ["ports", "news"], queryFn: () => request<PortInfo[]>("/api/ports/news") };
+
+/** Inicio › Continuar jugando (#428): los últimos juegos jugados, en Otteretro o en la tienda. */
+export const recentQuery = { queryKey: ["home", "recent"], queryFn: () => request<RecentGame[]>("/api/home/recent") };
 
 export const nextQuery = { queryKey: ["home", "next"], queryFn: () => request<NextGame[]>("/api/home/next") };
 
@@ -56,7 +59,10 @@ export function prefetchLink(client: QueryClient, href: string) {
   else if (path === "") {
     client.prefetchQuery(noticesQuery);
     client.prefetchQuery(nextQuery);
+    client.prefetchQuery(recentQuery);
     client.prefetchQuery(reviewQuery);
     client.prefetchQuery(portNewsQuery);
+    client.prefetchQuery(toolUpdatesQuery);
+    client.prefetchQuery(consolesQuery);
   }
 }

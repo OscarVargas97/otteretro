@@ -28,8 +28,9 @@ function useLabel() {
 /**
  * El botón principal de la ficha (#400, #410): «Descargar» si no lo tienes, «Instalar X» si la opción elegida falta y «Jugar» si
  * está todo; «Jugando…» mientras la sesión sigue abierta. Debajo, con qué se abre y «Cambiar», que lleva a «Cómo jugar».
+ * `compact` (Inicio, #428): el botón y con qué se abre, en una línea; sin «Cambiar» ni la última sesión.
  */
-export function PlayButton({ game, owned, onChange }: { game: GameDetail; owned: boolean; onChange: () => void }) {
+export function PlayButton({ game, owned, onChange, compact }: { game: Pick<GameDetail, "id" | "nameEs">; owned: boolean; onChange?: () => void; compact?: boolean }) {
   const t = useTranslations("play");
   const format = useFormatter();
   const describe = useDescribeError();
@@ -60,10 +61,11 @@ export function PlayButton({ game, owned, onChange }: { game: GameDetail; owned:
     onSuccess: () => { setLaunching(true); cache.invalidateQueries({ queryKey: ["sessions", gameId] }); },
   });
 
+  const box = compact ? "play-box is-compact" : "play-box";
   if (!owned) return (
-    <div className="play-box">
+    <div className={box}>
       <Link className="ot-btn ot-btn-primary" href={`/downloads/?${new URLSearchParams({ game: String(game.id), name: game.nameEs })}`}>{t("download")}</Link>
-      <span className="small muted">{t("notOwned")}</span>
+      {!compact && <span className="small muted">{t("notOwned")}</span>}
     </div>
   );
 
@@ -77,10 +79,10 @@ export function PlayButton({ game, owned, onChange }: { game: GameDetail; owned:
   const playing = launching || !!sessions.data?.some((s) => s.playing);
   const last = sessions.data?.find((s) => !s.playing);
   const failure = install.error ?? start.error;
-  if (play.isPending) return <div className="play-box"><button className="ot-btn ot-btn-primary" type="button" disabled>{t("play")}</button></div>;
+  if (play.isPending) return <div className={box}><button className="ot-btn ot-btn-primary" type="button" disabled>{t("play")}</button></div>;
 
   return (
-    <div className="play-box">
+    <div className={box}>
       {!v || !chosen
         ? <button className="ot-btn ot-btn-primary" type="button" disabled>{t("play")}</button>
         : !chosen.installed
@@ -96,15 +98,16 @@ export function PlayButton({ game, owned, onChange }: { game: GameDetail; owned:
               {playing ? t("playing") : t("play")}
             </button>
           )}
-      <span className="small muted">
+      {compact && chosen && <span className="small muted">{label(chosen)}</span>}
+      {!compact && <span className="small muted">
         {!v || !chosen ? <>{t("noOption")} <Link href="/tools/">{t("openTools")}</Link></> : (
           <>
             {t("with", { name: label(chosen) })}{v.reason && ` · ${t(`reason.${v.reason as Criterion | "manual"}`)}`}{" · "}
             <button className="link-button" type="button" onClick={onChange}>{t("change")}</button>
           </>
         )}
-      </span>
-      {playing
+      </span>}
+      {compact ? null : playing
         ? <span className="small muted" role="status">{t("playingHint")}</span>
         : last && <span className="small muted">{t("lastSession", { date: format.dateTime(new Date(last.startedAt), { dateStyle: "medium", timeStyle: "short" }), time: hours(Math.round(Number(last.duration ?? 0) / 60)) })}</span>}
       {failure && <span className="error small" role="alert">{describe(failure)}</span>}

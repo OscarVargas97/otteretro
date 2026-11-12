@@ -1107,12 +1107,45 @@
     "next": "Next in your routes",
     "nextEmpty": "Follow a route in a saga and your next game will show up here.",
     "review": "Review",
-    "reviewCount": "{count, plural, one {# file to review} other {# files to review}}",
     "nextEmptyTitle": "You're not following any route yet",
-    "viewGame": "View game",
-    "routeOf": "{saga} · {route}",
     "progress": "{done} of {total} played",
-    "news": "What's new"
+    "news": "What's new",
+    "continue": "Continue playing",
+    "continueHint": "What you played last, on console or PC",
+    "playingNow": "Playing now",
+    "played": "{time} played",
+    "viewRoute": "View route",
+    "step": "{saga} · {route} · step {step} of {total}",
+    "emptyTitle": "No games yet",
+    "emptyText": "Pick the folder where you keep your games and Otteretro finds them, or follow a saga to see its route.",
+    "scan": "Scan a folder",
+    "exploreSagas": "Explore sagas",
+    "viewAll": "View all",
+    "kind": {
+      "emulator": "Emulator",
+      "port": "Port",
+      "complement": "Add-on",
+      "system": "System",
+      "tool": "Tool"
+    },
+    "youHave": "You have {versions}.",
+    "update": "Update",
+    "newPort": "New port",
+    "portFor": "{game} for {console}.",
+    "viewPort": "View port",
+    "goToReview": "Go to Review",
+    "reviewKind": {
+      "doubtful": "Doubtful matches",
+      "unidentified": "Unidentified",
+      "packages": "Packages to review"
+    },
+    "tasks": "Tasks in progress",
+    "pending": "Pending",
+    "backup": "Backup",
+    "error": "Error",
+    "errorTitle": "Couldn't read your library",
+    "errorSafe": "Your games and progress weren't touched.",
+    "retry": "Retry"
   },
   "libraries": {
     "cancel": "Cancel",
@@ -1416,8 +1449,6 @@
   "ports": {
     "title": "Ports",
     "news": "New ports",
-    "newFullyPlayable": "New 100% playable ports",
-    "newOthers": "New ports not at 100%",
     "status": {
       "complete": "100% playable",
       "playable": "Playable with issues",
