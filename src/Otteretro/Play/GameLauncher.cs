@@ -12,6 +12,10 @@ namespace Otteretro.Play;
 /// <summary>Una sesión de juego. EndedAt y Duration: null mientras sigue abierta.</summary>
 public record PlaySession(long VersionId, string Platform, string Launcher, string StartedAt, string? EndedAt, long? Duration, bool Playing);
 
+/// <summary>Un juego de Inicio › Continuar jugando (#428): de su última partida, la consola, con qué (otteretro o la tienda) y cuándo;
+/// Minutes, el total jugado (sesiones de Otteretro más lo que cuenta la tienda).</summary>
+public record RecentGame(long GameId, string Name, bool HasCover, string Platform, string Launcher, string LastPlayed, long Minutes, bool Playing);
+
 /// <summary>
 /// `otteretro jugar &lt;id&gt;` (§10, T7, #399): prepara, lanza el emulador o port en el juego, espera a que se cierre todo y anota la
 /// sesión en `play_session`. Solo corre mientras juegas. Si algo falla, lo dice en una ventana pequeña; si no, no muestra nada.
@@ -145,6 +149,31 @@ public static class GameLauncher
                 """, new { gameId })
             .Select(s => new PlaySession(s.VersionId, s.Platform, s.Launcher, s.StartedAt, s.EndedAt, s.Duration,
                 s.EndedAt is null && DateTime.Parse(s.StartedAt, null, System.Globalization.DateTimeStyles.RoundtripKind) > since))
+            .ToList();
+    }
+
+    /// <summary>Los últimos juegos jugados (#428), en consola o en PC, el más reciente primero: las sesiones de Otteretro y lo que
+    /// trae la tienda (Steam: última vez y horas).</summary>
+    public static List<RecentGame> RecentGames(Database db, int limit = 8)
+    {
+        var covers = Catalog.CatalogQueries.Covers(db);
+        using var c = db.Open();
+        var since = DateTime.UtcNow.AddDays(-1);
+        // Las sesiones abiertas por Steam ya cuentan en las horas de la tienda: suman 0 para no contarlas dos veces.
+        // En SQLite, las columnas sueltas junto a max() salen de la fila del máximo: la última partida de cada juego.
+        return c.Query<(long GameId, string Name, string Platform, string Launcher, string At, string? Ended, long Minutes)>("""
+                WITH p AS (
+                    SELECT v.game_id, v.platform, s.launcher, s.started_at AS at, s.ended_at AS ended,
+                           CASE WHEN s.launcher = 'steam' THEN 0 ELSE coalesce(s.duration, 0) / 60 END AS minutes
+                    FROM play_session s JOIN version v ON v.id = s.version_id
+                    UNION ALL
+                    SELECT v.game_id, v.platform, o.store, o.last_played, o.last_played, coalesce(o.playtime, 0)
+                    FROM source o JOIN version v ON v.id = o.version_id WHERE o.kind = 'store' AND o.last_played IS NOT NULL)
+                SELECT g.id, g.name_es, p.platform, p.launcher, max(p.at), p.ended, sum(p.minutes)
+                FROM p JOIN game g ON g.id = p.game_id GROUP BY g.id ORDER BY max(p.at) DESC LIMIT @limit
+                """, new { limit })
+            .Select(r => new RecentGame(r.GameId, r.Name, covers.Contains(r.GameId), r.Platform, r.Launcher, r.At, r.Minutes,
+                r.Ended is null && DateTime.Parse(r.At, null, System.Globalization.DateTimeStyles.RoundtripKind) > since))
             .ToList();
     }
 

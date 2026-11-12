@@ -88,6 +88,8 @@ Cuatro pasos (#418, decisión 394):
 
 ## 2. Inicio (§12.4)
 
+**Desde la decisión 397 (#428)** van como el tablero Main: Continuar jugando arriba y, debajo, dos columnas: a la izquierda Siguiente en tus rutas y Novedades, a la derecha Revisar, Tareas en curso y Avisos (en pantallas angostas se apilan en ese orden). Revisar son casillas con cuántas dudosas, sin identificar y paquetes; Siguiente usa el botón de la ficha («Descargar», «Instalar X» o «Jugar», #400). La lista de abajo es el diseño original.
+
 Secciones, en este **orden fijo** (D2):
 
 1. **Continuar jugando** (#138): lo último que jugaste, de consola o de PC, con cómo se juega, cuándo y las horas. Es lo primero que recibe el foco con mando.

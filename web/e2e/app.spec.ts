@@ -141,7 +141,7 @@ test("el asistente en 4 pasos: dónde guardar, Steam y cuentas (después) y carg
   await page.getByRole("button", { name: en.welcome.enter }).click();
   await expect(page).toHaveURL(`${base()}/`);
   await expect(page.getByRole("heading", { level: 1, name: en.nav.home })).toBeVisible();
-  await expect(page.getByRole("heading", { level: 2, name: en.home.next })).toBeVisible();
+  await expect(page.getByRole("heading", { name: en.home.emptyTitle })).toBeVisible();
   // #169: un solo aviso con todos los servicios sin clave y el botón a Cuentas y claves.
   const notice = page.getByRole("note", { name: en.notices.title });
   await expect(notice).toHaveCount(1);
@@ -1000,9 +1000,12 @@ test("ports: Novedades con los nuevos de lo que sigues, la ficha los ofrece en �
   db.close();
   await page.goto(`${base()}/`);
   const news = page.getByLabel(es.ports.news);
-  await expect(news.getByRole("heading", { name: es.ports.newFullyPlayable })).toBeVisible();
-  await expect(news.getByRole("heading", { name: es.ports.newOthers })).toBeVisible();
+  // #428: una fila por port nuevo, con «Ver port» a la ficha; el de hace 40 días ya no es novedad.
+  await expect(news.getByText("Ship of Harkinian")).toBeVisible();
+  await expect(news.getByText("Viejo port")).toBeVisible();
+  await expect(news.getByText("Dusklight")).toHaveCount(0);
   await expect(news.getByText(es.ports.delisted)).toBeVisible();
+  await expect(news.getByRole("link", { name: es.home.viewPort }).first()).toHaveAttribute("href", "/game/?id=10&tab=play");
   await news.getByRole("button", { name: es.ports.seen }).click();
   await expect(page.getByLabel(es.ports.news)).toHaveCount(0);
 
@@ -1266,7 +1269,7 @@ test("las pestañas nunca tienen barra: en una ventana angosta, lo que no cabe v
   };
   await page.setViewportSize({ width: 520, height: 900 });
   await page.goto(`${base()}/settings/?s=general`);
-  const more = page.getByRole("button", { name: new RegExp(es.tabs.more) });
+  const more = page.locator(".tabs-more").getByRole("button", { name: new RegExp(es.tabs.more) });
   await expect(more).toBeVisible();
   await expect(page.locator("#tab-general")).toHaveAttribute("aria-selected", "true");
   await noScroll();

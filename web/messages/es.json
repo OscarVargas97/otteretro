@@ -1107,12 +1107,45 @@
     "next": "Siguiente en tus rutas",
     "nextEmpty": "Sigue una ruta en una saga y aquí verás tu siguiente juego.",
     "review": "Revisar",
-    "reviewCount": "{count, plural, one {# archivo por revisar} other {# archivos por revisar}}",
     "nextEmptyTitle": "Todavía no sigues ninguna ruta",
-    "viewGame": "Ver ficha",
-    "routeOf": "{saga} · {route}",
     "progress": "{done} de {total} jugados",
-    "news": "Novedades"
+    "news": "Novedades",
+    "continue": "Continuar jugando",
+    "continueHint": "Lo último que jugaste, en consola o en PC",
+    "playingNow": "Jugando ahora",
+    "played": "{time} jugadas",
+    "viewRoute": "Ver ruta",
+    "step": "{saga} · {route} · paso {step} de {total}",
+    "emptyTitle": "Todavía no hay juegos",
+    "emptyText": "Elige la carpeta donde guardas tus juegos y Otteretro los encuentra, o sigue una saga para ver su ruta.",
+    "scan": "Escanear una carpeta",
+    "exploreSagas": "Explorar sagas",
+    "viewAll": "Ver todo",
+    "kind": {
+      "emulator": "Emulador",
+      "port": "Port",
+      "complement": "Complemento",
+      "system": "Sistema",
+      "tool": "Herramienta"
+    },
+    "youHave": "Tienes la {versions}.",
+    "update": "Actualizar",
+    "newPort": "Port nuevo",
+    "portFor": "{game} para {console}.",
+    "viewPort": "Ver port",
+    "goToReview": "Ir a Revisar",
+    "reviewKind": {
+      "doubtful": "Identificaciones dudosas",
+      "unidentified": "Sin identificar",
+      "packages": "Paquetes por revisar"
+    },
+    "tasks": "Tareas en curso",
+    "pending": "Pendiente",
+    "backup": "Respaldo",
+    "error": "Error",
+    "errorTitle": "No se pudo leer la biblioteca",
+    "errorSafe": "Tus juegos y tu progreso no se tocaron.",
+    "retry": "Reintentar"
   },
   "libraries": {
     "cancel": "Cancelar",
@@ -1416,8 +1449,6 @@
   "ports": {
     "title": "Ports",
     "news": "Ports nuevos",
-    "newFullyPlayable": "Ports nuevos 100 % jugables",
-    "newOthers": "Ports nuevos que no están al 100 %",
     "status": {
       "complete": "100 % jugable",
       "playable": "Jugable con fallos",
