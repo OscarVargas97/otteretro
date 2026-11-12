@@ -135,6 +135,26 @@ public static class GameLauncher
         return null;
     }
 
+    /// <summary>Termina el juego de un `otteretro jugar` por su pid (#454); false si no se pudo.</summary>
+    // shortcut: en Linux no se detiene (el juego no va en un grupo propio); llega con la espera de hijos de la fase L.
+    public static Func<int, bool> StopWaiter { get; set; } = OperatingSystem.IsWindows() ? WindowsGame.Stop : _ => false;
+
+    /// <summary>
+    /// «Detener» (#454): termina el juego que se está jugando, abierto por Otteretro (lo de Steam lo lleva Steam). La sesión la cierra
+    /// el proceso que espera, con su duración. Null si se detuvo; un error si no hay nada que detener o no se pudo.
+    /// </summary>
+    public static ApiError? Stop(Database db, long gameId)
+    {
+        List<(long? Pid, string StartedAt)> open;
+        using (var c = db.Open())
+            open = c.Query<(long? Pid, string StartedAt)>("""
+                SELECT s.pid, s.started_at FROM play_session s JOIN version v ON v.id = s.version_id
+                WHERE v.game_id = @gameId AND s.ended_at IS NULL AND s.launcher = 'otteretro'
+                """, new { gameId }).Where(s => Waiting(s.Pid, s.StartedAt)).ToList();
+        if (open.Count == 0) return ApiError.Of("play.notPlaying");
+        return open.All(s => StopWaiter((int)s.Pid!)) ? null : ApiError.Of("play.stopFailed");
+    }
+
     /// <summary>Las últimas sesiones del juego (#400, #410), la más nueva primero. Playing: abierta en este momento.</summary>
     public static List<PlaySession> Recent(Database db, long gameId)
     {

@@ -659,6 +659,8 @@
       "noEmulator": "Ese juego no tiene con qué jugarse: instala un emulador o un port para su consola, o elige su emulador base.",
       "noGame": "El emulador no puede abrir el juego: falta la ROM, su disco no está conectado o el emulador no sabe abrirla.",
       "launchFailed": "No se pudo abrir el juego: {detail}",
+      "notPlaying": "No hay un juego abierto por Otteretro que detener.",
+      "stopFailed": "No se pudo detener el juego. Ciérralo desde el Administrador de tareas.",
       "exeMissing": "No está «{exe}» en {folder}: la instalación quedó incompleta o la receta no coincide con lo que se bajó. Vuelve a instalarlo con «Instalar», en la ficha del juego.",
       "badOption": "Esa opción ya no sirve para esta versión del juego.",
       "badOrder": "El orden tiene que tener los cuatro criterios, una vez cada uno."
@@ -1600,6 +1602,8 @@
     "installing": "Instalando {name}…",
     "playing": "Jugando…",
     "playingHint": "Al cerrar el juego, la sesión se anota sola.",
+    "stop": "Detener",
+    "stopConfirm": "¿Detener? Se pierde lo no guardado",
     "noOption": "Sin con qué jugarlo.",
     "openTools": "Ver Herramientas",
     "with": "Con {name}",

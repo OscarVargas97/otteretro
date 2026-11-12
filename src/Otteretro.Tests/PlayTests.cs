@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using Dapper;
+using Otteretro.Api;
 using Otteretro.Libraries;
 using Otteretro.Play;
 
@@ -230,5 +231,46 @@ public class PlayTests
         Assert.False(Playing(null, now)); // de antes del pid
         Assert.False(Playing(Environment.ProcessId, before)); // el pid es de un proceso que arrancó después: lo reusó otro
         Assert.False(Playing(int.MaxValue, now)); // ya no existe
+    }
+
+    /// <summary>#454: «Detener» termina el job del proceso que espera, con lo que abrió, y la espera termina.</summary>
+    [Fact]
+    public async Task StopEndsTheGameAndWhatItOpened()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        Assert.False(WindowsGame.Stop(Environment.ProcessId)); // sin juego, nada que detener
+        var clock = Stopwatch.StartNew();
+        var run = Task.Run(() => { if (OperatingSystem.IsWindows()) WindowsGame.Run(Cmd, ["/c", "start", "", "/b", "ping", "-n", "30", "127.0.0.1", ">nul"], Environment.SystemDirectory); });
+        while (!WindowsGame.Stop(Environment.ProcessId)) await Task.Delay(100);
+        await run.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(15), $"terminó en {clock.Elapsed}");
+    }
+
+    /// <summary>#454: se detiene solo lo abierto por Otteretro que sigue esperando; lo de Steam, no.</summary>
+    [Fact]
+    public async Task StopOnlyTouchesWhatOtteretroIsWaitingFor()
+    {
+        await using var f = Ready(out _);
+        var stopped = new List<int>();
+        var real = GameLauncher.StopWaiter;
+        GameLauncher.StopWaiter = pid => { stopped.Add(pid); return true; };
+        try
+        {
+            ApiError? Stop(string launcher, long? pid)
+            {
+                using (var c = f.Db.Open())
+                    c.Execute("DELETE FROM play_session; INSERT INTO play_session (version_id, machine_id, launcher, started_at, pid) VALUES (20, @machine, @launcher, @at, @pid)",
+                        new { launcher, pid, at = DateTime.UtcNow.ToString("O"), machine = f.Config.MachineId });
+                return GameLauncher.Stop(f.Db, 10);
+            }
+            Assert.Null(Stop("otteretro", Environment.ProcessId));
+            Assert.Equal([Environment.ProcessId], stopped);
+            Assert.Equal("play.notPlaying", Stop("steam", Environment.ProcessId)?.Code);
+            Assert.Equal("play.notPlaying", Stop("otteretro", null)?.Code);
+            Assert.Single(stopped);
+            GameLauncher.StopWaiter = _ => false;
+            Assert.Equal("play.stopFailed", Stop("otteretro", Environment.ProcessId)?.Code);
+        }
+        finally { GameLauncher.StopWaiter = real; }
     }
 }
