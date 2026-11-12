@@ -5,6 +5,7 @@ using Otteretro.Libraries;
 namespace Otteretro.Tests;
 
 /// <summary>#276: ajustes y mandos por perfil, con las claves de la versión del emulador que usa (decisión 298).</summary>
+[Collection(nameof(RepoInstallTests))] // Recipes.LocalFolder es estático: con otras pruebas en paralelo apunta a otra carpeta
 public class ProfileSettingsTests
 {
     const string Totk = "0100F2C0115B6000";
@@ -192,5 +193,50 @@ public class ProfileSettingsTests
         Assert.Equal("vulkan", (string)json["backend.graphicsBackend"]!);
         // Un port es el juego: se abre en él sin estar activo (su configuración entra al lanzar).
         Assert.True(EmulatorSettings.OpenArgs(f.Db, id.Value).InGame);
+    }
+
+    [Fact]
+    public async Task APortGetsTheGameFileAsItsRecipeSays()
+    {
+        await using var f = Game("switch2", Totk, out var rom);
+        var folder = Recipes.LocalFolder!;
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(Path.Combine(folder, "con-arg.json"), """
+            { "id": "con-arg", "name": "Con arg", "kind": "port", "folder": "Switch 2", "detect": "a.exe",
+              "gameFile": { "deliver": "arg", "args": ["--from", "{romDir}"], "formats": ["nsp"] } }
+            """);
+        File.WriteAllText(Path.Combine(folder, "con-copia.json"), """
+            { "id": "con-copia", "name": "Con copia", "kind": "port", "folder": "Switch 2", "detect": "c.exe",
+              "gameFile": { "deliver": "copy", "copyTo": "rom/baserom.nsp" } }
+            """);
+        File.WriteAllText(Path.Combine(folder, "otro-formato.json"), """
+            { "id": "otro-formato", "name": "Otro formato", "kind": "port", "folder": "Switch 2", "detect": "o.exe",
+              "gameFile": { "deliver": "arg", "args": ["{rom}"], "formats": ["nup"] } }
+            """);
+        Recipes.LocalFolder = folder;
+        File.WriteAllText(rom, "juego");
+        long Default(string port, string name, string exe)
+        {
+            Install(f, port, "port", name, exe, "1.0");
+            using var c = f.Db.Open();
+            return c.ExecuteScalar<long>("SELECT id FROM profile WHERE emulator_id = @port AND game_version_id IS NULL", new { port });
+        }
+
+        // arg: la carpeta del archivo, para que el port lo encuentre solo (NX2navi: --from).
+        var a = EmulatorSettings.OpenArgs(f.Db, Default("con-arg", "Con arg", "a.exe"), 20);
+        Assert.True(a.InGame);
+        Assert.Equal(["--from", Path.GetDirectoryName(rom)!], a.Args);
+
+        // copy: queda dentro de la instalación con el nombre que pide, sin tocar el original ni pisar lo que ya está.
+        var copied = f.Tmp[@"E\Ports\Con copia\1.0\rom\baserom.nsp"];
+        var id = Default("con-copia", "Con copia", "c.exe");
+        Assert.True(EmulatorSettings.OpenArgs(f.Db, id, 20).InGame);
+        Assert.Equal("juego", File.ReadAllText(copied));
+        File.WriteAllText(copied, "suyo");
+        Assert.True(EmulatorSettings.OpenArgs(f.Db, id, 20).InGame);
+        Assert.Equal(("suyo", "juego"), (File.ReadAllText(copied), File.ReadAllText(rom)));
+
+        // Sin un archivo del formato que pide, se abre normal.
+        Assert.False(EmulatorSettings.OpenArgs(f.Db, Default("otro-formato", "Otro formato", "o.exe"), 20).InGame);
     }
 }

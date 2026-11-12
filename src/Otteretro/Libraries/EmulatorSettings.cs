@@ -238,16 +238,36 @@ public static class EmulatorSettings
         if (p.GameVersionId is not null && recipe.PerGame?.Apply != "swap" && !c.ExecuteScalar<bool>("SELECT active FROM profile WHERE id = @id", new { id }))
             return (null, [], false, ApiError.Of("settings.notActive"));
         extra.AddRange(Profiles.LaunchArgs(db, id));
-        var args = recipe.PerGame?.Args ?? [];
-        if (args.Count == 0) return (exe, extra, recipe.Kind == "port", null);
-        var rom = c.QueryFirstOrDefault<(string LibraryId, string Relative)?>("""
+        // Un port recibe el archivo del juego como dice su receta (#449); Otteretro no lo adivina.
+        var gameFile = recipe.Kind == "port" ? recipe.GameFile : null;
+        var args = gameFile is not null ? gameFile.Deliver == "arg" ? gameFile.Args ?? [] : [] : recipe.PerGame?.Args ?? [];
+        if (args.Count == 0 && gameFile?.Deliver != "copy") return (exe, extra, recipe.Kind == "port", null);
+        var formats = gameFile?.Formats ?? [];
+        var disks = Disk.List(db).Where(d => d.Connected).ToList();
+        var path = c.Query<(string LibraryId, string Relative)>("""
             SELECT library_id, relative_path FROM source WHERE kind = 'file' AND (id = @SourceId OR (@SourceId IS NULL AND version_id = @game
                 AND coalesce(component, 'BASE') = 'BASE')) ORDER BY modified, id
-            """, new { p.SourceId, game });
-        var path = rom is { } r && Disk.List(db).FirstOrDefault(d => d.Id == r.LibraryId && d.Connected) is { } disk ? Path.Combine(disk.Path, r.Relative) : null;
+            """, new { p.SourceId, game })
+            .Where(r => formats.Count == 0 || formats.Contains(Path.GetExtension(r.Relative).TrimStart('.'), StringComparer.OrdinalIgnoreCase))
+            .Select(r => disks.FirstOrDefault(d => d.Id == r.LibraryId) is { } disk ? Path.Combine(disk.Path, r.Relative) : null)
+            .FirstOrDefault(f => f is not null && File.Exists(f));
+        if (gameFile?.Deliver == "copy")
+        {
+            if (path is null) return (exe, extra, false, null);
+            var target = Path.GetFullPath(Path.Combine(install, gameFile.CopyTo!));
+            if (!target.StartsWith(Path.GetFullPath(install) + Path.DirectorySeparatorChar)) return (exe, extra, false, null); // fuera de la instalación: no se escribe
+            // shortcut: copia completa (verificada) aunque esté en el mismo disco; pasar a enlace duro si un port con archivo grande usa copy.
+            if (!File.Exists(target))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                File.Copy(path, target);
+                if (!App.FolderMove.SameContent(path, target)) { File.Delete(target); return (null, [], false, ApiError.Of("move.copyMismatch", ("path", path), ("detail", target))); }
+            }
+            return (exe, extra, true, null);
+        }
         var key = Profiles.GameKey(c, game, p.SourceId);
-        var expanded = path is null || !File.Exists(path) ? null
-            : args.Select(a => Profiles.Expand(a.Replace("{rom}", path), recipe, key)).ToList();
+        var expanded = path is null ? null
+            : args.Select(a => Profiles.Expand(a.Replace("{rom}", path).Replace("{romDir}", Path.GetDirectoryName(path)), recipe, key)).ToList();
         return expanded is null || expanded.Any(a => a is null) ? (exe, extra, false, null) : (exe, [.. expanded!.Select(a => a!), .. extra], true, null);
     }
 
