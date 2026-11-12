@@ -487,6 +487,8 @@ function ToolDetail({ card, kind, recipe, forWhat, badge, ask, onAsked, onPick, 
         {current?.path && !current.broken && kind !== "complement" && <button className="ot-btn ot-btn-sm" type="button" disabled={busy} onClick={() => act.mutate({ action: "launch", i: current })}>{t("library.launch")}</button>}
         {current?.path && <button className="ot-btn ot-btn-sm ot-btn-ghost" type="button" disabled={busy} onClick={() => act.mutate({ action: "open", i: current })}>{t("library.open")}</button>}
       </div>
+      {/* A la vista, no en «Más» (#446): pide escribir el nombre antes de borrar. */}
+      {uninstall && <Uninstall card={card} />}
       {ask && (
         <div className="sentence" role="status">
           <span className="small">{t("library.askProfiles", { version: ask.version })}</span>
@@ -501,11 +503,10 @@ function ToolDetail({ card, kind, recipe, forWhat, badge, ask, onAsked, onPick, 
           {others.map(({ i, x }) => row(i, x))}
         </details>
       )}
-      {(here || uninstall) && (
+      {here && (
         <details className="tool-versions">
           <summary className="small">{t("library.moreActions")}</summary>
-          {here && <MoveTool tool={here} />}
-          {uninstall && <Uninstall card={card} />}
+          <MoveTool tool={here} />
         </details>
       )}
       {forks.length > 0 && (
