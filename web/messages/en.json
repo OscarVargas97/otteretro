@@ -659,7 +659,7 @@
       "noEmulator": "There's nothing to play this game with: install an emulator or port for its console, or choose its base emulator.",
       "noGame": "The emulator can't open the game: the ROM is missing, its disk isn't connected or the emulator can't open it.",
       "launchFailed": "Couldn't open the game: {detail}",
-      "exeMissing": "\"{exe}\" isn't in {folder}: the install is incomplete or the recipe doesn't match what was downloaded. Reinstall it from Tools.",
+      "exeMissing": "\"{exe}\" isn't in {folder}: the install is incomplete or the recipe doesn't match what was downloaded. Install it again with \"Install\" on the game's page.",
       "badOption": "That option no longer applies to this version of the game.",
       "badOrder": "The order must include the four criteria, once each."
     }
@@ -1358,9 +1358,11 @@
       "yes": "Yes",
       "no": "No",
       "current": "In use: {version}",
-      "uninstall": "Remove the emulator",
+      "uninstall": "Uninstall",
+      "broken": "This install is missing its program: it was left incomplete or comes from an old version of the recipe.",
+      "installAgain": "Install again from the recipe",
       "uninstallHelp": "Deletes all its installed versions. Its saves, settings and profiles stay and come back if you install it again. Type “{name}” to confirm.",
-      "uninstallName": "Emulator name",
+      "uninstallName": "Name",
       "uninstallConfirm": "Remove",
       "versions": "Versions ({count}) · the marked one is in use",
       "moreActions": "More · move to another disk, remove"

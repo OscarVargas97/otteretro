@@ -222,6 +222,37 @@ public class InstallsTests
     }
 
     [Fact]
+    public async Task AnInstallWithoutItsExeIsInstalledAgainWithTheFileTheRecipeAsksFor()
+    {
+        await using var f = new Fixture();
+        Disk.Create(f.Db, f.Tmp["E"], "E:");
+        var exe = Encoding.UTF8.GetBytes("binario");
+        Installs.Handler = new Fake(exe);
+        try
+        {
+            var job = new InstallJob("citron", "1.0", Url: "https://example.com/releases/citron.exe", Name: "Citron");
+            Assert.Equal("done", (await Install(f, job)).Status);
+            Assert.Equal("install.exists", Installs.Enqueue(f.Db, job).Error?.Code);
+
+            // #446, como NX2navi: lo instalado venía de otro archivo de esa versión (la receta cambió) y no trae su ejecutable.
+            var folder = f.Tmp[@"E\Emuladores\Citron\1.0"];
+            File.Delete(Path.Combine(folder, "citron.exe"));
+            File.Move(f.Tmp[@"E\Libreria\Emuladores\citron\1.0\citron.exe"], f.Tmp[@"E\Libreria\Emuladores\citron\1.0\citron-app.zip"]);
+            Assert.True(Installs.Broken(Recipes.Find("citron"), folder));
+            Assert.True(Assert.Single(Installs.List(f.Db)).Broken); // Herramientas ofrece «Instalar de nuevo desde la receta»
+
+            // Se instala encima con el archivo de la receta, no con el de la librería, que se aparta sin borrarlo.
+            Assert.Equal("done", (await Install(f, job)).Status);
+            Assert.Equal(exe, File.ReadAllBytes(Path.Combine(folder, "citron.exe")));
+            Assert.False(Installs.Broken(Recipes.Find("citron"), folder));
+            Assert.Equal(["citron.exe"], Directory.GetFiles(f.Tmp[@"E\Libreria\Emuladores\citron\1.0"]).Select(Path.GetFileName));
+            Assert.True(File.Exists(f.Tmp[@"E\Libreria\Emuladores\citron\1.0\_reemplazado\citron-app.zip"]));
+            Assert.Equal(("citron.exe", false), Assert.Single(Installs.List(f.Db)) is var i ? (i.File, i.Broken) : default);
+        }
+        finally { Installs.Handler = null; }
+    }
+
+    [Fact]
     public async Task ToolGoesToHerramientasWithTheNameItsRecipeLooksFor()
     {
         await using var f = new Fixture();
