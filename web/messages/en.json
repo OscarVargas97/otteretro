@@ -570,6 +570,7 @@
       "badRepo": "The repo is not recognised: paste the address of a GitHub, Forgejo or Gitea repo (https://server/owner/repo).",
       "pickExe": "The download has several executables: choose the one that opens the emulator.",
       "noExe": "The download has no Windows executable: pick another file from the release.",
+      "detectMissing": "The download ({file}) doesn't include \"{exe}\", the program its recipe expects: it wasn't installed. The catalog recipe doesn't match the release; report it so it gets fixed.",
       "noVersion": "Enter the version you are installing.",
       "exists": "Version {version} is already installed: versions are never replaced.",
       "badHash": "The download of version {version} doesn't match the recipe's hash: it wasn't installed.",
@@ -657,6 +658,7 @@
       "noEmulator": "There's nothing to play this game with: install an emulator or port for its console, or choose its base emulator.",
       "noGame": "The emulator can't open the game: the ROM is missing, its disk isn't connected or the emulator can't open it.",
       "launchFailed": "Couldn't open the game: {detail}",
+      "exeMissing": "\"{exe}\" isn't in {folder}: the install is incomplete or the recipe doesn't match what was downloaded. Reinstall it from Tools.",
       "badOption": "That option no longer applies to this version of the game.",
       "badOrder": "The order must include the four criteria, once each."
     }

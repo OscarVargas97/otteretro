@@ -195,14 +195,21 @@ public class InstallsTests
         Installs.Handler = new Fake(exe);
         try
         {
-            var job = new InstallJob("citron", "1.0", Url: "https://example.com/releases/citron-windows.exe", Name: "Citron");
+            // #440: lo bajado que no trae el ejecutable de la receta (citron.exe) no se instala: fallaría al jugar.
+            var wrong = await Install(f, new InstallJob("citron", "0.9", Url: "https://example.com/releases/citron-windows.exe", Name: "Citron"));
+            Assert.Equal(("error", "install.detectMissing"), (wrong.Status, wrong.Detail?.Code));
+            Assert.False(Directory.Exists(f.Tmp[@"E\Emuladores\Citron\0.9"]));
+            Assert.False(Directory.Exists(f.Tmp[@"E\Emuladores\Citron\0.9.parcial"]));
+            Assert.Empty(Installs.List(f.Db));
+
+            var job = new InstallJob("citron", "1.0", Url: "https://example.com/releases/citron.exe", Name: "Citron");
             Assert.Equal("done", (await Install(f, job)).Status);
         }
         finally { Installs.Handler = null; }
-        Assert.Equal(exe, File.ReadAllBytes(f.Tmp[@"E\Emuladores\Citron\1.0\citron-windows.exe"]));
-        Assert.Equal(exe, File.ReadAllBytes(f.Tmp[@"E\Libreria\Emuladores\citron\1.0\citron-windows.exe"]));
+        Assert.Equal(exe, File.ReadAllBytes(f.Tmp[@"E\Emuladores\Citron\1.0\citron.exe"]));
+        Assert.Equal(exe, File.ReadAllBytes(f.Tmp[@"E\Libreria\Emuladores\citron\1.0\citron.exe"]));
         var citron = Assert.Single(Installs.List(f.Db));
-        Assert.Equal(("url", "https://example.com/releases/citron-windows.exe"), (citron.Origin, citron.Url));
+        Assert.Equal(("url", "https://example.com/releases/citron.exe"), (citron.Origin, citron.Url));
 
         // Adoptar uno instalado a mano lo copia: el original sigue donde estaba.
         var manual = f.Tmp["a-mano"];

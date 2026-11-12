@@ -571,6 +571,7 @@
       "badRepo": "No se reconoce el repo: pega la dirección de un repo de GitHub, Forgejo o Gitea (https://servidor/dueño/repo).",
       "pickExe": "Lo bajado trae varios ejecutables: elige cuál abre el emulador.",
       "noExe": "Lo bajado no trae un ejecutable de Windows: elige otro archivo de la release.",
+      "detectMissing": "Lo bajado ({file}) no trae «{exe}», el programa que espera su receta: no se instaló. La receta del catálogo no coincide con la release; avisa para corregirla.",
       "exists": "La versión {version} ya está instalada: las versiones nunca se reemplazan.",
       "badHash": "Lo bajado de la versión {version} no coincide con el hash de la receta: no se instaló.",
       "libraryTaken": "En tu librería ya hay otro archivo en {path}: no se reemplaza.",
@@ -657,6 +658,7 @@
       "noEmulator": "Ese juego no tiene con qué jugarse: instala un emulador o un port para su consola, o elige su emulador base.",
       "noGame": "El emulador no puede abrir el juego: falta la ROM, su disco no está conectado o el emulador no sabe abrirla.",
       "launchFailed": "No se pudo abrir el juego: {detail}",
+      "exeMissing": "No está «{exe}» en {folder}: la instalación quedó incompleta o la receta no coincide con lo que se bajó. Reinstálalo desde Herramientas.",
       "badOption": "Esa opción ya no sirve para esta versión del juego.",
       "badOrder": "El orden tiene que tener los cuatro criterios, una vez cada uno."
     }
