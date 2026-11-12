@@ -12,11 +12,12 @@ import { useState } from "react";
 const GAMES = 6;
 
 /**
- * La parte de los avisos en la barra de una pestaña de Herramientas (#348, #416): «Al día» o nada, y «Revisar ahora».
- * Cada aviso va en el detalle de lo suyo, con {@link UpdateRow}.
+ * El aviso de arriba de Herramientas (#416, #432): cuántas versiones nuevas hay y de qué, «Actualizar todo» y «Revisar ahora»;
+ * sin ninguna, «Al día». Está siempre, con el mismo alto: que llegue el aviso no empuja la lista (riesgo de #423).
  */
-export function UpdatesStatus({ kind }: { kind: string }) {
+export function UpdatesNotice() {
   const t = useTranslations("tools.updates");
+  const format = useFormatter();
   const describe = useDescribeError();
   const cache = useQueryClient();
   const updates = useQuery(toolUpdatesQuery);
@@ -24,15 +25,28 @@ export function UpdatesStatus({ kind }: { kind: string }) {
     mutationFn: () => request<number>("/api/tools/updates/check", { method: "POST" }),
     onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
   });
-  const count = (updates.data ?? []).filter((u) => u.kind === kind).length;
+  const list = updates.data ?? [];
+  const names = [...new Set(list.map((u) => u.name))];
+  // Una por receta (la estable si también hay de desarrollo) y solo las que traen su archivo: las demás se bajan desde su página.
+  const all = list.filter((u) => u.download && !(u.channel === "dev" && list.some((o) => o.recipeId === u.recipeId && o.channel === "stable" && o.download)));
+  const updateAll = useMutation({
+    mutationFn: () => Promise.all(all.map((u) => request<number>("/api/emulators/install", { method: "POST", body: JSON.stringify({ emulator: u.recipeId, version: u.version, url: u.download }) }))),
+    onSettled: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
+  });
   return (
-    <span className="sentence">
-      {/* Cuántas hay lo dice el aviso de arriba de la pantalla (#416). */}
-      {updates.isSuccess && count === 0 && <span className="small muted" title={t("none")}>{t("upToDate")}</span>}
-      <button className="ot-btn ot-btn-sm" type="button" disabled={check.isPending} onClick={() => check.mutate()}>{t("checkNow")}</button>
-      {check.isSuccess && <span className="small muted" role="status">{t("checking")}</span>}
-      {(updates.isError || check.isError) && <span className="error small" role="alert">{describe(updates.error ?? check.error)}</span>}
-    </span>
+    <div className="panel version-row tools-notice" data-new={names.length > 0}>
+      <span className="grow" role="status">
+        {names.length > 0 ? <span><b>{t("banner", { count: list.length, names: format.list(names) })}</b> <span className="small muted">· {t("bannerBeside")}</span></span>
+          : updates.isSuccess && <span className="small muted" title={t("none")}>{t("upToDate")}</span>}
+        {check.isSuccess && <span className="small muted">{t("checking")}</span>}
+        {updateAll.isSuccess && <span className="small muted">{t("queuedAll")}</span>}
+        {(updates.isError || check.isError || updateAll.isError) && <span className="error small" role="alert">{describe(updates.error ?? check.error ?? updateAll.error)}</span>}
+      </span>
+      <span className="sentence">
+        {all.length > 0 && <button className="ot-btn" type="button" disabled={updateAll.isPending || updateAll.isSuccess} onClick={() => updateAll.mutate()}>{t("updateAll")}</button>}
+        <button className="ot-btn ot-btn-ghost" type="button" disabled={check.isPending} onClick={() => check.mutate()}>{t("checkNow")}</button>
+      </span>
+    </div>
   );
 }
 

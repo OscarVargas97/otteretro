@@ -62,6 +62,27 @@ public class InstallsTests
     }
 
     [Fact]
+    public async Task ExecutableIsTheRecipeDetectOrTheMainExe()
+    {
+        await using var f = new Fixture();
+        Disk.Create(f.Db, f.Tmp["E"], "E:");
+        Assert.Equal("done", (await Install(f, new InstallJob("eden", "0.1", Path: Zip(f.Tmp, "v1", "uno"), Name: "Eden"))).Status);
+
+        // «Abrir» en Herramientas (#432): con receta, su `detect`; sin receta, el .exe más grande que no parece instalador.
+        Assert.Equal(f.Tmp[@"E\Emuladores\Eden\0.1\eden.exe"], Installs.Executable(f.Db, "eden", "0.1").Exe, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("install.notInstalled", Installs.Executable(f.Db, "eden", "9").Error?.Code);
+        File.Delete(f.Tmp[@"E\Emuladores\Eden\0.1\eden.exe"]);
+        Assert.Equal("install.noProgram", Installs.Executable(f.Db, "eden", "0.1").Error?.Code);
+
+        var own = f.Tmp["propio-src"];
+        Directory.CreateDirectory(own);
+        File.WriteAllText(Path.Combine(own, "Mio.exe"), "programa grande");
+        File.WriteAllText(Path.Combine(own, "unins000.exe"), "desinstalador más grande que el programa");
+        Assert.Equal("done", (await Install(f, new InstallJob("mio", "1", Path: own, Name: "Mío", Kind: "emulator"))).Status);
+        Assert.EndsWith("Mio.exe", Installs.Executable(f.Db, "mio", "1").Exe);
+    }
+
+    [Fact]
     public async Task ReinstallComesFromTheLibrary()
     {
         await using var f = new Fixture();

@@ -140,6 +140,18 @@ public static class Installs
     public static string? InUse(Database db, string emulator) => List(db).FirstOrDefault(i => i.EmulatorId == emulator && i.InUse)?.Version;
 
     /// <summary>
+    /// El programa de una versión instalada, para «Abrir» en Herramientas (#432): el `detect` de su receta o, sin receta, el .exe
+    /// principal de su carpeta.
+    /// </summary>
+    public static (string? Exe, ApiError? Error) Executable(Database db, string emulator, string version)
+    {
+        if (List(db).FirstOrDefault(i => i.EmulatorId == emulator && i.Version == version) is not { Path: { } path }) return (null, ApiError.Of("install.notInstalled"));
+        var exe = Recipes.Find(emulator) is { } recipe ? System.IO.Path.Combine(path, recipe.Detect)
+            : Scan.MainExecutable(path, new DirectoryInfo(path).EnumerateFiles("*.exe", SearchOption.AllDirectories)) is { } main ? System.IO.Path.Combine(path, main) : null;
+        return exe is not null && File.Exists(exe) ? (exe, null) : (null, ApiError.Of("install.noProgram"));
+    }
+
+    /// <summary>
     /// «Borrar la instalación» (decisión 334): borra la carpeta de una versión que no está en uso; su archivo queda en la librería
     /// (verificado antes) y «Reinstalar» la vuelve a poner. Lo de la persona que esa versión no comparte (su configuración y los
     /// archivos por juego de la receta) se copia antes, verificado, a `_respaldos\<fecha>-instalacion-borrada-<versión>`.

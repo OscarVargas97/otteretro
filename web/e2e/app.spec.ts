@@ -414,7 +414,7 @@ test("Herramientas: un emulador sin receta desde su repo lista sus releases y la
   let sent: Record<string, unknown> | null = null;
   await page.route("**/api/emulators/install", (r) => { sent = r.request().postDataJSON(); return r.fulfill({ json: 0 }); });
   await page.goto(`${base()}/tools/`);
-  await page.getByRole("button", { name: en.tools.install.open.emulator }).click();
+  await page.getByRole("button", { name: en.tools.install.header }).click();
   // Paso 1 (#416): qué y de dónde; lo pegado se reconoce como un repo.
   const dialog = page.getByRole("dialog", { name: /step 1 of 2/ });
   await dialog.getByLabel(en.tools.install.what).selectOption(":other");
@@ -446,7 +446,7 @@ test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería y
   // La pestaña Herramientas (decisión 311): instalar desde una carpeta de este equipo.
   await page.goto(`${base()}/tools/?k=tool`);
   await expect(page.getByRole("tab", { name: en.tools.kind.tool })).toHaveAttribute("aria-selected", "true");
-  await page.getByRole("button", { name: en.tools.install.open.tool }).click();
+  await page.getByRole("button", { name: en.tools.install.header }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel(en.tools.install.what).selectOption("steam-rom-manager");
   await dialog.getByLabel(en.tools.install.originOptional).fill(src);
@@ -466,8 +466,9 @@ test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería y
   await expect(card).toHaveCount(1);
   await card.getByText(en.tools.library.versions.replace("{count}", "1")).click();
   await expect(card.getByText(en.tools.library.origin.upload, { exact: false })).toBeVisible();
-  // Una herramienta no se "usa" ni se borra desde aquí: solo se abre su carpeta.
-  await expect(card.getByRole("button", { name: en.tools.library.open })).toBeVisible();
+  // Una herramienta no se "usa" ni se borra desde aquí: se abre ella o su carpeta (#432).
+  await expect(card.getByRole("button", { name: en.tools.library.launch, exact: true })).toBeVisible();
+  await expect(card.getByRole("button", { name: en.tools.library.open, exact: true })).toBeVisible();
   await expect(card.getByRole("button", { name: en.tools.library.use })).toHaveCount(0);
   await page.screenshot({ path: "e2e-results/8-tools-install-en.png", fullPage: true });
 
@@ -483,7 +484,12 @@ test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería y
   // Va en su pestaña (decisión 320), con su contador, y en una fila que se abre (decisión 322).
   await page.goto(`${base()}/tools/`);
   // El aviso de arriba nombra todas (#416); la lista de Emuladores, no.
-  await expect(page.getByText(/^1 new version: Steam ROM Manager\./)).toBeVisible();
+  await expect(page.getByText(/^1 new version: Steam ROM Manager$/)).toBeVisible();
+  // «Actualizar todo» (#432) instala cada una con la misma API que «Actualizar».
+  await page.getByRole("button", { name: en.tools.updates.updateAll }).click();
+  await expect(page.getByText(en.tools.updates.queuedAll)).toBeVisible();
+  expect(sent).toEqual({ emulator: "steam-rom-manager", version: "2.6.3", url: "https://example.com/srm-2.6.3.exe" });
+  sent = null;
   await expect(page.locator("#tools-panel").getByText("Steam ROM Manager")).toHaveCount(0);
   await expect(page.getByRole("tab", { name: new RegExp(en.tools.kind.tool) }).locator(".ot-count")).toHaveText("1");
   await page.goto(`${base()}/tools/?k=tool`);
@@ -518,6 +524,12 @@ test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería y
   await expect(rows.filter({ hasText: "Eden" })).toHaveAttribute("aria-pressed", "true");
   const eden = page.getByRole("region", { name: "Eden" });
   await expect(eden).toHaveCount(1);
+  // «Abrir» lanza la versión en uso (#432).
+  let launched: unknown = null;
+  await page.route("**/api/emulators/launch", (route) => { launched = route.request().postDataJSON(); return route.fulfill({ status: 200, body: "" }); });
+  await eden.getByRole("button", { name: en.tools.library.launch, exact: true }).click();
+  await expect.poll(() => launched).toEqual({ emulator: "eden", version: "1.0" });
+  await page.unroute("**/api/emulators/launch");
   // La versión en uso a la vista y las demás plegadas (decisión 344).
   await expect(eden.getByText(en.tools.library.current.replace("{version}", "1.0"))).toBeVisible();
   await expect(eden.getByText(en.tools.library.archived)).toBeHidden();
@@ -684,15 +696,14 @@ test("volver a español en Ajustes cambia todo y se mantiene al recargar", async
   await page.screenshot({ path: "e2e-results/5-settings-es.png", fullPage: true });
 });
 
-test("Herramientas en español: la barra de arriba en una línea y una tarjeta por emulador en cada consola (#348)", async () => {
+test("Herramientas en español: «Instalar…» en la cabecera y una tarjeta por emulador en cada consola (#348, #432)", async () => {
   const one = (emulatorId: string, name: string) => ({ emulatorId, name, kind: "emulator", version: "1.0", origin: "recipe", url: "https://example.com/x.zip", file: null, sha256: null,
     installedAt: "2026-01-01T00:00:00Z", path: `C:/x/${emulatorId}`, inUse: true });
   await page.route("**/api/emulators", (route) => route.fulfill({ json: [one("dolphin", "Dolphin"), one("eden", "Eden")] }));
   await page.goto(`${base()}/tools/?k=emulator`);
-  // «Instalar…», «Cargar perfil» y «Revisar ahora» en una sola barra, sin el panel «Versiones nuevas».
-  const top = async (name: string) => (await page.getByRole("button", { name, exact: true }).boundingBox())!.y;
-  const y = await top(es.tools.install.open.emulator);
-  for (const name of [es.profiles.loadZip, es.tools.updates.checkNow]) expect(await top(name)).toBe(y);
+  // «Instalar…» y «Cargar perfil» en la cabecera (#432); «Revisar ahora», en el aviso de versiones.
+  for (const name of [es.tools.install.header, es.profiles.loadZip]) await expect(page.locator("header.top").getByRole("button", { name, exact: true })).toBeVisible();
+  await expect(page.locator(".tools-notice").getByRole("button", { name: es.tools.updates.checkNow })).toBeVisible();
   await expect(page.locator(".tool-row", { hasText: "Dolphin" })).toHaveCount(1);
   await page.locator(".tool-row", { hasText: "Eden" }).click();
   const eden = page.getByRole("region", { name: "Eden" });
