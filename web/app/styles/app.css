@@ -232,8 +232,8 @@ a.ot-btn, a.chip { text-decoration: none; }
 .home-main { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-8); }
 .home-side { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-8); }
 .recent-list { display: flex; gap: var(--space-4); overflow-x: auto; padding: 6px 4px 8px; }
-.recent-game { flex: none; }
-.recent-link { display: block; border-radius: var(--radius-lg); }
+.recent-game { flex: none; text-decoration: none; color: var(--ink); }
+.recent-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .play-box.is-compact { flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 .route-card { flex-direction: row; gap: var(--space-4); }
 .route-card-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
