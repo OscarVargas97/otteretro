@@ -79,6 +79,17 @@ public class PlayTests
             Assert.Equal(1, GameLauncher.Run(f.Db, f.Config, 20));
         });
         Assert.Equal(["Couldn't open the game: no arranca"], shown);
+
+        // #440: si falta el ejecutable, dice cuál y dónde, sin intentar lanzarlo.
+        var folder = f.Tmp[@"E\Emuladores\Eden\0.2.1"];
+        File.Delete(Path.Combine(folder, "eden.exe"));
+        f.Config.Language = "es";
+        shown = Shown(() =>
+        {
+            GameLauncher.Launch = (_, _, _) => Assert.Fail("no debería lanzar");
+            Assert.Equal(1, GameLauncher.Run(f.Db, f.Config, 20));
+        });
+        Assert.Equal([$"No está «eden.exe» en {folder}: la instalación quedó incompleta o la receta no coincide con lo que se bajó. Reinstálalo desde Herramientas."], shown);
         using var c = f.Db.Open();
         Assert.Equal(0, c.ExecuteScalar<long>("SELECT count(*) FROM play_session"));
     }

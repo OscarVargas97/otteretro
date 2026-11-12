@@ -230,6 +230,8 @@ public static class EmulatorSettings
         if (Profiles.InstallOf(db, p.EmulatorId, p.EmulatorVersion) is not { } install)
             return (null, [], false, ApiError.Of("profile.notInstalled", ("emulator", p.EmulatorId)));
         var exe = Path.Combine(install, recipe.Detect);
+        // Sin esto llegaba el error de Windows, que no dice qué falta (#440).
+        if (!File.Exists(exe)) return (null, [], false, ApiError.Of("play.exeMissing", ("exe", recipe.Detect), ("folder", install)));
         var values = Read(p.Settings);
         List<string> extra = recipe.Input?.Arg is { } arg && values.Input.GetValueOrDefault(arg) is { } name ? [arg, name] : [];
         if ((p.GameVersionId ?? version) is not { } game) return (exe, extra, false, null);

@@ -330,6 +330,12 @@ public static class Installs
                 Directory.CreateDirectory(partial);
                 File.Copy(stored, System.IO.Path.Combine(partial, target.Recipe?.SaveAs ?? System.IO.Path.GetFileName(stored)));
             }
+            // Lo bajado tiene que traer el ejecutable de la receta: si no, quedaba «instalado» y fallaba al jugar (#440).
+            if (target.Recipe is { Kind: not "complement" } check && !File.Exists(System.IO.Path.Combine(partial, check.Detect)))
+            {
+                Directory.Delete(partial, recursive: true);
+                throw new TaskException(ApiError.Of("install.detectMissing", ("exe", check.Detect), ("file", System.IO.Path.GetFileName(stored))));
+            }
             var local = job.Repo is not null && target.Recipe is null ? LocalRecipe(run.Db, job, target, partial, System.IO.Path.GetFileName(stored)) : null;
             Directory.CreateDirectory(System.IO.Path.GetDirectoryName(install)!);
             if (replace) Replace(install, partial, target.Recipe, version);
