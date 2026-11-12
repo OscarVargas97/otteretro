@@ -209,4 +209,26 @@ public class PlayTests
         WindowsGame.Run(Cmd, ["/c", "start", "", "/b", "ping", "-n", "4", "127.0.0.1", ">nul"], Environment.SystemDirectory);
         Assert.True(clock.Elapsed > TimeSpan.FromSeconds(2.5), $"terminó en {clock.Elapsed}");
     }
+
+    /// <summary>#452: una sesión abierta cuenta como «Jugando…» solo mientras vive el `otteretro jugar` que la abrió.</summary>
+    [Fact]
+    public async Task AnOpenSessionWhoseWaiterDiedIsNotPlaying()
+    {
+        await using var f = Ready(out _);
+        var now = DateTime.UtcNow.ToString("O");
+        var before = Process.GetCurrentProcess().StartTime.ToUniversalTime().AddMinutes(-1).ToString("O");
+        bool Playing(long? pid, string at)
+        {
+            using (var c = f.Db.Open())
+                c.Execute("DELETE FROM play_session; INSERT INTO play_session (version_id, machine_id, launcher, started_at, pid) VALUES (20, @machine, 'otteretro', @at, @pid)",
+                    new { at, pid, machine = f.Config.MachineId });
+            var playing = Assert.Single(GameLauncher.Recent(f.Db, 10)).Playing;
+            Assert.Equal(playing, Assert.Single(GameLauncher.RecentGames(f.Db)).Playing);
+            return playing;
+        }
+        Assert.True(Playing(Environment.ProcessId, now));
+        Assert.False(Playing(null, now)); // de antes del pid
+        Assert.False(Playing(Environment.ProcessId, before)); // el pid es de un proceso que arrancó después: lo reusó otro
+        Assert.False(Playing(int.MaxValue, now)); // ya no existe
+    }
 }

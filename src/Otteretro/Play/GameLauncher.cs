@@ -119,8 +119,8 @@ public static class GameLauncher
         long session;
         using (var c = db.Open())
             session = c.ExecuteScalar<long>("""
-                INSERT INTO play_session (version_id, machine_id, launcher, started_at) VALUES (@version, @machine, @launcher, @start) RETURNING id
-                """, new { version, machine, launcher, start = started.ToString("O") });
+                INSERT INTO play_session (version_id, machine_id, launcher, started_at, pid) VALUES (@version, @machine, @launcher, @start, @pid) RETURNING id
+                """, new { version, machine, launcher, start = started.ToString("O"), pid = Environment.ProcessId });
         try { wait(); }
         catch (Exception e) when (e is Win32Exception or IOException)
         {
@@ -136,20 +136,32 @@ public static class GameLauncher
     }
 
     /// <summary>Las últimas sesiones del juego (#400, #410), la más nueva primero. Playing: abierta en este momento.</summary>
-    /// <remarks>shortcut: una sesión abierta de hace más de un día se da por cortada (el proceso murió sin cerrarla); si molesta,
-    /// guardar el pid y comprobarlo.</remarks>
     public static List<PlaySession> Recent(Database db, long gameId)
     {
         using var c = db.Open();
-        var since = DateTime.UtcNow.AddDays(-1);
-        return c.Query<(long VersionId, string Platform, string Launcher, string StartedAt, string? EndedAt, long? Duration)>("""
-                SELECT s.version_id, v.platform, s.launcher, s.started_at, s.ended_at, s.duration
+        return c.Query<(long VersionId, string Platform, string Launcher, string StartedAt, string? EndedAt, long? Duration, long? Pid)>("""
+                SELECT s.version_id, v.platform, s.launcher, s.started_at, s.ended_at, s.duration, s.pid
                 FROM play_session s JOIN version v ON v.id = s.version_id
                 WHERE v.game_id = @gameId ORDER BY s.started_at DESC LIMIT 5
                 """, new { gameId })
             .Select(s => new PlaySession(s.VersionId, s.Platform, s.Launcher, s.StartedAt, s.EndedAt, s.Duration,
-                s.EndedAt is null && DateTime.Parse(s.StartedAt, null, System.Globalization.DateTimeStyles.RoundtripKind) > since))
+                s.EndedAt is null && Waiting(s.Pid, s.StartedAt)))
             .ToList();
+    }
+
+    /// <summary>
+    /// Si el `otteretro jugar` que abrió la sesión sigue esperando al juego (#452): el proceso existe y arrancó antes que la sesión
+    /// (un pid reusado es de un proceso más nuevo). Si murió sin cerrarla (una actualización, un cierre a la fuerza), no se juega.
+    /// </summary>
+    static bool Waiting(long? pid, string startedAt)
+    {
+        if (pid is null) return false;
+        try
+        {
+            using var p = Process.GetProcessById((int)pid);
+            return !p.HasExited && p.StartTime.ToUniversalTime() <= DateTime.Parse(startedAt, null, System.Globalization.DateTimeStyles.RoundtripKind);
+        }
+        catch (Exception e) when (e is ArgumentException or InvalidOperationException or Win32Exception) { return false; }
     }
 
     /// <summary>Los últimos juegos jugados (#428), en consola o en PC, el más reciente primero: las sesiones de Otteretro y lo que
@@ -158,22 +170,21 @@ public static class GameLauncher
     {
         var covers = Catalog.CatalogQueries.Covers(db);
         using var c = db.Open();
-        var since = DateTime.UtcNow.AddDays(-1);
         // Las sesiones abiertas por Steam ya cuentan en las horas de la tienda: suman 0 para no contarlas dos veces.
         // En SQLite, las columnas sueltas junto a max() salen de la fila del máximo: la última partida de cada juego.
-        return c.Query<(long GameId, string Name, string Platform, string Launcher, string At, string? Ended, long Minutes)>("""
+        return c.Query<(long GameId, string Name, string Platform, string Launcher, string At, string? Ended, long? Pid, long Minutes)>("""
                 WITH p AS (
-                    SELECT v.game_id, v.platform, s.launcher, s.started_at AS at, s.ended_at AS ended,
+                    SELECT v.game_id, v.platform, s.launcher, s.started_at AS at, s.ended_at AS ended, s.pid,
                            CASE WHEN s.launcher = 'steam' THEN 0 ELSE coalesce(s.duration, 0) / 60 END AS minutes
                     FROM play_session s JOIN version v ON v.id = s.version_id
                     UNION ALL
-                    SELECT v.game_id, v.platform, o.store, o.last_played, o.last_played, coalesce(o.playtime, 0)
+                    SELECT v.game_id, v.platform, o.store, o.last_played, o.last_played, NULL, coalesce(o.playtime, 0)
                     FROM source o JOIN version v ON v.id = o.version_id WHERE o.kind = 'store' AND o.last_played IS NOT NULL)
-                SELECT g.id, g.name_es, p.platform, p.launcher, max(p.at), p.ended, sum(p.minutes)
+                SELECT g.id, g.name_es, p.platform, p.launcher, max(p.at), p.ended, p.pid, sum(p.minutes)
                 FROM p JOIN game g ON g.id = p.game_id GROUP BY g.id ORDER BY max(p.at) DESC LIMIT @limit
                 """, new { limit })
             .Select(r => new RecentGame(r.GameId, r.Name, covers.Contains(r.GameId), r.Platform, r.Launcher, r.At, r.Minutes,
-                r.Ended is null && DateTime.Parse(r.At, null, System.Globalization.DateTimeStyles.RoundtripKind) > since))
+                r.Ended is null && Waiting(r.Pid, r.At)))
             .ToList();
     }
 
