@@ -76,7 +76,7 @@ function Game() {
             {g.year && <span>{g.year}</span>}
             {owned ? <span className="ot-badge ot-badge-have">{t("owned")}</span> : <span className="ot-badge">{t("missing")}</span>}
           </div>
-          <div className="hero-actions" style={{ alignItems: "flex-start" }}>
+          <div className="hero-actions">
             <PlayButton game={g} owned={owned} onChange={() => go("play")} />
             <FavoriteButton game={g} />
             <MoreMenu game={g} files={files} owned={owned} onRemove={() => { setRemoving((n) => n + 1); go("files"); }} />
