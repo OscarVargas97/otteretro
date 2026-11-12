@@ -78,21 +78,17 @@ export default function Home() {
           <div className="sec-h"><h2>{t("continue")}</h2><span className="muted small">{t("continueHint")}</span></div>
           <div className="recent-list">
             {recentGames.map((g) => (
-              <article key={g.gameId} className="ot-game recent-game">
-                <Link href={`/game/?id=${g.gameId}`} className="recent-link" aria-label={g.name}>
-                  <Cover gameId={g.gameId} name={g.name} hasCover={g.hasCover} platform={g.platform} />
-                </Link>
+              <Link key={g.gameId} href={`/game/?id=${g.gameId}`} className="ot-game recent-game">
+                <Cover gameId={g.gameId} name={g.name} hasCover={g.hasCover} platform={g.platform} />
                 <span className="ot-game-name" title={g.name}>{g.name}</span>
                 <div className="ot-game-meta">
                   <span className="ot-console">{consoleName(g.platform)}</span>
                   {g.launcher !== "otteretro" && <span>{dt.has(`catalog.store.${g.launcher}`) ? dt(`catalog.store.${g.launcher}`) : g.launcher}</span>}
                 </div>
-                <div className="ot-game-meta">
-                  <span>{g.playing ? t("playingNow") : format.relativeTime(new Date(g.lastPlayed), new Date())}</span>
-                  {Number(g.minutes) > 0 && <><span>·</span><span>{t("played", { time: hours(Number(g.minutes)) })}</span></>}
-                </div>
-                <PlayButton game={{ id: g.gameId, nameEs: g.name }} owned compact />
-              </article>
+                {/* una línea por dato: así todas las tarjetas miden lo mismo (#437) */}
+                <span className="ot-game-meta recent-line">{g.playing ? t("playingNow") : format.relativeTime(new Date(g.lastPlayed), new Date())}</span>
+                <span className="ot-game-meta recent-line">{Number(g.minutes) > 0 ? t("played", { time: hours(Number(g.minutes)) }) : " "}</span>
+              </Link>
             ))}
           </div>
         </section>
