@@ -292,12 +292,17 @@ a.ot-btn, a.chip { text-decoration: none; }
 /* Ficha (#410): Jugar con su opción debajo, opciones de un clic, menú «Más» con texto, descripción en 3 líneas y archivos nombre/carpeta. */
 .play-box { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .play-box > .ot-btn { align-self: flex-start; }
+/* Cabecera de la ficha (#439, tablero Ficha): Jugar grande con su texto al lado; Favorito y Más, a la derecha y del mismo alto. */
+.hero-actions:has(> .play-box:not(.is-compact)) { align-items: center; gap: var(--space-2) var(--space-4); }
+.hero-actions > .play-box:not(.is-compact) { flex: 1 1 auto; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: var(--space-4); row-gap: 0; }
+.play-box:not(.is-compact) > .ot-btn { grid-row: 1 / span 4; align-self: center; height: 44px; min-width: 160px; padding: 0 var(--space-6); font-size: 17px; }
+.play-box:not(.is-compact) > :not(.ot-btn) { grid-column: 2; }
 .play-box .link-button { padding: 0; color: var(--accent); text-decoration: underline; }
 .opt { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid var(--line); background: var(--surface-raised); color: var(--ink); text-align: left; font: inherit; cursor: pointer; width: 100%; box-sizing: border-box; }
 .opt[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); }
 .radio { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line); box-sizing: border-box; flex: none; }
 .opt[aria-checked="true"] .radio { border-color: var(--accent); background: radial-gradient(var(--accent) 45%, transparent 50%); }
-.ot-menu-text > summary { width: auto; padding: 0 14px; font-size: inherit; }
+.ot-menu-text > summary { width: auto; height: 36px; padding: 0 14px; font-size: inherit; }
 .ot-menu-text .ot-menu-list { left: 0; right: auto; }
 .ot-menu-list a { padding: 8px 12px; border-radius: 6px; color: var(--ink); text-decoration: none; }
 .ot-menu-list a:hover, .ot-menu-list a:focus-visible { background: var(--surface); }
