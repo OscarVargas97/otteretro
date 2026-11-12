@@ -571,6 +571,7 @@
       "badRepo": "No se reconoce el repo: pega la dirección de un repo de GitHub, Forgejo o Gitea (https://servidor/dueño/repo).",
       "pickExe": "Lo bajado trae varios ejecutables: elige cuál abre el emulador.",
       "noExe": "Lo bajado no trae un ejecutable de Windows: elige otro archivo de la release.",
+      "installerFailed": "El instalador terminó con un error (código {code}): no se instaló. Revisa su registro o instálalo a mano.",
       "detectMissing": "Lo bajado ({file}) no trae «{exe}», el programa que espera su receta: no se instaló. La receta del catálogo no coincide con la release; avisa para corregirla.",
       "exists": "La versión {version} ya está instalada: las versiones nunca se reemplazan.",
       "badHash": "Lo bajado de la versión {version} no coincide con el hash de la receta: no se instaló.",

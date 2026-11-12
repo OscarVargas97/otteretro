@@ -90,6 +90,45 @@ public class RepoInstallTests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) =>
             Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(body) });
     }
+
+    [Fact]
+    public async Task InstallerRunsSilentlyIntoTheFolderAndAFailedOneLeavesNothing()
+    {
+        if (!OperatingSystem.IsWindows()) return; // el instalador falso es un .cmd
+        await using var f = new Fixture();
+        Disk.Create(f.Db, f.Tmp["E"], "E:");
+        Directory.CreateDirectory(f.Tmp[@"datos\data\recetas"]);
+        File.WriteAllText(f.Tmp[@"datos\data\recetas\instalable.json"], """
+            { "id": "instalable", "name": "Instalable", "kind": "port", "folder": "Switch", "detect": "Instalable.exe",
+              "installer": ["--dest", "{dir}", "--quiet"] }
+            """);
+        Recipes.LocalFolder = Recipes.LocalFolder;
+        // #443: el instalador recibe la carpeta en {dir} y deja ahí el ejecutable; uno que sale con error no deja nada.
+        Installs.Handler = new Fake("""
+            @echo off
+            if not "%1"=="--dest" exit /b 7
+            echo x> "%~2\Instalable.exe"
+
+            """u8.ToArray());
+        try
+        {
+            Assert.Equal("done", (await Run(f, new InstallJob("instalable", "1.0", Url: "https://example.com/Instalable-Setup-1.0.cmd"))).Status);
+            Installs.Handler = new Fake("@exit /b 7\r\n"u8.ToArray());
+            var failed = await Run(f, new InstallJob("instalable", "2.0", Url: "https://example.com/Instalable-Setup-2.0.cmd"));
+            Assert.Equal(("error", "install.installerFailed"), (failed.Status, failed.Detail?.Code));
+        }
+        finally { Installs.Handler = null; }
+        var installed = Assert.Single(Installs.List(f.Db));
+        Assert.True(File.Exists(Path.Combine(installed.Path!, "Instalable.exe")));
+        Assert.Empty(Directory.GetDirectories(Path.GetDirectoryName(installed.Path)!, "*.parcial"));
+    }
+
+    static async Task<TaskInfo> Run(Fixture f, InstallJob job)
+    {
+        var (task, error) = Installs.Enqueue(f.Db, job);
+        Assert.Null(error);
+        return await f.Run(task!.Value);
+    }
 }
 
 [CollectionDefinition(nameof(RepoInstallTests), DisableParallelization = true)]
