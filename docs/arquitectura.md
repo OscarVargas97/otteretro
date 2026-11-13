@@ -130,7 +130,7 @@ Tablas principales. `id` entero salvo donde se indica. Tablas, columnas y valore
 
 Un JSON por emulador, port o complemento en `recetas/`. El formato, campo por campo, está en `recetas/receta.schema.json`. `Libraries/Recipes.cs` las carga al arrancar: una receta que no se puede leer hace fallar el arranque. Lo que el deserializador no revisa (enums, consolas, plantillas, rutas relativas) lo comprueban las pruebas `LoadsEveryRecipe` y `RecipesFollowTheSchemaRules`. Lo que describe:
 
-- **Instalación:** `detect` (el ejecutable), `version` (de dónde sale la versión de algo instalado a mano), `portable` (los pasos para dejarlo portable), `settings` (valores que necesita) y `formats`.
+- **Instalación:** `detect` (el ejecutable), `run` (con qué se juega, si no es `detect`: un port cuyo `detect` es su instalador, #457), `version` (de dónde sale la versión de algo instalado a mano), `portable` (los pasos para dejarlo portable), `settings` (valores que necesita) y `formats`.
 - **Consolas:** `consoles` y `baseFor` (decisiones 286 y 291), con `license`, `experimental` y `devOnly`.
 - **Fuente:** `updates` (las releases de GitHub o Forgejo, o el servidor de Dolphin; también se usa para los avisos de versión; `devRepo` cuando las de desarrollo están en otro repo, como Ryubing Canary, y `devPattern` para los tags de desarrollo que no vienen marcados, como las `-rc` de Eden) y `asset` (el archivo de Windows de cada release). Sin ellos, como Ryujinx SS4K, se instala solo desde la librería. `downloads` fija la URL y el hash de cada versión para Nix.
 - **Datos:**

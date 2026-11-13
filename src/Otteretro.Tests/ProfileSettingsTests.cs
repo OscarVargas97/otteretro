@@ -239,4 +239,29 @@ public class ProfileSettingsTests
         // Sin un archivo del formato que pide, se abre normal.
         Assert.False(EmulatorSettings.OpenArgs(f.Db, Default("otro-formato", "Otro formato", "o.exe"), 20).InGame);
     }
+
+    [Fact]
+    public async Task APortWhoseDetectIsItsInstallerPlaysWithRun()
+    {
+        await using var f = Game("switch2", Totk, out _);
+        var folder = Recipes.LocalFolder!;
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(Path.Combine(folder, "con-instalador.json"), """
+            { "id": "con-instalador", "name": "Con instalador", "kind": "port", "folder": "Switch 2", "detect": "Builder.exe", "run": "data/bin/juego.exe" }
+            """);
+        Recipes.LocalFolder = folder;
+        var dir = Install(f, "con-instalador", "port", "Con instalador", "Builder.exe", "1.0");
+        long id;
+        using (var c = f.Db.Open()) id = c.ExecuteScalar<long>("SELECT id FROM profile WHERE emulator_id = 'con-instalador' AND game_version_id IS NULL");
+
+        // Sin el juego, el error nombra lo que falta (no el instalador, que sí está).
+        Assert.Equal("data/bin/juego.exe", EmulatorSettings.OpenArgs(f.Db, id, 20).Error?.Params?["exe"]);
+
+        var game = Path.Combine(dir, @"data\bin\juego.exe");
+        Directory.CreateDirectory(Path.GetDirectoryName(game)!);
+        File.WriteAllText(game, "");
+        Assert.Equal(Path.GetFullPath(game), Path.GetFullPath(EmulatorSettings.OpenArgs(f.Db, id, 20).Exe!));
+        // «Abrir» en Herramientas sigue siendo el instalador.
+        Assert.EndsWith("Builder.exe", Installs.Executable(f.Db, "con-instalador", "1.0").Exe);
+    }
 }

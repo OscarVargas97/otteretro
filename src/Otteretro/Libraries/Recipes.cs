@@ -95,6 +95,8 @@ public record Recipe(string Id, string Name, string Kind, string Folder, string 
     public RecipeInput? Input { get; init; }
     /// <summary>Con qué nombre se guarda el archivo bajado cuando no es un zip (un .exe con la versión en el nombre), para que coincida con Detect (#268).</summary>
     public string? SaveAs { get; init; }
+    /// <summary>Con qué se juega, si no es <c>Detect</c>: un port cuyo <c>Detect</c> es su instalador (Hookshot, #457).</summary>
+    public string? Run { get; init; }
     /// <summary>Si lo bajado es un instalador: sus argumentos para instalar sin preguntar, con <c>{dir}</c> donde va la carpeta (#443).</summary>
     public List<string>? Installer { get; init; }
 
