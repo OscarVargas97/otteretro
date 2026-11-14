@@ -365,6 +365,16 @@ public static class CatalogEndpoints
             return TypedResults.Ok();
         });
 
+        // «Subir archivo» de la ficha (#465): el archivo llega crudo en el cuerpo; devuelve la tarea de importar.
+        api.MapPost("/games/{id:long}/upload", async Task<Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>>> (long id, string name, HttpRequest request, AppSession s, CancellationToken ct) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            // Una ROM puede pasar del límite normal de un pedido; el servidor solo escucha en este equipo.
+            if (request.HttpContext.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limit) limit.MaxRequestBodySize = null;
+            var (task, error) = await Libraries.Import.Upload(db, id, name, request.Body, ct);
+            return error is null ? TypedResults.Ok(task!.Value) : TypedResults.BadRequest(error);
+        });
+
         // «Detener» (#454): termina el juego abierto por Otteretro; la sesión la cierra quien la abrió.
         api.MapPost("/games/{id:long}/stop", Results<Ok, Conflict<ApiError>> (long id, AppSession s) =>
             Db(s) is not { } db ? NoData() : GameLauncher.Stop(db, id) is { } error ? TypedResults.Conflict(error) : TypedResults.Ok());

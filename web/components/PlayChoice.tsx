@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { hours, useConsoleName } from "@/components/Catalog";
 import { GameProfiles, Recommended, useRecommended } from "@/components/GameProfiles";
 import { PortRow } from "@/components/Ports";
@@ -67,11 +67,27 @@ export function PlayButton({ game, owned, onChange, compact }: { game: Pick<Game
     onSettled: () => { setConfirmStop(false); setLaunching(false); cache.invalidateQueries({ queryKey: ["sessions", gameId] }); },
   });
 
+  // «Subir archivo» (#465): lo importa ya como de este juego.
+  const file = useRef<HTMLInputElement>(null);
+  const upload = useMutation({
+    mutationFn: (f: File) => request<number>(`/api/games/${gameId}/upload?${new URLSearchParams({ name: f.name })}`,
+      { method: "POST", body: f, headers: { "Content-Type": "application/octet-stream" } }),
+    onSettled: () => { if (file.current) file.current.value = ""; cache.invalidateQueries({ queryKey: ["tasks"] }); },
+  });
+
   const box = compact ? "play-box is-compact" : "play-box";
   if (!owned) return (
     <div className={box}>
-      <Link className="ot-btn ot-btn-primary" href={`/downloads/?${new URLSearchParams({ game: String(game.id), name: game.nameEs })}`}>{t("download")}</Link>
-      {!compact && <span className="small muted">{t("notOwned")}</span>}
+      <div className="play-buttons">
+        <Link className="ot-btn ot-btn-primary" href={`/downloads/?${new URLSearchParams({ game: String(game.id), name: game.nameEs })}`}>{t("download")}</Link>
+        <button className="ot-btn ot-btn-primary" type="button" disabled={upload.isPending} onClick={() => file.current?.click()}>
+          {upload.isPending ? t("uploading") : t("upload")}
+        </button>
+        <input ref={file} type="file" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) upload.mutate(f); }} />
+      </div>
+      {upload.error ? <span className="small" role="alert">{describe(upload.error)}</span>
+        : upload.isSuccess ? <span className="small muted" role="status">{t("uploaded")}</span>
+        : !compact && <span className="small muted">{t("notOwned")}</span>}
     </div>
   );
 

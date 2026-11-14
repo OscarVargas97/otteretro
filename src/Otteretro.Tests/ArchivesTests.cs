@@ -152,6 +152,24 @@ public class ArchivesTests
         Assert.Equal(@"Entrada\raro.zip", db.ExecuteScalar<string>("SELECT relative_path FROM source"));
     }
 
+    /// <summary>«Subir archivo» (#465): queda en su carpeta de `Entrada\` y se encola su importación como de ese juego.</summary>
+    [Fact]
+    public async Task UploadLeavesTheFileInTheEntryFolderForThatGame()
+    {
+        await using var f = new Fixture();
+        Disk.Create(f.Db, f.Tmp["Otteretro"], "E:");
+        using (var c = f.Db.Open()) c.Execute("INSERT INTO game (id, name_es) VALUES (10, 'Majora');");
+        Assert.Equal("import.badName", (await Import.Upload(f.Db, 10, "../.oculto", new MemoryStream([1]), default)).Error?.Code);
+        Assert.Equal("import.badGame", (await Import.Upload(f.Db, 99, "x.z64", new MemoryStream([1]), default)).Error?.Code);
+
+        var (task, error) = await Import.Upload(f.Db, 10, "Majora.z64", new MemoryStream([1, 2]), default);
+        Assert.Null(error);
+        Assert.Equal([1, 2], File.ReadAllBytes(f.Tmp[@"Otteretro\Entrada\Majora\Majora.z64"]));
+        Assert.Empty(Directory.GetFiles(f.Tmp[@"Otteretro\.subiendo"]));
+        using var db = f.Db.Open();
+        Assert.Contains("\"gameId\":10", db.ExecuteScalar<string>("SELECT data FROM task WHERE id = @task", new { task }));
+    }
+
     sealed class NoNetwork : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) => throw new HttpRequestException("sin red");
