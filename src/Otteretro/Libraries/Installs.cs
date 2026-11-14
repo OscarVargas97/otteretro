@@ -27,6 +27,9 @@ public record EmulatorInstall(string EmulatorId, string Name, string Kind, strin
     /// <summary>La versión que usan los perfiles del emulador (decisión 331): la de su perfil por defecto o, sin ella, la más nueva
     /// instalada. Un port, la instalada.</summary>
     public bool InUse { get; init; }
+
+    /// <summary>Su carpeta está pero le falta el programa de su receta (#446): se instala de nuevo desde la receta.</summary>
+    public bool Broken { get; init; }
 }
 
 /// <summary>
@@ -110,7 +113,8 @@ public static class Installs
             return (null, ApiError.Of("install.noDownload"));
         if (BadName(job.Version)) return (null, ApiError.Of("install.noVersion"));
         if (home is null) return (null, ApiError.Of("library.notConnected"));
-        if (Registered(db, job.Emulator, job.Version!) is not null || (target.Kind != "port" && System.IO.Path.Exists(InstallPath(home, target, job.Version!))))
+        var at = InstallPath(home, target, job.Version!);
+        if ((Registered(db, job.Emulator, job.Version!) is not null || (target.Kind != "port" && System.IO.Path.Exists(at))) && !Broken(target.Recipe, at))
             return (null, ApiError.Of("install.exists", ("version", job.Version!)));
         return (TaskQueue.Enqueue(db, Kind, JsonSerializer.Serialize(job, Json)), null);
     }
@@ -133,11 +137,23 @@ public static class Installs
         string? Current(string emulator) =>
             pinned.GetValueOrDefault(emulator) is { } v && list.Any(i => i.EmulatorId == emulator && i.Version == v && i.Kind != "port") ? v
             : list.LastOrDefault(i => i.EmulatorId == emulator && i.Path is not null)?.Version;
-        return list.Select(i => i with { InUse = i.Version == Current(i.EmulatorId) }).ToList();
+        return list.Select(i => i with { InUse = i.Version == Current(i.EmulatorId), Broken = i.Path is not null && Broken(Recipes.Find(i.EmulatorId), i.Path) }).ToList();
     }
 
     /// <summary>La versión en uso de un emulador; null si no tiene ninguna instalada.</summary>
     public static string? InUse(Database db, string emulator) => List(db).FirstOrDefault(i => i.EmulatorId == emulator && i.InUse)?.Version;
+
+    /// <summary>
+    /// El programa de una versión instalada, para «Abrir» en Herramientas (#432): el `detect` de su receta o, sin receta, el .exe
+    /// principal de su carpeta.
+    /// </summary>
+    public static (string? Exe, ApiError? Error) Executable(Database db, string emulator, string version)
+    {
+        if (List(db).FirstOrDefault(i => i.EmulatorId == emulator && i.Version == version) is not { Path: { } path }) return (null, ApiError.Of("install.notInstalled"));
+        var exe = Recipes.Find(emulator) is { } recipe ? System.IO.Path.Combine(path, recipe.Detect)
+            : Scan.MainExecutable(path, new DirectoryInfo(path).EnumerateFiles("*.exe", SearchOption.AllDirectories)) is { } main ? System.IO.Path.Combine(path, main) : null;
+        return exe is not null && File.Exists(exe) ? (exe, null) : (null, ApiError.Of("install.noProgram"));
+    }
 
     /// <summary>
     /// «Borrar la instalación» (decisión 334): borra la carpeta de una versión que no está en uso; su archivo queda en la librería
@@ -250,8 +266,10 @@ public static class Installs
         // (decisión 325), salvo que todavía tenga varias versiones adentro: primero se juntan en una (#316).
         var registered = Registered(run.Db, job.Emulator, version);
         var isPort = target.Kind == "port";
-        if ((registered is not null && !job.Reinstall) || (!isPort && System.IO.Path.Exists(install))) throw new TaskException(ApiError.Of("install.exists", ("version", version)));
-        var replace = isPort && Directory.Exists(install);
+        // Sin el ejecutable de su receta (la receta cambió de archivo, #446) se instala encima, como un port.
+        var broken = Broken(target.Recipe, install);
+        if (((registered is not null && !job.Reinstall) || (!isPort && System.IO.Path.Exists(install))) && !broken) throw new TaskException(ApiError.Of("install.exists", ("version", version)));
+        var replace = (isPort || broken) && Directory.Exists(install);
         if (replace && !File.Exists(System.IO.Path.Combine(install, Recipes.VersionFile))
             && Directory.EnumerateDirectories(install).Any(d => Registered(run.Db, job.Emulator, System.IO.Path.GetFileName(d)) is not null))
             throw new TaskException(ApiError.Of("install.manyVersions", ("name", target.Name)));
@@ -278,7 +296,9 @@ public static class Installs
                 // 1. El archivo original: primero la librería (decisión 292); si no está, la descarga, el zip o la carpeta hecha zip.
                 run.Report(5, ApiError.Of("install.fetching", ("version", version)));
                 string original;
-                if (Directory.Exists(shelf) && Directory.GetFiles(shelf) is [var kept]) original = kept;
+                // Solo si es el archivo que se pide: la receta puede cambiar de archivo sin cambiar de versión (#446).
+                var source = job.Url ?? download?.Url;
+                if (Directory.Exists(shelf) && Directory.GetFiles(shelf) is [var kept] && (source is null || System.IO.Path.GetFileName(kept) == UrlFileName(source))) original = kept;
                 else if (job.Path is { } path)
                 {
                     original = System.IO.Path.Combine(work, File.Exists(path) ? System.IO.Path.GetFileName(path) : $"{target.Name}-{version}.zip");
@@ -294,6 +314,10 @@ public static class Installs
 
                 // 3. A la librería del ★: copiar, verificar y recién usarla.
                 run.Report(40, ApiError.Of("install.library"));
+                if (job.Path is null && Directory.Exists(shelf))
+                    // El archivo de antes de esa versión se aparta, no se borra.
+                    foreach (var old in Directory.GetFiles(shelf).Where(o => !Disk.Same(o, original)))
+                        File.Move(old, System.IO.Path.Combine(Directory.CreateDirectory(System.IO.Path.Combine(shelf, ReplacedFolder)).FullName, System.IO.Path.GetFileName(old)), overwrite: true);
                 stored = Store(original, shelf);
             }
 
@@ -312,11 +336,23 @@ public static class Installs
                     Directory.Move(partial + ".x", partial);
                 }
             }
+            else if (target.Recipe?.Installer is { } args)
+            {
+                // Un instalador (NX2navi-Setup.exe, #443): se corre en silencio sobre la carpeta a medias y de ahí sigue como un zip.
+                Directory.CreateDirectory(partial);
+                await RunInstaller(stored, args.Select(a => a.Replace("{dir}", partial)), partial, ct);
+            }
             else
             {
                 // Un .exe con la versión en el nombre (Steam ROM Manager) va con el nombre que busca la receta (`saveAs`, #274).
                 Directory.CreateDirectory(partial);
                 File.Copy(stored, System.IO.Path.Combine(partial, target.Recipe?.SaveAs ?? System.IO.Path.GetFileName(stored)));
+            }
+            // Lo bajado tiene que traer el ejecutable de la receta: si no, quedaba «instalado» y fallaba al jugar (#440).
+            if (target.Recipe is { Kind: not "complement" } check && !File.Exists(System.IO.Path.Combine(partial, check.Detect)))
+            {
+                Directory.Delete(partial, recursive: true);
+                throw new TaskException(ApiError.Of("install.detectMissing", ("exe", check.Detect), ("file", System.IO.Path.GetFileName(stored))));
             }
             var local = job.Repo is not null && target.Recipe is null ? LocalRecipe(run.Db, job, target, partial, System.IO.Path.GetFileName(stored)) : null;
             Directory.CreateDirectory(System.IO.Path.GetDirectoryName(install)!);
@@ -342,6 +378,8 @@ public static class Installs
                     c.Execute("""
                         INSERT INTO emulator_install (emulator_id, version, origin, url, file, sha256, installed_at)
                         VALUES (@Emulator, @version, @origin, @url, @file, @sha, @now)
+                        ON CONFLICT (emulator_id, version) DO UPDATE SET origin = excluded.origin, url = excluded.url, file = excluded.file,
+                            sha256 = excluded.sha256, installed_at = excluded.installed_at
                         """, new { job.Emulator, version, origin, url = job.Url ?? download?.Url, file = System.IO.Path.GetFileName(stored), sha, now = DateTime.UtcNow.ToString("O") });
             }
             run.Log(ApiError.Of("install.log.done", ("name", target.Name), ("version", version), ("path", install)));
@@ -353,6 +391,23 @@ public static class Installs
     }
 
     /// <summary>Instaladores que traen algunas releases junto al emulador (Fritchii: vc_redist.x64.exe): no son su ejecutable.</summary>
+    static async Task RunInstaller(string exe, IEnumerable<string> args, string partial, CancellationToken ct)
+    {
+        using var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe, args) { WorkingDirectory = System.IO.Path.GetDirectoryName(exe)! })
+            ?? throw new TaskException(ApiError.Of("install.installerFailed", ("code", "-1")));
+        try { await p.WaitForExitAsync(ct); }
+        catch (OperationCanceledException)
+        {
+            p.Kill(entireProcessTree: true);
+            await p.WaitForExitAsync(CancellationToken.None);
+            Directory.Delete(partial, recursive: true);
+            throw;
+        }
+        if (p.ExitCode == 0) return;
+        Directory.Delete(partial, recursive: true);
+        throw new TaskException(ApiError.Of("install.installerFailed", ("code", p.ExitCode.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+    }
+
     static readonly System.Text.RegularExpressions.Regex Installer = new(@"^(vc_?redist|unins|setup|install|crashpad|updater)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
     /// <summary>
@@ -495,6 +550,8 @@ public static class Installs
     public const string SharedFolder = "_compartido";
     /// <summary>Las copias puntuales de lo común, antes de que lo use una versión nueva.</summary>
     public const string SnapshotsFolder = "_respaldos";
+    /// <summary>En la librería, el archivo de una versión que la receta cambió por otro (#446).</summary>
+    public const string ReplacedFolder = "_reemplazado";
 
     /// <summary>
     /// Las partidas y el contenido instalado (NAND, dev_hdd0, mlc01) son de todas las versiones (decisión 308): cada carpeta `saves`
@@ -584,6 +641,12 @@ public static class Installs
         return Convert.ToHexStringLower(await SHA256.HashDataAsync(stream, ct));
     }
 
+    static string UrlFileName(string url) => System.IO.Path.GetFileName(Uri.UnescapeDataString(new Uri(url).AbsolutePath));
+
+    /// <summary>Instalada pero sin el ejecutable de su receta (#440, #446): no arranca, y se puede volver a instalar encima.</summary>
+    public static bool Broken(Recipe? recipe, string install) =>
+        recipe is { Kind: not "complement", Detect: { Length: > 0 } detect } && Directory.Exists(install) && !File.Exists(System.IO.Path.Combine(install, detect));
+
     static async Task<string> Download(string url, string folder, CancellationToken ct)
     {
         using var http = Handler is null ? new HttpClient() : new HttpClient(Handler, disposeHandler: false);
@@ -591,7 +654,7 @@ public static class Installs
         http.DefaultRequestHeaders.UserAgent.ParseAdd("Otteretro");
         using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
         response.EnsureSuccessStatusCode();
-        var name = System.IO.Path.GetFileName(Uri.UnescapeDataString(new Uri(url).AbsolutePath));
+        var name = UrlFileName(url);
         var file = System.IO.Path.Combine(folder, BadName(name) ? "descarga" : name);
         await using (var output = File.Create(file)) await response.Content.CopyToAsync(output, ct);
         FolderMove.FlushToDisk(file);

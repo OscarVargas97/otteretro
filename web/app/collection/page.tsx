@@ -6,8 +6,8 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Suspense, useState } from "react";
 import { GameTile, hours, useConsoles } from "@/components/Catalog";
-import { BestEmulatorButton } from "@/components/BestEmulatorPicker";
 import { ImportFolder } from "@/components/ImportFolder";
+import { FilesToReview } from "@/components/Review";
 import { Empty } from "@/components/Shell";
 import { useDescribeError } from "@/lib/i18n";
 import { Rows, Tiles } from "@/components/Skeleton";
@@ -57,8 +57,9 @@ function Collection() {
     mutationFn: () => request<number>("/api/collection/verify", { method: "POST", body: JSON.stringify({ console: selected }) }),
     onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
   });
+  const params = useSearchParams();
   // Sin consola en la URL, la primera que tenga juegos.
-  const selected = useSearchParams().get("console") ?? consoles.data?.find((c) => countFor(c, filter) > 0)?.id ?? consoles.data?.find((c) => Number(c.games) > 0)?.id ?? consoles.data?.[0]?.id;
+  const selected = params.get("console") ?? consoles.data?.find((c) => countFor(c, filter) > 0)?.id ?? consoles.data?.find((c) => Number(c.games) > 0)?.id ?? consoles.data?.[0]?.id;
   const current = consoles.data?.find((c) => c.id === selected);
   // Por tramos al bajar (#177): PC tiene 20.000 juegos. Lo de Steam sin IGDB llega con el primero.
   const page = usePaged(["collection", selected, filter, sort], (offset) => `/api/collection/${selected}?${new URLSearchParams({ filter, sort, offset: String(offset) })}`,
@@ -102,7 +103,6 @@ function Collection() {
             {current?.hasDat && Number(current.owned) > 0 && (
               <button className="ot-btn" type="button" title={t("collection.verifyHelp")} disabled={verify.isPending} onClick={() => verify.mutate()}>{t("collection.verify")}</button>
             )}
-            <BestEmulatorButton />
             <select className="ot-btn" aria-label={t("collection.sortLabel")} value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
               {SORTS.map((s) => <option key={s} value={s}>{t(`collection.sort.${s}`)}</option>)}
             </select>
@@ -117,6 +117,8 @@ function Collection() {
             </div>
           </div>
         </div>
+        {/* «?review=1» llega desde Inicio y desde la vieja /review/ (#415). */}
+        <FilesToReview initiallyOpen={params.has("review")} />
         {current && (
           <div className="small muted">
             {t("collection.summary", { console: current.name, games: t("games", { count: Number(current.games) }), owned: t("ownedCount", { count: Number(current.owned) }) })}

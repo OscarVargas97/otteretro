@@ -15,7 +15,6 @@
     "collection": "Colección",
     "game": "Juego",
     "discover": "Descubrir",
-    "review": "Revisar",
     "downloads": "Descargas",
     "tools": "Herramientas",
     "steam": "Steam",
@@ -60,47 +59,39 @@
     "tools": {
       "title": "Aún no hay emuladores ni ports",
       "text": "Aquí se instalarán y actualizarán emuladores, ports, complementos y archivos de sistema."
-    },
-    "steam": {
-      "title": "Nada que exportar",
-      "text": "Aquí verás qué juegos se llevan a Steam, con su categoría por saga y su arte."
     }
   },
   "welcome": {
     "steps": {
       "welcome": "Bienvenida",
-      "dataFolder": "Carpeta de datos",
-      "backup": "Respaldo",
-      "libraries": "Discos",
-      "steam": "Steam",
-      "keys": "Claves",
-      "initialLoad": "Carga inicial",
-      "accounts": "Cuentas de descarga"
+      "where": "Dónde guardar",
+      "steam": "Steam y cuentas",
+      "load": "Carga inicial"
     },
-    "phase": "Fase {phase}",
     "stepOf": "Paso {step} de {total}",
-    "intro": "Cataloga tus sagas, organiza tus juegos, emuladores y ports en cualquier disco, y llévalo todo a Steam. Esto toma unos minutos.",
+    "intro": "Tus sagas, tus juegos en todos los discos y un botón para jugar cada uno. Son cuatro pasos; lo opcional se puede dejar para después.",
     "start": "Empezar",
-    "chooseTitle": "Elige la carpeta de datos",
-    "chooseText": "Aquí van la base de datos, las Herramientas (emuladores, ports, BIOS) y la caché de imágenes. Ocupa bastante: elige un disco con espacio. Para cambiar de PC basta con mover esta carpeta.",
     "freeOf": "{free} libres de {total}",
-    "otherPath": "O escribe otra ruta",
     "back": "Atrás",
     "preparing": "Preparando…",
-    "use": "Usar {path}",
-    "nextSteps": "Respaldo, Steam y el resto de los pasos se activan con su fase.",
-    "librariesTitle": "Tus discos",
-    "librariesText": "Elige en qué discos guardar juegos y herramientas: en cada uno se crea la carpeta Otteretro con todo ordenado. Si ya tienes una carpeta con la estructura antigua, adóptala y pasa sola al estándar.",
     "librariesFound": "Encontramos carpetas con la estructura antigua:",
     "adoptThis": "Adoptar {path}",
-    "skip": "Saltar",
-    "disksText": "Discos:",
-    "useDisk": "Usar {path}",
-    "diskAdded": "{path} ✓",
-    "done": "Listo",
-    "accountsTitle": "Tus cuentas de descarga",
-    "accountsText": "Si pagas 1fichier o Mega, deja aquí tu clave para bajar con tu cuenta. Es opcional: lo puedes hacer después en Ajustes › Cuentas y claves.",
-    "next": "Siguiente"
+    "next": "Seguir",
+    "steamTitle": "Steam y cuentas",
+    "steamNothing": "Aún no hay juegos en tus discos: podrás marcarlos después en Steam.",
+    "dataFolderText": "Aquí van la base de datos, las Herramientas (emuladores, ports, BIOS) y la caché de imágenes. Ocupa bastante: elige un disco con espacio. Para cambiar de PC basta con mover esta carpeta.",
+    "whereTitle": "Dónde guardar",
+    "whereText": "Marca los discos donde van juegos, emuladores y ports: en cada uno se crea la carpeta Otteretro con todo ordenado. Puedes agregar más después en Ajustes › Almacenamiento.",
+    "more": "Más opciones · carpeta de datos, estructura antigua",
+    "dataFolder": "Carpeta de datos",
+    "steamText": "Opcional: para poner tus juegos en Steam y bajar desde sitios con cuenta. Todo se puede hacer después en Steam y en Ajustes › Cuentas y claves.",
+    "keys": "Claves y cuentas de descarga",
+    "later": "Después",
+    "loadTitle": "Buscando tus juegos",
+    "loadText": "Se revisan los discos que marcaste. Puedes entrar ya: sigue sola y la ves en el panel de tareas.",
+    "loadNone": "No marcaste discos: agrégalos cuando quieras en Ajustes › Almacenamiento y se revisan solos.",
+    "enter": "Entrar",
+    "legacy": "Adoptar una carpeta con la estructura antigua (pasa sola al estándar)"
   },
   "settings": {
     "dataFolder": "Carpeta de datos",
@@ -150,7 +141,8 @@
       "show": "Mostrar {name}"
     },
     "storage": "Almacenamiento",
-    "catalogTab": "Catálogo"
+    "catalogTab": "Catálogo",
+    "play": "Cómo jugar"
   },
   "dataFolder": {
     "dismiss": "Cerrar aviso",
@@ -358,7 +350,12 @@
         "noKey": "Falta la clave de Steam Web API: pégala en Ajustes › Cuentas y claves.",
         "badKey": "Steam no aceptó la clave de Steam Web API: revísala en Ajustes › Cuentas y claves.",
         "noAccount": "No se encontró una cuenta de Steam en este equipo: abre Steam e inicia sesión una vez.",
-        "failed": "Steam no respondió bien ({status}). Prueba más tarde."
+        "failed": "Steam no respondió bien ({status}). Prueba más tarde.",
+        "running": "Steam ROM Manager está agregando los accesos…",
+        "exported": "Exportado a Steam: {added} nuevos, {changed} cambiados y {removed} quitados.",
+        "noSrm": "Steam ROM Manager no está instalado: los manifiestos quedaron en {folder}. Instálalo en Herramientas y vuelve a exportar.",
+        "srmFailed": "Steam ROM Manager terminó con error ({code}). Cierra Steam y prueba otra vez.",
+        "srmConfig": "No se pudo leer la configuración de Steam ROM Manager ({file}): revísala antes de exportar."
       },
       "extra": {
         "progress": "{done} de {total} juegos",
@@ -375,8 +372,7 @@
         "failed": "Claude falló: {detail}",
         "invalidOutput": "Claude respondió dos veces algo que no tiene la forma esperada.",
         "limit": "Llegaste al límite de tu suscripción de Claude: sigue sola el {at}.",
-        "identify": "{done} de {total} archivos identificados",
-        "bestEmulator": "{game}: buscando el mejor emulador"
+        "identify": "{done} de {total} archivos identificados"
       },
       "log": {
         "started": "Empezó.",
@@ -401,8 +397,7 @@
         "paused": "En pausa: sigue desde aquí al reanudarla.",
         "resumed": "Reanudada.",
         "canceled": "Cancelada.",
-        "identify": "Dejó {doubtful} en Dudosas y {unidentified} en Sin identificar.",
-        "bestEmulator": "Recomendó un emulador en {count} de {consoles} consolas."
+        "identify": "Dejó {doubtful} en Dudosas y {unidentified} en Sin identificar."
       },
       "tools": {
         "checking": "Revisando {name}",
@@ -491,7 +486,7 @@
       }
     },
     "review": {
-      "notFound": "Ese archivo ya no está en Revisar.",
+      "notFound": "Ese archivo ya no está por revisar.",
       "pickGame": "Elige el juego.",
       "noVersion": "Ese juego no tiene versión en la consola del archivo."
     },
@@ -576,6 +571,8 @@
       "badRepo": "No se reconoce el repo: pega la dirección de un repo de GitHub, Forgejo o Gitea (https://servidor/dueño/repo).",
       "pickExe": "Lo bajado trae varios ejecutables: elige cuál abre el emulador.",
       "noExe": "Lo bajado no trae un ejecutable de Windows: elige otro archivo de la release.",
+      "installerFailed": "El instalador terminó con un error (código {code}): no se instaló. Revisa su registro o instálalo a mano.",
+      "detectMissing": "Lo bajado ({file}) no trae «{exe}», el programa que espera su receta: no se instaló. La receta del catálogo no coincide con la release; avisa para corregirla.",
       "exists": "La versión {version} ya está instalada: las versiones nunca se reemplazan.",
       "badHash": "Lo bajado de la versión {version} no coincide con el hash de la receta: no se instaló.",
       "libraryTaken": "En tu librería ya hay otro archivo en {path}: no se reemplaza.",
@@ -586,6 +583,7 @@
         "done": "{name} {version} instalado en {path}"
       },
       "notInstalled": "Esa versión no está registrada: instálala primero.",
+      "noProgram": "No se encontró su programa en la carpeta: ábrela con «Abrir carpeta».",
       "notInLibrary": "La versión {version} no está en tu librería: no se puede reinstalar sin bajarla.",
       "inUse": "La versión {version} la usan tus perfiles: pasa los perfiles a otra antes de borrarla.",
       "removeFailed": "No se pudo borrar la instalación: {detail}",
@@ -654,6 +652,18 @@
       "openFailed": "No se pudo abrir el emulador: {detail}",
       "opened": "Se abrió el emulador.",
       "openedPlain": "Se abrió el emulador sin el juego (falta la ROM, su disco o el emulador no sabe abrirlo así): busca el juego en su lista."
+    },
+    "play": {
+      "badId": "«jugar» necesita el id de la versión del juego, un número; llegó «{id}».",
+      "noData": "Todavía no hay carpeta de datos: abre Otteretro y elige una.",
+      "noEmulator": "Ese juego no tiene con qué jugarse: instala un emulador o un port para su consola, o elige su emulador base.",
+      "noGame": "El emulador no puede abrir el juego: falta la ROM, su disco no está conectado o el emulador no sabe abrirla.",
+      "launchFailed": "No se pudo abrir el juego: {detail}",
+      "notPlaying": "No hay un juego abierto por Otteretro que detener.",
+      "stopFailed": "No se pudo detener el juego. Ciérralo desde el Administrador de tareas.",
+      "exeMissing": "No está «{exe}» en {folder}: la instalación quedó incompleta o la receta no coincide con lo que se bajó. Vuelve a instalarlo con «Instalar», en la ficha del juego.",
+      "badOption": "Esa opción ya no sirve para esta versión del juego.",
+      "badOrder": "El orden tiene que tener los cuatro criterios, una vez cada uno."
     }
   },
   "credentials": {
@@ -720,14 +730,14 @@
         "popularity": "Traer la popularidad desde IGDB"
       },
       "steam": {
-        "sync": "Leer lo que tienes en Steam"
+        "sync": "Leer lo que tienes en Steam",
+        "export": "Exportar a Steam"
       },
       "claude": {
         "cleanup": "Depurar el catálogo con Claude",
         "sagas": "Rutas, icónico y mejor versión con Claude",
         "load": "Carga inicial con Claude, por partes",
-        "identify": "Identificar archivos con Claude",
-        "bestEmulator": "Buscar el mejor emulador con Claude"
+        "identify": "Identificar archivos con Claude"
       },
       "catalog": {
         "extra": "Completar con Wikidata y RAWG",
@@ -847,17 +857,6 @@
       "allPlatforms": "Todas las consolas",
       "total": "{count, plural, one {# saga} other {# sagas}}"
     },
-    "bestEmulator": {
-      "open": "Buscar el mejor emulador",
-      "title": "Buscar el mejor emulador",
-      "help": "Elige sagas y, dentro de cada una, sus juegos. Claude busca solo en esos, nunca en todo el catálogo. Lo ya buscado viene desmarcado.",
-      "filters": "Qué sagas mostrar",
-      "noGames": "Esta saga no tiene juegos en ninguna consola.",
-      "searched": "buscado el {date}",
-      "count": "{count, plural, =0 {Ningún juego elegido} one {# juego elegido} other {# juegos elegidos}}",
-      "search": "{count, plural, =0 {Buscar} one {Buscar en # juego} other {Buscar en # juegos}}",
-      "cancel": "Cancelar"
-    },
     "saga": {
       "back": "← Sagas",
       "favorite": "Favorita",
@@ -965,8 +964,6 @@
       "have": "Tienes",
       "where": "Dónde lo tienes",
       "tracking": "Seguimiento",
-      "lastPlayed": "Última vez: {date}",
-      "never": "Última vez: nunca",
       "states": "Estado",
       "started": "Empezado",
       "finished": "Terminado el",
@@ -976,7 +973,6 @@
       "noRating": "—",
       "notes": "Notas",
       "playtime": "Tiempo jugado",
-      "pendingHint": "Las fechas aparecen al empezarlo.",
       "saving": "Guardando…",
       "saved": "Guardado",
       "sources": "Datos y fuentes",
@@ -1022,7 +1018,6 @@
       "removeHint": "Lo marcado va a la papelera y deja de contar como «lo tengo». Las actualizaciones y DLC solo se van si los marcas.",
       "removeConfirm": "Mandar a la papelera ({count})",
       "removeCancel": "Cancelar",
-      "download": "Descargar",
       "prepare": "Preparar en el emulador",
       "prepareFor": "Preparar en el emulador ({console})",
       "prepareHelp": "Deja sus actualizaciones y DLC listos en el emulador con el que se juega, sin copiarlos si el emulador lo permite.",
@@ -1032,7 +1027,30 @@
       "licenseMissing": "Falta",
       "licenseHelp": "Con ella, «Preparar en el emulador» instala el .pkg en Vita3K. Se guarda solo en este equipo: nunca en el catálogo ni en un perfil compartido.",
       "licenseSave": "Guardar",
-      "licenseDelete": "Borrar"
+      "licenseDelete": "Borrar",
+      "tab": {
+        "summary": "Resumen",
+        "play": "Cómo jugar",
+        "versions": "Versiones",
+        "files": "Archivos",
+        "links": "Enlaces"
+      },
+      "sections": "Secciones de la ficha",
+      "more": "Más ▾",
+      "downloadOther": "Descargar otra versión…",
+      "removeMenu": "Quitar del disco…",
+      "favoriteOff": "☆ Favorito",
+      "readMore": "Leer más",
+      "readLess": "Leer menos",
+      "sessions": "Últimas sesiones",
+      "noSessions": "Aún no hay sesiones: se anotan al jugar desde Otteretro.",
+      "playingNow": "Jugando…",
+      "stores": "En tus tiendas",
+      "noFiles": "No tienes este juego en ningún disco ni tienda.",
+      "versionsHint": "Pulsa una versión para leer por qué.",
+      "autoSave": "Se guarda solo",
+      "lastTime": "Última vez",
+      "neverShort": "Nunca"
     },
     "search": {
       "sagas": "Sagas",
@@ -1058,92 +1076,30 @@
     "openSettings": "Abrir Ajustes",
     "missingKeys": "Otteretro ya funciona. Si quieres portadas y datos nuevos, agrega tus claves de {services}.",
     "openCredentials": "Cuentas y claves",
-    "unidentified": "{count, plural, one {1 archivo sin identificar} other {# archivos sin identificar}}: elige su juego en Revisar.",
-    "openReview": "Abrir Revisar",
+    "unidentified": "{count, plural, one {1 archivo sin identificar} other {# archivos sin identificar}}: elige su juego en Colección.",
+    "openReview": "Revisar archivos",
     "recipeBackup": "La receta de {name} del catálogo cambió los mismos campos que tu receta local: quedó la del catálogo y la tuya está respaldada en {file}.",
     "toolUpdate": "{name} {version} disponible{channel, select, dev { (desarrollo)} other {}}.",
     "openTools": "Ver en Herramientas"
   },
   "review": {
-    "tabs": "Secciones de Revisar",
-    "tab": {
-      "pending": "Por aprobar ({count})",
-      "doubtful": "Dudosas ({count})",
-      "unidentified": "Sin identificar ({count})",
-      "learnings": "Aprendizajes ({count})"
+    "notice": "{count, plural, one {# archivo por revisar} other {# archivos por revisar}}",
+    "hint": "El escaneo no supo con qué juego van. Hasta que los confirmes no cuentan como «lo tengo».",
+    "open": "Revisar",
+    "hide": "Ocultar",
+    "kind": {
+      "doubtful": "Dudosa",
+      "unidentified": "Sin identificar"
     },
-    "pendingEmptyTitle": "Nada por aprobar",
-    "pendingEmptyText": "Cuando Claude prepare rutas, lo icónico o la mejor versión de una saga, aparecerán aquí para que los apruebes.",
-    "learningsEmptyTitle": "Sin aprendizajes",
-    "learningsEmptyText": "Aquí quedan los cambios que Claude aplicó al catálogo, con su razón, para deshacerlos.",
-    "prompt": {
-      "ruta-saga": "Rutas",
-      "iconico": "Icónico",
-      "mejor-version": "Mejor versión",
-      "clasificar-version": "Clase de versión",
-      "traducir-descripcion": "Descripción en español",
-      "identificar-juego": "Identificar archivo"
-    },
-    "approve": "Aprobar",
-    "reject": "Rechazar",
-    "change": "Cambio",
-    "reason": "Por qué",
-    "date": "Fecha",
-    "undo": "Deshacer",
-    "undone": "Deshecho",
-    "learning": {
-      "move": "Mover juegos",
-      "merge": "Unir fichas repetidas",
-      "rename": "Renombrar saga",
-      "alias": "Alias de archivo"
-    },
-    "sources": "Fuentes",
-    "iconicYes": "Saga icónica",
-    "iconicNo": "No es icónica",
-    "bestVersion": "Compara {count} versiones con los 4 criterios",
-    "filterAll": "Todos",
-    "kindFilter": {
-      "move": "Movidos",
-      "merge": "Unidos",
-      "rename": "Renombrados",
-      "alias": "Alias"
-    },
-    "search": "Buscar saga o juego",
-    "task": "Tarea #{id}",
-    "noTask": "Sin tarea registrada",
-    "moved": "{games}: de {from} a {to}",
-    "loose": "sueltos",
-    "toNew": "una saga nueva, «{name}»",
-    "toNone": "ninguna saga (quedan sueltos)",
-    "merged": "{games} pasó a ser una versión de {kept}",
-    "renamed": "«{before}» pasó a llamarse «{after}»",
-    "correct": "Corregir",
-    "correctPlaceholder": "Qué está mal (Claude lo leerá en la próxima depuración)",
-    "send": "Deshacer y enviar a Claude",
-    "cancel": "Cancelar",
-    "rule": "Tu corrección: {text}",
-    "openSaga": "Ver saga",
-    "count": "{count, plural, one {# cambio} other {# cambios}}",
-    "edit": "Editar",
-    "approveEdited": "Aprobar como quedó",
-    "stepUp": "Subir el paso {step}",
-    "stepDown": "Bajar el paso {step}",
-    "stepRemove": "Quitar el paso {step}",
-    "openClaude": "Abrir Ajustes › Claude",
-    "aliased": "«{text}» es {game}",
     "files": {
-      "doubtfulEmptyTitle": "Nada dudoso",
-      "doubtfulEmptyText": "Cuando Claude asigne un archivo que el escaneo no reconoció, aparecerá aquí para que lo confirmes.",
-      "unidentifiedEmptyTitle": "Todo identificado",
-      "unidentifiedEmptyText": "Los archivos que ni el escaneo ni Claude reconozcan aparecerán aquí para que elijas su juego.",
-      "openCollection": "Abrir Colección",
       "proposed": "Claude dice: {name}",
       "noProposal": "Claude no supo: {reason}",
       "assigned": "Asignado a",
       "confirm": "Confirmar",
-      "change": "Cambiar juego",
       "search": "Buscar el juego",
-      "noResults": "Ningún juego de {console} con ese nombre."
+      "noResults": "Ningún juego de {console} con ese nombre.",
+      "none": "Sin propuesta",
+      "change": "Es otro juego"
     },
     "packages": {
       "noGames": "Sin juegos",
@@ -1156,23 +1112,55 @@
     "next": "Siguiente en tus rutas",
     "nextEmpty": "Sigue una ruta en una saga y aquí verás tu siguiente juego.",
     "review": "Revisar",
-    "reviewCount": "{count} resultados de Claude por aprobar",
     "nextEmptyTitle": "Todavía no sigues ninguna ruta",
-    "viewGame": "Ver ficha",
-    "routeOf": "{saga} · {route}",
     "progress": "{done} de {total} jugados",
-    "news": "Novedades"
+    "news": "Novedades",
+    "continue": "Continuar jugando",
+    "continueHint": "Lo último que jugaste, en consola o en PC",
+    "playingNow": "Jugando ahora",
+    "played": "{time} jugadas",
+    "viewRoute": "Ver ruta",
+    "step": "{saga} · {route} · paso {step} de {total}",
+    "emptyTitle": "Todavía no hay juegos",
+    "emptyText": "Elige la carpeta donde guardas tus juegos y Otteretro los encuentra, o sigue una saga para ver su ruta.",
+    "scan": "Escanear una carpeta",
+    "exploreSagas": "Explorar sagas",
+    "viewAll": "Ver todo",
+    "kind": {
+      "emulator": "Emulador",
+      "port": "Port",
+      "complement": "Complemento",
+      "system": "Sistema",
+      "tool": "Herramienta"
+    },
+    "youHave": "Tienes la {versions}.",
+    "update": "Actualizar",
+    "newPort": "Port nuevo",
+    "portFor": "{game} para {console}.",
+    "viewPort": "Ver port",
+    "goToReview": "Ir a Revisar",
+    "reviewKind": {
+      "doubtful": "Identificaciones dudosas",
+      "unidentified": "Sin identificar",
+      "packages": "Paquetes por revisar"
+    },
+    "tasks": "Tareas en curso",
+    "pending": "Pendiente",
+    "backup": "Respaldo",
+    "error": "Error",
+    "errorTitle": "No se pudo leer la biblioteca",
+    "errorSafe": "Tus juegos y tu progreso no se tocaron.",
+    "retry": "Reintentar"
   },
   "libraries": {
     "cancel": "Cancelar",
     "free": "{free} libres de {total}",
     "network": "En red",
-    "disconnected": "Desconectada",
+    "disconnected": "Desconectado",
     "migrationStarted": "La migración quedó en el panel de tareas. Puedes seguir usando la app mientras tanto.",
     "queued": "Quedó en el panel de tareas.",
     "reconnect": "Reconectar",
     "move": "Mover",
-    "remove": "Quitar",
     "removeHelp": "Se quita «{name}» de Otteretro. No se borra ningún archivo: puedes volver a agregarlo cuando quieras.",
     "removeConfirm": "Quitar sin borrar",
     "type": {
@@ -1212,9 +1200,8 @@
       "toDefault": "disco predeterminado ★",
       "run": "Pasar al estándar"
     },
-    "disk": "Disco",
     "dataUse": "Datos de la app",
-    "moreActions": "Más opciones del disco",
+    "moreActions": "Más de «{name}»: uso, mover y quitar",
     "openFolder": "Abrir carpeta",
     "useOtherData": "Usar otra carpeta de datos…",
     "removeDisk": "Quitar disco…",
@@ -1233,7 +1220,16 @@
       "retry": "Probar ahora",
       "retrying": "Probando…",
       "stillLimited": "El límite sigue: queda la hora que dio Claude."
-    }
+    },
+    "disks": "Discos",
+    "colPath": "Ruta",
+    "colFree": "Espacio libre",
+    "colStatus": "Estado",
+    "colActions": "Acciones",
+    "connected": "Conectado",
+    "more": "Más",
+    "removeNote": "Quitar un disco lo saca de Otteretro; nunca borra archivos.",
+    "contents": "Lo que tiene {name}"
   },
   "tools": {
     "emptyTitle": "Aún no hay emuladores ni ports",
@@ -1242,7 +1238,7 @@
       "emulator": "Emuladores",
       "port": "Ports",
       "complement": "Complementos",
-      "system": "Sistema",
+      "system": "BIOS y firmware",
       "tool": "Herramientas"
     },
     "forks": {
@@ -1254,10 +1250,8 @@
     "noRecipe": "Sin receta",
     "noRecipeHelp": "Otteretro todavía no sabe cómo dejarlo portable ni reescribir sus rutas.",
     "sections": "Tipos de herramientas",
-    "pick": "Elige una herramienta para ver su detalle.",
     "none": "Nada de este tipo todavía.",
     "otherConsole": "Otras",
-    "recipe": "Receta",
     "move": "Mover a otra ubicación",
     "to": "A",
     "cancel": "Cancelar",
@@ -1286,14 +1280,19 @@
       "replaces": "Un port tiene una sola versión: la nueva reemplaza a la que tienes, en la misma carpeta. Tus partidas, mods y configuración se quedan (antes se respaldan) y el archivo de la vieja queda en tu librería.",
       "update": "Actualizar",
       "skip": "Omitir esta versión",
-      "badge": "Versión nueva",
       "gamesCount": "{count, plural, =0 {Ninguno de tus juegos la usa} one {La usa # juego} other {La usan # juegos}}",
       "more": "Más acciones de {name}",
       "gamesMore": "{list} y {count, plural, one {# más} other {# más}}",
       "queuedReplace": "Actualizando en su carpeta: míralo en el panel de tareas.",
-      "queued": "Instalando al lado de la que tienes: míralo en el panel de tareas."
+      "queued": "Instalando al lado de la que tienes: míralo en el panel de tareas.",
+      "banner": "{count, plural, one {# versión nueva} other {# versiones nuevas}}: {names}",
+      "bannerBeside": "la versión de ahora queda al lado, por si hay que volver (un port se actualiza en su lugar)",
+      "updateAll": "Actualizar todo",
+      "queuedAll": "Actualizando: míralo en el panel de tareas.",
+      "newVersion": "{version} nueva"
     },
     "install": {
+      "header": "Instalar…",
       "open": {
         "emulator": "Instalar un emulador",
         "port": "Instalar un port",
@@ -1307,7 +1306,6 @@
       "other": "Otro, sin receta",
       "name": "Su nombre",
       "experimental": "{name} (experimental)",
-      "from": "Desde dónde",
       "fromKind": {
         "recipe": "Su receta",
         "url": "Desde su repo",
@@ -1317,19 +1315,27 @@
       "version": "Versión",
       "versionOptional": "Versión (si no, la del ejecutable)",
       "dev": "desarrollo",
-      "url": "URL del repo o del archivo",
-      "urlHint": "https://github.com/dueño/repo o la URL de un .zip",
-      "findReleases": "Ver sus releases",
       "noRepoReleases": "El repo no tiene releases con archivos para bajar.",
       "file": "Archivo",
       "pickExe": "¿Cuál es el ejecutable?",
-      "path": "Ruta de la carpeta o del zip",
-      "pathHelp": "Escribe la ruta completa en este equipo, por ejemplo D:\\Descargas\\emulador.zip. Se copia: el original no se toca.",
       "adopt": "Es uno que instalé a mano (se adopta copiándolo)",
       "beside": "Cada versión va en su propia carpeta, al lado de las otras, y el archivo original queda en tu librería.",
       "cancel": "Cancelar",
       "submit": "Instalar",
-      "queued": "Quedó en el panel de tareas."
+      "queued": "Quedó en el panel de tareas.",
+      "title": "{what} · paso {step} de 2",
+      "origin": "Pega su repo, la URL de un archivo o la ruta de una carpeta o un zip de este equipo",
+      "originOptional": "O pega su repo, la URL de un archivo o la ruta de una carpeta o un zip (si no, desde su receta)",
+      "originHint": "https://github.com/dueño/repo, la URL de un .zip o D:Descargasemulador.zip",
+      "recognized": {
+        "recipe": "Desde su receta del catálogo: en el paso 2 eliges la versión.",
+        "repo": "Es un repo: en el paso 2 salen sus releases.",
+        "file": "Es la URL de un archivo: se baja tal cual.",
+        "path": "Es una carpeta o un zip de este equipo: se copia, el original no se toca."
+      },
+      "next": "Seguir",
+      "back": "Atrás",
+      "moreOptions": "Más opciones · otra versión, otro archivo, adoptar"
     },
     "library": {
       "portHelp": "Un port tiene una sola versión instalada. De las anteriores queda su archivo: «Reinstalar» la deja como la instalada, con tus partidas.",
@@ -1348,27 +1354,33 @@
       "remove": "Borrar la instalación",
       "removeConfirm": "Borrar",
       "keep": "Conservar",
-      "open": "Abrir su carpeta",
+      "open": "Abrir carpeta",
+      "launch": "Abrir",
       "askProfiles": "¿Pasar los perfiles a la {version}?",
       "yes": "Sí",
       "no": "No",
       "current": "En uso: {version}",
-      "more": "{count, plural, one {▾ # versión más} other {▾ # versiones más}}",
-      "details": "▾ Detalles",
-      "uninstall": "Quitar el emulador",
+      "uninstall": "Desinstalar",
+      "broken": "A esta instalación le falta su programa: quedó incompleta o es de una versión vieja de la receta.",
+      "installAgain": "Instalar de nuevo desde la receta",
       "uninstallHelp": "Borra todas sus versiones instaladas. Sus partidas, su configuración y sus perfiles se quedan y vuelven si lo instalas de nuevo. Escribe «{name}» para confirmar.",
-      "uninstallName": "Nombre del emulador",
-      "uninstallConfirm": "Quitar"
-    }
+      "uninstallName": "Nombre",
+      "uninstallConfirm": "Quitar",
+      "versions": "Versiones ({count}) · la marcada es la que se usa",
+      "moreActions": "Más · mover de disco"
+    },
+    "systemMissingCount": "{count, plural, one {Falta #} other {Faltan #}}",
+    "systemComplete": "Completo",
+    "systemUploadFor": "Subir un archivo para {name}"
   },
   "downloads": {
-    "add": "Capturar enlaces",
+    "add": "Añadir",
     "links": "Pega o arrastra tus enlaces, en cualquier texto: quedan guardados al instante",
     "linksHint": "https://…",
     "disk": "Disco de destino",
     "defaultDisk": "Disco ★",
     "emptyTitle": "Sin descargas",
-    "emptyText": "Agrega enlaces en el capturador: lo que baja se ordena solo en tu disco.",
+    "emptyText": "Pega enlaces en «Añadir»: lo que baja se ordena solo en tu disco.",
     "summary": "{disk} · {done} de {total} archivos",
     "speed": "{speed} MB/s",
     "pause": "Pausar",
@@ -1382,7 +1394,7 @@
       "error": "Con error",
       "canceled": "Cancelada"
     },
-    "addForGame": "Capturar enlaces de {name}",
+    "addForGame": "Añadir enlaces de {name}",
     "check": "Comprobar enlaces",
     "checking": "Comprobando…",
     "noLinks": "No encontré enlaces en ese texto.",
@@ -1398,9 +1410,6 @@
     "connections": "Conexiones",
     "connectionsHelp": "Por archivo. Cada sitio tiene su tope, para no arriesgar tu cuenta: 1fichier usa una.",
     "openBrowser": "Abrir en el navegador",
-    "tabQueue": "Descargas",
-    "tabLinks": "Capturador de enlaces",
-    "tabLinksCount": "Capturador de enlaces ({count})",
     "sections": "Secciones de Descargas",
     "addLinks": "Agregar",
     "clipboard": "Capturar también los enlaces que copie",
@@ -1433,15 +1442,20 @@
       "size": "Solo tamaño",
       "site": "Verificado por el sitio",
       "none": "Sin verificar"
-    }
+    },
+    "gameLinksNone": "Aún no guardaste enlaces de este juego.",
+    "tabActive": "En curso",
+    "tabDone": "Terminadas",
+    "activeCount": "{count, plural, one {# en curso} other {# en curso}}",
+    "doneEmpty": "Aún no termina ninguna descarga.",
+    "goesTo": "Va a",
+    "advanced": "Avanzado · conexiones, descargas a la vez, cuentas",
+    "accounts": "Cuentas de descarga (1fichier, Mega)",
+    "openAccounts": "Abrir en Ajustes"
   },
   "ports": {
     "title": "Ports",
     "news": "Ports nuevos",
-    "fullyPlayable": "100 % jugables",
-    "others": "Otros ports: no están al 100 %",
-    "newFullyPlayable": "Ports nuevos 100 % jugables",
-    "newOthers": "Ports nuevos que no están al 100 %",
     "status": {
       "complete": "100 % jugable",
       "playable": "Jugable con fallos",
@@ -1478,7 +1492,6 @@
     "active": "Activo: {name} ({emulator})",
     "noneActive": "Sin perfil: usa «{name}» de {emulator}",
     "noEmulator": "Sin emulador para esta consola",
-    "noEmulatorHint": "Instala un emulador de esta consola en Herramientas para crear perfiles.",
     "name": "Nombre",
     "emulator": "Emulador",
     "rom": "ROM",
@@ -1551,19 +1564,76 @@
     "loadZip": "Cargar un perfil (.zip)",
     "loadConfirm": "Cargar",
     "loaded": "Cargando el perfil: lo sigues en Tareas.",
-    "best": {
-      "search": "Buscar el mejor emulador",
-      "queued": "En cola",
-      "searched": "Última búsqueda: {date}",
-      "none": "Sin recomendado",
-      "choose": "Elegir a mano",
-      "chooseFor": "Emulador para {console}",
-      "reset": "Volver al del catálogo",
-      "repo": "Ver su repo",
-      "origin": {
-        "manual": "elegido por ti",
-        "claude": "de Claude, local"
-      }
-    }
+    "advanced": "Avanzado: perfiles",
+    "count": "{count, plural, =0 {sin perfiles} one {# perfil} other {# perfiles}}",
+    "noEmulatorLine": "{console}: sin emulador instalado. <link>Ir a Herramientas</link>",
+    "newProfile": "+ Nuevo perfil"
+  },
+  "play": {
+    "title": "Cómo jugar",
+    "pc": "Versión de {platform}",
+    "port": "Port {name}",
+    "emulator": "Emulador {name}",
+    "notInstalled": "Sin instalar",
+    "change": "Cambiar",
+    "chooseFor": "Cómo jugar en {console}",
+    "reset": "Volver a la automática",
+    "reason": {
+      "manual": "elegida a mano",
+      "pc": "tienes la versión de PC oficial",
+      "port": "port al 100 %",
+      "perfect": "emulador perfecto",
+      "playable": "lo más jugable"
+    },
+    "order": "Orden de la regla automática",
+    "orderHelp": "Para cada juego se elige la primera opción que cumple un criterio, en este orden. Lo elegido a mano en la ficha manda sobre la regla.",
+    "criterion": {
+      "pc": "Versión de PC oficial que tienes",
+      "port": "Port al 100 %",
+      "perfect": "Emulador perfecto",
+      "playable": "Lo más jugable"
+    },
+    "up": "Subir «{criterion}»",
+    "down": "Bajar «{criterion}»",
+    "download": "Descargar",
+    "notOwned": "No lo tienes en ningún disco ni tienda.",
+    "play": "▶ Jugar",
+    "install": "Instalar {name}",
+    "installing": "Instalando {name}…",
+    "playing": "Jugando…",
+    "playingHint": "Al cerrar el juego, la sesión se anota sola.",
+    "stop": "Detener",
+    "stopConfirm": "¿Detener? Se pierde lo no guardado",
+    "noOption": "Sin con qué jugarlo.",
+    "openTools": "Ver Herramientas",
+    "with": "Con {name}",
+    "lastSession": "Última sesión: {date} · {time}",
+    "orderLink": "Cambiar el orden",
+    "help": "Para cada versión que tienes, la opción con la que se juega. Un clic elige otra.",
+    "better": "Mejor con otra versión",
+    "betterHint": "Lo que necesitarías para jugarlo mejor.",
+    "byHand": "Ports para instalar a mano",
+    "recommended": "Recomendado",
+    "installNote": "Al pulsar Jugar en la cabecera se instala {name} primero."
+  },
+  "steam": {
+    "title": "Exportar a Steam",
+    "export": "Exportar",
+    "exporting": "Exportando…",
+    "account": "Cuenta de Steam: {account}",
+    "noAccount": "No se encontró Steam en este equipo: ábrelo e inicia sesión una vez.",
+    "noSrm": "Falta Steam ROM Manager: <link>instálalo en Herramientas</link>.",
+    "added": "+{count} se agregan",
+    "removed": "−{count} se quitan",
+    "changed": "{count} cambian",
+    "upToDate": "Steam está al día.",
+    "closeSteam": "Cierra Steam antes de exportar",
+    "new": "Nuevo",
+    "changes": "Cambia",
+    "goes": "Se quitan",
+    "more": "Agregar más juegos ({count})",
+    "noneMarked": "No hay nada marcado: elige abajo qué llevar a Steam.",
+    "emptyTitle": "Nada que exportar",
+    "emptyText": "Cuando tengas juegos en tus discos, márcalos aquí para llevarlos a Steam por saga."
   }
 }

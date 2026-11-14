@@ -73,15 +73,14 @@
 
 Aparece solo la primera vez, o si la carpeta de datos no está donde se esperaba (P1, §5).
 
+Cuatro pasos (#418, decisión 394):
+
 | Paso | Contenido | Acciones |
 |---|---|---|
-| 1. Bienvenida | Logo. Qué hace la app, en tres líneas | Empezar |
-| 2. Carpeta de datos | Explica qué guarda: base de datos, Herramientas y caché (S7). Muestra el espacio libre de cada disco | Elegir carpeta nueva · **Usar una carpeta existente** (reinstalación o migración, §7.6) |
-| 3. Respaldo | Token de GitHub (#68) y repositorio `otteretro-datos` | Pegar token · Crear el repositorio · **Restaurar desde el respaldo** (PC nuevo) · Saltar por ahora |
-| 4. Bibliotecas | Detecta `E:\Consolas` con la estructura antigua (§5.5) | **Adoptar** · Crear nueva · Saltar |
-| 5. Steam | Cuenta detectada en `loginusers.vdf` (§10) y clave de la Web API | Confirmar cuenta · Pegar clave · Iniciar sesión para el préstamo familiar (T1) · Saltar |
-| 6. Resto de claves | Lista de servicios (§5.6, A3): IGDB, SteamGridDB, ScreenScraper, RetroAchievements, MyJDownloader, IsThereAnyDeal, Epic. Cada uno con su enlace "cómo conseguirla" | Pegar cada clave · Saltar (se puede hacer después en Ajustes) |
-| 7. Carga inicial | Explica que la carga completa dura días y va Nintendo → Sony → Microsoft (#69) | **Empezar la carga** · Más tarde |
+| 1. Bienvenida | Logo. Qué hace la app y que son cuatro pasos. Idioma | Empezar |
+| 2. Dónde guardar | Los discos con su espacio libre, para marcar dónde van juegos, emuladores y ports. Plegado en «Más opciones»: la carpeta de datos (S7; la sugerida, cambiable) y adoptar una carpeta con la estructura antigua escrita a mano (§5.5). El respaldo (#68) llega en la F7 | Seguir (guarda la carpeta de datos, agrega los discos y, si detecta la estructura antigua, ofrece **Adoptar** (§5.5) antes de seguir) · Atrás |
+| 3. Steam y cuentas (opcional) | Cuenta detectada en `loginusers.vdf` (§10) y lo que se puede marcar para Steam. Plegado: claves y cuentas de descarga (§5.6, A3) | Exportar · **Después** · Atrás |
+| 4. Carga inicial | El escaneo de los discos marcados, que sigue solo en segundo plano | Entrar |
 
 - Lo que se salta queda como **aviso en Inicio** hasta que se completa.
 
@@ -89,11 +88,13 @@ Aparece solo la primera vez, o si la carpeta de datos no está donde se esperaba
 
 ## 2. Inicio (§12.4)
 
+**Desde la decisión 397 (#428)** van como el tablero Main: Continuar jugando arriba y, debajo, dos columnas: a la izquierda Siguiente en tus rutas y Novedades, a la derecha Revisar, Tareas en curso y Avisos (en pantallas angostas se apilan en ese orden). Revisar son casillas con cuántas dudosas, sin identificar y paquetes; Siguiente usa el botón de la ficha («Descargar», «Instalar X» o «Jugar», #400). La lista de abajo es el diseño original.
+
 Secciones, en este **orden fijo** (D2):
 
 1. **Continuar jugando** (#138): lo último que jugaste, de consola o de PC, con cómo se juega, cuándo y las horas. Es lo primero que recibe el foco con mando.
 2. **Siguiente en tus rutas:** el **siguiente juego** de cada ruta que sigues (§6.5), en tarjetas grandes con botón Jugar, o "Conseguirlo" si no lo tienes.
-3. **Revisar:** contadores de identificaciones dudosas, sin identificar y aprendizajes de Claude recientes. Cada uno lleva a la pantalla Revisar (§2.1).
+3. **Revisar:** cuántos archivos esperan revisión; lleva a Colección con la lista abierta (§2.1).
 4. **Novedades:** ports nuevos, cambios de compatibilidad, versiones nuevas de emuladores, ports y complementos, y **bajadas de precio** (#57, #75, D6).
    - **De qué juegos:** los de las **sagas que sigues que no tienes**, más los que marcas **"seguir precio"**.
    - **Cuándo cuenta como bajada:** llega a su **mínimo histórico**, queda **gratis** o tiene un **descuento del 40 % o más** (D6b).
@@ -103,7 +104,7 @@ Secciones, en este **orden fijo** (D2):
 Estados (§0.5): **vacío** (la nutria, «Escanear una carpeta» y «Explorar sagas»), **cargando** (esqueletos de las tarjetas), **error** (qué carpeta no responde, que tus datos no se tocaron, Reintentar y Abrir Ajustes) y **con datos**.
 
 ### 2.1 Revisar (D3)
-**Pantalla propia.** Se llega desde Inicio y desde un **contador en la barra lateral**. Es la cola de lo que la app decidió con dudas (P6, §9.4):
+**Desde la decisión 390 (#415) ya no es una pantalla:** Colección muestra el aviso «N archivos por revisar» solo si hay archivos dudosos o sin identificar, y «Revisar» despliega ahí mismo la lista (archivo, carpeta, propuesta, Confirmar / Es otro juego); el contador va en Colección de la barra lateral. La tabla de abajo es el diseño original. Es la cola de lo que la app decidió con dudas (P6, §9.4):
 
 | Pestaña | Cada elemento muestra | Acciones |
 |---|---|---|
@@ -196,6 +197,7 @@ Estados (§0.5): **vacío** (la nutria, «Escanear una carpeta» y «Explorar sa
 | **Historial** | Lo importado, con fecha, origen y resultado | Ver juego. No hay deshacer: mover es definitivo una vez verificado (P7) |
 
 - **Estado de JDownloader** arriba: conectado o no, y el dispositivo.
+- **Cómo se ve (#417, decisión 392):** arriba la caja **Añadir** (pegar o arrastrar enlaces, los paquetes capturados con Comprobar y Quitar, y en una línea el disco de destino y «Descargar»). Debajo, dos pestañas: **En curso** (con su contador) y **Terminadas**; cada fila con barra, sus enlaces plegados, Pausar/Reanudar/Cancelar y «Volver a bajar» si falló. Conexiones, descargas a la vez por sitio, capturar lo copiado y las cuentas van en un `details` **Avanzado** plegado. Megapack sigue en Colección (importar carpeta); «Ver juego» y «Comprobar al terminar» esperan al backend.
 
 ---
 
@@ -206,10 +208,11 @@ Estados (§0.5): **vacío** (la nutria, «Escanear una carpeta» y «Explorar sa
 | **Emuladores** | Por consola: predeterminado y alternativos (#72), versiones instaladas lado a lado, cuál usa cada juego, compatibilidad | Instalar · **Actualizar** (con migración y copia previa, §8.4) · Volver a una versión · Hacer predeterminado · Abrir configuración · Detectar instalados a mano |
 | **Ports** | Ports instalados y **ports nuevos** de la lista (Recompendium, §11.1), con su estado; cada port aparece también en su consola y en la ficha del juego (#193) | Instalar · Actualizar · Ver qué juego cubre |
 | **Complementos** | Texturas, shaders, ReShade y mods, agrupados por emulador o port | Instalar · Actualizar · Activar o desactivar |
-| **Sistema** | BIOS, keys y firmware por consola, con versión y si están bien (§8.5) | **Subir archivo** · Ver qué emuladores lo usan · Avisos de lo que falta |
+| **BIOS y firmware** (antes «Sistema», #432) | BIOS, keys y firmware por consola, con versión y si están bien (§8.5) | **Subir archivo** · Ver qué emuladores lo usan · Avisos de lo que falta |
 | **Recetas** | Lista de recetas, quién las escribió (Claude o el repositorio) y cuándo | Ver · Pedir a Claude la receta de algo nuevo |
 
 - Cuando hay **versiones nuevas**, aparece un contador y el botón **Actualizar seleccionados**. Nunca se actualiza solo (§8.4).
+- **Cómo se ve (#416, decisión 391):** cada pestaña es una lista (nombre, para qué es, insignia de estado) y la fila elegida abre su detalle a la derecha (una columna en pantallas angostas): acción principal, «Abrir» (lanza el programa), «Abrir carpeta», versiones plegadas y «Más» (mover a otro disco, quitar). Las versiones nuevas salen en un aviso bajo las pestañas, con «Actualizar todo» (instala cada versión nueva al lado de la actual, #432), y en el contador de cada pestaña; el aviso está siempre (sin novedades dice «Todo al día» y «Revisar ahora») para no empujar el contenido al llegar. **Instalar…** va en la cabecera de la página (Emuladores, Ports y Herramientas; en Emuladores, con «Cargar perfil»), y es un diálogo de 2 pasos: qué y desde dónde, y luego versión y archivo.
 
 ---
 
@@ -231,7 +234,7 @@ Estados (§0.5): **vacío** (la nutria, «Escanear una carpeta» y «Explorar sa
 
 | Sección | Contenido |
 |---|---|
-| **Almacenamiento** (D8, #201 a #205, #208 a #210, con la distribución de Steam) | Arriba, un **desplegable** con el disco elegido (nombre, ★, espacio libre), «+» (ventana con las unidades; crea `Otteretro` con sus cinco carpetas) y «⋯» (abrir carpeta, reconectar, usar otra carpeta de datos en el ★, quitar disco sin borrar). Al medio, el disco: espacio libre, una **barra de uso gruesa** por tipo (juegos, emuladores, ports, complementos, sistema, datos de la app, otros archivos y libre) y su leyenda. Abajo, una **tabla** con casilla, nombre y tamaño; en el ★, la primera fila es «Datos de Otteretro» (se mueve sola, con su progreso, y el ★ la sigue). Lo demás va en **grupos desplegables** (#211), cerrados al abrir: tipo › consola o emulador › cada cosa, con cuántas tiene y su tamaño; la casilla de un grupo marca todo lo de adentro o queda a medias. Al pie, «Mover N cosas (tamaño) a [disco] · Mover». Si quedan carpetas de antes o Herramientas en la carpeta de datos, un aviso «Pasar al estándar» (§5.3). Al final, el bloque **Reconocer juegos** (#251): interruptor «Usar Claude cuando ningún script lo reconoce» y «Este mes: N llamadas · X US$» (o hasta cuándo espera al límite) |
+| **Almacenamiento** (D8, #201 a #205, #208 a #210, con la distribución de Steam) | Una **tabla de discos** (#419): nombre (★ el de la carpeta de datos), ruta, espacio libre, estado (Conectado o Desconectado) y la acción principal, «Abrir carpeta» o «Reconectar» si está desconectado, con «Más» al lado; arriba, «+ Agregar disco» (ventana con las unidades; crea `Otteretro` con sus cinco carpetas) y, debajo, «Quitar un disco lo saca de Otteretro; nunca borra archivos». «Más» despliega bajo la fila lo del disco: una **barra de uso gruesa** por tipo (juegos, emuladores, ports, complementos, sistema, datos de la app, otros archivos y libre) y su leyenda. Abajo, una **tabla** con casilla, nombre y tamaño; en el ★, la primera fila es «Datos de Otteretro» (se mueve sola, con su progreso, y el ★ la sigue). Lo demás va en **grupos desplegables** (#211), cerrados al abrir: tipo › consola o emulador › cada cosa, con cuántas tiene y su tamaño; la casilla de un grupo marca todo lo de adentro o queda a medias. Al pie, «Mover N cosas (tamaño) a [disco] · Mover», y «Usar otra carpeta de datos…» en el ★ o «Quitar disco…» (sin borrar) en los demás. Si quedan carpetas de antes o Herramientas en la carpeta de datos, un plegable «Pasar al estándar» (§5.3). Al final, el bloque **Reconocer juegos** (#251): interruptor «Usar Claude cuando ningún script lo reconoce» y «Este mes: N llamadas · X US$» (o hasta cuándo espera al límite) |
 | **Consolas** (#192, #195) | Lista de consolas por empresa con interruptor; al abrir una: sus juegos (en qué ubicación, destino de lo nuevo, mover), sus emuladores (predeterminado y alternativos), sus ports (con el juego que cubren) y su sistema (BIOS, keys, firmware) |
 | **Cuentas y claves** | Una tarjeta por servicio de la fase en curso, con para qué sirve y su estado («Lista», «Falta 1 de 2»; válida y vencida llegan con su integración, #148); «Configurar» abre un diálogo para pegar, cambiar o borrar cada campo y el enlace para conseguirla. Los servicios de fases posteriores van plegados en «Más adelante», con su fase (#57). Recordatorio de que el respaldo manual va en Bitwarden (§5.6) |
 | **Respaldo** | Repositorio, último respaldo de cada tipo, uso de LFS sobre 10 GiB (#70), conflictos guardados aparte (#77). Acciones: respaldar ahora, restaurar |
@@ -267,7 +270,7 @@ Estados (§0.5): **vacío** (la nutria, «Escanear una carpeta» y «Explorar sa
 |---|---|
 | D1 | Búsqueda global en la barra superior, `Ctrl+K` |
 | D2 | Inicio con el orden de §2, fijo |
-| D3 | Revisar es una pantalla propia, con contador en la barra lateral |
+| D3 | ~~Revisar es una pantalla propia, con contador en la barra lateral~~ Reemplazada por la decisión 390: un aviso desplegable en Colección, con el contador en Colección |
 | D4 | Colección en cuadrícula, con alternativa de lista compacta |
 | D4b | La tarjeta muestra: lo tengo, consola, año, progreso, versión PC, Game Pass, cómo se juega y tamaño |
 | D5 | Puntuación de 1 a 10 |

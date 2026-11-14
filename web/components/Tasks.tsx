@@ -9,7 +9,8 @@ import type { TaskInfo, TaskLogEntry } from "@/lib/types";
 import { RetryClaude } from "./Recognize";
 
 /** Tareas de la cola (F1.2): lo pendiente y lo reciente; cada cambio llega por el evento "task". */
-export const useTasks = () => useQuery({ queryKey: ["tasks"], queryFn: () => request<TaskInfo[]>("/api/tasks") }).data ?? [];
+export const tasksQuery = { queryKey: ["tasks"], queryFn: () => request<TaskInfo[]>("/api/tasks") };
+export const useTasks = () => useQuery(tasksQuery).data ?? [];
 
 // El orden del panel (F2.11), el mismo que da la API: lo que corre, la cola y lo terminado por hora de término.
 const rank = (t: TaskInfo) => (t.status === "running" ? 0 : t.status === "queued" ? 1 : t.status === "paused" ? 2 : 3);
@@ -27,11 +28,6 @@ export function upsertTask(cache: QueryClient, task: TaskInfo) {
   }
   // Una tarea de Claude que empieza o deja de esperar al límite cambia el aviso de pausa (#363).
   if (task.kind.startsWith("claude.") && task.status !== "running") cache.invalidateQueries({ queryKey: ["claude"] });
-  // «Buscar el mejor emulador» terminada cambia el recomendado y el estado de la búsqueda en la ficha del juego (#375).
-  if (task.kind === "claude.bestEmulator" && FINISHED.includes(task.status)) {
-    cache.invalidateQueries({ queryKey: ["emulatorPicks"] });
-    cache.invalidateQueries({ queryKey: ["bestEmulator"] });
-  }
   // Una revisión de versiones cambia los avisos (decisión 294).
   if (task.kind === "tools.updates" && task.status === "done") {
     cache.invalidateQueries({ queryKey: ["toolUpdates"] });
@@ -39,8 +35,10 @@ export function upsertTask(cache: QueryClient, task: TaskInfo) {
   }
   // Instalar o reinstalar cambia lo instalado, los avisos y la librería (#296).
   if ((task.kind === "tools.install") && task.status === "done") {
-    for (const key of ["tools", "emulators", "toolUpdates"]) cache.invalidateQueries({ queryKey: [key] });
+    for (const key of ["tools", "emulators", "toolUpdates", "play", "ports", "profiles"]) cache.invalidateQueries({ queryKey: [key] });
   }
+  // Una exportación terminada cambia lo exportado y sus diferencias (#402).
+  if (task.kind === "steam.export" && task.status === "done") cache.invalidateQueries({ queryKey: ["steam"] });
   // Un escaneo terminado cambia lo que tienes (#178).
   if ((task.kind === "library.scan" || task.kind === "library.verify" || task.kind === "library.import" || task.kind === "library.convert") && task.status === "done") {
     cache.invalidateQueries({ queryKey: ["game"] });
@@ -51,11 +49,11 @@ export function upsertTask(cache: QueryClient, task: TaskInfo) {
 
 // Color de la insignia de cada estado (#172).
 const BADGE: Record<string, string> = { queued: "", running: " ot-badge-info", paused: " ot-badge-review", done: " ot-badge-have", error: " ot-badge-danger", canceled: "" };
-const FINISHED = ["done", "error", "canceled"];
+export const FINISHED = ["done", "error", "canceled"];
 
 /** Filas del panel de tareas (TaskRow del sistema de diseño, #172): barra de progreso, estado como insignia de color y ✕ para
- *  quitar una terminada. Al hacer clic se abre su registro (F2.10). */
-export function TaskRows() {
+ *  quitar una terminada. Al hacer clic se abre su registro (F2.10). `active` (Inicio, #428): solo las que no terminaron. */
+export function TaskRows({ active }: { active?: boolean }) {
   const t = useDynamicT();
   const describe = useDescribeError();
   const cache = useQueryClient();
@@ -71,7 +69,7 @@ export function TaskRows() {
     mutationFn: ({ id, action }: { id: number; action: "pause" | "resume" | "cancel" }) => request<void>(`/api/tasks/${id}/${action}`, { method: "POST" }),
     onSettled: () => { setConfirm(null); cache.invalidateQueries({ queryKey: ["tasks"] }); },
   });
-  return useTasks().map((task) => {
+  return useTasks().filter((x) => !active || !FINISHED.includes(x.status)).map((task) => {
     const kind = `tasks.kind.${task.kind}`;
     const finished = FINISHED.includes(task.status);
     const progress = task.status === "done" ? 100 : Number(task.progress);

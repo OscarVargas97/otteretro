@@ -68,12 +68,20 @@ public static class Ports
     /// <summary>Con qué id se instala: el de su receta o, sin ella, uno propio.</summary>
     static string EmulatorId(Recipe? recipe, long id) => recipe?.Id ?? $"port-{id}";
 
+    /// <summary>El emulador con que se juega el port (el id de su instalación); null si el port no existe.</summary>
+    public static string? EmulatorOf(Database db, long id)
+    {
+        using var c = db.Open();
+        return c.ExecuteScalar<string?>("SELECT link FROM port WHERE id = @id", new { id }) is { } link ? EmulatorId(RecipeOf(link), id) : null;
+    }
+
     static List<PortInfo> Query(Database db, string where, object? args = null)
     {
         using var c = db.Open();
         var rows = c.Query<Row>($"{Select} {where}", args).ToList();
         // La instalada, no las que solo quedan en la librería (decisión 325).
-        var installed = Installs.List(db).Where(i => i.Path is not null).ToLookup(i => i.EmulatorId, i => i.Version);
+        // Sin el ejecutable de su receta no cuenta: la ficha ofrece «Instalar» (#446).
+        var installed = Installs.List(db).Where(i => i.Path is not null && !i.Broken).ToLookup(i => i.EmulatorId, i => i.Version);
         return rows.Select(r =>
         {
             var recipe = RecipeOf(r.Link);

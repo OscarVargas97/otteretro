@@ -20,6 +20,10 @@ public record RecipeDownload(string Version, string System, string Url, string H
 /// <param name="DevRepo">Las versiones de desarrollo en otro repo del mismo servidor (Ryubing Canary); se piden a mano si no hay <paramref name="Dev"/>.</param>
 /// <param name="DevPattern">Tags que cuentan como de desarrollo aunque no sean prerelease (Eden: -rc).</param>
 public record RecipeUpdates(string Source, string? Repo = null, string? Host = null, bool Dev = false, string? DevRepo = null, string? DevPattern = null);
+/// <summary>Port: cómo se le entrega el archivo del juego, investigado en el catálogo (#449, otteretro-catalogo#182).</summary>
+/// <param name="Deliver">arg (con <paramref name="Args"/>), copy (a <paramref name="CopyTo"/>), none o manual.</param>
+/// <param name="Formats">Las extensiones del archivo de la persona que sirven; vacía, cualquiera.</param>
+public record RecipeGameFile(string Deliver, List<string>? Args = null, string? CopyTo = null, List<string>? Formats = null);
 /// <param name="Apply">file, section, swap o argument (ver el esquema).</param>
 public record RecipePerGame(string? Config = null, string? Apply = null)
 {
@@ -77,6 +81,7 @@ public record Recipe(string Id, string Name, string Kind, string Folder, string 
     /// <summary>Lo mismo para Linux (otteretro-catalogo#153): lo usa PlayOS; Otteretro instala solo en Windows.</summary>
     public string? AssetLinux { get; init; }
     public RecipePerGame? PerGame { get; init; }
+    public RecipeGameFile? GameFile { get; init; }
     /// <summary>Contenido instalado dentro del emulador; como las partidas, lo comparten todas sus versiones.</summary>
     public List<string> Content { get; init; } = [];
     public List<ContentInstall> Install { get; init; } = [];
@@ -90,6 +95,10 @@ public record Recipe(string Id, string Name, string Kind, string Folder, string 
     public RecipeInput? Input { get; init; }
     /// <summary>Con qué nombre se guarda el archivo bajado cuando no es un zip (un .exe con la versión en el nombre), para que coincida con Detect (#268).</summary>
     public string? SaveAs { get; init; }
+    /// <summary>Con qué se juega, si no es <c>Detect</c>: un port cuyo <c>Detect</c> es su instalador (Hookshot, #457).</summary>
+    public string? Run { get; init; }
+    /// <summary>Si lo bajado es un instalador: sus argumentos para instalar sin preguntar, con <c>{dir}</c> donde va la carpeta (#443).</summary>
+    public List<string>? Installer { get; init; }
 
     /// <summary>Emuladores, Ports o Complementos: el primer nivel de Herramientas (§5.1). Nombres de carpeta de la persona: en español.</summary>
     [JsonIgnore]

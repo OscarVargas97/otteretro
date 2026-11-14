@@ -5,10 +5,12 @@ using Otteretro.App;
 using Otteretro.Catalog;
 using Otteretro.Data;
 using Otteretro.Libraries;
+using Otteretro.Play;
 
 namespace Otteretro.Api;
 
 public record SagaFlagsRequest(bool? Favorite, bool? Following);
+public record SteamMarkRequest(bool Export);
 public record CatalogSource(string Repo, bool Official);
 public record CatalogSourceRequest(string? Repo);
 /// <summary>La versión aplicada y, si hay una esperando, qué cambia con ella (#222, #223).</summary>
@@ -351,6 +353,63 @@ public static class CatalogEndpoints
             var (error, saves) = Profiles.Switch(db, id, r.ProfileId, r.SaveUser);
             return error is null ? TypedResults.Ok(new ProfileSwitch(saves)) : TypedResults.BadRequest(error);
         });
+        // Jugar (#399): arranca `otteretro jugar <id>` aparte, que vive mientras juegas y avisa él mismo si algo falla.
+        api.MapPost("/versions/{id:long}/play", Results<Ok, Conflict<ApiError>> (long id, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            // Lo exportado a Steam en este equipo se abre por Steam (#130), con su overlay y sus horas.
+            if (Catalog.SteamExport.Exported(db, s.Config.MachineId, id) is { } game)
+                return Endpoints.Open($"steam://rungameid/{game}") ? TypedResults.Ok() : TypedResults.Conflict(ApiError.Of("steam.notInstalled"));
+            try { System.Diagnostics.Process.Start(Environment.ProcessPath!, ["jugar", id.ToString(CultureInfo.InvariantCulture)])?.Dispose(); }
+            catch (System.ComponentModel.Win32Exception e) { return TypedResults.Conflict(ApiError.Of("play.launchFailed", ("detail", e.Message))); }
+            return TypedResults.Ok();
+        });
+
+        // «Detener» (#454): termina el juego abierto por Otteretro; la sesión la cierra quien la abrió.
+        api.MapPost("/games/{id:long}/stop", Results<Ok, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is not { } db ? NoData() : GameLauncher.Stop(db, id) is { } error ? TypedResults.Conflict(error) : TypedResults.Ok());
+
+        // Las últimas sesiones del juego y si hay una abierta («Jugando…», #400).
+        api.MapGet("/games/{id:long}/sessions", Results<Ok<List<PlaySession>>, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(GameLauncher.Recent(db, id)) : NoData());
+        // Inicio › Continuar jugando (#428): los últimos juegos jugados, de cualquier juego.
+        api.MapGet("/home/recent", Results<Ok<List<RecentGame>>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(GameLauncher.RecentGames(db)) : NoData());
+
+        // Cómo jugar (#398, §8.3): las opciones de cada versión y la elegida; elegir a mano, volver a la automática y el orden de la regla.
+        api.MapGet("/games/{id:long}/play", Results<Ok<List<VersionPlay>>, Conflict<ApiError>> (long id, AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(PlayChoice.OfGame(db, id)) : NoData());
+        api.MapPut("/games/{id:long}/play/{version:long}", Results<Ok<List<VersionPlay>>, BadRequest<ApiError>, Conflict<ApiError>> (long id, long version, PlayChoiceRequest r, AppSession s) =>
+            Db(s) is not { } db ? NoData() : PlayChoice.SetManual(db, id, version, r.Key) ? TypedResults.Ok(PlayChoice.OfGame(db, id)) : TypedResults.BadRequest(ApiError.Of("play.badOption")));
+        api.MapDelete("/games/{id:long}/play/{version:long}", Results<Ok<List<VersionPlay>>, Conflict<ApiError>> (long id, long version, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            PlayChoice.ClearManual(db, version);
+            return TypedResults.Ok(PlayChoice.OfGame(db, id));
+        });
+        api.MapGet("/play/order", Results<Ok<PlayOrder>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(new PlayOrder(PlayChoice.Order(db))) : NoData());
+        api.MapPut("/play/order", Results<Ok<PlayOrder>, BadRequest<ApiError>, Conflict<ApiError>> (PlayOrder r, AppSession s) =>
+            Db(s) is not { } db ? NoData() : PlayChoice.SetOrder(db, r.Criteria) ? TypedResults.Ok(new PlayOrder(PlayChoice.Order(db))) : TypedResults.BadRequest(ApiError.Of("play.badOrder")));
+
+        // Exportar a Steam (§10, #401): marcar versiones, ver qué cambia en este equipo y exportar con SRM.
+        api.MapPut("/versions/{id:long}/steam", Results<NoContent, NotFound, Conflict<ApiError>> (long id, SteamMarkRequest request, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            using (var c = db.Open())
+                if (c.ExecuteScalar<long?>("SELECT id FROM catalog.version WHERE id = @id", new { id }) is null) return TypedResults.NotFound();
+            Catalog.SteamExport.Mark(db, id, request.Export);
+            return TypedResults.NoContent();
+        });
+
+        api.MapGet("/steam", Results<Ok<Catalog.SteamStatus>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(Catalog.SteamExport.Status(db, Environment.ProcessPath!)) : NoData());
+
+        api.MapGet("/steam/export", Results<Ok<Catalog.SteamChanges>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(Catalog.SteamExport.Changes(db, s.Config.MachineId, Environment.ProcessPath!)) : NoData());
+
+        api.MapPost("/steam/export", Results<Ok<long>, Conflict<ApiError>> (AppSession s) =>
+            Db(s) is { } db ? TypedResults.Ok(Catalog.SteamExport.Enqueue(db, s.Config.MachineId, Environment.ProcessPath!)) : NoData());
 
         api.MapGet("/search", Results<Ok<SearchResults>, Conflict<ApiError>> (AppSession s, string? q) =>
         {

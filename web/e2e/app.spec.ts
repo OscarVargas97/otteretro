@@ -89,7 +89,7 @@ test("sin carpeta de datos, abre el asistente en español", async () => {
   await page.goto(url());
   await expect(page).toHaveURL(/\/welcome\//);
   await expect(page.getByRole("button", { name: es.welcome.start })).toBeVisible();
-  await expect(page.getByText(es.welcome.steps.dataFolder)).toBeVisible();
+  await expect(page.getByText(es.welcome.steps.where)).toBeVisible();
   await expectNoRawKeys();
 });
 
@@ -103,25 +103,45 @@ test("cambiar a inglés en el asistente cambia la interfaz al momento", async ()
 
 test("una ruta incompleta muestra el error del backend traducido", async () => {
   await page.getByRole("button", { name: en.welcome.start }).click();
-  await expect(page.getByRole("heading", { name: en.welcome.chooseTitle })).toBeVisible();
-  await page.getByLabel(en.welcome.otherPath).fill("relative\\folder");
-  await page.getByRole("button", { name: /^Use / }).click();
+  // Paso 2 (#418): los discos a la vista; la carpeta de datos, plegada en «Más opciones».
+  await expect(page.getByRole("heading", { name: en.welcome.whereTitle })).toBeVisible();
+  await page.getByText(en.welcome.more).click();
+  await page.getByLabel(en.welcome.dataFolder).fill("relative\folder");
+  await page.getByRole("button", { name: en.welcome.next }).click();
   await expect(page.getByText(en.errors.path.notAbsolute)).toBeVisible();
   await page.screenshot({ path: "e2e-results/2-error-en.png" });
 });
 
-test("elegir la carpeta de datos lleva al paso de bibliotecas y, al saltarlo, al inicio", async () => {
-  await page.getByLabel(en.welcome.otherPath).fill(dataDir("data"));
-  await page.getByRole("button", { name: /^Use / }).click();
-  // Paso 4 (F3): adoptar la estructura antigua, crear una biblioteca o saltar.
-  await expect(page.getByRole("heading", { name: en.welcome.librariesTitle })).toBeVisible();
+test("el asistente en 4 pasos: dónde guardar, Steam y cuentas (después) y carga inicial", async () => {
+  await page.getByLabel(en.welcome.dataFolder).fill(dataDir("data"));
+  // Lo que tenga la estructura antigua se ofrece antes de seguir (respondido por la prueba: no depende de los discos de este equipo).
+  await page.route("**/api/locations/detect", (route) => route.fulfill({ json: ["X:\Consolas"] }));
+  await page.getByRole("button", { name: en.welcome.next }).click();
+  await expect(page.getByRole("button", { name: en.welcome.adoptThis.replace("{path}", "X:\Consolas") })).toBeVisible();
+  await expect(page.getByLabel(en.welcome.dataFolder)).toBeDisabled();
   await expectNoRawKeys();
-  await page.getByRole("button", { name: en.welcome.skip }).click();
-  await expect(page.getByRole("heading", { name: en.welcome.accountsTitle })).toBeVisible();
-  await page.getByRole("button", { name: en.welcome.done }).click();
+  await page.unroute("**/api/locations/detect");
+  // Paso 3 (#402, #418): la cuenta de Steam detectada (respondida por la prueba: no depende del Steam de este equipo); claves plegadas.
+  await page.route("**/api/steam", (route) => route.fulfill({ json: { account: "jugador", srm: false, available: [] } }));
+  await page.getByRole("button", { name: en.welcome.next }).click();
+  await expect(page.getByRole("heading", { name: en.welcome.steamTitle })).toBeVisible();
+  await expect(page.getByText(en.steam.account.replace("{account}", "jugador"))).toBeVisible();
+  await expect(page.getByRole("link", { name: /install it from Tools/ })).toHaveAttribute("href", "/tools/?k=tool");
+  await expect(page.getByText(en.welcome.steamNothing)).toBeVisible();
+  await expect(page.getByRole("button", { name: en.steam.export })).toBeDisabled();
+  await page.getByText(en.welcome.keys).click();
+  await expect(page.getByRole("button", { name: `${en.credentials.configure}: ${en.credentials.service.onefichier}` })).toBeVisible();
+  await expectNoRawKeys();
+  await page.screenshot({ path: "e2e-results/2-steam-en.png" });
+  await page.getByRole("button", { name: en.welcome.later }).click();
+  await page.unroute("**/api/steam");
+  // Paso 4: sin discos marcados no hay escaneo; se entra igual.
+  await expect(page.getByRole("heading", { name: en.welcome.loadTitle })).toBeVisible();
+  await expect(page.getByText(en.welcome.loadNone)).toBeVisible();
+  await page.getByRole("button", { name: en.welcome.enter }).click();
   await expect(page).toHaveURL(`${base()}/`);
   await expect(page.getByRole("heading", { level: 1, name: en.nav.home })).toBeVisible();
-  await expect(page.getByRole("heading", { level: 2, name: en.home.next })).toBeVisible();
+  await expect(page.getByRole("heading", { name: en.home.emptyTitle })).toBeVisible();
   // #169: un solo aviso con todos los servicios sin clave y el botón a Cuentas y claves.
   const notice = page.getByRole("note", { name: en.notices.title });
   await expect(notice).toHaveCount(1);
@@ -140,16 +160,14 @@ test("todas las pantallas se ven en inglés", async () => {
     ["collection", en.catalog.collection.emptyTitle],
     ["game", en.catalog.game.noneTitle],
     ["saga", en.catalog.saga.noneTitle],
-    ["review", en.review.files.doubtfulEmptyTitle],
     ["tools", en.tools.emptyTitle],
-    ...(["discover", "steam"] as const).map((s) => [s, en.comingSoon[s].title] as const),
+    ["steam", en.steam.emptyTitle],
+    ["discover", en.comingSoon.discover.title],
   ] as const;
   // #169: las de fases futuras se ven atenuadas con su fase y no se abren desde el menú.
   await page.goto(`${base()}/`);
-  for (const s of ["discover", "steam"] as const) {
-    await expect(page.locator(".sidebar").getByRole("link", { name: en.nav[s] })).toHaveCount(0);
-    await expect(page.locator(".sidebar .is-future", { hasText: en.nav[s] })).toHaveAttribute("aria-disabled", "true");
-  }
+  await expect(page.locator(".sidebar").getByRole("link", { name: en.nav.discover })).toHaveCount(0);
+  await expect(page.locator(".sidebar .is-future", { hasText: en.nav.discover })).toHaveAttribute("aria-disabled", "true");
   for (const [screen, title] of screens) {
     await page.goto(`${base()}/${screen}/`);
     await expect(page.getByRole("heading", { level: 1, name: en.nav[screen] })).toBeVisible();
@@ -157,6 +175,36 @@ test("todas las pantallas se ven en inglés", async () => {
     await expectNoRawKeys();
     await expectTextFits();
   }
+});
+
+test("Colección avisa de los archivos por revisar solo si los hay, y /review/ lleva ahí (#415)", async () => {
+  // Sin archivos dudosos ni sin identificar, nada; Revisar ya no está en el menú.
+  await page.goto(`${base()}/collection/`);
+  await expect(page.getByText(en.catalog.collection.emptyTitle)).toBeVisible();
+  await expect(page.getByRole("note", { name: /file(s)? to review/ })).toHaveCount(0);
+  await expect(page.locator('.sidebar a[href="/review/"]')).toHaveCount(0);
+  // Con uno dudoso (la API simulada): el aviso, el contador en Colección y la lista al pulsar «Review».
+  const file = { id: 7, kind: "doubtful", sourceId: 1, path: String.raw`E:\Consolas\Switch\Zelda EoW.nsp`, console: "switch", component: null, titleId: null,
+    proposed: "The Legend of Zelda: Echoes of Wisdom", reason: null, gameId: null, gameName: null };
+  await page.route("**/api/review", (r) => r.fulfill({ json: { files: [file], packages: [] } }));
+  await page.route("**/api/review/count", (r) => r.fulfill({ json: 1 }));
+  await page.goto(`${base()}/collection/`);
+  const notice = page.getByRole("note", { name: "1 file to review" });
+  await expect(notice).toBeVisible();
+  await expect(page.locator('.sidebar a[href="/collection/"] .ot-count-review')).toHaveText("1");
+  await expect(page.getByText("Zelda EoW.nsp")).toHaveCount(0);
+  await notice.getByRole("button", { name: en.review.open }).click();
+  await expect(page.getByText("Zelda EoW.nsp")).toBeVisible();
+  await expect(page.getByRole("button", { name: en.review.files.confirm })).toBeVisible();
+  await expect(page.getByRole("button", { name: en.review.files.change })).toBeVisible();
+  await expectNoRawKeys();
+  await expectTextFits();
+  // La vieja /review/ abre Colección con la lista desplegada.
+  await page.goto(`${base()}/review/`);
+  await expect(page).toHaveURL(`${base()}/collection/?review=1`);
+  await expect(page.getByText("Zelda EoW.nsp")).toBeVisible();
+  await page.unroute("**/api/review");
+  await page.unroute("**/api/review/count");
 });
 
 /** Llama a la API desde la página, que tiene la clave de la sesión. */
@@ -178,7 +226,7 @@ async function removeDisks() {
   for (const l of JSON.parse((await api("GET", "/api/locations")).text) as { id: string }[]) await api("DELETE", `/api/locations/${l.id}`);
 }
 
-test("Ajustes › Almacenamiento como Steam: discos, uso por tipo, mover lo marcado, ★ y quitar sin borrar (#161, #205)", async () => {
+test("Ajustes › Almacenamiento: tabla de discos, uso por tipo, mover lo marcado, ★ y quitar sin borrar (#161, #205, #419)", async () => {
   const [a, b] = [await addDisk("Disco A"), await addDisk("Disco B")];
   const { existsSync } = await import("node:fs");
   // Cada disco trae sus cinco carpetas.
@@ -188,18 +236,22 @@ test("Ajustes › Almacenamiento como Steam: discos, uso por tipo, mover lo marc
   mkdirSync(join(a, "Juegos", "GBA"), { recursive: true });
   for (const rom of ["metroid.gba", "pokemon.gba"]) writeFileSync(join(a, "Juegos", "GBA", rom), "rom");
   await page.goto(`${base()}/settings/?s=storage`);
-  // #208: el disco ★ es el de la carpeta de datos, se registró solo y se abre primero con sus datos.
-  const picker = page.getByLabel(en.libraries.disk, { exact: true });
-  await expect(picker.locator("option:checked")).toContainText("★");
+  // #419: una tabla de discos; el ★ es el de la carpeta de datos y se registró solo (#208). Lo demás, plegado en «Más».
+  const more = (name: string) => page.getByRole("button", { name: en.libraries.moreActions.replace("{name}", name) });
+  const star = page.locator("tbody tr", { hasText: "★" });
+  await expect(star.getByText(en.libraries.connected)).toBeVisible();
+  await expect(page.getByText(en.libraries.removeNote)).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: en.libraries.appData })).toHaveCount(0);
+  await star.getByRole("button", { name: en.libraries.more }).click();
   // #169: como Steam, los datos de la app son una fila más de la tabla.
   await expect(page.getByRole("checkbox", { name: en.libraries.appData })).toBeVisible();
   await expect(page.locator(".usage-legend").getByText(en.libraries.dataUse, { exact: false })).toBeVisible();
   await expectNoRawKeys();
   await expectTextFits();
   await page.screenshot({ path: "e2e-results/7-storage-en.png", fullPage: true });
-  const pick = async (name: string) => picker.selectOption((await picker.locator("option", { hasText: name }).getAttribute("value"))!);
-  await pick("Disco A");
-  await expect(page.getByRole("heading", { level: 2, name: "Disco A" })).toBeVisible();
+  await star.getByRole("button", { name: en.libraries.more }).click();
+  await more("Disco A").click();
+  await expect(page.getByRole("region", { name: en.libraries.contents.replace("{name}", "Disco A") })).toBeVisible();
   await expect(page.getByText(en.libraries.otherUse, { exact: false })).toBeVisible();
   // #171: grupos desplegables, tipo › consola › cada cosa. Zelda suelto y toda GBA (una sola tarea), a la misma ruta.
   await page.locator(".disk-table").getByRole("button", { name: en.libraries.type.game.title }).click();
@@ -215,14 +267,14 @@ test("Ajustes › Almacenamiento como Steam: discos, uso por tipo, mover lo marc
   await expect.poll(() => existsSync(join(b, "Juegos", "GBA", "pokemon.gba")), { timeout: 15_000 }).toBe(true);
   expect(existsSync(join(a, "Juegos", "GBA"))).toBe(false);
   // Quitar avisa que no borra nada; el marcador sigue en la carpeta.
-  await pick("Disco B");
-  await page.locator(".ot-menu summary").click();
+  await more("Disco A").click();
+  await more("Disco B").click();
   await page.screenshot({ path: "e2e-results/7c-disk-menu-en.png" });
-  await page.getByRole("menuitem", { name: en.libraries.removeDisk }).click();
+  await page.getByRole("button", { name: en.libraries.removeDisk }).click();
   const remove = page.getByRole("dialog", { name: en.libraries.removeDisk });
   await expect(remove.getByText(en.libraries.removeHelp.replace("{name}", "Disco B"))).toBeVisible();
   await remove.getByRole("button", { name: en.libraries.removeConfirm }).click();
-  await expect(picker.locator("option", { hasText: "Disco B" })).toHaveCount(0);
+  await expect(more("Disco B")).toHaveCount(0);
   expect(existsSync(join(b, "otteretro-ubicacion.json"))).toBe(true);
   // «+» abre la ventanita con las unidades (sin tocarlas).
   await page.getByRole("button", { name: en.libraries.addDisk }).click();
@@ -277,9 +329,10 @@ test("Ajustes › Consolas: el detalle de una consola, su destino y mover sus ju
   await removeDisks();
 });
 
-test("Descargas: el capturador guarda lo pegado, sobrevive a cambiar de pantalla y dice lo que respondió el sitio (#203, #204, #210)", async () => {
-  await page.goto(`${base()}/downloads/?tab=links`);
-  await expect(page.getByRole("tab", { name: en.downloads.tabLinks })).toHaveAttribute("aria-selected", "true");
+test("Descargas: «Añadir» guarda lo pegado, sobrevive a cambiar de pantalla y dice lo que respondió el sitio (#203, #204, #210, #417)", async () => {
+  await page.goto(`${base()}/downloads/`);
+  await expect(page.getByRole("heading", { name: en.downloads.add })).toBeVisible();
+  await expect(page.getByRole("tab", { name: en.downloads.tabActive })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByText(en.downloads.captureEmpty)).toBeVisible();
   // Se guarda sin consultar el sitio, y sigue ahí después de irse y volver.
   await page.getByLabel(en.downloads.links).fill("https://1fichier.com/?abc123&af=9 https://sitio.test/juego.part1.rar https://sitio.test/juego.part2.rar");
@@ -288,8 +341,6 @@ test("Descargas: el capturador guarda lo pegado, sobrevive a cambiar de pantalla
   await expect(page.getByText(en.downloads.state.unchecked)).toHaveCount(3);
   await page.goto(`${base()}/tools/`);
   await page.goto(`${base()}/downloads/`);
-  await expect(page.getByRole("tab", { name: en.downloads.tabLinksCount.replace("{count}", "3") })).toBeVisible();
-  await page.getByRole("tab", { name: /Link grabber/ }).click();
   await expect(page.getByRole("checkbox", { name: /^abc123/ })).toBeVisible();
   await expect(page.getByRole("checkbox", { name: /^juego/ })).toBeVisible();
   await expect(page.getByText("juego.part2.rar")).toBeVisible();
@@ -304,7 +355,12 @@ test("Descargas: el capturador guarda lo pegado, sobrevive a cambiar de pantalla
   // Cada descarga se despliega en sus enlaces, y dice cómo va cada uno.
   await page.route("**/api/downloads", (route) => route.fulfill({ json: [{ id: 999, name: "DKB ROM", disk: "D:", links: 3, done: 1, status: "paused", progress: 40, detail: null, createdAt: "2026-11-01T00:00:00Z",
     items: [{ url: "https://1fichier.com/?parte1", name: "DKB ROM.part1.rar", size: 5242880, check: "crc32" }, { url: "https://1fichier.com/?parte2", name: "DKB ROM.part2.rar", size: null, check: null }, { url: "https://1fichier.com/?parte3", name: "DKB ROM.part3.rar", size: null, check: null }] }] }));
-  await page.goto(`${base()}/downloads/?tab=queue`);
+  await page.goto(`${base()}/downloads/`);
+  await expect(page.locator(".version-row").getByText(en.downloads.status.paused)).toBeVisible();
+  // Terminadas solo muestra lo que acabó.
+  await page.getByRole("tab", { name: en.downloads.tabDone }).click();
+  await expect(page.getByText(en.downloads.doneEmpty)).toBeVisible();
+  await page.getByRole("tab", { name: en.downloads.tabActive }).click();
   await expect(page.getByText("DKB ROM.part1.rar")).toBeHidden();
   await page.getByText("Show 3 links").click();
   const items = page.locator(".download-item");
@@ -313,18 +369,21 @@ test("Descargas: el capturador guarda lo pegado, sobrevive a cambiar de pantalla
   await expect(items.nth(1).getByText(en.downloads.status.paused)).toBeVisible();
   await expect(items.nth(2).getByText(en.downloads.itemPending)).toBeVisible();
   await expect(items.nth(0).getByText(en.downloads.verified.crc32)).toBeVisible();
-  // Cuántas a la vez por sitio: sin cuenta premium, 1fichier solo deja 1.
-  await page.getByText(en.downloads.parallelTitle).click();
+  // Avanzado viene plegado; ahí van cuántas a la vez por sitio (sin cuenta premium, 1fichier solo deja 1), el portapapeles y las cuentas.
+  await expect(page.getByText(en.downloads.parallelTitle)).toBeHidden();
+  await page.getByText(en.downloads.advanced).click();
+  await expect(page.getByLabel(en.downloads.clipboard)).toBeVisible();
+  await expect(page.getByRole("link", { name: en.downloads.openAccounts })).toHaveAttribute("href", /s=credentials/);
   await expect(page.getByText(en.downloads.parallelFree)).toBeVisible();
   const direct = page.getByLabel(new RegExp(en.downloads.site.direct));
   await direct.selectOption("3");
   await page.reload();
-  await page.getByText(en.downloads.parallelTitle).click();
+  await page.getByText(en.downloads.advanced).click();
   await expect(page.getByLabel(new RegExp(en.downloads.site.direct))).toHaveValue("3");
   if (process.env.OTTERETRO_SHOT) await page.locator(".panel").first().screenshot({ path: process.env.OTTERETRO_SHOT });
   await page.unroute("**/api/downloads");
   // Quitar los deja fuera para siempre.
-  await page.goto(`${base()}/downloads/?tab=links`);
+  await page.goto(`${base()}/downloads/`);
   for (const name of ["abc123", "juego.part1.rar", "juego.part2.rar"])
     await page.getByRole("button", { name: en.downloads.removeLink.replace("{name}", name) }).click();
   await expect(page.getByText(en.downloads.captureEmpty)).toBeVisible();
@@ -340,7 +399,7 @@ test("Herramientas: pestañas por tipo y subir un archivo de sistema con version
   await expectNoRawKeys();
   await expectTextFits();
   await page.getByLabel(en.tools.systemConsole).selectOption("switch");
-  await page.getByLabel(en.tools.systemUpload).setInputFiles({ name: "prueba.bin", mimeType: "application/octet-stream", buffer: Buffer.from("archivo de prueba") });
+  await page.getByLabel(en.tools.systemUpload, { exact: true }).setInputFiles({ name: "prueba.bin", mimeType: "application/octet-stream", buffer: Buffer.from("archivo de prueba") });
   await expect(page.getByText(/prueba\.bin/)).toBeVisible();
   await expectNoRawKeys();
 });
@@ -355,20 +414,26 @@ test("Herramientas: un emulador sin receta desde su repo lista sus releases y la
   let sent: Record<string, unknown> | null = null;
   await page.route("**/api/emulators/install", (r) => { sent = r.request().postDataJSON(); return r.fulfill({ json: 0 }); });
   await page.goto(`${base()}/tools/`);
-  await page.getByRole("button", { name: en.tools.install.open.emulator }).click();
-  await page.getByLabel(en.tools.install.what).selectOption(":other");
-  await page.getByLabel(en.tools.install.name, { exact: true }).fill("Mi Fritchii");
-  await page.getByLabel(en.tools.install.console).selectOption("switch2");
-  await page.getByLabel(en.tools.install.fromKind.url).check();
-  await page.getByLabel(en.tools.install.url, { exact: true }).fill("github.com/Frizti/Fritchii");
-  await page.getByRole("button", { name: en.tools.install.findReleases }).click();
-  // La versión sale del tag y, con un solo archivo de Windows, no hay nada que elegir.
-  await expect(page.getByLabel(en.tools.install.version, { exact: true })).toHaveValue("dev|5");
-  await expect(page.getByText("Fritchii-v5-Windows-x64.zip")).toBeVisible();
+  await page.getByRole("button", { name: en.tools.install.header }).click();
+  // Paso 1 (#416): qué y de dónde; lo pegado se reconoce como un repo.
+  const dialog = page.getByRole("dialog", { name: /step 1 of 2/ });
+  await dialog.getByLabel(en.tools.install.what).selectOption(":other");
+  await dialog.getByLabel(en.tools.install.name, { exact: true }).fill("Mi Fritchii");
+  await dialog.getByLabel(en.tools.install.console).selectOption("switch2");
+  await dialog.getByLabel(en.tools.install.origin).fill("github.com/Frizti/Fritchii");
+  await expect(dialog.getByText(en.tools.install.recognized.repo)).toBeVisible();
+  await dialog.getByRole("button", { name: en.tools.install.next }).click();
+  // Paso 2: la versión sale del tag y, con un solo archivo de Windows, no hay nada que elegir; otra versión, en «Más opciones».
+  const confirm = page.getByRole("dialog", { name: /step 2 of 2/ });
+  await expect(confirm.getByText("Fritchii-v5-Windows-x64.zip")).toBeVisible();
+  await confirm.getByText(en.tools.install.moreOptions).click();
+  await expect(confirm.getByLabel(en.tools.install.version, { exact: true })).toHaveValue("dev|5");
   await expectNoRawKeys();
-  await page.locator("section[aria-labelledby=install-title]").getByRole("button", { name: en.tools.install.submit, exact: true }).click();
+  await page.screenshot({ path: "e2e-results/8-tools-install-dialog-en.png" });
+  await confirm.getByRole("button", { name: en.tools.install.submit, exact: true }).click();
   await expect.poll(() => sent).toMatchObject({ emulator: "mi-fritchii", name: "Mi Fritchii", version: "5", repo: "github.com/Frizti/Fritchii", console: "switch2",
     url: "https://github.com/Frizti/Fritchii/releases/download/fritchii-v5/Fritchii-v5-Windows-x64.zip" });
+  await page.keyboard.press("Escape");
   await page.unroute("**/api/repos/releases?*");
   await page.unroute("**/api/emulators/install");
 });
@@ -381,24 +446,29 @@ test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería y
   // La pestaña Herramientas (decisión 311): instalar desde una carpeta de este equipo.
   await page.goto(`${base()}/tools/?k=tool`);
   await expect(page.getByRole("tab", { name: en.tools.kind.tool })).toHaveAttribute("aria-selected", "true");
-  await page.getByRole("button", { name: en.tools.install.open.tool }).click();
-  await page.getByLabel(en.tools.install.what).selectOption("steam-rom-manager");
-  await page.getByLabel(en.tools.install.fromKind.path).check();
-  await page.getByLabel(en.tools.install.path, { exact: true }).fill(src);
-  await page.getByLabel(en.tools.install.version, { exact: true }).fill("2.6.2");
+  await page.getByRole("button", { name: en.tools.install.header }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel(en.tools.install.what).selectOption("steam-rom-manager");
+  await dialog.getByLabel(en.tools.install.originOptional).fill(src);
+  await expect(dialog.getByText(en.tools.install.recognized.path)).toBeVisible();
+  await dialog.getByRole("button", { name: en.tools.install.next }).click();
+  await dialog.getByText(en.tools.install.moreOptions).click();
+  await dialog.getByLabel(en.tools.install.version, { exact: true }).fill("2.6.2");
   await expectNoRawKeys();
   await expectTextFits();
-  await page.locator("section[aria-labelledby=install-title]").getByRole("button", { name: en.tools.install.submit, exact: true }).click();
-  await expect(page.getByText(en.tools.install.queued)).toBeVisible();
-  // Al terminar: una sola tarjeta con lo de disco y lo registrado (#348); su origen, en el plegable.
+  await dialog.getByRole("button", { name: en.tools.install.submit, exact: true }).click();
+  await expect(dialog.getByText(en.tools.install.queued)).toBeVisible();
+  await page.keyboard.press("Escape");
+  // Al terminar: un solo detalle con lo de disco y lo registrado (#348, #416); su origen, en el plegable de versiones.
   const panel = page.locator("#tools-panel");
   const card = panel.getByRole("region", { name: "Steam ROM Manager" });
   await expect(card).toBeVisible({ timeout: 15_000 });
   await expect(card).toHaveCount(1);
-  await card.getByText(en.tools.library.details).click();
+  await card.getByText(en.tools.library.versions.replace("{count}", "1")).click();
   await expect(card.getByText(en.tools.library.origin.upload, { exact: false })).toBeVisible();
-  // Una herramienta no se "usa" ni se borra desde aquí: solo se abre su carpeta.
-  await expect(card.getByRole("button", { name: en.tools.library.open })).toBeVisible();
+  // Una herramienta no se "usa" ni se borra desde aquí: se abre ella o su carpeta (#432).
+  await expect(card.getByRole("button", { name: en.tools.library.launch, exact: true })).toBeVisible();
+  await expect(card.getByRole("button", { name: en.tools.library.open, exact: true })).toBeVisible();
   await expect(card.getByRole("button", { name: en.tools.library.use })).toHaveCount(0);
   await page.screenshot({ path: "e2e-results/8-tools-install-en.png", fullPage: true });
 
@@ -413,7 +483,14 @@ test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería y
   await page.route("**/api/emulators/install", (route) => { sent = route.request().postDataJSON(); return route.fulfill({ json: 1 }); });
   // Va en su pestaña (decisión 320), con su contador, y en una fila que se abre (decisión 322).
   await page.goto(`${base()}/tools/`);
-  await expect(page.getByText("Steam ROM Manager")).toHaveCount(0);
+  // El aviso de arriba nombra todas (#416); la lista de Emuladores, no.
+  await expect(page.getByText(/^1 new version: Steam ROM Manager$/)).toBeVisible();
+  // «Actualizar todo» (#432) instala cada una con la misma API que «Actualizar».
+  await page.getByRole("button", { name: en.tools.updates.updateAll }).click();
+  await expect(page.getByText(en.tools.updates.queuedAll)).toBeVisible();
+  expect(sent).toEqual({ emulator: "steam-rom-manager", version: "2.6.3", url: "https://example.com/srm-2.6.3.exe" });
+  sent = null;
+  await expect(page.locator("#tools-panel").getByText("Steam ROM Manager")).toHaveCount(0);
   await expect(page.getByRole("tab", { name: new RegExp(en.tools.kind.tool) }).locator(".ot-count")).toHaveText("1");
   await page.goto(`${base()}/tools/?k=tool`);
   const row = page.getByRole("button", { name: /Steam ROM Manager.*2\.6\.2 → 2\.6\.3/ });
@@ -439,15 +516,24 @@ test("Herramientas: instalar Steam ROM Manager desde una carpeta, su librería y
     return route.fulfill({ json: list });
   });
   await page.goto(`${base()}/tools/?k=emulator`);
-  // Secciones por consola (decisiones 343 y 345): Dolphin sale en GameCube y en Wii; Eden, una vez, en Switch.
-  for (const name of ["GameCube", "Wii"]) await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Dolphin" })).toHaveCount(2);
+  // Una fila por emulador con sus consolas (#416): Dolphin, una vez, para GameCube y Wii; elegir Eden muestra su detalle.
+  const rows = page.locator("#tools-panel .tool-row");
+  await expect(rows.filter({ hasText: "Dolphin" })).toHaveCount(1);
+  for (const name of ["GameCube", "Wii"]) await expect(rows.filter({ hasText: "Dolphin" })).toContainText(name);
+  await rows.filter({ hasText: "Eden" }).click();
+  await expect(rows.filter({ hasText: "Eden" })).toHaveAttribute("aria-pressed", "true");
   const eden = page.getByRole("region", { name: "Eden" });
   await expect(eden).toHaveCount(1);
+  // «Abrir» lanza la versión en uso (#432).
+  let launched: unknown = null;
+  await page.route("**/api/emulators/launch", (route) => { launched = route.request().postDataJSON(); return route.fulfill({ status: 200, body: "" }); });
+  await eden.getByRole("button", { name: en.tools.library.launch, exact: true }).click();
+  await expect.poll(() => launched).toEqual({ emulator: "eden", version: "1.0" });
+  await page.unroute("**/api/emulators/launch");
   // La versión en uso a la vista y las demás plegadas (decisión 344).
   await expect(eden.getByText(en.tools.library.current.replace("{version}", "1.0"))).toBeVisible();
   await expect(eden.getByText(en.tools.library.archived)).toBeHidden();
-  await eden.getByText(/2 more versions/).click();
+  await eden.getByText(en.tools.library.versions.replace("{count}", "3")).click();
   await expect(eden.getByText(en.tools.library.archived)).toBeVisible();
   await expectNoRawKeys();
   await expectTextFits();
@@ -499,14 +585,14 @@ test("Ajustes en inglés: carpeta, idioma y actualización", async () => {
   await expect(page.getByRole("heading", { level: 1, name: en.nav.settings })).toBeVisible();
   // #97: pestañas, una sección a la vez; sin ?s= abre la primera.
   await expect(page.getByRole("tab", { name: en.settings.storage })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("checkbox", { name: en.libraries.appData })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: en.libraries.disks })).toBeVisible();
   await expect(page.getByRole("button", { name: en.update.check })).toHaveCount(0);
   await page.getByRole("tab", { name: en.settings.storage }).focus();
   await page.keyboard.press("End");
   await expect(page).toHaveURL(/\?s=general$/);
   await expect(page.getByRole("tab", { name: en.settings.general })).toHaveAttribute("aria-selected", "true");
   await page.goBack();
-  await expect(page.getByRole("checkbox", { name: en.libraries.appData })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: en.libraries.disks })).toBeVisible();
   // #98: cambiar a una pestaña corta no cambia el ancho (la barra de scroll tiene su lugar reservado).
   const tabsWidth = async () => (await page.getByRole("tablist").boundingBox())!.width;
   const wide = await tabsWidth();
@@ -576,11 +662,11 @@ test("llevar los datos a otro disco muestra el progreso y el resultado traducido
   mkdirSync(join(dataDir("moved"), "Juegos", "GBA"), { recursive: true });
   writeFileSync(join(dataDir("moved"), "Juegos", "GBA", "metroid.gba"), "juego");
   await page.getByRole("tab", { name: en.settings.storage }).click();
-  // «⋯» del disco ★: abrir carpeta (no se toca: abriría el explorador) y usar otra carpeta de datos.
-  await page.locator(".ot-menu summary").click();
-  await expect(page.getByRole("menuitem", { name: en.libraries.openFolder })).toBeVisible();
-  await expect(page.getByRole("menuitem", { name: en.libraries.useOtherData })).toBeVisible();
-  await page.locator(".ot-menu summary").click();
+  // La fila del disco ★: abrir carpeta (no se toca: abriría el explorador) y, en «Más», usar otra carpeta de datos.
+  const star = page.locator("tbody tr", { hasText: "★" });
+  await expect(star.getByRole("button", { name: en.libraries.openFolder })).toBeVisible();
+  await star.getByRole("button", { name: en.libraries.more }).click();
+  await expect(page.getByRole("button", { name: en.libraries.useOtherData })).toBeVisible();
   // #169: se marca la fila de los datos y se mueve como lo demás.
   await page.getByRole("checkbox", { name: en.libraries.appData }).check();
   await page.locator('select[id^="to-"]').selectOption({ label: "Moved" });
@@ -590,7 +676,7 @@ test("llevar los datos a otro disco muestra el progreso y el resultado traducido
   await page.getByRole("button", { name: en.dataFolder.dismiss }).click();
   await expect(page.locator(".result").getByText(en.dataFolder.moved, { exact: true })).toHaveCount(0);
   // Ahora el ★ es ese disco, y el juego que ya tenía sigue ahí.
-  await expect(page.getByLabel(en.libraries.disk, { exact: true }).locator("option:checked")).toContainText("Moved ★");
+  await expect(page.locator("tbody tr", { hasText: "Moved ★" })).toBeVisible();
   const { existsSync } = await import("node:fs");
   expect(existsSync(join(dataDir("moved"), "Juegos", "GBA", "metroid.gba"))).toBe(true);
   expect(existsSync(join(dataDir("data"), "data"))).toBe(false);
@@ -610,19 +696,19 @@ test("volver a español en Ajustes cambia todo y se mantiene al recargar", async
   await page.screenshot({ path: "e2e-results/5-settings-es.png", fullPage: true });
 });
 
-test("Herramientas en español: la barra de arriba en una línea y una tarjeta por emulador en cada consola (#348)", async () => {
+test("Herramientas en español: «Instalar…» en la cabecera y una tarjeta por emulador en cada consola (#348, #432)", async () => {
   const one = (emulatorId: string, name: string) => ({ emulatorId, name, kind: "emulator", version: "1.0", origin: "recipe", url: "https://example.com/x.zip", file: null, sha256: null,
     installedAt: "2026-01-01T00:00:00Z", path: `C:/x/${emulatorId}`, inUse: true });
   await page.route("**/api/emulators", (route) => route.fulfill({ json: [one("dolphin", "Dolphin"), one("eden", "Eden")] }));
   await page.goto(`${base()}/tools/?k=emulator`);
-  // «Instalar…», «Cargar perfil» y «Revisar ahora» en una sola barra, sin el panel «Versiones nuevas».
-  const top = async (name: string) => (await page.getByRole("button", { name, exact: true }).boundingBox())!.y;
-  const y = await top(es.tools.install.open.emulator);
-  for (const name of [es.profiles.loadZip, es.tools.updates.checkNow]) expect(await top(name)).toBe(y);
-  await expect(page.getByRole("region", { name: "Dolphin" })).toHaveCount(2);
+  // «Instalar…» y «Cargar perfil» en la cabecera (#432); «Revisar ahora», en el aviso de versiones.
+  for (const name of [es.tools.install.header, es.profiles.loadZip]) await expect(page.locator("header.top").getByRole("button", { name, exact: true })).toBeVisible();
+  await expect(page.locator(".tools-notice").getByRole("button", { name: es.tools.updates.checkNow })).toBeVisible();
+  await expect(page.locator(".tool-row", { hasText: "Dolphin" })).toHaveCount(1);
+  await page.locator(".tool-row", { hasText: "Eden" }).click();
   const eden = page.getByRole("region", { name: "Eden" });
   await expect(eden.getByText(es.tools.library.current.replace("{version}", "1.0"))).toBeVisible();
-  await eden.getByText(es.tools.library.details).click();
+  await eden.getByText(es.tools.library.versions.replace("{count}", "1")).click();
   await expect(eden.getByText("https://example.com/x.zip")).toBeVisible();
   await expectNoRawKeys();
   await expectTextFits();
@@ -832,6 +918,14 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
   await page.reload();
   await expect(page.getByRole("radio", { name: es.catalog.status.finished })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByLabel(es.catalog.game.rating)).toHaveValue("9");
+  // #410: con 5 versiones, el Resumen cabe en 1440×900 sin bajar.
+  const five = await openDb();
+  five.exec("INSERT INTO version (id, game_id, platform, kind, year) VALUES (102, 10, 'gc', 'remake', 2003), (103, 10, 'wii', 'remake', 2007), (104, 10, 'switch', 'remake', 2019); UPDATE cache_generation SET value = value + 1");
+  await page.reload();
+  await expect(page.getByRole("tab", { name: es.catalog.game.tab.versions })).toContainText("5");
+  expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
+  five.exec("DELETE FROM version WHERE id IN (102, 103, 104); UPDATE cache_generation SET value = value + 1");
+  five.close();
 
   // F2.18: «Lo tengo» por defecto y el número de cada consola sigue al filtro.
   await page.goto(`${base()}/collection/?console=n64`);
@@ -864,92 +958,35 @@ test("catálogo con datos: sagas, favorita, ficha con seguimiento y corrección 
 
 test("la ficha muestra tus enlaces de ese juego, y se pueden quitar (#210)", async () => {
   await page.goto(`${base()}/game/?id=10`);
-  await expect(page.getByRole("heading", { name: es.downloads.gameLinks })).toHaveCount(0);
+  // #410: en su pestaña, con el número de enlaces.
+  const tab = page.getByRole("tab", { name: es.catalog.game.tab.links });
+  await tab.click();
+  await expect(page.getByText(es.downloads.gameLinksNone)).toBeVisible();
   expect((await api("POST", "/api/downloads/links", { text: "https://sitio.test/fusion.zip", gameId: 10 })).ok).toBe(true);
   await page.reload();
+  await expect(page).toHaveURL(/tab=links/);
   await expect(page.getByRole("heading", { name: es.downloads.gameLinks })).toBeVisible();
+  await expect(tab).toContainText("1");
   await expect(page.getByText("fusion.zip")).toBeVisible();
   await page.getByRole("button", { name: es.downloads.removeLink.replace("{name}", "fusion.zip") }).click();
-  await expect(page.getByRole("heading", { name: es.downloads.gameLinks })).toHaveCount(0);
+  await expect(page.getByText(es.downloads.gameLinksNone)).toBeVisible();
 });
 
 test("la ficha muestra el emulador recomendado para el juego, con su fuente y «Instalar» si falta (#366)", async () => {
   await page.route("**/api/recipes", (route) => route.fulfill({ json: [{ id: "fork-prueba", name: "Fork de prueba", kind: "emulator", experimental: true, releases: true,
     consoles: ["n64"], baseFor: [], folder: "N64", game: null, forkOf: null, recommendedFor: [{ game: "Ocarina of Time", gameId: 10, source: "https://sitio.test/guia" }] }] }));
-  await page.goto(`${base()}/game/?id=10`);
-  await expect(page.getByText(es.profiles.recommended.replace("{emulator}", "Fork de prueba"))).toBeVisible();
+  await page.goto(`${base()}/game/?id=10&tab=play`);
+  // #410: sin la versión de N64, va en «Mejor con otra versión».
+  await expect(page.getByRole("region", { name: es.play.better }).getByText(es.profiles.recommended.replace("{emulator}", "Fork de prueba"))).toBeVisible();
   await expect(page.getByRole("link", { name: es.profiles.recommendedSource.replace("{source}", "sitio.test") })).toHaveAttribute("href", "https://sitio.test/guia");
   await expect(page.getByRole("button", { name: es.tools.forks.install })).toBeVisible();
   // Otro juego no lo muestra.
-  await page.goto(`${base()}/game/?id=11`);
+  await page.goto(`${base()}/game/?id=11&tab=play`);
   await expect(page.getByText(es.profiles.recommended.replace("{emulator}", "Fork de prueba"))).toHaveCount(0);
   await page.unroute("**/api/recipes");
 });
 
-test("la ficha busca el mejor emulador, muestra lo local primero y deja elegir a mano o volver al del catálogo (#375)", async () => {
-  const db = await openDb();
-  db.exec(`
-    INSERT INTO emulator_pick (game_id, console, recipe_id, repo, source, reason, origin, searched_at) VALUES
-      (10, 'n64', 'rmg', NULL, 'https://sitio.test/rmg', 'va bien', 'claude', '2026-11-01T12:00:00Z'),
-      (10, '3ds', NULL, 'https://sitio.test/sin-receta', 'https://sitio.test/fuente', 'otro', 'claude', '2026-11-01T12:00:00Z');
-  `);
-  db.close();
-  // La búsqueda real llamaría a Claude: se simula la cola.
-  let queued = false;
-  await page.route("**/api/games/10/best-emulator", (route) => route.request().method() === "POST"
-    ? (queued = true, route.fulfill({ json: 999 }))
-    : route.fulfill({ json: { task: queued ? 999 : null, searchedAt: "2026-11-01T12:00:00Z" } }));
-  await page.goto(`${base()}/game/?id=10`);
-  const best = es.profiles.best;
-  await expect(page.getByText(/Última búsqueda/)).toBeVisible();
-  await page.getByRole("button", { name: best.search }).click();
-  await expect(page.getByRole("status").filter({ hasText: best.queued })).toBeVisible();
-  await expect(page.getByRole("button", { name: best.search })).toBeDisabled();
-
-  const n64 = page.getByRole("group", { name: /64/ });
-  await expect(n64.getByText(es.profiles.recommended.replace("{emulator}", "Rosalie's Mupen GUI"))).toBeVisible();
-  await expect(n64.getByText(best.origin.claude)).toBeVisible();
-  await expect(n64.getByRole("link", { name: es.profiles.recommendedSource.replace("{source}", "sitio.test") })).toHaveAttribute("href", "https://sitio.test/rmg");
-  // Sin receta: su repo, sin «Instalar».
-  const n3ds = page.getByRole("group", { name: /3DS/ });
-  await expect(n3ds.getByRole("link", { name: best.repo })).toHaveAttribute("href", "https://sitio.test/sin-receta");
-  await expect(n3ds.getByRole("button", { name: es.tools.forks.install })).toHaveCount(0);
-
-  await n64.getByRole("button", { name: best.choose }).click();
-  await n64.getByRole("combobox").selectOption({ label: "Rosalie's Mupen GUI" });
-  await expect(n64.getByText(best.origin.manual)).toBeVisible();
-  await n64.getByRole("button", { name: best.reset }).click();
-  await expect(n64.getByText(best.none)).toBeVisible();
-  await expect(n64.getByRole("button", { name: best.reset })).toHaveCount(0);
-  await page.unroute("**/api/games/10/best-emulator");
-  const check = await openDb();
-  expect(check.prepare("SELECT console FROM emulator_pick WHERE game_id = 10").all()).toEqual([{ console: "3ds" }]);
-  check.exec("DELETE FROM emulator_pick");
-  check.close();
-});
-
-test("«Buscar el mejor emulador» encola solo los juegos elegidos y deja desmarcado lo ya buscado (#374)", async () => {
-  const db = await openDb();
-  db.exec("INSERT INTO emulator_search (game_id, searched_at) VALUES (11, '2026-11-01T12:00:00Z') ON CONFLICT DO NOTHING");
-  db.close();
-  let sent: unknown = null;
-  await page.route("**/api/best-emulator", (route) => { sent = route.request().postDataJSON(); return route.fulfill({ json: [1] }); });
-  await page.goto(`${base()}/saga/?id=1`);
-  await page.getByRole("button", { name: es.catalog.bestEmulator.open }).click();
-  const dialog = page.getByRole("dialog", { name: es.catalog.bestEmulator.title });
-  await expect(dialog.getByRole("checkbox", { name: "The Legend of Zelda" })).toBeChecked();
-  await expect(dialog.getByRole("checkbox", { name: /Ocarina of Time/ })).toBeChecked();
-  const botw = dialog.getByRole("checkbox", { name: /Breath of the Wild/ });
-  await expect(botw).not.toBeChecked();
-  await expect(dialog.getByText(/buscado el/)).toBeVisible();
-  await expect(dialog.getByRole("status")).toHaveText("1 juego elegido");
-  await dialog.getByRole("button", { name: "Buscar en 1 juego" }).click();
-  await expect(dialog).toBeHidden();
-  expect(sent).toEqual({ gameIds: [10] });
-  await page.unroute("**/api/best-emulator");
-});
-
-test("ports: Novedades con los nuevos de lo que sigues, la ficha separa los 100 % jugables e instalar pide la URL solo sin receta (#286, #287, #384)", async () => {
+test("ports: Novedades con los nuevos de lo que sigues, la ficha los ofrece en «Mejor con otra versión» e instalar pide la URL solo sin receta (#286, #287, #384, #410)", async () => {
   // Sin ningún «Visto», Novedades muestra lo de los últimos 30 días.
   const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
   const db = await openDb();
@@ -963,15 +1000,18 @@ test("ports: Novedades con los nuevos de lo que sigues, la ficha separa los 100 
   db.close();
   await page.goto(`${base()}/`);
   const news = page.getByLabel(es.ports.news);
-  await expect(news.getByRole("heading", { name: es.ports.newFullyPlayable })).toBeVisible();
-  await expect(news.getByRole("heading", { name: es.ports.newOthers })).toBeVisible();
+  // #428: una fila por port nuevo, con «Ver port» a la ficha; el de hace 40 días ya no es novedad.
+  await expect(news.getByText("Ship of Harkinian")).toBeVisible();
+  await expect(news.getByText("Viejo port")).toBeVisible();
+  await expect(news.getByText("Dusklight")).toHaveCount(0);
   await expect(news.getByText(es.ports.delisted)).toBeVisible();
+  await expect(news.getByRole("link", { name: es.home.viewPort }).first()).toHaveAttribute("href", "/game/?id=10&tab=play");
   await news.getByRole("button", { name: es.ports.seen }).click();
   await expect(page.getByLabel(es.ports.news)).toHaveCount(0);
 
   await page.goto(`${base()}/game/?id=10`);
-  const ports = page.getByRole("region", { name: es.ports.title });
-  await expect(ports.getByRole("heading", { name: es.ports.fullyPlayable })).toBeVisible();
+  await page.getByRole("tab", { name: es.catalog.game.tab.play }).click();
+  const ports = page.getByRole("region", { name: es.play.better });
   await expect(ports.getByText(es.ports.status.complete, { exact: true })).toBeVisible();
   await expect(ports.getByText(es.ports.added.replace("{date}", new Intl.DateTimeFormat("es", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(daysAgo(4)))))).toBeVisible();
   await expect(ports.getByText(es.ports.status.beta, { exact: true })).toBeVisible();
@@ -995,9 +1035,11 @@ test("la ficha: perfiles de cada versión, crear, activar y volver al por defect
     INSERT INTO console_emulator (console_id, emulator_id, is_base) VALUES ('switch', 'mi-emu', 1);
   `);
   db.close();
-  await page.goto(`${base()}/game/?id=11`);
-  await expect(page.getByRole("heading", { name: es.profiles.title })).toBeVisible();
+  await page.goto(`${base()}/game/?id=11&tab=play`);
+  // #410: plegados en «Avanzado», con «Nuevo perfil» en vez del formulario abierto.
+  await page.getByText(es.profiles.advanced).click();
   await expect(page.getByText(es.profiles.noneActive.replace("{name}", "MiEmu").replace("{emulator}", "MiEmu"))).toBeVisible();
+  await page.getByRole("button", { name: es.profiles.newProfile }).click();
   await page.getByRole("textbox", { name: es.profiles.newName }).fill("2x");
   await page.getByRole("button", { name: es.profiles.create }).click();
   await expect(page.getByRole("textbox", { name: es.profiles.rename.replace("{name}", "2x") })).toBeVisible();
@@ -1018,6 +1060,51 @@ test("la ficha: perfiles de cada versión, crear, activar y volver al por defect
   await expectNoRawKeys();
 });
 
+test("la ficha: cómo jugar elige por la regla, deja cambiar a mano y volver a la automática; Ajustes ordena los criterios (#398)", async () => {
+  // Con la versión de Switch en la colección, su emulador (MiEmu, de la prueba anterior) es la opción.
+  const db = await openDb();
+  // Con su biblioteca: la ficha solo cuenta como tuyos los archivos de una biblioteca (#410).
+  db.exec(`INSERT OR IGNORE INTO library (id, name, kind, path, created_at) VALUES ('e2e-398', 'e2e', 'local', 'C:/e2e', '');
+    INSERT INTO source (kind, relative_path, console, version_id, library_id) VALUES ('file', 'botw.nsp', 'switch', 110, 'e2e-398')`);
+  db.close();
+  const p = es.play;
+  await page.goto(`${base()}/game/?id=11`);
+  // #410: la cabecera dice con qué se juega y por qué; «Cambiar» lleva a «Cómo jugar».
+  const header = page.locator(".play-box");
+  await expect(header.getByRole("button", { name: p.play })).toBeVisible();
+  await expect(header).toContainText(p.with.replace("{name}", p.emulator.replace("{name}", "MiEmu")));
+  await expect(header).toContainText(p.reason.playable);
+  await header.getByRole("button", { name: p.change }).click();
+  await expect(page).toHaveURL(/tab=play/);
+  const play = page.locator("section").filter({ has: page.getByRole("heading", { name: p.title }) });
+  const miEmu = play.getByRole("radio", { name: /MiEmu/ });
+  await expect(miEmu).toHaveAttribute("aria-checked", "true");
+  // El base de Switch sin instalar también es opción (un clic): elegido a mano, la cabecera pasa a «Instalar».
+  const eden = play.getByRole("radio", { name: /Eden/ });
+  await expect(eden).toContainText(p.notInstalled);
+  await eden.click();
+  await expect(eden).toHaveAttribute("aria-checked", "true");
+  await expect(play.getByText(p.reason.manual)).toBeVisible();
+  await expect(header.getByRole("button", { name: p.install.replace("{name}", "Eden") })).toBeVisible();
+  await play.getByRole("button", { name: p.reset }).click();
+  await expect(miEmu).toHaveAttribute("aria-checked", "true");
+  await expect(header.getByRole("button", { name: p.play })).toBeVisible();
+  await expect(play.getByRole("button", { name: p.reset })).toHaveCount(0);
+  await expectNoRawKeys();
+
+  await page.goto(`${base()}/settings/?s=play`);
+  const first = p.criterion.pc;
+  await page.getByRole("button", { name: p.down.replace("{criterion}", first) }).click();
+  await expect(page.locator("ol li").first()).toContainText(p.criterion.port);
+  await page.getByRole("button", { name: p.up.replace("{criterion}", first) }).click();
+  await expect(page.locator("ol li").first()).toContainText(first);
+  await expectNoRawKeys();
+
+  const check = await openDb();
+  check.exec("DELETE FROM source WHERE version_id = 110; DELETE FROM library WHERE id = 'e2e-398'; DELETE FROM play_choice");
+  check.close();
+});
+
 test("la ficha: ajustes del perfil por defecto de Eden según su receta y abrir el emulador (#276)", async () => {
   // Eden registrado sin instalar: muestra los ajustes de su receta, los guarda en el perfil y avisa que no hay versión instalada.
   const db = await openDb();
@@ -1027,7 +1114,8 @@ test("la ficha: ajustes del perfil por defecto de Eden según su receta y abrir 
     INSERT OR IGNORE INTO console_emulator (console_id, emulator_id, is_base) VALUES ('switch', 'eden', 0);
   `);
   db.close();
-  await page.goto(`${base()}/game/?id=11`);
+  await page.goto(`${base()}/game/?id=11&tab=play`);
+  await page.getByText(es.profiles.advanced).click();
   await page.getByText(es.profiles.defaults).click();
   await page.getByRole("button", { name: `${es.profiles.settings.open}: Eden` }).click();
   const form = page.getByRole("form", { name: es.profiles.settings.title.replace("{name}", "Eden") });
@@ -1043,9 +1131,57 @@ test("la ficha: ajustes del perfil por defecto de Eden según su receta y abrir 
   await expect(form.getByRole("alert")).toHaveText(es.errors.profile.notInstalled.replace("{emulator}", "eden"));
 
   await page.reload(); // lo guardado vuelve
+  await page.getByText(es.profiles.advanced).click();
   await page.getByText(es.profiles.defaults).click();
   await page.getByRole("button", { name: `${es.profiles.settings.open}: Eden` }).click();
   await expect(page.getByLabel(es.profiles.settings.names.resolution)).toHaveValue("3");
+});
+
+test("Steam: lo marcado por saga, lo que cambia desde la última exportación y exportar (#402)", async () => {
+  // Tienes Ocarina (N64) y Breath of the Wild; está marcado BotW, y la última exportación de este equipo llevó Ocarina 3DS.
+  const db = await openDb();
+  db.exec(`
+    INSERT INTO source (kind, name, version_id) VALUES ('file', 'oot.z64', 100), ('file', 'botw.nsp', 110);
+    INSERT OR IGNORE INTO steam_mark (version_id) VALUES (110);
+    INSERT OR REPLACE INTO steam_export (machine_id, version_id, title, category, app_id, exported_at)
+      SELECT id, 101, 'Ocarina of Time (Nintendo 3DS)', 'The Legend of Zelda', 1, '2026-01-01T00:00:00Z' FROM machine;
+  `);
+  db.close();
+  // La cuenta la responde la prueba; exportar también: no se toca el Steam ni el Steam ROM Manager de este equipo.
+  await page.route("**/api/steam", async (route) => {
+    const real = await route.fetch();
+    return route.fulfill({ response: real, json: { ...(await real.json()), account: "jugador", srm: false } });
+  });
+  let exported = false;
+  await page.route("**/api/steam/export", (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    exported = true;
+    return route.fulfill({ json: 1 });
+  });
+  await page.goto(`${base()}/steam/`);
+  await expect(page.getByText(es.steam.account.replace("{account}", "jugador"))).toBeVisible();
+  await expect(page.getByRole("link", { name: /instálalo en Herramientas/ })).toHaveAttribute("href", "/tools/?k=tool");
+  const zelda = page.getByRole("group", { name: "The Legend of Zelda" }).first();
+  await expect(zelda.getByRole("checkbox", { name: /Breath of the Wild/ })).toBeChecked();
+  await expect(zelda.getByText(es.steam.new)).toBeVisible();
+  await expect(page.getByText(es.steam.goes, { exact: true })).toBeVisible();
+  await expect(page.getByText("Ocarina of Time (Nintendo 3DS)")).toBeVisible();
+  await expect(page.getByText("+1 se agregan · −1 se quitan")).toBeVisible();
+  // Lo que se puede sumar va plegado: marcar Ocarina (N64) la pasa arriba y suma una diferencia.
+  await page.getByText(/Agregar más juegos/).click();
+  await page.getByRole("checkbox", { name: /Ocarina of Time \(Nintendo 64\)/ }).click();
+  await expect(page.getByText("+2 se agregan · −1 se quitan")).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: /Ocarina of Time \(Nintendo 64\)/ })).toBeChecked();
+  await expectNoRawKeys();
+  await expectTextFits();
+  await page.screenshot({ path: "e2e-results/14-steam-es.png", fullPage: true });
+  await page.getByRole("button", { name: es.steam.export, exact: true }).click();
+  await expect.poll(() => exported).toBe(true);
+  await page.unroute("**/api/steam");
+  await page.unroute("**/api/steam/export");
+  const clean = await openDb();
+  clean.exec("DELETE FROM source WHERE name IN ('oot.z64', 'botw.nsp'); DELETE FROM steam_mark; DELETE FROM steam_export;");
+  clean.close();
 });
 
 test("panel de tareas: terminadas por hora de término, registro al hacer clic y limpiar", async () => {
@@ -1133,7 +1269,7 @@ test("las pestañas nunca tienen barra: en una ventana angosta, lo que no cabe v
   };
   await page.setViewportSize({ width: 520, height: 900 });
   await page.goto(`${base()}/settings/?s=general`);
-  const more = page.getByRole("button", { name: new RegExp(es.tabs.more) });
+  const more = page.locator(".tabs-more").getByRole("button", { name: new RegExp(es.tabs.more) });
   await expect(more).toBeVisible();
   await expect(page.locator("#tab-general")).toHaveAttribute("aria-selected", "true");
   await noScroll();
@@ -1144,7 +1280,7 @@ test("las pestañas nunca tienen barra: en una ventana angosta, lo que no cabe v
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${base()}/settings/`);
   await expect(more).toHaveCount(0);
-  await expect(page.getByRole("tab")).toHaveCount(5); // con Catálogo (#230) y sin Claude (#251)
+  await expect(page.getByRole("tab")).toHaveCount(6); // con Catálogo (#230), Cómo jugar (#398) y sin Claude (#251)
   await noScroll();
   // #200: una sola columna centrada con ancho máximo.
   const content = (await page.locator(".content").boundingBox())!;

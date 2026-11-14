@@ -310,6 +310,17 @@ public static class DiskEndpoints
             return Endpoints.Open(path) ? TypedResults.Ok() : TypedResults.Conflict(ApiError.Of("link.openFailed"));
         });
 
+        // «Abrir» en Herramientas (#432): el programa, sin perfil ni juego; «Abrir carpeta» es /emulators/open.
+        api.MapPost("/emulators/launch", Results<Ok, BadRequest<ApiError>, Conflict<ApiError>> (ReinstallRequest request, AppSession s) =>
+        {
+            if (CatalogEndpoints.Db(s) is not { } db) return CatalogEndpoints.NoData();
+            var (exe, error) = Installs.Executable(db, request.Emulator, request.Version);
+            if (error is not null) return TypedResults.BadRequest(error);
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe!) { WorkingDirectory = Path.GetDirectoryName(exe)! })?.Dispose(); }
+            catch (Exception e) when (e is System.ComponentModel.Win32Exception or IOException) { return TypedResults.Conflict(ApiError.Of("settings.openFailed", ("detail", e.Message))); }
+            return TypedResults.Ok();
+        });
+
         // Ports (#286, #287): los de un juego, los nuevos para Inicio › Novedades, «Visto» e instalar uno con su receta o con la URL de su release.
         api.MapGet("/games/{id:long}/ports", Results<Ok<List<PortInfo>>, Conflict<ApiError>> (long id, AppSession s) =>
             CatalogEndpoints.Db(s) is { } db ? TypedResults.Ok(Ports.OfGame(db, id)) : CatalogEndpoints.NoData());

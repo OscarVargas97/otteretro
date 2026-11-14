@@ -2,6 +2,23 @@
 
 Lo que trae cada versión de Otteretro, lo más nuevo arriba.
 
+## 0.6.27 · Jugar, Steam y el diseño nuevo
+
+`chore/release-0627` y los PRs de la F6 hasta #458 · release a `main` en el canal Estable
+
+### Nuevo
+- **Jugar desde Otteretro** (#405, #406, #412, #413): la ficha del juego tiene pestañas y botón «Jugar», que abre la opción elegida (emulador, port o Steam) y espera el proceso; la regla de cómo jugar se puede cambiar a mano. «Detener» cierra el juego desde la ficha (#455).
+- **Exportar a Steam** (#409, #414): pantalla Steam con la cuenta y lo que se puede marcar, exportación con Steam ROM Manager y el paso 5 del asistente.
+- **Instaladores de las recetas** (#444): un port que se instala con su instalador lo corre al instalar; se puede reinstalar desde la receta y desinstalar (#447). Un port cuyo `detect` es su instalador se juega con el ejecutable de `run` (#457), como Hookshot.
+- **El archivo del juego a cada port** (#450): cada port recibe el archivo del juego como dice su receta (`gameFile`).
+- **Diseño nuevo**: asistente de primer arranque en 4 pasos (#426), Inicio en dos columnas con «Continuar jugando» (#436), Herramientas como lista y detalle con «Actualizar todo», «Abrir» y «Abrir carpeta» (#421, #435), Descargas con «Añadir» arriba (#422), Almacenamiento como tabla de discos (#425) y archivos por revisar en Colección (#420).
+- **El mejor emulador lo gestiona el catálogo** (#408).
+
+### Arreglos
+- Se comprueba el ejecutable de la receta al instalar y al jugar, y el error dice qué falta (#441).
+- «Jugando…» solo mientras vive el proceso del juego (#453).
+- «Desinstalar» a la vista (#448), botones de la ficha alineados (#442), tarjetas de «Continuar jugando» como en el diseño (#438) y el salto a Herramientas desde Descargas (#427).
+
 ## 0.5.4 · GitLab y búsqueda web
 
 `chore/394-release-054`, `feat/390-gitlab-releases` y `fix/392-claude-allowed-tools` · release a `main` en el canal Estable

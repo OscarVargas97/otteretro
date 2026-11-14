@@ -31,7 +31,7 @@ public static partial class Steam
     {
         var key = run.Credentials.Read("steam.apiKey");
         if (string.IsNullOrEmpty(key)) throw new TaskException(ApiError.Of("tasks.steam.noKey"));
-        var account = DetectAccount(LoginUsersPath ?? DefaultLoginUsersPath()) ?? throw new TaskException(ApiError.Of("tasks.steam.noAccount"));
+        var account = DetectAccount(LoginUsers()) ?? throw new TaskException(ApiError.Of("tasks.steam.noAccount"));
 
         // La clave va en la URL: por eso no pasa por api_cache y nunca se escribe la URL en un error o en el log.
         var http = Handler is null ? Shared : new HttpClient(Handler);
@@ -72,6 +72,14 @@ public static partial class Steam
         return users.Where(u => MostRecent().IsMatch(u.Body)).Concat(users).Select(u => u.Id).FirstOrDefault();
     }
 
+    /// <summary>El nombre de usuario (AccountName) de una cuenta: así la elige Steam ROM Manager.</summary>
+    public static string? AccountName(string vdfPath, string id) =>
+        UserBlock().Matches(File.ReadAllText(vdfPath)).FirstOrDefault(m => m.Groups[1].Value == id) is { } m
+            && AccountNameField().Match(m.Groups[2].Value) is { Success: true } name ? name.Groups[1].Value : null;
+
+    /// <summary>El loginusers.vdf de este equipo (o el de las pruebas); la carpeta de Steam es la de dos niveles arriba.</summary>
+    public static string? LoginUsers() => LoginUsersPath ?? DefaultLoginUsersPath();
+
     // ponytail: rutas por defecto de Steam; si está en otro lugar se suma un ajuste cuando aparezca el caso.
     static string? DefaultLoginUsersPath()
     {
@@ -89,6 +97,9 @@ public static partial class Steam
 
     [GeneratedRegex("\"(\\d{17})\"\\s*\\{([^}]*)\\}")]
     private static partial Regex UserBlock();
+
+    [GeneratedRegex("\"AccountName\"\\s*\"([^\"]*)\"", RegexOptions.IgnoreCase)]
+    private static partial Regex AccountNameField();
 
     [GeneratedRegex("\"MostRecent\"\\s*\"1\"", RegexOptions.IgnoreCase)]
     private static partial Regex MostRecent();

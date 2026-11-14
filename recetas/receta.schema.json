@@ -15,6 +15,7 @@
     "port": { "type": "string", "description": "Port: el enlace de su fila de port, por el que Otteretro los cruza (#384)" },
     "parent": { "type": "string", "description": "Complemento: id de la receta del emulador o port al que pertenece" },
     "detect": { "type": "string", "description": "Ruta relativa que identifica la instalación (el ejecutable; en un complemento, su carpeta dentro del padre)" },
+    "run": { "type": "string", "description": "Ruta relativa del programa con que se juega, si no es detect (un port cuyo detect es su instalador, #457)" },
     "version": {
       "type": "object", "additionalProperties": false, "required": ["from"],
       "properties": {
@@ -95,6 +96,16 @@
     },
     "asset": { "type": "string", "format": "regex", "description": "El archivo de Windows de cada release de updates (expresión regular sobre su nombre)" },
     "assetLinux": { "type": "string", "format": "regex", "description": "El archivo de Linux de cada release de updates (expresión regular sobre su nombre), para PlayOS (otteretro-catalogo#153)" },
+    "gameFile": {
+      "type": "object", "additionalProperties": false, "required": ["deliver"],
+      "description": "Solo ports: cómo recibe el archivo del juego (#449). Sin esto, la persona lo elige en el port",
+      "properties": {
+        "deliver": { "enum": ["arg", "copy", "none", "manual"], "description": "arg: en args; copy: copiado a copyTo; none: no lo necesita; manual: lo pide el port" },
+        "args": { "type": "array", "items": { "type": "string" }, "description": "Con arg: los argumentos, con {rom} (el archivo) y {romDir} (su carpeta)" },
+        "copyTo": { "type": "string", "description": "Con copy: dónde, relativo a la instalación. Nunca pisa lo que ya está" },
+        "formats": { "type": "array", "items": { "type": "string" }, "description": "Extensiones que acepta, sin punto" }
+      }
+    },
     "perGame": {
       "type": "object", "additionalProperties": false,
       "description": "Lo de un juego (perfiles, decisión 286). Plantillas: {titleId}, {serial}, {crc}, {gameId}, {rom} (nombre de la ROM sin extensión), {game} (carpeta del juego) y, en args, {config}",
@@ -150,6 +161,10 @@
         "section": { "type": "string" },
         "keys": { "type": "array", "items": { "type": "string" }, "description": "Claves de perGame.config que eligen el perfil o guardan los mandos" }
       }
+    },
+    "installer": {
+      "type": "array", "items": { "type": "string" },
+      "description": "Si lo bajado es un instalador: los argumentos para instalar sin preguntar, con {dir} donde va la carpeta de destino (#443). Ej. NX2navi: [\"--dest\", \"{dir}\", \"--no-shortcuts\", \"--no-launch\", \"--quiet\"]"
     },
     "saveAs": { "type": "string", "description": "Si lo bajado no es un zip (un .exe con la versión en el nombre), con qué nombre se guarda en la instalación: el de detect (#268)" },
     "downloads": {

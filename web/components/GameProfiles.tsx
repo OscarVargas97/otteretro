@@ -1,7 +1,8 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useFormatter, useTranslations } from "next-intl";
+import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Fragment, useState } from "react";
 import { useConsoleName } from "@/components/Catalog";
 import { ProfileSettingsForm } from "@/components/ProfileSettings";
@@ -9,118 +10,52 @@ import { request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
 import { LoadProfile, ShareProfile } from "@/components/ProfileShare";
 import { emulatorsQuery, ForkInstall, recipesQuery } from "@/components/Tools";
-import { useTasks } from "@/components/Tasks";
-import type { BestEmulatorStatus, EmulatorPick, ProfileSwitch, RecipeSummary, VersionProfiles } from "@/lib/types";
+import type { ProfileSwitch, RecipeSummary, VersionProfiles } from "@/lib/types";
 
-type Shown = { console: string; recipe?: RecipeSummary; repo?: string | null; source?: string | null; origin: "manual" | "claude" | "catalog" };
+type Shown = { console: string; recipe: RecipeSummary; source?: string | null };
 
-const picksQuery = (gameId: number) => ({ queryKey: ["emulatorPicks", gameId], queryFn: () => request<EmulatorPick[]>(`/api/games/${gameId}/emulator-picks`) });
-
-/**
- * Un recomendado por consola (#375): lo elegido a mano, lo que encontró Claude (los dos solo locales) o, si no hay, lo del catálogo
- * (las recetas que traen el juego en `recommendedFor`, #366).
- */
-function useRecommended(gameId: number, consoles: string[]) {
+/** El recomendado de cada consola: el que publica el catálogo (las recetas que traen el juego en `recommendedFor`, #366, decisión 380). */
+export function useRecommended(gameId: number, consoles: string[]) {
   const recipes = useQuery(recipesQuery).data ?? [];
-  const picks = useQuery(picksQuery(gameId)).data ?? [];
   return consoles.flatMap((console): Shown[] => {
-    const pick = picks.find((p) => p.console === console);
-    if (pick) return [{ console, recipe: recipes.find((r) => r.id === pick.recipeId), repo: pick.repo, source: pick.source, origin: pick.origin as Shown["origin"] }];
     const recipe = recipes.find((r) => r.consoles.includes(console) && r.recommendedFor.some((g) => Number(g.gameId) === gameId));
-    return recipe ? [{ console, recipe, source: recipe.recommendedFor.find((g) => Number(g.gameId) === gameId)?.source, origin: "catalog" }] : [];
+    return recipe ? [{ console, recipe, source: recipe.recommendedFor.find((g) => Number(g.gameId) === gameId)?.source }] : [];
   });
 }
 
-/** Perfiles del juego (§8.0, #269): por versión del juego (decisión 301), cuál está activo, crear, renombrar, elegir ROM y activar. */
-export function GameProfiles({ gameId, consoles }: { gameId: number; consoles: string[] }) {
+/**
+ * Perfiles del juego (§8.0, #269), plegados en «Avanzado» (#410): por versión del juego (decisión 301), los que hay, crear,
+ * renombrar, elegir ROM y activar. Una consola sin emulador es una línea con el enlace a Herramientas.
+ */
+export function GameProfiles({ gameId }: { gameId: number }) {
   const t = useTranslations("profiles");
   const versions = useQuery({ queryKey: ["profiles", gameId], queryFn: () => request<VersionProfiles[]>(`/api/games/${gameId}/profiles`) });
-  const recipes = useQuery(recipesQuery).data ?? [];
-  // Solo las consolas del juego que corre algún emulador con receta: en las demás no hay nada que buscar ni elegir.
-  const emulated = consoles.filter((c) => recipes.some((r) => r.kind === "emulator" && r.consoles.includes(c)));
-  const recommended = useRecommended(gameId, emulated);
-  if (!versions.data?.length && !emulated.length) return null;
+  const recommended = useRecommended(gameId, [...new Set(versions.data?.map((v) => v.platform))]);
+  if (!versions.data?.length) return null;
+  const count = versions.data.reduce((n, v) => n + v.profiles.length, 0);
   return (
-    <section className="sec">
-      <div className="sec-h"><h2>{t("title")}</h2></div>
-      {!!emulated.length && <BestEmulatorSearch gameId={gameId} />}
-      {emulated.map((c) => <Recommended key={c} gameId={gameId} console={c} shown={recommended.find((x) => x.console === c)} />)}
-      {versions.data?.map((v) => <VersionPanel key={String(v.versionId)} gameId={gameId} version={v}
-        recommended={recommended.flatMap((x) => (x.console === v.platform && x.recipe ? [x.recipe.id] : []))} />)}
-      {!!versions.data?.length && <LoadProfile />}
-    </section>
+    <details className="fold-line advanced">
+      <summary>{t("advanced")} <span className="small muted">{t("count", { count })}</span></summary>
+      {versions.data.map((v) => <VersionPanel key={String(v.versionId)} gameId={gameId} version={v}
+        recommended={recommended.flatMap((x) => (x.console === v.platform ? [x.recipe.id] : []))} />)}
+      <LoadProfile />
+    </details>
   );
 }
 
-/** «Buscar el mejor emulador» (#375): encola la búsqueda de Claude (#373) y muestra su avance o la fecha de la última. */
-function BestEmulatorSearch({ gameId }: { gameId: number }) {
-  const t = useTranslations("profiles.best");
-  const tt = useTranslations("tasks.status");
-  const format = useFormatter();
-  const describe = useDescribeError();
-  const cache = useQueryClient();
-  const status = useQuery({ queryKey: ["bestEmulator", gameId], queryFn: () => request<BestEmulatorStatus>(`/api/games/${gameId}/best-emulator`) });
-  const taskId = status.data?.task;
-  const task = useTasks().find((x) => taskId != null && String(x.id) === String(taskId));
-  const search = useMutation({
-    mutationFn: () => request<number>(`/api/games/${gameId}/best-emulator`, { method: "POST" }),
-    onSuccess: () => { cache.invalidateQueries({ queryKey: ["bestEmulator", gameId] }); cache.invalidateQueries({ queryKey: ["tasks"] }); },
-  });
-  const busy = taskId != null;
-  return (
-    <div className="sentence small">
-      <button className="ot-btn ot-btn-sm" type="button" disabled={busy || search.isPending} onClick={() => search.mutate()}>{t("search")}</button>
-      {busy
-        ? <span role="status" className="ot-badge ot-badge-info">{task ? tt(task.status as "queued", { progress: Number(task.progress) }) : t("queued")}</span>
-        : status.data?.searchedAt && <span className="muted">{t("searched", { date: format.dateTime(new Date(status.data.searchedAt), { dateStyle: "medium" }) })}</span>}
-      {search.isError && <span className="error" role="alert">{describe(search.error)}</span>}
-    </div>
-  );
-}
-
-/**
- * El recomendado de una consola (#366, #375): de dónde sale, su fuente, «Instalar» si falta, «Elegir a mano» y, si es local,
- * «Volver al del catálogo». Sin receta muestra su repo y no se ofrece al crear un perfil.
- */
-function Recommended({ gameId, console, shown }: { gameId: number; console: string; shown?: Shown }) {
+/** El recomendado de una consola (#366): su fuente e «Instalar» si falta. Elegir otro va en «Cómo jugar» (#398). */
+export function Recommended({ shown: { console, recipe, source } }: { shown: Shown }) {
   const t = useTranslations("profiles");
   const consoleName = useConsoleName();
-  const describe = useDescribeError();
-  const cache = useQueryClient();
   const installs = useQuery(emulatorsQuery);
-  const options = (useQuery(recipesQuery).data ?? []).filter((r) => r.kind === "emulator" && r.consoles.includes(console));
-  const [choosing, setChoosing] = useState(false);
-  const url = `/api/games/${gameId}/emulator-picks/${encodeURIComponent(console)}`;
-  const change = useMutation({
-    mutationFn: (recipeId: string | null) => request<EmulatorPick[]>(url, recipeId === null ? { method: "DELETE" } : { method: "PUT", body: JSON.stringify({ recipeId }) }),
-    onSuccess: (picks) => { cache.setQueryData(["emulatorPicks", gameId], picks); setChoosing(false); },
-  });
-  const recipe = shown?.recipe;
-  const source = shown?.source;
-  const name = recipe?.name ?? shown?.repo;
   return (
     <div className="sentence small" role="group" aria-label={consoleName(console)}>
       <span>{consoleName(console)}:</span>
-      {name ? <span>{t("recommended", { emulator: name })}</span> : <span className="muted">{t("best.none")}</span>}
-      {shown && shown.origin !== "catalog" && <span className="ot-badge">{t(`best.origin.${shown.origin}`)}</span>}
-      {!recipe && shown?.repo && <a href={shown.repo} target="_blank" rel="noreferrer">{t("best.repo")}</a>}
+      <span>{t("recommended", { emulator: recipe.name })}</span>
       {source && (source.startsWith("https://")
         ? <a href={source} target="_blank" rel="noreferrer">{t("recommendedSource", { source: new URL(source).hostname })}</a>
         : <span className="muted">{t("recommendedSource", { source })}</span>)}
-      {recipe && installs.data && !installs.data.some((i) => i.emulatorId === recipe.id) && <ForkInstall recipe={recipe} />}
-      {choosing
-        ? (
-          <select aria-label={t("best.chooseFor", { console: consoleName(console) })} defaultValue="" disabled={change.isPending}
-            onChange={(e) => { if (e.target.value) change.mutate(e.target.value); }}>
-            <option value="" disabled>{t("best.choose")}</option>
-            {options.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-          </select>
-        )
-        : <button className="ot-btn ot-btn-sm" type="button" onClick={() => setChoosing(true)}>{t("best.choose")}</button>}
-      {shown && shown.origin !== "catalog" && (
-        <button className="ot-btn ot-btn-sm" type="button" disabled={change.isPending} onClick={() => change.mutate(null)}>{t("best.reset")}</button>
-      )}
-      {change.isError && <span className="error" role="alert">{describe(change.error)}</span>}
+      {installs.data && !installs.data.some((i) => i.emulatorId === recipe.id) && <ForkInstall recipe={recipe} />}
     </div>
   );
 }
@@ -164,6 +99,13 @@ function VersionPanel({ gameId, version: v, recommended }: { gameId: number; ver
   const active = v.profiles.find((p) => p.active);
   const failure = activate.error ?? save.error ?? remove.error;
   const romName = (r: VersionProfiles["roms"][number]) => r.modified ? (r.label ?? r.path) : t("baseRom", { file: r.path });
+  const [creating, setCreating] = useState(false);
+
+  if (v.emulators.length === 0) return (
+    <p className="small muted" style={{ margin: "8px 0" }}>
+      {t.rich("noEmulatorLine", { console: consoleName(v.platform), link: (chunks) => <Link href="/tools/">{chunks}</Link> })}
+    </p>
+  );
 
   return (
     <div className="panel" style={{ gap: 10, marginBottom: 12 }}>
@@ -188,8 +130,7 @@ function VersionPanel({ gameId, version: v, recommended }: { gameId: number; ver
           {t(`saves.${saves.code.slice(6) as "copied"}`, { backup: saves.backup ?? "" })}
         </p>
       )}
-      {v.emulators.length === 0 ? <p className="small muted" style={{ margin: 0 }}>{t("noEmulatorHint")}</p> : (
-        <>
+      {(v.profiles.length > 0 || (active && base)) && (
           <div className="table-wrap">
             <table className="t">
               <thead><tr><th>{t("name")}</th><th>{t("emulator")}</th><th>{t("rom")}</th><th><span className="sr-only">{t("activate")}</span></th></tr></thead>
@@ -239,9 +180,12 @@ function VersionPanel({ gameId, version: v, recommended }: { gameId: number; ver
               </tbody>
             </table>
           </div>
+      )}
           {editing && <ProfileSettingsForm key={editing.id} profileId={editing.id} name={editing.name} />}
           {/* La clave vuelve a elegir el recomendado cuando llegan las recetas o se instala uno. */}
-          <CreateProfile key={recommended.join() + v.emulators.map((e) => e.id).join()} version={v} recommended={recommended} onCreated={refresh} />
+          {creating
+            ? <CreateProfile key={recommended.join() + v.emulators.map((e) => e.id).join()} version={v} recommended={recommended} onCreated={() => { setCreating(false); refresh(); }} />
+            : <button className="ot-btn ot-btn-sm" type="button" style={{ justifySelf: "start" }} onClick={() => setCreating(true)}>{t("newProfile")}</button>}
           <details className="fold-line">
             <summary className="small muted">{t("defaults")}</summary>
             {v.emulators.map((e) => (
@@ -253,8 +197,6 @@ function VersionPanel({ gameId, version: v, recommended }: { gameId: number; ver
               </div>
             ))}
           </details>
-        </>
-      )}
     </div>
   );
 }

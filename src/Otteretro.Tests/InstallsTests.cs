@@ -62,6 +62,27 @@ public class InstallsTests
     }
 
     [Fact]
+    public async Task ExecutableIsTheRecipeDetectOrTheMainExe()
+    {
+        await using var f = new Fixture();
+        Disk.Create(f.Db, f.Tmp["E"], "E:");
+        Assert.Equal("done", (await Install(f, new InstallJob("eden", "0.1", Path: Zip(f.Tmp, "v1", "uno"), Name: "Eden"))).Status);
+
+        // «Abrir» en Herramientas (#432): con receta, su `detect`; sin receta, el .exe más grande que no parece instalador.
+        Assert.Equal(f.Tmp[@"E\Emuladores\Eden\0.1\eden.exe"], Installs.Executable(f.Db, "eden", "0.1").Exe, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("install.notInstalled", Installs.Executable(f.Db, "eden", "9").Error?.Code);
+        File.Delete(f.Tmp[@"E\Emuladores\Eden\0.1\eden.exe"]);
+        Assert.Equal("install.noProgram", Installs.Executable(f.Db, "eden", "0.1").Error?.Code);
+
+        var own = f.Tmp["propio-src"];
+        Directory.CreateDirectory(own);
+        File.WriteAllText(Path.Combine(own, "Mio.exe"), "programa grande");
+        File.WriteAllText(Path.Combine(own, "unins000.exe"), "desinstalador más grande que el programa");
+        Assert.Equal("done", (await Install(f, new InstallJob("mio", "1", Path: own, Name: "Mío", Kind: "emulator"))).Status);
+        Assert.EndsWith("Mio.exe", Installs.Executable(f.Db, "mio", "1").Exe);
+    }
+
+    [Fact]
     public async Task ReinstallComesFromTheLibrary()
     {
         await using var f = new Fixture();
@@ -174,14 +195,21 @@ public class InstallsTests
         Installs.Handler = new Fake(exe);
         try
         {
-            var job = new InstallJob("citron", "1.0", Url: "https://example.com/releases/citron-windows.exe", Name: "Citron");
+            // #440: lo bajado que no trae el ejecutable de la receta (citron.exe) no se instala: fallaría al jugar.
+            var wrong = await Install(f, new InstallJob("citron", "0.9", Url: "https://example.com/releases/citron-windows.exe", Name: "Citron"));
+            Assert.Equal(("error", "install.detectMissing"), (wrong.Status, wrong.Detail?.Code));
+            Assert.False(Directory.Exists(f.Tmp[@"E\Emuladores\Citron\0.9"]));
+            Assert.False(Directory.Exists(f.Tmp[@"E\Emuladores\Citron\0.9.parcial"]));
+            Assert.Empty(Installs.List(f.Db));
+
+            var job = new InstallJob("citron", "1.0", Url: "https://example.com/releases/citron.exe", Name: "Citron");
             Assert.Equal("done", (await Install(f, job)).Status);
         }
         finally { Installs.Handler = null; }
-        Assert.Equal(exe, File.ReadAllBytes(f.Tmp[@"E\Emuladores\Citron\1.0\citron-windows.exe"]));
-        Assert.Equal(exe, File.ReadAllBytes(f.Tmp[@"E\Libreria\Emuladores\citron\1.0\citron-windows.exe"]));
+        Assert.Equal(exe, File.ReadAllBytes(f.Tmp[@"E\Emuladores\Citron\1.0\citron.exe"]));
+        Assert.Equal(exe, File.ReadAllBytes(f.Tmp[@"E\Libreria\Emuladores\citron\1.0\citron.exe"]));
         var citron = Assert.Single(Installs.List(f.Db));
-        Assert.Equal(("url", "https://example.com/releases/citron-windows.exe"), (citron.Origin, citron.Url));
+        Assert.Equal(("url", "https://example.com/releases/citron.exe"), (citron.Origin, citron.Url));
 
         // Adoptar uno instalado a mano lo copia: el original sigue donde estaba.
         var manual = f.Tmp["a-mano"];
@@ -191,6 +219,37 @@ public class InstallsTests
         Assert.Equal("ryu", File.ReadAllText(Path.Combine(manual, "Ryujinx.exe")));
         Assert.Equal("ryu", File.ReadAllText(f.Tmp[@"E\Emuladores\Ryubing\1.3\Ryujinx.exe"]));
         Assert.Equal("adopted", Installs.List(f.Db).Single(i => i.EmulatorId == "ryubing").Origin);
+    }
+
+    [Fact]
+    public async Task AnInstallWithoutItsExeIsInstalledAgainWithTheFileTheRecipeAsksFor()
+    {
+        await using var f = new Fixture();
+        Disk.Create(f.Db, f.Tmp["E"], "E:");
+        var exe = Encoding.UTF8.GetBytes("binario");
+        Installs.Handler = new Fake(exe);
+        try
+        {
+            var job = new InstallJob("citron", "1.0", Url: "https://example.com/releases/citron.exe", Name: "Citron");
+            Assert.Equal("done", (await Install(f, job)).Status);
+            Assert.Equal("install.exists", Installs.Enqueue(f.Db, job).Error?.Code);
+
+            // #446, como NX2navi: lo instalado venía de otro archivo de esa versión (la receta cambió) y no trae su ejecutable.
+            var folder = f.Tmp[@"E\Emuladores\Citron\1.0"];
+            File.Delete(Path.Combine(folder, "citron.exe"));
+            File.Move(f.Tmp[@"E\Libreria\Emuladores\citron\1.0\citron.exe"], f.Tmp[@"E\Libreria\Emuladores\citron\1.0\citron-app.zip"]);
+            Assert.True(Installs.Broken(Recipes.Find("citron"), folder));
+            Assert.True(Assert.Single(Installs.List(f.Db)).Broken); // Herramientas ofrece «Instalar de nuevo desde la receta»
+
+            // Se instala encima con el archivo de la receta, no con el de la librería, que se aparta sin borrarlo.
+            Assert.Equal("done", (await Install(f, job)).Status);
+            Assert.Equal(exe, File.ReadAllBytes(Path.Combine(folder, "citron.exe")));
+            Assert.False(Installs.Broken(Recipes.Find("citron"), folder));
+            Assert.Equal(["citron.exe"], Directory.GetFiles(f.Tmp[@"E\Libreria\Emuladores\citron\1.0"]).Select(Path.GetFileName));
+            Assert.True(File.Exists(f.Tmp[@"E\Libreria\Emuladores\citron\1.0\_reemplazado\citron-app.zip"]));
+            Assert.Equal(("citron.exe", false), Assert.Single(Installs.List(f.Db)) is var i ? (i.File, i.Broken) : default);
+        }
+        finally { Installs.Handler = null; }
     }
 
     [Fact]

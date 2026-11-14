@@ -15,7 +15,6 @@
     "collection": "Collection",
     "game": "Game",
     "discover": "Discover",
-    "review": "Review",
     "downloads": "Downloads",
     "tools": "Tools",
     "steam": "Steam",
@@ -60,47 +59,39 @@
     "tools": {
       "title": "No emulators or ports yet",
       "text": "Emulators, ports, add-ons and system files will be installed and updated here."
-    },
-    "steam": {
-      "title": "Nothing to export",
-      "text": "Here you will see which games go to Steam, with their saga category and art."
     }
   },
   "welcome": {
     "steps": {
       "welcome": "Welcome",
-      "dataFolder": "Data folder",
-      "backup": "Backup",
-      "libraries": "Disks",
-      "steam": "Steam",
-      "keys": "Keys",
-      "initialLoad": "Initial load",
-      "accounts": "Download accounts"
+      "where": "Where to store",
+      "steam": "Steam and accounts",
+      "load": "Initial load"
     },
-    "phase": "Phase {phase}",
     "stepOf": "Step {step} of {total}",
-    "intro": "Catalog your sagas, organize your games, emulators and ports on any drive, and bring it all to Steam. This takes a few minutes.",
+    "intro": "Your series, your games on every drive and one button to play each one. Four steps; the optional ones can wait.",
     "start": "Start",
-    "chooseTitle": "Choose the data folder",
-    "chooseText": "This holds the database, the Tools (emulators, ports, BIOS) and the image cache. It takes a lot of space: pick a drive with room. To switch PCs, just move this folder.",
     "freeOf": "{free} free of {total}",
-    "otherPath": "Or type another path",
     "back": "Back",
     "preparing": "Preparing…",
-    "use": "Use {path}",
-    "nextSteps": "Backup, Steam and the remaining steps turn on with their phase.",
-    "librariesTitle": "Your drives",
-    "librariesText": "Choose which drives keep games and tools: each gets an Otteretro folder with everything in order. If you already have a folder with the old layout, adopt it and it moves to the standard on its own.",
     "librariesFound": "We found folders with the old layout:",
     "adoptThis": "Adopt {path}",
-    "skip": "Skip",
-    "disksText": "Drives:",
-    "useDisk": "Use {path}",
-    "diskAdded": "{path} ✓",
-    "done": "Done",
-    "accountsTitle": "Your download accounts",
-    "accountsText": "If you pay for 1fichier or Mega, leave your key here to download with your account. It is optional: you can do it later in Settings › Accounts and keys.",
-    "next": "Next"
+    "next": "Continue",
+    "steamTitle": "Steam and accounts",
+    "steamNothing": "There are no games on your disks yet: you can mark them later in Steam.",
+    "dataFolderText": "This holds the database, the Tools (emulators, ports, BIOS) and the image cache. It takes a lot of space: pick a drive with room. To switch PCs, just move this folder.",
+    "whereTitle": "Where to store",
+    "whereText": "Check the drives for games, emulators and ports: each one gets an Otteretro folder with everything in order. You can add more later in Settings › Storage.",
+    "more": "More options · data folder, old structure",
+    "dataFolder": "Data folder",
+    "steamText": "Optional: to put your games on Steam and download from sites with an account. You can do all of this later in Steam and in Settings › Accounts and keys.",
+    "keys": "Keys and download accounts",
+    "later": "Later",
+    "loadTitle": "Finding your games",
+    "loadText": "The drives you checked are being scanned. You can go in now: it keeps going and shows in the task panel.",
+    "loadNone": "You didn't check any drive: add them whenever you like in Settings › Storage and they get scanned on their own.",
+    "enter": "Go in",
+    "legacy": "Adopt a folder with the old structure (it moves to the standard on its own)"
   },
   "settings": {
     "dataFolder": "Data folder",
@@ -150,7 +141,8 @@
       "show": "Show {name}"
     },
     "storage": "Storage",
-    "catalogTab": "Catalog"
+    "catalogTab": "Catalog",
+    "play": "How to play"
   },
   "dataFolder": {
     "dismiss": "Dismiss",
@@ -358,7 +350,12 @@
         "noKey": "The Steam Web API key is missing: paste it in Settings › Accounts and keys.",
         "badKey": "Steam did not accept the Steam Web API key: check it in Settings › Accounts and keys.",
         "noAccount": "No Steam account was found on this computer: open Steam and sign in once.",
-        "failed": "Steam did not answer properly ({status}). Try again later."
+        "failed": "Steam did not answer properly ({status}). Try again later.",
+        "running": "Steam ROM Manager is adding the shortcuts…",
+        "exported": "Exported to Steam: {added} new, {changed} changed and {removed} removed.",
+        "noSrm": "Steam ROM Manager is not installed: the manifests were left in {folder}. Install it in Tools and export again.",
+        "srmFailed": "Steam ROM Manager ended with an error ({code}). Close Steam and try again.",
+        "srmConfig": "Could not read the Steam ROM Manager configuration ({file}): check it before exporting."
       },
       "extra": {
         "progress": "{done} of {total} games",
@@ -375,8 +372,7 @@
         "failed": "Claude failed: {detail}",
         "invalidOutput": "Claude answered twice with something that doesn’t have the expected shape.",
         "limit": "You reached your Claude subscription limit: it resumes on its own on {at}.",
-        "identify": "{done} of {total} files identified",
-        "bestEmulator": "{game}: looking for the best emulator"
+        "identify": "{done} of {total} files identified"
       },
       "log": {
         "started": "Started.",
@@ -401,8 +397,7 @@
         "paused": "Paused: it continues from here when resumed.",
         "resumed": "Resumed.",
         "canceled": "Canceled.",
-        "identify": "Left {doubtful} in Doubtful and {unidentified} in Unidentified.",
-        "bestEmulator": "Recommended an emulator for {count} of {consoles} consoles."
+        "identify": "Left {doubtful} in Doubtful and {unidentified} in Unidentified."
       },
       "tools": {
         "checking": "Checking {name}",
@@ -491,7 +486,7 @@
       }
     },
     "review": {
-      "notFound": "That file is no longer in Review.",
+      "notFound": "That file is no longer waiting for review.",
       "pickGame": "Pick the game.",
       "noVersion": "That game has no version on the file's console."
     },
@@ -575,6 +570,8 @@
       "badRepo": "The repo is not recognised: paste the address of a GitHub, Forgejo or Gitea repo (https://server/owner/repo).",
       "pickExe": "The download has several executables: choose the one that opens the emulator.",
       "noExe": "The download has no Windows executable: pick another file from the release.",
+      "installerFailed": "The installer ended with an error (code {code}): it wasn't installed. Check its log or install it by hand.",
+      "detectMissing": "The download ({file}) doesn't include \"{exe}\", the program its recipe expects: it wasn't installed. The catalog recipe doesn't match the release; report it so it gets fixed.",
       "noVersion": "Enter the version you are installing.",
       "exists": "Version {version} is already installed: versions are never replaced.",
       "badHash": "The download of version {version} doesn't match the recipe's hash: it wasn't installed.",
@@ -586,6 +583,7 @@
         "done": "{name} {version} installed to {path}"
       },
       "notInstalled": "That version isn't registered: install it first.",
+      "noProgram": "Its program wasn't found in the folder: open it with “Open folder”.",
       "notInLibrary": "Version {version} isn't in your library: it can't be reinstalled without downloading it.",
       "inUse": "Your profiles use version {version}: move them to another one before deleting it.",
       "removeFailed": "The installation couldn't be deleted: {detail}",
@@ -654,6 +652,18 @@
       "openFailed": "Couldn't open the emulator: {detail}",
       "opened": "The emulator was opened.",
       "openedPlain": "The emulator opened without the game (the ROM or its disk is missing, or the emulator can't open it that way): find the game in its list."
+    },
+    "play": {
+      "badId": "“jugar” needs the game version's id, a number; got “{id}”.",
+      "noData": "There's no data folder yet: open Otteretro and choose one.",
+      "noEmulator": "There's nothing to play this game with: install an emulator or port for its console, or choose its base emulator.",
+      "noGame": "The emulator can't open the game: the ROM is missing, its disk isn't connected or the emulator can't open it.",
+      "launchFailed": "Couldn't open the game: {detail}",
+      "notPlaying": "There's no game opened by Otteretro to stop.",
+      "stopFailed": "Couldn't stop the game. Close it from Task Manager.",
+      "exeMissing": "\"{exe}\" isn't in {folder}: the install is incomplete or the recipe doesn't match what was downloaded. Install it again with \"Install\" on the game's page.",
+      "badOption": "That option no longer applies to this version of the game.",
+      "badOrder": "The order must include the four criteria, once each."
     }
   },
   "credentials": {
@@ -720,14 +730,14 @@
         "popularity": "Fetch popularity from IGDB"
       },
       "steam": {
-        "sync": "Read what you own on Steam"
+        "sync": "Read what you own on Steam",
+        "export": "Export to Steam"
       },
       "claude": {
         "cleanup": "Clean up the catalog with Claude",
         "sagas": "Routes, iconic and best version with Claude",
         "load": "Initial load with Claude, by parts",
-        "identify": "Identify files with Claude",
-        "bestEmulator": "Find the best emulator with Claude"
+        "identify": "Identify files with Claude"
       },
       "catalog": {
         "extra": "Complete with Wikidata and RAWG",
@@ -847,17 +857,6 @@
       "allPlatforms": "All consoles",
       "total": "{count, plural, one {# saga} other {# sagas}}"
     },
-    "bestEmulator": {
-      "open": "Find the best emulator",
-      "title": "Find the best emulator",
-      "help": "Pick sagas and, inside each one, its games. Claude only searches those, never the whole catalog. Games already searched come unchecked.",
-      "filters": "Which sagas to show",
-      "noGames": "This saga has no games on any console.",
-      "searched": "searched on {date}",
-      "count": "{count, plural, =0 {No games picked} one {# game picked} other {# games picked}}",
-      "search": "{count, plural, =0 {Search} one {Search # game} other {Search # games}}",
-      "cancel": "Cancel"
-    },
     "saga": {
       "back": "‹ Series",
       "favorite": "Favorite",
@@ -965,8 +964,6 @@
       "have": "Owned",
       "where": "Where you have it",
       "tracking": "Tracking",
-      "lastPlayed": "Last played: {date}",
-      "never": "Last played: never",
       "states": "Status",
       "started": "Started",
       "finished": "Finished on",
@@ -976,7 +973,6 @@
       "noRating": "—",
       "notes": "Notes",
       "playtime": "Time played",
-      "pendingHint": "Dates show up once you start it.",
       "saving": "Saving…",
       "saved": "Saved",
       "sources": "Data and sources",
@@ -1022,7 +1018,6 @@
       "removeHint": "What you mark goes to the recycle bin and stops counting as owned. Updates and DLC only go if you mark them.",
       "removeConfirm": "Send to recycle bin ({count})",
       "removeCancel": "Cancel",
-      "download": "Download",
       "prepare": "Prepare in the emulator",
       "prepareFor": "Prepare in the emulator ({console})",
       "prepareHelp": "Makes its updates and DLC ready in the emulator you play it with, without copying them when the emulator allows it.",
@@ -1032,7 +1027,30 @@
       "licenseMissing": "Missing",
       "licenseHelp": "With it, «Prepare in the emulator» installs the .pkg in Vita3K. It is kept only on this computer: never in the catalog or in a shared profile.",
       "licenseSave": "Save",
-      "licenseDelete": "Delete"
+      "licenseDelete": "Delete",
+      "tab": {
+        "summary": "Summary",
+        "play": "How to play",
+        "versions": "Versions",
+        "files": "Files",
+        "links": "Links"
+      },
+      "sections": "Game sections",
+      "more": "More ▾",
+      "downloadOther": "Download another version…",
+      "removeMenu": "Remove from disk…",
+      "favoriteOff": "☆ Favorite",
+      "readMore": "Read more",
+      "readLess": "Read less",
+      "sessions": "Recent sessions",
+      "noSessions": "No sessions yet: they're logged when you play from Otteretro.",
+      "playingNow": "Playing…",
+      "stores": "In your stores",
+      "noFiles": "You don't have this game on any disk or store.",
+      "versionsHint": "Click a version to read why.",
+      "autoSave": "Saves automatically",
+      "lastTime": "Last played",
+      "neverShort": "Never"
     },
     "search": {
       "sagas": "Series",
@@ -1058,92 +1076,30 @@
     "openSettings": "Open Settings",
     "missingKeys": "Otteretro already works. For covers and new data, add your keys for {services}.",
     "openCredentials": "Accounts and keys",
-    "unidentified": "{count, plural, one {1 unidentified file} other {# unidentified files}}: pick its game in Review.",
-    "openReview": "Open Review",
+    "unidentified": "{count, plural, one {1 unidentified file} other {# unidentified files}}: pick its game in Collection.",
+    "openReview": "Review files",
     "recipeBackup": "The catalog changed the same fields of {name} as your local recipe: the catalog one was kept and yours is backed up at {file}.",
     "toolUpdate": "{name} {version} is available{channel, select, dev { (development)} other {}}.",
     "openTools": "See in Tools"
   },
   "review": {
-    "tabs": "Review sections",
-    "tab": {
-      "pending": "To approve ({count})",
-      "doubtful": "Doubtful ({count})",
-      "unidentified": "Unidentified ({count})",
-      "learnings": "Learnings ({count})"
+    "notice": "{count, plural, one {# file to review} other {# files to review}}",
+    "hint": "The scan could not tell which game they belong to. Until you confirm them they do not count as owned.",
+    "open": "Review",
+    "hide": "Hide",
+    "kind": {
+      "doubtful": "Doubtful",
+      "unidentified": "Unidentified"
     },
-    "pendingEmptyTitle": "Nothing to approve",
-    "pendingEmptyText": "When Claude prepares a saga's routes, what's iconic or the best version, they'll show up here for you to approve.",
-    "learningsEmptyTitle": "No learnings",
-    "learningsEmptyText": "The changes Claude made to the catalog stay here, with their reason, so you can undo them.",
-    "prompt": {
-      "ruta-saga": "Routes",
-      "iconico": "Iconic",
-      "mejor-version": "Best version",
-      "clasificar-version": "Version type",
-      "traducir-descripcion": "Spanish description",
-      "identificar-juego": "Identify file"
-    },
-    "approve": "Approve",
-    "reject": "Reject",
-    "change": "Change",
-    "reason": "Why",
-    "date": "Date",
-    "undo": "Undo",
-    "undone": "Undone",
-    "learning": {
-      "move": "Move games",
-      "merge": "Merge duplicate entries",
-      "rename": "Rename saga",
-      "alias": "File alias"
-    },
-    "sources": "Sources",
-    "iconicYes": "Iconic saga",
-    "iconicNo": "Not iconic",
-    "bestVersion": "Compares {count} versions on the 4 criteria",
-    "filterAll": "All",
-    "kindFilter": {
-      "move": "Moved",
-      "merge": "Merged",
-      "rename": "Renamed",
-      "alias": "Aliases"
-    },
-    "search": "Search saga or game",
-    "task": "Task #{id}",
-    "noTask": "No task recorded",
-    "moved": "{games}: from {from} to {to}",
-    "loose": "no saga",
-    "toNew": "a new saga, “{name}”",
-    "toNone": "no saga",
-    "merged": "{games} became a version of {kept}",
-    "renamed": "“{before}” was renamed “{after}”",
-    "correct": "Correct",
-    "correctPlaceholder": "What is wrong (Claude reads it in the next cleanup)",
-    "send": "Undo and send to Claude",
-    "cancel": "Cancel",
-    "rule": "Your correction: {text}",
-    "openSaga": "Open saga",
-    "count": "{count, plural, one {# change} other {# changes}}",
-    "edit": "Edit",
-    "approveEdited": "Approve as edited",
-    "stepUp": "Move step {step} up",
-    "stepDown": "Move step {step} down",
-    "stepRemove": "Remove step {step}",
-    "openClaude": "Open Settings › Claude",
-    "aliased": "“{text}” is {game}",
     "files": {
-      "doubtfulEmptyTitle": "Nothing doubtful",
-      "doubtfulEmptyText": "When Claude assigns a file the scan did not recognize, it shows up here for you to confirm.",
-      "unidentifiedEmptyTitle": "Everything identified",
-      "unidentifiedEmptyText": "Files that neither the scan nor Claude recognize show up here for you to pick their game.",
-      "openCollection": "Open Collection",
       "proposed": "Claude says: {name}",
       "noProposal": "Claude did not know: {reason}",
       "assigned": "Assigned to",
       "confirm": "Confirm",
-      "change": "Change game",
       "search": "Search for the game",
-      "noResults": "No {console} game with that name."
+      "noResults": "No {console} game with that name.",
+      "none": "No proposal",
+      "change": "It's another game"
     },
     "packages": {
       "noGames": "No games",
@@ -1156,12 +1112,45 @@
     "next": "Next in your routes",
     "nextEmpty": "Follow a route in a saga and your next game will show up here.",
     "review": "Review",
-    "reviewCount": "{count} Claude results to approve",
     "nextEmptyTitle": "You're not following any route yet",
-    "viewGame": "View game",
-    "routeOf": "{saga} · {route}",
     "progress": "{done} of {total} played",
-    "news": "What's new"
+    "news": "What's new",
+    "continue": "Continue playing",
+    "continueHint": "What you played last, on console or PC",
+    "playingNow": "Playing now",
+    "played": "{time} played",
+    "viewRoute": "View route",
+    "step": "{saga} · {route} · step {step} of {total}",
+    "emptyTitle": "No games yet",
+    "emptyText": "Pick the folder where you keep your games and Otteretro finds them, or follow a saga to see its route.",
+    "scan": "Scan a folder",
+    "exploreSagas": "Explore sagas",
+    "viewAll": "View all",
+    "kind": {
+      "emulator": "Emulator",
+      "port": "Port",
+      "complement": "Add-on",
+      "system": "System",
+      "tool": "Tool"
+    },
+    "youHave": "You have {versions}.",
+    "update": "Update",
+    "newPort": "New port",
+    "portFor": "{game} for {console}.",
+    "viewPort": "View port",
+    "goToReview": "Go to Review",
+    "reviewKind": {
+      "doubtful": "Doubtful matches",
+      "unidentified": "Unidentified",
+      "packages": "Packages to review"
+    },
+    "tasks": "Tasks in progress",
+    "pending": "Pending",
+    "backup": "Backup",
+    "error": "Error",
+    "errorTitle": "Couldn't read your library",
+    "errorSafe": "Your games and progress weren't touched.",
+    "retry": "Retry"
   },
   "libraries": {
     "cancel": "Cancel",
@@ -1172,7 +1161,6 @@
     "queued": "It is in the tasks panel.",
     "reconnect": "Reconnect",
     "move": "Move",
-    "remove": "Remove",
     "removeHelp": "«{name}» is removed from Otteretro. No file is deleted: you can add it back whenever you want.",
     "removeConfirm": "Remove without deleting",
     "type": {
@@ -1212,9 +1200,8 @@
       "toDefault": "default drive ★",
       "run": "Move to the standard layout"
     },
-    "disk": "Drive",
     "dataUse": "App data",
-    "moreActions": "More drive options",
+    "moreActions": "More for «{name}»: usage, move and remove",
     "openFolder": "Open folder",
     "useOtherData": "Use another data folder…",
     "removeDisk": "Remove drive…",
@@ -1233,7 +1220,16 @@
       "retry": "Try now",
       "retrying": "Trying…",
       "stillLimited": "The limit is still on: it keeps the time Claude gave."
-    }
+    },
+    "disks": "Drives",
+    "colPath": "Path",
+    "colFree": "Free space",
+    "colStatus": "Status",
+    "colActions": "Actions",
+    "connected": "Connected",
+    "more": "More",
+    "removeNote": "Removing a drive takes it out of Otteretro; it never deletes files.",
+    "contents": "What {name} holds"
   },
   "tools": {
     "emptyTitle": "No emulators or ports yet",
@@ -1242,7 +1238,7 @@
       "emulator": "Emulators",
       "port": "Ports",
       "complement": "Add-ons",
-      "system": "System",
+      "system": "BIOS and firmware",
       "tool": "Tools"
     },
     "forks": {
@@ -1254,10 +1250,8 @@
     "noRecipe": "No recipe",
     "noRecipeHelp": "Otteretro does not know yet how to make it portable or rewrite its paths.",
     "sections": "Tool types",
-    "pick": "Pick a tool to see its details.",
     "none": "Nothing of this type yet.",
     "otherConsole": "Other",
-    "recipe": "Recipe",
     "move": "Move to another location",
     "to": "To",
     "cancel": "Cancel",
@@ -1286,14 +1280,19 @@
       "replaces": "A port has a single version: the new one replaces the one you have, in the same folder. Your saves, mods and settings stay (they are backed up first) and the old one's file stays in your library.",
       "update": "Update",
       "skip": "Skip this version",
-      "badge": "New version",
       "gamesCount": "{count, plural, =0 {None of your games use it} one {Used by # game} other {Used by # games}}",
       "more": "More actions for {name}",
       "gamesMore": "{list} and {count, plural, one {# more} other {# more}}",
       "queuedReplace": "Updating in its folder: see it in the tasks panel.",
-      "queued": "Installing next to the one you have: see it in the tasks panel."
+      "queued": "Installing next to the one you have: see it in the tasks panel.",
+      "banner": "{count, plural, one {# new version} other {# new versions}}: {names}",
+      "bannerBeside": "the current version stays next to it, in case you need to go back (a port is updated in place)",
+      "updateAll": "Update all",
+      "queuedAll": "Updating: see it in the tasks panel.",
+      "newVersion": "{version} new"
     },
     "install": {
+      "header": "Install…",
       "open": {
         "emulator": "Install an emulator",
         "port": "Install a port",
@@ -1307,7 +1306,6 @@
       "other": "Other, without a recipe",
       "name": "Its name",
       "experimental": "{name} (experimental)",
-      "from": "From where",
       "fromKind": {
         "recipe": "Its recipe",
         "url": "From its repo",
@@ -1317,19 +1315,27 @@
       "version": "Version",
       "versionOptional": "Version (otherwise the executable's)",
       "dev": "development",
-      "url": "Repo or file URL",
-      "urlHint": "https://github.com/owner/repo or the URL of a .zip",
-      "findReleases": "See its releases",
       "noRepoReleases": "The repo has no releases with files to download.",
       "file": "File",
       "pickExe": "Which one is the executable?",
-      "path": "Path of the folder or zip",
-      "pathHelp": "Type the full path on this computer, for example D:\\Downloads\\emulator.zip. It is copied: the original is left untouched.",
       "adopt": "I installed it by hand (it is adopted by copying it)",
       "beside": "Each version goes in its own folder, next to the others, and the original file stays in your library.",
       "cancel": "Cancel",
       "submit": "Install",
-      "queued": "Added to the tasks panel."
+      "queued": "Added to the tasks panel.",
+      "title": "{what} · step {step} of 2",
+      "origin": "Paste its repo, a file URL or the path of a folder or zip on this computer",
+      "originOptional": "Or paste its repo, a file URL or the path of a folder or zip (otherwise, from its recipe)",
+      "originHint": "https://github.com/owner/repo, the URL of a .zip or D:Downloadsemulator.zip",
+      "recognized": {
+        "recipe": "From its catalog recipe: you pick the version in step 2.",
+        "repo": "It is a repo: its releases show up in step 2.",
+        "file": "It is a file URL: it is downloaded as is.",
+        "path": "It is a folder or zip on this computer: it is copied, the original is left untouched."
+      },
+      "next": "Continue",
+      "back": "Back",
+      "moreOptions": "More options · another version, another file, adopt"
     },
     "library": {
       "portHelp": "A port has a single installed version. The earlier ones keep their file: «Reinstall» makes it the installed one, with your saves.",
@@ -1348,27 +1354,33 @@
       "remove": "Delete the installation",
       "removeConfirm": "Delete",
       "keep": "Keep",
-      "open": "Open its folder",
+      "open": "Open folder",
+      "launch": "Open",
       "askProfiles": "Move the profiles to {version}?",
       "yes": "Yes",
       "no": "No",
       "current": "In use: {version}",
-      "more": "{count, plural, one {▾ # more version} other {▾ # more versions}}",
-      "details": "▾ Details",
-      "uninstall": "Remove the emulator",
+      "uninstall": "Uninstall",
+      "broken": "This install is missing its program: it was left incomplete or comes from an old version of the recipe.",
+      "installAgain": "Install again from the recipe",
       "uninstallHelp": "Deletes all its installed versions. Its saves, settings and profiles stay and come back if you install it again. Type “{name}” to confirm.",
-      "uninstallName": "Emulator name",
-      "uninstallConfirm": "Remove"
-    }
+      "uninstallName": "Name",
+      "uninstallConfirm": "Remove",
+      "versions": "Versions ({count}) · the marked one is in use",
+      "moreActions": "More · move to another disk"
+    },
+    "systemMissingCount": "{count, plural, one {# missing} other {# missing}}",
+    "systemComplete": "Complete",
+    "systemUploadFor": "Upload a file for {name}"
   },
   "downloads": {
-    "add": "Grab links",
+    "add": "Add",
     "links": "Paste or drop your links, in any text: they are saved right away",
     "linksHint": "https://…",
     "disk": "Destination disk",
     "defaultDisk": "★ disk",
     "emptyTitle": "No downloads",
-    "emptyText": "Add links in the grabber: what you download sorts itself onto your disk.",
+    "emptyText": "Paste links in “Add”: whatever downloads gets sorted onto your disk.",
     "summary": "{disk} · {done} of {total} files",
     "speed": "{speed} MB/s",
     "pause": "Pause",
@@ -1382,7 +1394,7 @@
       "error": "Failed",
       "canceled": "Canceled"
     },
-    "addForGame": "Grab links for {name}",
+    "addForGame": "Add links for {name}",
     "check": "Check links",
     "checking": "Checking…",
     "noLinks": "No links found in that text.",
@@ -1398,9 +1410,6 @@
     "connections": "Connections",
     "connectionsHelp": "Per file. Each site has its cap, so your account is not at risk: 1fichier uses one.",
     "openBrowser": "Open in browser",
-    "tabQueue": "Downloads",
-    "tabLinks": "Link grabber",
-    "tabLinksCount": "Link grabber ({count})",
     "sections": "Downloads sections",
     "addLinks": "Add",
     "clipboard": "Also grab the links I copy",
@@ -1433,15 +1442,20 @@
       "size": "Size only",
       "site": "Verified by the site",
       "none": "Not verified"
-    }
+    },
+    "gameLinksNone": "You haven't saved any links for this game yet.",
+    "tabActive": "In progress",
+    "tabDone": "Finished",
+    "activeCount": "{count, plural, one {# in progress} other {# in progress}}",
+    "doneEmpty": "No download has finished yet.",
+    "goesTo": "Goes to",
+    "advanced": "Advanced · connections, parallel downloads, accounts",
+    "accounts": "Download accounts (1fichier, Mega)",
+    "openAccounts": "Open in Settings"
   },
   "ports": {
     "title": "Ports",
     "news": "New ports",
-    "fullyPlayable": "100% playable",
-    "others": "Other ports: not at 100%",
-    "newFullyPlayable": "New 100% playable ports",
-    "newOthers": "New ports not at 100%",
     "status": {
       "complete": "100% playable",
       "playable": "Playable with issues",
@@ -1478,7 +1492,6 @@
     "active": "Active: {name} ({emulator})",
     "noneActive": "No profile: uses “{name}” from {emulator}",
     "noEmulator": "No emulator for this console",
-    "noEmulatorHint": "Install an emulator for this console in Tools to create profiles.",
     "name": "Name",
     "emulator": "Emulator",
     "rom": "ROM",
@@ -1551,19 +1564,76 @@
     "loadZip": "Load a profile (.zip)",
     "loadConfirm": "Load",
     "loaded": "Loading the profile: follow it in Tasks.",
-    "best": {
-      "search": "Find the best emulator",
-      "queued": "Queued",
-      "searched": "Last search: {date}",
-      "none": "No recommendation",
-      "choose": "Choose by hand",
-      "chooseFor": "Emulator for {console}",
-      "reset": "Back to the catalog’s",
-      "repo": "See its repo",
-      "origin": {
-        "manual": "chosen by you",
-        "claude": "from Claude, local"
-      }
-    }
+    "advanced": "Advanced: profiles",
+    "count": "{count, plural, =0 {no profiles} one {# profile} other {# profiles}}",
+    "noEmulatorLine": "{console}: no emulator installed. <link>Go to Tools</link>",
+    "newProfile": "+ New profile"
+  },
+  "play": {
+    "title": "How to play",
+    "pc": "{platform} version",
+    "port": "{name} port",
+    "emulator": "{name} emulator",
+    "notInstalled": "Not installed",
+    "change": "Change",
+    "chooseFor": "How to play on {console}",
+    "reset": "Back to automatic",
+    "reason": {
+      "manual": "chosen by hand",
+      "pc": "you own the official PC version",
+      "port": "100% port",
+      "perfect": "perfect emulator",
+      "playable": "most playable"
+    },
+    "order": "Automatic rule order",
+    "orderHelp": "For each game, the first option that meets a criterion is chosen, in this order. What you choose by hand on the game page overrides the rule.",
+    "criterion": {
+      "pc": "Official PC version you own",
+      "port": "100% port",
+      "perfect": "Perfect emulator",
+      "playable": "Most playable"
+    },
+    "up": "Move “{criterion}” up",
+    "down": "Move “{criterion}” down",
+    "download": "Download",
+    "notOwned": "You don't have it on any disk or store.",
+    "play": "▶ Play",
+    "install": "Install {name}",
+    "installing": "Installing {name}…",
+    "playing": "Playing…",
+    "playingHint": "When you close the game, the session is logged automatically.",
+    "stop": "Stop",
+    "stopConfirm": "Stop? Unsaved progress is lost",
+    "noOption": "Nothing to play it with.",
+    "openTools": "Open Tools",
+    "with": "With {name}",
+    "lastSession": "Last session: {date} · {time}",
+    "orderLink": "Change the order",
+    "help": "For each version you have, the option it's played with. One click picks another.",
+    "better": "Better with another version",
+    "betterHint": "What you'd need to play it better.",
+    "byHand": "Ports to install by hand",
+    "recommended": "Recommended",
+    "installNote": "Pressing Play in the header installs {name} first."
+  },
+  "steam": {
+    "title": "Export to Steam",
+    "export": "Export",
+    "exporting": "Exporting…",
+    "account": "Steam account: {account}",
+    "noAccount": "Steam was not found on this computer: open it and sign in once.",
+    "noSrm": "Steam ROM Manager is missing: <link>install it from Tools</link>.",
+    "added": "+{count} added",
+    "removed": "−{count} removed",
+    "changed": "{count} changed",
+    "upToDate": "Steam is up to date.",
+    "closeSteam": "Close Steam before exporting",
+    "new": "New",
+    "changes": "Changes",
+    "goes": "Removed",
+    "more": "Add more games ({count})",
+    "noneMarked": "Nothing is marked: choose below what goes to Steam.",
+    "emptyTitle": "Nothing to export",
+    "emptyText": "Once you have games on your disks, mark them here to take them to Steam by saga."
   }
 }

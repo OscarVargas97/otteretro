@@ -29,6 +29,8 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Data\Migrations\*.sql" />
+    <!-- Los textos de la interfaz, para la ventana de error de `jugar` (#399). -->
+    <EmbeddedResource Include="..\..\web\messages\*.json" LogicalName="messages/%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\..\prompts\*.md" LogicalName="prompts/%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\..\recetas\*.json" LogicalName="recetas/%(Filename)%(Extension)" />
     <None Include="nutria.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

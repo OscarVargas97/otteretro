@@ -28,55 +28,59 @@ const post = (body: unknown) => ({ method: "POST", body: JSON.stringify(body) })
 const DATA = ":data"; // «:» no va en una ruta de Windows: no choca con nada del disco
 
 /**
- * Ajustes › Almacenamiento, con la distribución de Steam (#169): arriba el disco elegido con «+» y «⋯», al medio su uso por
- * tipo y abajo lo que tiene, para marcar y mover a otro disco. Solo se eligen discos; las carpetas las arma la app.
+ * Ajustes › Almacenamiento (#419): una tabla de discos con nombre, ruta, libre, estado y su acción principal (Reconectar si está
+ * desconectado). El uso por tipo, lo que tiene para mover a otro disco (#169) y las demás acciones van plegados en «Más» de cada
+ * fila. Solo se eligen discos; las carpetas las arma la app.
  */
 export function StorageSettings() {
   const t = useTranslations("libraries");
   const describe = useDescribeError();
-  const locale = useLocale();
   const locations = useQuery({ ...librariesQuery, refetchInterval: (q) => (q.state.data?.some((l) => !l.connected) ? 10_000 : false) });
   const disks = (locations.data ?? []).filter((l) => l.type === "disk");
-  const [picked, setPicked] = useState<string | null>(null);
   const addDialog = useRef<HTMLDialogElement>(null);
-  const current = disks.find((d) => d.id === picked) ?? disks.find((d) => d.default) ?? disks[0];
-  // Lo del disco llega aparte y agrega filas y tramos al uso: hasta tenerlo, un esqueleto al final, para que nada salte al llegar (#278).
-  const contents = useQuery({ ...contentsQuery(current?.id ?? ""), enabled: !!current?.connected });
-  const label = (d: DiskInfo) => `${d.name}${d.default ? " ★" : ""} — ${!d.connected ? t("disconnected")
-    : d.free != null && d.total != null ? t("free", { free: gb(d.free, locale), total: gb(d.total, locale) }) : d.path}`;
 
   return (
     <div className="settings-blocks">
       {locations.isError && <p className="error small" role="alert">{describe(locations.error)}</p>}
-      <Migration />
-      <div className="disk-select">
-        <label className="sr-only" htmlFor="disk">{t("disk")}</label>
-        <select id="disk" value={current?.id ?? ""} onChange={(e) => setPicked(e.target.value)} disabled={disks.length === 0}>
-          {disks.map((d) => <option key={d.id} value={d.id}>{label(d)}</option>)}
-        </select>
-        <button className="ot-btn" type="button" aria-label={t("addDisk")} title={t("addDisk")} onClick={() => addDialog.current?.showModal()}>+</button>
-        {current && <DiskMenu key={current.id} disk={current} onRemoved={() => setPicked(null)} />}
-      </div>
-      <dialog ref={addDialog} className="ot-dialog" aria-labelledby="add-disk">
-        <AddDisk disks={disks} onDone={(id) => { setPicked(id); addDialog.current?.close(); }} onCancel={() => addDialog.current?.close()} />
-      </dialog>
       <DataMoveStatus />
-      {current?.connected && contents.isPending ? <div className="panel skeleton" style={{ height: 240 }} aria-busy="true" /> : (
-        <>
-          {current && <DiskPanel key={current.id} disk={current} others={disks.filter((d) => d.id !== current.id && d.connected)} />}
-          <RecognizeSettings />
-        </>
-      )}
+      <section className="panel" aria-labelledby="disks-title">
+        <div className="version-row">
+          <h2 id="disks-title" className="grow" style={{ margin: 0 }}>{t("disks")}</h2>
+          <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" onClick={() => addDialog.current?.showModal()}>{t("addDisk")}</button>
+        </div>
+        {locations.isPending ? <div className="skeleton" style={{ height: 96 }} aria-busy="true" /> : (
+          <div className="table-wrap">
+            <table className="t">
+              <thead>
+                <tr><th>{t("colName")}</th><th>{t("colPath")}</th><th>{t("colFree")}</th><th>{t("colStatus")}</th><th>{t("colActions")}</th></tr>
+              </thead>
+              <tbody>
+                {disks.map((d) => <DiskRow key={d.id} disk={d} others={disks.filter((o) => o.id !== d.id && o.connected)} />)}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="small muted" style={{ margin: 0 }}>{t("removeNote")}</p>
+      </section>
+      <dialog ref={addDialog} className="ot-dialog" aria-labelledby="add-disk">
+        <AddDisk disks={disks} onDone={() => addDialog.current?.close()} onCancel={() => addDialog.current?.close()} />
+      </dialog>
+      <Migration />
+      <RecognizeSettings />
     </div>
   );
 }
 
-/** «⋯» del disco elegido (#169), como en Steam: abrir su carpeta, reconectar, usar otra carpeta de datos (★) o quitarlo. */
-function DiskMenu({ disk, onRemoved }: { disk: DiskInfo; onRemoved: () => void }) {
+/**
+ * Una fila de la tabla: abrir su carpeta (o Reconectar) a la vista; «Más» despliega debajo el uso por tipo, lo que tiene para
+ * mover a otro disco, usar otra carpeta de datos (★) y quitarlo sin borrar.
+ */
+function DiskRow({ disk, others }: { disk: DiskInfo; others: DiskInfo[] }) {
   const t = useTranslations("libraries");
+  const locale = useLocale();
   const describe = useDescribeError();
   const cache = useQueryClient();
-  const menu = useRef<HTMLDetailsElement>(null);
+  const [open, setOpen] = useState(false);
   const removeDialog = useRef<HTMLDialogElement>(null);
   const useDialog = useRef<HTMLDialogElement>(null);
   const action = useMutation({
@@ -88,43 +92,64 @@ function DiskMenu({ disk, onRemoved }: { disk: DiskInfo; onRemoved: () => void }
       }
     },
     onSuccess: (list, kind) => {
+      if (kind === "remove") removeDialog.current?.close();
       if (list) cache.setQueryData(["libraries"], list);
-      if (kind === "remove") { removeDialog.current?.close(); onRemoved(); }
     },
   });
-  const run = (f: () => void) => () => { if (menu.current) menu.current.open = false; f(); };
   return (
     <>
-      <details ref={menu} className="ot-menu">
-        <summary className="ot-btn" aria-label={t("moreActions")} title={t("moreActions")}>⋯</summary>
-        <div className="ot-menu-list" role="menu">
-          <button type="button" role="menuitem" disabled={!disk.connected} onClick={run(() => action.mutate("open"))}>{t("openFolder")}</button>
-          {!disk.connected && <button type="button" role="menuitem" onClick={run(() => action.mutate("reconnect"))}>{t("reconnect")}</button>}
-          {disk.default && <button type="button" role="menuitem" onClick={run(() => useDialog.current?.showModal())}>{t("useOtherData")}</button>}
-          {!disk.default && <button type="button" role="menuitem" onClick={run(() => removeDialog.current?.showModal())}>{t("removeDisk")}</button>}
-        </div>
-      </details>
-      {action.isError && action.variables !== "remove" && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(action.error)}</p>}
-      <dialog ref={removeDialog} className="ot-dialog" aria-label={t("removeDisk")}>
-        <section className="settings-blocks">
-          <p className="small" style={{ margin: 0 }}>{t("removeHelp", { name: disk.name })}</p>
-          {action.isError && action.variables === "remove" && <p className="error small" style={{ margin: 0 }}>{describe(action.error)}</p>}
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="ot-btn" type="button" onClick={() => removeDialog.current?.close()}>{t("cancel")}</button>
-            <button className="ot-btn ot-btn-primary" type="button" disabled={action.isPending} onClick={() => action.mutate("remove")}>{t("removeConfirm")}</button>
+      <tr>
+        <td style={{ whiteSpace: "nowrap" }}><b>{disk.name}{disk.default && " ★"}</b>{disk.kind === "network" && <> <span className="ot-badge">{t("network")}</span></>}</td>
+        <td style={{ overflowWrap: "anywhere" }}><span className="folder-path">{disk.path}</span></td>
+        <td style={{ whiteSpace: "nowrap" }}>{disk.connected && disk.free != null && disk.total != null
+          ? t("free", { free: gb(disk.free, locale), total: gb(disk.total, locale) }) : "—"}</td>
+        <td>{disk.connected ? <span className="ot-badge ot-badge-have">{t("connected")}</span>
+          : <span className="ot-badge ot-badge-danger">{t("disconnected")}</span>}</td>
+        <td style={{ whiteSpace: "nowrap" }}>
+          <div className="hero-actions" style={{ flexWrap: "nowrap" }}>
+            {disk.connected
+              ? <button className="ot-btn ot-btn-sm" type="button" onClick={() => action.mutate("open")}>{t("openFolder")}</button>
+              : <button className="ot-btn ot-btn-primary ot-btn-sm" type="button" disabled={action.isPending} onClick={() => action.mutate("reconnect")}>{t("reconnect")}</button>}
+            <button className="ot-btn ot-btn-ghost ot-btn-sm" type="button" aria-expanded={open} aria-label={t("moreActions", { name: disk.name })}
+              onClick={() => setOpen(!open)}>{t("more")} {open ? "▾" : "▸"}</button>
           </div>
-        </section>
-      </dialog>
-      {disk.default && (
-        <dialog ref={useDialog} className="ot-dialog" aria-labelledby="use-folder">
-          <UseOtherFolder onDone={() => useDialog.current?.close()} />
-        </dialog>
+          {action.isError && action.variables !== "remove" && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(action.error)}</p>}
+          <dialog ref={removeDialog} className="ot-dialog" aria-label={t("removeDisk")}>
+            <section className="settings-blocks">
+              <p className="small" style={{ margin: 0 }}>{t("removeHelp", { name: disk.name })}</p>
+              {action.isError && action.variables === "remove" && <p className="error small" style={{ margin: 0 }}>{describe(action.error)}</p>}
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="ot-btn" type="button" onClick={() => removeDialog.current?.close()}>{t("cancel")}</button>
+                <button className="ot-btn ot-btn-primary" type="button" disabled={action.isPending} onClick={() => action.mutate("remove")}>{t("removeConfirm")}</button>
+              </div>
+            </section>
+          </dialog>
+          {disk.default && (
+            <dialog ref={useDialog} className="ot-dialog" aria-labelledby="use-folder">
+              <UseOtherFolder onDone={() => useDialog.current?.close()} />
+            </dialog>
+          )}
+        </td>
+      </tr>
+      {open && (
+        <tr>
+          <td colSpan={5}>
+            <div className="settings-blocks">
+              {disk.connected && <DiskPanel disk={disk} others={others} />}
+              <div className="hero-actions">
+                {disk.default
+                  ? <button className="ot-btn ot-btn-sm" type="button" onClick={() => useDialog.current?.showModal()}>{t("useOtherData")}</button>
+                  : <button className="ot-btn ot-btn-ghost ot-btn-sm" type="button" onClick={() => removeDialog.current?.showModal()}>{t("removeDisk")}</button>}
+              </div>
+            </div>
+          </td>
+        </tr>
       )}
     </>
   );
 }
 
-/** Lo que falta pasar al estándar (#159): las carpetas de antes y Herramientas de la carpeta de datos. */
+/** Lo que falta pasar al estándar (#159): las carpetas de antes y Herramientas de la carpeta de datos, plegado (#419). */
 function Migration() {
   const t = useTranslations("libraries");
   const describe = useDescribeError();
@@ -137,8 +162,8 @@ function Migration() {
   const p = plan.data;
   if (!p || (p.locations.length === 0 && !p.tools)) return null;
   return (
-    <section className="panel" aria-labelledby="migration">
-      <h2 id="migration">{t("migration.title")}</h2>
+    <details className="panel">
+      <summary><b>{t("migration.title")}</b></summary>
       <p className="small" style={{ margin: 0 }}>{t("migration.help")}</p>
       <ul className="detail-list small">
         {p.locations.map((l) => <li key={l.id}><span className="grow"><b>{l.name}</b> <span className="folder-path">{l.path}</span></span>
@@ -151,12 +176,12 @@ function Migration() {
         </div>
       )}
       {run.isError && <p className="error small" style={{ margin: 0 }}>{describe(run.error)}</p>}
-    </section>
+    </details>
   );
 }
 
 /** Agregar un disco (#158): se elige la unidad y la app crea `Otteretro` con sus cinco carpetas. */
-function AddDisk({ disks, onDone, onCancel }: { disks: DiskInfo[]; onDone: (id: string) => void; onCancel: () => void }) {
+function AddDisk({ disks, onDone, onCancel }: { disks: DiskInfo[]; onDone: () => void; onCancel: () => void }) {
   const t = useTranslations("libraries");
   const locale = useLocale();
   const describe = useDescribeError();
@@ -165,10 +190,10 @@ function AddDisk({ disks, onDone, onCancel }: { disks: DiskInfo[]; onDone: (id: 
   const free = (drives.data ?? []).filter((d) => !disks.some((k) => k.path.toLowerCase() === d.folder.toLowerCase()));
   const add = useMutation({
     mutationFn: (d: Drive) => request<DiskInfo[]>("/api/disks", post({ path: d.folder, name: d.name.replace(/[\\/]+$/, "") || d.name })),
-    onSuccess: (list, d) => {
+    onSuccess: (list) => {
       cache.setQueryData(["libraries"], list);
       cache.invalidateQueries({ queryKey: ["libraries", "migration"] });
-      onDone(list.find((l) => l.path.toLowerCase() === d.folder.toLowerCase())?.id ?? "");
+      onDone();
     },
   });
   return (
@@ -192,7 +217,7 @@ function AddDisk({ disks, onDone, onCancel }: { disks: DiskInfo[]; onDone: (id: 
 }
 
 /**
- * El disco elegido, como en Steam (#169): su espacio libre, la barra de uso por tipo y lo que tiene, en grupos desplegables
+ * Lo plegado de un disco (#169, #419): la barra de uso por tipo y lo que tiene, en grupos desplegables
  * (#171): tipo › consola o emulador › cada cosa. Se marca un tipo, una consola entera o cosas sueltas y se mueve a la misma ruta
  * de otro disco; una consola marcada entera va en una sola tarea. En el ★, la primera fila son los datos de la app, que se
  * mueven solos (con su progreso y el ★).
@@ -269,15 +294,10 @@ function DiskPanel({ disk, others }: { disk: DiskInfo; others: DiskInfo[] }) {
     );
   };
 
+  // Lo del disco llega aparte: hasta tenerlo, un esqueleto del mismo alto, para que nada salte al llegar (#278).
+  if (items.isPending) return <div className="skeleton" style={{ height: 240 }} aria-busy="true" />;
   return (
-    <section className="panel disk-panel" aria-labelledby="disk-title">
-      <div className="version-row">
-        <h2 id="disk-title" className="grow" style={{ margin: 0 }}>{disk.name}{disk.default && " ★"}</h2>
-        {disk.kind === "network" && <span className="ot-badge">{t("network")}</span>}
-        {!disk.connected && <span className="ot-badge ot-badge-danger">{t("disconnected")}</span>}
-        {disk.connected && total > 0 && <span className="small muted">{t("free", { free: gb(free, locale), total: gb(total, locale) })}</span>}
-      </div>
-
+    <section className="disk-panel settings-blocks" aria-label={t("contents", { name: disk.name })}>
       {disk.connected && total > 0 && (
         <>
           <div className="usage-bar" role="img" aria-label={t("usage")}>
