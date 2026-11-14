@@ -522,7 +522,9 @@
         "setAside": "{path} came with things that are not games: they are in {to}."
       },
       "extracting": "Extracting {path}",
-      "badRegions": "That region order is not valid."
+      "badRegions": "That region order is not valid.",
+      "badGame": "That game isn't in the catalog.",
+      "badName": "That file name won't work."
     },
     "convert": {
       "notConvertible": "That console has no light format.",
@@ -1614,7 +1616,10 @@
     "betterHint": "What you'd need to play it better.",
     "byHand": "Ports to install by hand",
     "recommended": "Recommended",
-    "installNote": "Pressing Play in the header installs {name} first."
+    "installNote": "Pressing Play in the header installs {name} first.",
+    "upload": "Upload file",
+    "uploading": "Uploading…",
+    "uploaded": "Uploaded: importing it as this game."
   },
   "steam": {
     "title": "Export to Steam",

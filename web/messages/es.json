@@ -522,7 +522,9 @@
         "setAside": "{path} traía cosas que no son juegos: quedaron en {to}."
       },
       "extracting": "Descomprimiendo {path}",
-      "badRegions": "Ese orden de regiones no es válido."
+      "badRegions": "Ese orden de regiones no es válido.",
+      "badGame": "Ese juego no está en el catálogo.",
+      "badName": "Ese nombre de archivo no sirve."
     },
     "convert": {
       "notConvertible": "Esa consola no tiene formato liviano.",
@@ -1614,7 +1616,10 @@
     "betterHint": "Lo que necesitarías para jugarlo mejor.",
     "byHand": "Ports para instalar a mano",
     "recommended": "Recomendado",
-    "installNote": "Al pulsar Jugar en la cabecera se instala {name} primero."
+    "installNote": "Al pulsar Jugar en la cabecera se instala {name} primero.",
+    "upload": "Subir archivo",
+    "uploading": "Subiendo…",
+    "uploaded": "Subido: se está importando como este juego."
   },
   "steam": {
     "title": "Exportar a Steam",

@@ -296,7 +296,11 @@ a.ot-btn, a.chip { text-decoration: none; }
 .hero-actions:has(> .play-box:not(.is-compact)) { align-items: center; gap: var(--space-2) var(--space-4); }
 .hero-actions > .play-box:not(.is-compact) { flex: 1 1 auto; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: var(--space-4); row-gap: 0; }
 .play-box:not(.is-compact) > .ot-btn { grid-row: 1 / span 4; align-self: center; height: 44px; min-width: 160px; padding: 0 var(--space-6); font-size: 17px; }
-.play-box:not(.is-compact) > :not(.ot-btn) { grid-column: 2; }
+.play-box:not(.is-compact) > :not(.ot-btn, .play-buttons) { grid-column: 2; }
+/* «Descargar» y «Subir archivo» (#465): los dos iguales, juntos donde va «Jugar». */
+.play-buttons { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.play-box:not(.is-compact) > .play-buttons { grid-row: 1 / span 4; align-self: center; }
+.play-box:not(.is-compact) > .play-buttons > .ot-btn { height: 44px; min-width: 160px; padding: 0 var(--space-6); font-size: 17px; }
 .play-box .link-button { padding: 0; color: var(--accent); text-decoration: underline; }
 .opt { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid var(--line); background: var(--surface-raised); color: var(--ink); text-align: left; font: inherit; cursor: pointer; width: 100%; box-sizing: border-box; }
 .opt[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); }

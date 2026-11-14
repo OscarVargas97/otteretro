@@ -88,6 +88,36 @@ public static partial class Import
         return TaskQueue.Enqueue(db, Kind, data);
     }
 
+    /// <summary>«Subir archivo» de la ficha (#465): lo deja en su carpeta de `Entrada\` y lo importa como de ese juego.</summary>
+    public static async Task<(long? Task, ApiError? Error)> Upload(Database db, long gameId, string name, Stream content, CancellationToken ct)
+    {
+        using (var c = db.Open())
+            if (c.ExecuteScalar<long>("SELECT count(*) FROM game WHERE id = @gameId", new { gameId }) == 0) return (null, ApiError.Of("import.badGame"));
+        name = Path.GetFileName(name ?? "");
+        if (name.Length == 0 || name.StartsWith('.') || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) return (null, ApiError.Of("import.badName"));
+        if (Disk.DefaultDisk(db) is not { Connected: true } disk) return (null, ApiError.Of("library.notConnected"));
+
+        // Se escribe fuera de `Entrada\`: el vigilante no lo ve a medias ni lo importa sin el juego.
+        var temp = Path.Combine(Directory.CreateDirectory(Path.Combine(disk.Path, Uploading)).FullName, Path.GetRandomFileName());
+        try
+        {
+            await using (var file = File.Create(temp)) await content.CopyToAsync(file, ct);
+            App.FolderMove.FlushToDisk(temp);
+            var stem = Path.GetFileNameWithoutExtension(name);
+            var folder = Path.Combine(disk.Path, Disk.EntryFolder, stem);
+            for (var k = 2; Directory.Exists(folder); k++) folder = Path.Combine(disk.Path, Disk.EntryFolder, $"{stem} ({k})");
+            Directory.CreateDirectory(folder);
+            File.Move(temp, Path.Combine(folder, name));
+            return (EnqueueEntry(db, disk, folder, gameId), null);
+        }
+        finally
+        {
+            if (File.Exists(temp)) File.Delete(temp);
+        }
+    }
+
+    const string Uploading = ".subiendo";
+
     /// <summary>Lo están escribiendo (una copia en curso): se deja para cuando termine, que avisa el vigilante.</summary>
     static bool InUse(string file)
     {
