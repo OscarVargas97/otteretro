@@ -1,3 +1,5 @@
+using System.Formats.Tar;
+using System.IO.Compression;
 using System.Text.RegularExpressions;
 using Otteretro.Api;
 using SharpCompress.Archives;
@@ -6,7 +8,7 @@ using SharpCompress.Readers;
 
 namespace Otteretro.Libraries;
 
-/// <summary>Descomprimir (§9.5, #230): zip, 7z y rar, en varias partes y con contraseña, dentro de la app, sin 7-Zip.</summary>
+/// <summary>Descomprimir (§9.5, #230): zip, 7z, rar y tar.gz (los ports de GitHub, como Project Picori), en varias partes y con contraseña, dentro de la app, sin 7-Zip.</summary>
 public static partial class Archives
 {
     /// <summary>Es comprimido, sea la parte que abre el conjunto o una de las demás.</summary>
@@ -41,6 +43,24 @@ public static partial class Archives
     public static ApiError? Extract(string main, string target, IReadOnlyList<string> passwords, CancellationToken ct)
     {
         ApiError failure = ApiError.Of("import.log.archiveFailed", ("path", main));
+        // SharpCompress no abre un tar.gz como archivo; el de .NET sí, y rechaza las rutas que salen de la carpeta.
+        if (Tar().IsMatch(main))
+        {
+            if (Directory.Exists(target)) Directory.Delete(target, recursive: true);
+            Directory.CreateDirectory(target);
+            try
+            {
+                using var file = File.OpenRead(main);
+                using Stream input = main.EndsWith(".tar", StringComparison.OrdinalIgnoreCase) ? file : new GZipStream(file, CompressionMode.Decompress);
+                TarFile.ExtractToDirectory(input, target, overwriteFiles: true);
+                return null;
+            }
+            catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException)
+            {
+                Directory.Delete(target, recursive: true);
+                return failure;
+            }
+        }
         foreach (var password in passwords.Prepend(null))
         {
             ct.ThrowIfCancellationRequested();
@@ -123,8 +143,11 @@ public static partial class Archives
         return crc;
     }
 
-    [GeneratedRegex(@"\.(zip|7z|rar|7z\.\d{3}|r\d{2})$", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\.(zip|7z|rar|7z\.\d{3}|r\d{2}|tar|tar\.gz|tgz)$", RegexOptions.IgnoreCase)]
     private static partial Regex AnyPart();
+
+    [GeneratedRegex(@"\.(tar|tar\.gz|tgz)$", RegexOptions.IgnoreCase)]
+    private static partial Regex Tar();
 
     /// <summary>`x.part2.rar`, `x.r00`, `x.7z.002`: se abren desde la primera.</summary>
     [GeneratedRegex(@"(\.part0*([2-9]|[1-9]\d+)\.rar|\.r\d{2}|\.7z\.(?!0*1$)\d{3})$", RegexOptions.IgnoreCase)]
