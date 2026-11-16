@@ -56,13 +56,16 @@ public class DsiWareTests
         Directory.CreateDirectory(Path.Combine(core, "cores"));
         File.WriteAllText(Path.Combine(core, "cores", "melondsds_libretro.dll"), "");
 
-        // Sin RetroArch, lo dice.
+        // Sin RetroArch no está para jugar: «Instalar» instala RetroArch.
+        var option = Assert.Single(PlayChoice.OfGame(f.Db, 10).Single().Options);
+        Assert.Equal((false, "retroarch"), (option.Installed, option.Install));
         var shown = Run(f, out _);
         Assert.Contains("RetroArch", Assert.Single(shown));
 
         var retroarch = ProfileSettingsTests.Install(f, "retroarch", "emulator", "RetroArch", "retroarch.exe", "1.22.2");
         Assert.Null(await SystemFiles.Save(f.Db, "ds", "bios7.bin", new MemoryStream("bios"u8.ToArray()), default));
         Assert.Null(await SystemFiles.Save(f.Db, "ds", "dsi_nand.bin", new MemoryStream("nand"u8.ToArray()), default));
+        Assert.True(Assert.Single(PlayChoice.OfGame(f.Db, 10).Single().Options).Installed);
         var system = Path.Combine(retroarch, "system");
         Directory.CreateDirectory(system);
         File.WriteAllText(Path.Combine(system, "dsi_nand.bin"), "la del core");
