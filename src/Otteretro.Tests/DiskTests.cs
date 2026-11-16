@@ -178,7 +178,7 @@ public class DiskTests
     [Fact]
     public void RecipesFollowTheSchemaRules()
     {
-        string[] placeholders = ["{titleId}", "{serial}", "{crc}", "{gameId}", "{rom}", "{game}", "{config}", "{file}", "{zrif}"];
+        string[] placeholders = ["{titleId}", "{serial}", "{crc}", "{gameId}", "{rom}", "{game}", "{config}", "{file}", "{zrif}", "{install}"];
         void Relative(string recipe, string path)
         {
             Assert.False(Path.IsPathRooted(path) || path.Split('/', '\\').Contains(".."), $"{recipe}: {path}");
@@ -194,7 +194,9 @@ public class DiskTests
                 Assert.NotNull(r.Updates);
                 _ = new System.Text.RegularExpressions.Regex(r.Asset);
             }
-            if (r.Updates is { } u) Assert.Contains(u.Source, new[] { "github", "forgejo", "gitlab", "dolphin" });
+            if (r.Updates is { } u) Assert.Contains(u.Source, new[] { "github", "forgejo", "gitlab", "dolphin", "libretro" });
+            if (r.Host is { } host) Assert.NotNull(Recipes.Find(host));
+            if (r.SystemFolder is { } system) Relative(r.Id, system);
             if (r.Updates?.DevPattern is { } dev) _ = new System.Text.RegularExpressions.Regex(dev);
             foreach (var path in r.Saves.Concat(r.Config).Concat(r.Content).Append(r.Detect)) Relative(r.Id, path);
             if (r.PerGame is { } g)

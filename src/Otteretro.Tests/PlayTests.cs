@@ -8,6 +8,7 @@ using Otteretro.Play;
 namespace Otteretro.Tests;
 
 /// <summary>#399: `otteretro jugar` prepara, lanza (aquí, un lanzador simulado), espera y anota la sesión; si falla, lo dice.</summary>
+[Collection(nameof(PlayTests))] // GameLauncher.Launch es estático: DsiWareTests también lo cambia
 public class PlayTests
 {
     /// <summary>Switch con Eden como emulador base y la ROM en el disco: sin perfil propio, juega con el perfil por defecto.</summary>

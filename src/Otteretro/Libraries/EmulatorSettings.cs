@@ -230,9 +230,21 @@ public static class EmulatorSettings
         if (Profiles.InstallOf(db, p.EmulatorId, p.EmulatorVersion) is not { } install)
             return (null, [], false, ApiError.Of("profile.notInstalled", ("emulator", p.EmulatorId)));
         var program = recipe.Run ?? recipe.Detect;
-        var exe = Path.Combine(install, program);
+        var folder = install;
+        // Un core se juega con el programa de su anfitrión (melonDS DS con RetroArch, #471), en la versión de su perfil por defecto.
+        if (recipe.Host is { } hostId)
+        {
+            var host = Recipes.Find(hostId);
+            var hostVersion = c.ExecuteScalar<string?>("SELECT emulator_version FROM profile WHERE emulator_id = @hostId AND game_version_id IS NULL", new { hostId });
+            if (host is null || Profiles.InstallOf(db, hostId, hostVersion) is not { } hostInstall)
+                return (null, [], false, ApiError.Of("profile.notInstalled", ("emulator", host?.Name ?? hostId)));
+            (program, folder) = (host.Run ?? host.Detect, hostInstall);
+        }
+        var exe = Path.Combine(folder, program);
         // Sin esto llegaba el error de Windows, que no dice qué falta (#440).
-        if (!File.Exists(exe)) return (null, [], false, ApiError.Of("play.exeMissing", ("exe", program), ("folder", install)));
+        if (!File.Exists(exe)) return (null, [], false, ApiError.Of("play.exeMissing", ("exe", program), ("folder", folder)));
+        if (recipe.SystemFolder is { } system && SystemFiles.CopyTo(db, recipe.Consoles, Path.Combine(folder, system)) is { } copyError)
+            return (null, [], false, copyError);
         var values = Read(p.Settings);
         List<string> extra = recipe.Input?.Arg is { } arg && values.Input.GetValueOrDefault(arg) is { } name ? [arg, name] : [];
         if ((p.GameVersionId ?? version) is not { } game) return (exe, extra, false, null);
@@ -268,7 +280,7 @@ public static class EmulatorSettings
         }
         var key = Profiles.GameKey(c, game, p.SourceId);
         var expanded = path is null ? null
-            : args.Select(a => Profiles.Expand(a.Replace("{rom}", path).Replace("{romDir}", Path.GetDirectoryName(path)), recipe, key)).ToList();
+            : args.Select(a => Profiles.Expand(a.Replace("{rom}", path).Replace("{romDir}", Path.GetDirectoryName(path)).Replace("{install}", install), recipe, key)).ToList();
         return expanded is null || expanded.Any(a => a is null) ? (exe, extra, false, null) : (exe, [.. expanded!.Select(a => a!), .. extra], true, null);
     }
 

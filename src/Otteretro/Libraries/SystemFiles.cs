@@ -98,6 +98,33 @@ public static partial class SystemFiles
         }
     }
 
+    /// <summary>
+    /// Copia a <paramref name="dest"/> lo que tienes de esas consolas (la versión más nueva de cada archivo), para un emulador que los
+    /// busca en su carpeta (melonDS DS en `system\`, #471). Solo lo que falta: el emulador escribe en ellos (la NAND) y su copia es suya.
+    /// </summary>
+    public static ApiError? CopyTo(Database db, IEnumerable<string> consoles, string dest)
+    {
+        var files = List(db).Where(k => consoles.Contains(k.Id)).SelectMany(k => k.Files).DistinctBy(f => f.Name, StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            foreach (var f in files)
+            {
+                var target = System.IO.Path.Combine(dest, f.Name);
+                if (File.Exists(target)) continue;
+                Directory.CreateDirectory(dest);
+                var temp = target + ".tmp";
+                File.Copy(f.Path, temp, true);
+                if (!App.FolderMove.SameContent(f.Path, temp)) { File.Delete(temp); return ApiError.Of("move.copyMismatch", ("path", f.Path), ("detail", target)); }
+                File.Move(temp, target);
+            }
+            return null;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return ApiError.Of("folder.createFailed", ("detail", e.Message));
+        }
+    }
+
     static string ConsoleFolder(Database db, DiskInfo disk, string console)
     {
         if (Disk.ConsoleFolders(db, "system").FirstOrDefault(f => f.LibraryId == disk.Id && f.Console == console) is { } found) return System.IO.Path.GetFileName(found.Relative);

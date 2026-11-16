@@ -53,6 +53,9 @@ public record RecipeOption(string Name, string File, string Format, string Key, 
 public record Recipe(string Id, string Name, string Kind, string Folder, string Detect)
 {
     public string? Parent { get; init; }
+    /// <summary>La receta con cuyo programa se juega (un core de RetroArch, #471) y dónde copiarle los archivos de sistema, relativo a él.</summary>
+    public string? Host { get; init; }
+    public string? SystemFolder { get; init; }
     /// <summary>Port: el juego que cubre (#193).</summary>
     public string? Game { get; init; }
     /// <summary>Port: el enlace de su fila de port, que manda en juego y consola (#384, de #382).</summary>
