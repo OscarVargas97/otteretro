@@ -157,7 +157,7 @@ public static class ToolUpdates
     }
 
     /// <summary>Las releases de un repo de GitHub, de Forgejo o Gitea (la misma API, en <c>host</c>) o de GitLab (#390).</summary>
-    static async Task<List<GitRelease>> Fetch(HttpClient http, RecipeUpdates u, string repo, CancellationToken ct, string? token)
+    internal static async Task<List<GitRelease>> Fetch(HttpClient http, RecipeUpdates u, string repo, CancellationToken ct, string? token)
     {
         if (u.Source == "gitlab")
         {
