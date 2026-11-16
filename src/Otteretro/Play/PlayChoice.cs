@@ -126,17 +126,16 @@ public static class PlayChoice
             dsiware = platform == "ds" && IsDsiWare(db, c, version);
         }
         // Sin instalar (#410): el que recomienda el catálogo para el juego y el base de la consola, si su receta se instala sola.
-        // Un DSiWare, solo con melonDS DS: el resto no lo arranca (#471).
+        // Un DSiWare solo ofrece melonDS DS: el resto no lo arranca (#471).
         var missing = Recipes.All.Where(r => r.Kind == "emulator" && r.Updates is not null && r.Asset is not null && r.Consoles.Contains(platform)
                 && (r.RecommendedFor.Any(g => g.GameId == gameId) || r.BaseFor.Contains(platform) || dsiware && r.Id == DsiWare) && emulators.All(e => e.Id != r.Id))
             .Select(r => (r.Id, r.Name, Installed: Profiles.InstallOf(db, r.Id, null) is not null));
         var compat = ports.Where(p => p.Emulator is not null && p.EmulatorLevel is not null).ToList();
-        return emulators.Select(e => (e.Id, e.Name, Installed: true)).Concat(missing)
-            .OrderByDescending(e => dsiware && e.Id == DsiWare)
-            .ThenByDescending(e => Recipes.Find(e.Id)?.RecommendedFor.Any(g => g.GameId == gameId) == true).Select(e =>
+        return emulators.Select(e => (e.Id, e.Name, Installed: true)).Concat(missing).Where(e => !dsiware || e.Id == DsiWare)
+            .OrderByDescending(e => Recipes.Find(e.Id)?.RecommendedFor.Any(g => g.GameId == gameId) == true).Select(e =>
         {
             var names = new[] { e.Name, Recipes.Find(e.Id)?.Name }.OfType<string>().ToList();
-            var level = dsiware ? e.Id == DsiWare ? 3 : 0
+            var level = dsiware ? 3
                 : compat.Where(p => p.Emulator!.Split('/').Any(r => names.Contains(r.Trim(), StringComparer.OrdinalIgnoreCase))).Max(p => p.EmulatorLevel);
             return new PlayOption($"emulator:{e.Id}", "emulator", Recipes.Find(e.Id)?.Name ?? e.Name, level == 3 ? Perfect : Playable, level, e.Installed);
         });

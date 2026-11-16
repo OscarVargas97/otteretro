@@ -31,7 +31,7 @@ public class DsiWareTests
         Assert.False(GameIds.IsDsiWare(f.Tmp["no-existe.nds"]));
     }
 
-    /// <summary>Four Swords: «Cómo jugar» elige melonDS DS (aunque falte instalarlo) y melonDS queda «no funciona»; un .nds normal sigue con melonDS.</summary>
+    /// <summary>Four Swords: «Cómo jugar» elige melonDS DS (aunque falte instalarlo) y es la única opción; un .nds normal sigue con melonDS.</summary>
     [Fact]
     public async Task DsiWareRecommendsRetroArchAndNotMelonDs()
     {
@@ -41,8 +41,7 @@ public class DsiWareTests
 
         var play = PlayChoice.OfGame(f.Db, 10).Single();
         Assert.Equal("emulator:melonds-ds", play.Chosen);
-        Assert.False(play.Options[0].Installed);
-        Assert.Equal(0, play.Options.Single(o => o.Key == "emulator:melonds").Level);
+        Assert.False(Assert.Single(play.Options).Installed); // melonDS ni se ofrece
 
         Nds(rom, dsiware: false);
         Assert.Equal("emulator:melonds", PlayChoice.OfGame(f.Db, 10).Single().Chosen);
