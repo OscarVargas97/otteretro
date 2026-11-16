@@ -33,6 +33,8 @@ export function upsertTask(cache: QueryClient, task: TaskInfo) {
     cache.invalidateQueries({ queryKey: ["toolUpdates"] });
     cache.invalidateQueries({ queryKey: ["notices"] });
   }
+  // «Convertir» (#469) deja el juego listo para el port: cambia el botón de la ficha.
+  if (task.kind === "library.extract" && task.status === "done") cache.invalidateQueries({ queryKey: ["play"] });
   // Instalar o reinstalar cambia lo instalado, los avisos y la librería (#296).
   if ((task.kind === "tools.install") && task.status === "done") {
     for (const key of ["tools", "emulators", "toolUpdates", "play", "ports", "profiles"]) cache.invalidateQueries({ queryKey: [key] });

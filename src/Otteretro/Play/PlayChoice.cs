@@ -10,7 +10,8 @@ namespace Otteretro.Play;
 /// <param name="Criterion">El criterio de la regla que cumple (§8.3): pc, port (100 %), perfect (emulador perfecto) o playable.</param>
 /// <param name="Level">Qué tan jugable: 3 perfecto, 2 jugable, 1 parcial, 0 no funciona; null sin dato.</param>
 /// <param name="Installed">Se puede jugar ya; false: un port o un emulador con receta que falta instalar.</param>
-public record PlayOption(string Key, string Kind, string Name, string Criterion, int? Level, bool Installed);
+/// <param name="Extract">Un port que pide el juego de Switch extraído y todavía no lo está: antes de jugar, «Convertir» (#469).</param>
+public record PlayOption(string Key, string Kind, string Name, string Criterion, int? Level, bool Installed, bool Extract = false);
 
 /// <summary>Cómo se juega una versión del juego (#398): sus opciones y la elegida.</summary>
 /// <param name="Chosen">La key de la elegida; null si no hay ninguna opción.</param>
@@ -79,7 +80,8 @@ public static class PlayChoice
         {
             var options = pcOwned.Select(p => new PlayOption($"pc:{p.Id}", Pc, p.Platform, Pc, null, true)).ToList();
             options.AddRange(ports.Where(p => p.Console == v.Platform).Select(p =>
-                new PlayOption($"port:{p.Id}", Port, p.Project, p.FullyPlayable ? Port : Playable, PortLevel(p.Status), p.Installed.Count > 0)));
+                new PlayOption($"port:{p.Id}", Port, p.Project, p.FullyPlayable ? Port : Playable, PortLevel(p.Status), p.Installed.Count > 0,
+                    p.RecipeId is not null && Recipes.Find(p.RecipeId)?.GameFile?.Extracted == true && SwitchExtract.Pending(db, v.Id) is not null)));
             options.AddRange(Emulators(db, gameId, v.Id, v.Platform, ports.Where(p => p.Console == v.Platform).ToList()));
             var (chosen, reason) = Choose(options, order, manual.GetValueOrDefault(v.Id));
             return new VersionPlay(v.Id, v.Platform, options, chosen, reason);

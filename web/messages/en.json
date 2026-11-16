@@ -666,6 +666,18 @@
       "exeMissing": "\"{exe}\" isn't in {folder}: the install is incomplete or the recipe doesn't match what was downloaded. Install it again with \"Install\" on the game's page.",
       "badOption": "That option no longer applies to this version of the game.",
       "badOrder": "The order must include the four criteria, once each."
+    },
+    "extract": {
+      "notNeeded": "It's already extracted: nothing to convert.",
+      "noKeys": "The Switch prod.keys are missing: upload them in Settings › System.",
+      "noTool": "hactool is needed to extract the game.",
+      "exists": "{path} already exists and is incomplete: delete or move it and try again.",
+      "failed": "Couldn't extract {path}; the NSPs are unchanged.",
+      "unpacking": "Opening {path}",
+      "extracting": "Extracting exefs and romfs into {path}",
+      "log": {
+        "done": "{path}: exefs and romfs ready for the port."
+      }
     }
   },
   "credentials": {
@@ -1619,7 +1631,10 @@
     "installNote": "Pressing Play in the header installs {name} first.",
     "upload": "Upload file",
     "uploading": "Uploading…",
-    "uploaded": "Uploaded: importing it as this game."
+    "uploaded": "Uploaded: importing it as this game.",
+    "convert": "Convert",
+    "converting": "Converting…",
+    "convertNote": "{name} needs the game extracted: «Convert» pulls exefs and romfs out of the NSPs into its folder."
   },
   "steam": {
     "title": "Export to Steam",

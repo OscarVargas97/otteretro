@@ -9,7 +9,7 @@ import { GameProfiles, Recommended, useRecommended } from "@/components/GameProf
 import { PortRow } from "@/components/Ports";
 import { useTasks } from "@/components/Tasks";
 import { installRecipe, recipesQuery } from "@/components/Tools";
-import { request } from "@/lib/client";
+import { ApiRequestError, request } from "@/lib/client";
 import { useDescribeError } from "@/lib/i18n";
 import type { GameDetail, PlayOrder, PlaySession, PortInfo, VersionPlay } from "@/lib/types";
 
@@ -26,7 +26,8 @@ function useLabel() {
 }
 
 /**
- * El botón principal de la ficha (#400, #410): «Descargar» si no lo tienes, «Instalar X» si la opción elegida falta y «Jugar» si
+ * El botón principal de la ficha (#400, #410): «Descargar» si no lo tienes, «Instalar X» si la opción elegida falta, «Convertir» si
+ * el port pide el juego de Switch extraído (#469) y «Jugar» si
  * está todo; «Jugando…» mientras la sesión sigue abierta. Debajo, con qué se abre y «Cambiar», que lleva a «Cómo jugar».
  * `compact` (Inicio, #428): el botón y con qué se abre, en una línea; sin «Cambiar» ni la última sesión.
  */
@@ -54,6 +55,17 @@ export function PlayButton({ game, owned, onChange, compact }: { game: Pick<Game
     mutationFn: (o: Option) => o.kind === "port"
       ? request<number>(`/api/ports/${o.key.slice(5)}/install`, { method: "POST", body: JSON.stringify({}) })
       : installRecipe(o.key.slice(9)),
+    onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+  // «Convertir» (#469): sin hactool, primero lo instala con su receta; al terminar se vuelve a pulsar.
+  const extract = useMutation({
+    mutationFn: async (version: number) => {
+      try { return { task: await request<number>(`/api/versions/${version}/extract`, { method: "POST" }), tool: false }; }
+      catch (e) {
+        if (e instanceof ApiRequestError && e.error.code === "extract.noTool") return { task: await installRecipe("hactool"), tool: true };
+        throw e;
+      }
+    },
     onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
   });
   const start = useMutation({
@@ -102,7 +114,9 @@ export function PlayButton({ game, owned, onChange, compact }: { game: Pick<Game
   const last = sessions.data?.find((s) => !s.playing);
   // Lo abierto por Steam lo lleva Steam: solo se detiene lo que abrió Otteretro.
   const stoppable = !!sessions.data?.some((s) => s.playing && s.launcher === "otteretro");
-  const failure = install.error ?? start.error ?? stop.error;
+  const extractTask = extract.isSuccess ? tasks.find((x) => String(x.id) === String(extract.data.task)) : undefined;
+  const extracting = extract.isPending || (extract.isSuccess && (!extractTask || extractTask.status === "queued" || extractTask.status === "running"));
+  const failure = install.error ?? extract.error ?? start.error ?? stop.error;
   if (play.isPending) return <div className={box}><button className="ot-btn ot-btn-primary" type="button" disabled>{t("play")}</button></div>;
 
   return (
@@ -115,6 +129,12 @@ export function PlayButton({ game, owned, onChange, compact }: { game: Pick<Game
               {installing ? t("installing", { name: chosen.name }) : t("install", { name: chosen.name })}
             </button>
           )
+          : chosen.extract
+            ? (
+              <button className="ot-btn ot-btn-primary" type="button" disabled={extracting} onClick={() => extract.mutate(Number(v.versionId))}>
+                {!extracting ? t("convert") : extract.data?.tool ? t("installing", { name: "hactool" }) : t("converting")}
+              </button>
+            )
           // La versión de PC se abre como ella misma (por Steam si está exportada).
           : (
             <button className="ot-btn ot-btn-primary" type="button" disabled={playing || start.isPending}
@@ -225,6 +245,7 @@ function VersionChoice({ gameId, version: v, recommended }: { gameId: number; ve
         ))}
       </div>
       {chosen && !chosen.installed && <p className="small muted" style={{ margin: 0 }}>{t("installNote", { name: chosen.name })}</p>}
+      {chosen?.installed && chosen.extract && <p className="small muted" style={{ margin: 0 }}>{t("convertNote", { name: chosen.name })}</p>}
       {change.isError && <p className="error small" role="alert" style={{ margin: 0 }}>{describe(change.error)}</p>}
     </div>
   );
