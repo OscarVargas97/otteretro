@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:55517/"
+      "url": "http://127.0.0.1:52854/"
     }
   ],
   "paths": {
@@ -8251,6 +8251,12 @@
           "extract": {
             "type": "boolean",
             "default": false
+          },
+          "install": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

@@ -7481,6 +7481,7 @@ export interface components {
             installed: boolean;
             /** @default false */
             extract: boolean;
+            install?: null | string;
         };
         PlayOrder: {
             criteria: string[];

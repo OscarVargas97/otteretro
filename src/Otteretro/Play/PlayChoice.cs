@@ -10,8 +10,9 @@ namespace Otteretro.Play;
 /// <param name="Criterion">El criterio de la regla que cumple (§8.3): pc, port (100 %), perfect (emulador perfecto) o playable.</param>
 /// <param name="Level">Qué tan jugable: 3 perfecto, 2 jugable, 1 parcial, 0 no funciona; null sin dato.</param>
 /// <param name="Installed">Se puede jugar ya; false: un port o un emulador con receta que falta instalar.</param>
+/// <param name="Install">La receta que falta instalar para jugarla: la del emulador o, si ya está, la de su host (RetroArch de melonDS DS, #471).</param>
 /// <param name="Extract">Un port que pide el juego de Switch extraído y todavía no lo está: antes de jugar, «Convertir» (#469).</param>
-public record PlayOption(string Key, string Kind, string Name, string Criterion, int? Level, bool Installed, bool Extract = false);
+public record PlayOption(string Key, string Kind, string Name, string Criterion, int? Level, bool Installed, bool Extract = false, string? Install = null);
 
 /// <summary>Cómo se juega una versión del juego (#398): sus opciones y la elegida.</summary>
 /// <param name="Chosen">La key de la elegida; null si no hay ninguna opción.</param>
@@ -137,7 +138,9 @@ public static class PlayChoice
             var names = new[] { e.Name, Recipes.Find(e.Id)?.Name }.OfType<string>().ToList();
             var level = dsiware ? 3
                 : compat.Where(p => p.Emulator!.Split('/').Any(r => names.Contains(r.Trim(), StringComparer.OrdinalIgnoreCase))).Max(p => p.EmulatorLevel);
-            return new PlayOption($"emulator:{e.Id}", "emulator", Recipes.Find(e.Id)?.Name ?? e.Name, level == 3 ? Perfect : Playable, level, e.Installed);
+            // Un core no se juega sin su host: falta uno u otro, falta instalar.
+            var install = !e.Installed ? e.Id : Recipes.Find(e.Id)?.Host is { } host && Profiles.InstallOf(db, host, null) is null ? host : null;
+            return new PlayOption($"emulator:{e.Id}", "emulator", Recipes.Find(e.Id)?.Name ?? e.Name, level == 3 ? Perfect : Playable, level, install is null, Install: install);
         });
     }
 

@@ -54,7 +54,7 @@ export function PlayButton({ game, owned, onChange, compact }: { game: Pick<Game
   const install = useMutation({
     mutationFn: (o: Option) => o.kind === "port"
       ? request<number>(`/api/ports/${o.key.slice(5)}/install`, { method: "POST", body: JSON.stringify({}) })
-      : installRecipe(o.key.slice(9)),
+      : installRecipe(o.install ?? o.key.slice(9)),
     onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
   });
   // «Convertir» (#469): sin hactool, primero lo instala con su receta; al terminar se vuelve a pulsar.
