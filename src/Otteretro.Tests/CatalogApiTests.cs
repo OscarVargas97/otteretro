@@ -179,6 +179,19 @@ public class CatalogApiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task ShowInExplorerNeedsAFileThatIsThere()
+    {
+        long id;
+        using (var c = f.Db.Open())
+        {
+            c.Execute("INSERT INTO library (id, name, kind, path, created_at, type) VALUES ('x', 'X', 'local', @path, '2026-01-01', 'disk')", new { path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()) });
+            id = c.ExecuteScalar<long>("INSERT INTO source (kind, library_id, relative_path, console, version_id) VALUES ('file', 'x', 'oot.z64', 'n64', 100) RETURNING id");
+        }
+        Assert.Equal(HttpStatusCode.NotFound, (await http.PostAsync("/api/sources/999999/open", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await http.PostAsync($"/api/sources/{id}/open", null)).StatusCode); // el disco no está
+    }
+
+    [Fact]
     public async Task GameSheetSavesProgressAndManualFixes()
     {
         var game = (await Get<GameDetail>("/api/games/10"))!;

@@ -365,6 +365,21 @@ public static class CatalogEndpoints
             return TypedResults.Ok();
         });
 
+        // «Más › Mostrar en el explorador»: el archivo del juego, seleccionado en su carpeta.
+        api.MapPost("/sources/{id:long}/open", Results<Ok, NotFound, Conflict<ApiError>> (long id, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            using var c = db.Open();
+            if (c.QuerySingleOrDefault<string>("SELECT l.path || '/' || o.relative_path FROM source o JOIN library l ON l.id = o.library_id WHERE o.id = @id AND o.kind = 'file'", new { id })
+                is not { } file) return TypedResults.NotFound();
+            file = Path.GetFullPath(file);
+            if (!Path.Exists(file)) return TypedResults.Conflict(ApiError.Of("library.notConnected"));
+            if (!OperatingSystem.IsWindows()) return Endpoints.Open(Path.GetDirectoryName(file)!) ? TypedResults.Ok() : TypedResults.Conflict(ApiError.Of("link.openFailed"));
+            try { System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{file}\"")?.Dispose(); }
+            catch (System.ComponentModel.Win32Exception) { return TypedResults.Conflict(ApiError.Of("link.openFailed")); }
+            return TypedResults.Ok();
+        });
+
         // «Convertir» (#469): saca exefs y romfs de los NSP para el port que los pide; devuelve la tarea.
         api.MapPost("/versions/{id:long}/extract", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (long id, AppSession s) =>
         {

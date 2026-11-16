@@ -116,6 +116,7 @@ function MoreMenu({ game, files, owned, onRemove }: { game: GameDetail; files: F
     mutationFn: (version: number) => request<number>(`/api/versions/${version}/content`, { method: "POST", body: JSON.stringify({}) }),
     onSuccess: () => cache.invalidateQueries({ queryKey: ["tasks"] }),
   });
+  const show = useMutation({ mutationFn: (source: number) => request<void>(`/api/sources/${source}/open`, { method: "POST" }) });
   if (!owned) return null;
   const close = () => { if (menu.current) menu.current.open = false; };
   return (
@@ -129,11 +130,13 @@ function MoreMenu({ game, files, owned, onRemove }: { game: GameDetail; files: F
               {versions.length > 1 ? t("game.prepareFor", { console: consoleName(platform) }) : t("game.prepare")}
             </button>
           ))}
+          {files.length > 0 && <button type="button" role="menuitem" onClick={() => { close(); show.mutate(Number(files[0].id)); }}>{t("game.showInExplorer")}</button>}
           {files.length > 0 && <button type="button" role="menuitem" onClick={() => { close(); onRemove(); }}>{t("game.removeMenu")}</button>}
         </div>
       </details>
       {prepare.isSuccess && <p className="small muted" role="status" style={{ margin: 0, alignSelf: "center" }}>{t("game.prepareQueued")}</p>}
       {prepare.isError && <p className="error small" role="alert" style={{ margin: 0, alignSelf: "center" }}>{describe(prepare.error)}</p>}
+      {show.isError && <p className="error small" role="alert" style={{ margin: 0, alignSelf: "center" }}>{describe(show.error)}</p>}
     </>
   );
 }
