@@ -365,6 +365,14 @@ public static class CatalogEndpoints
             return TypedResults.Ok();
         });
 
+        // «Convertir» (#469): saca exefs y romfs de los NSP para el port que los pide; devuelve la tarea.
+        api.MapPost("/versions/{id:long}/extract", Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>> (long id, AppSession s) =>
+        {
+            if (Db(s) is not { } db) return NoData();
+            var (task, error) = Libraries.SwitchExtract.Enqueue(db, id);
+            return error is null ? TypedResults.Ok(task!.Value) : TypedResults.BadRequest(error);
+        });
+
         // «Subir archivo» de la ficha (#465): el archivo llega crudo en el cuerpo; devuelve la tarea de importar.
         api.MapPost("/games/{id:long}/upload", async Task<Results<Ok<long>, BadRequest<ApiError>, Conflict<ApiError>>> (long id, string name, HttpRequest request, AppSession s, CancellationToken ct) =>
         {

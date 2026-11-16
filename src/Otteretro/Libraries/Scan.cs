@@ -54,7 +54,9 @@ public static partial class Scan
             // PC (#182): cada carpeta de `Juegos\PC` es un juego, con su ejecutable.
             var found = console == "pc" ? PcGames(libraryId, root, relative, ct) : [];
             // Switch y Switch 2 (#237): cada carpeta extraída (`exefs\main`, `romfs`) es un juego, por su TitleID; sus archivos no se cuentan sueltos.
-            var dumps = console == "pc" ? [] : FolderGame.Find(Path.Combine(root, relative)).Where(d => d.Console is null || d.Console == console).ToList();
+            // Una carpeta con NSP o XCI sueltos es la del juego con lo que «Convertir» sacó para un port (#469): mandan sus archivos.
+            var dumps = console == "pc" ? [] : FolderGame.Find(Path.Combine(root, relative)).Where(d => (d.Console is null || d.Console == console)
+                && !Directory.EnumerateFiles(d.Root).Any(f => Path.GetExtension(f) is var e && (e.Equals(".nsp", StringComparison.OrdinalIgnoreCase) || e.Equals(".xci", StringComparison.OrdinalIgnoreCase)))).ToList();
             foreach (var dump in dumps)
             {
                 var title = dump.Name ?? (dump.TitleId is null ? null : console is "switch" or "switch2"

@@ -23,7 +23,8 @@ public record RecipeUpdates(string Source, string? Repo = null, string? Host = n
 /// <summary>Port: cómo se le entrega el archivo del juego, investigado en el catálogo (#449, otteretro-catalogo#182).</summary>
 /// <param name="Deliver">arg (con <paramref name="Args"/>), copy (a <paramref name="CopyTo"/>), none o manual.</param>
 /// <param name="Formats">Las extensiones del archivo de la persona que sirven; vacía, cualquiera.</param>
-public record RecipeGameFile(string Deliver, List<string>? Args = null, string? CopyTo = null, List<string>? Formats = null);
+/// <param name="Extracted">Switch: pide exefs/ y romfs/ en la carpeta del juego; se sacan de los NSP antes de jugar (#469).</param>
+public record RecipeGameFile(string Deliver, List<string>? Args = null, string? CopyTo = null, List<string>? Formats = null, bool Extracted = false);
 /// <param name="Apply">file, section, swap o argument (ver el esquema).</param>
 public record RecipePerGame(string? Config = null, string? Apply = null)
 {

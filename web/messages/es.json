@@ -666,6 +666,18 @@
       "exeMissing": "No está «{exe}» en {folder}: la instalación quedó incompleta o la receta no coincide con lo que se bajó. Vuelve a instalarlo con «Instalar», en la ficha del juego.",
       "badOption": "Esa opción ya no sirve para esta versión del juego.",
       "badOrder": "El orden tiene que tener los cuatro criterios, una vez cada uno."
+    },
+    "extract": {
+      "notNeeded": "Ya está extraído: no hay nada que convertir.",
+      "noKeys": "Faltan las prod.keys de Switch: súbelas en Ajustes › Sistema.",
+      "noTool": "Falta hactool para extraer el juego.",
+      "exists": "{path} ya existe y está incompleto: bórralo o muévelo y vuelve a intentar.",
+      "failed": "No se pudo extraer {path}; los NSP quedan igual.",
+      "unpacking": "Abriendo {path}",
+      "extracting": "Extrayendo exefs y romfs en {path}",
+      "log": {
+        "done": "{path}: exefs y romfs listos para el port."
+      }
     }
   },
   "credentials": {
@@ -1619,7 +1631,10 @@
     "installNote": "Al pulsar Jugar en la cabecera se instala {name} primero.",
     "upload": "Subir archivo",
     "uploading": "Subiendo…",
-    "uploaded": "Subido: se está importando como este juego."
+    "uploaded": "Subido: se está importando como este juego.",
+    "convert": "Convertir",
+    "converting": "Convirtiendo…",
+    "convertNote": "{name} pide el juego extraído: «Convertir» saca exefs y romfs de los NSP en su carpeta."
   },
   "steam": {
     "title": "Exportar a Steam",
