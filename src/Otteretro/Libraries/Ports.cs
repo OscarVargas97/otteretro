@@ -125,25 +125,22 @@ public static class Ports
 
     static readonly Regex VersionText = new(@"\d+(\.\d+)+(-\d+)?");
 
-    record GitAsset(string Name, string BrowserDownloadUrl);
-    record GitRelease(string TagName, string? Name, bool Draft, bool Prerelease, string? PublishedAt, List<GitAsset> Assets);
-    static readonly JsonSerializerOptions Snake = new(JsonSerializerDefaults.Web) { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
-
     /// <summary>
-    /// La última versión estable de la receta para este sistema: la de sus descargas o, si no trae, la release de GitHub con el archivo que
-    /// dice su <c>asset</c>. Null si no se sabe de dónde.
+    /// La última versión estable de la receta para este sistema: la de sus descargas o, si no trae, la release de su repo (GitHub, Forgejo o
+    /// GitLab, #467) con el archivo que dice su <c>asset</c>. Null si no se sabe de dónde.
     /// </summary>
     static async Task<(string Version, string? Url)?> Latest(Recipe r, string? token, CancellationToken ct)
     {
         var os = OperatingSystem.IsWindows() ? "windows" : "linux";
         if (r.Downloads.LastOrDefault(d => d.System == os) is { } d) return (d.Version, null);
-        if (r.Updates is not { Source: "github", Repo: { } repo } || r.Asset is null || !OperatingSystem.IsWindows()) return null;
+        if (r.Updates is not { Repo: { } repo } u || u.Source == "dolphin" || r.Asset is null || !OperatingSystem.IsWindows()) return null;
         using var http = Installs.Handler is null ? new HttpClient() : new HttpClient(Installs.Handler, disposeHandler: false);
         http.DefaultRequestHeaders.UserAgent.ParseAdd("Otteretro");
-        var releases = JsonSerializer.Deserialize<List<GitRelease>>(await GithubApi.GetString(http, $"https://api.github.com/repos/{repo}/releases?per_page=30", token, ct), Snake)!;
         var asset = new Regex(r.Asset);
-        return releases.Where(x => !x.Draft && !x.Prerelease && x.Assets.Any(a => asset.IsMatch(a.Name))).MaxBy(x => x.PublishedAt ?? "") is { } g
-            ? (ToolUpdates.VersionOf(new(g.TagName, g.Name, null, g.Draft, g.Prerelease, g.PublishedAt, null, null)), g.Assets.First(a => asset.IsMatch(a.Name)).BrowserDownloadUrl)
+        return (await ToolUpdates.Fetch(http, u, repo, ct, token))
+            .Where(x => !x.Draft && !x.Prerelease && x.Assets?.Any(a => asset.IsMatch(a.Name) && a.BrowserDownloadUrl is not null) == true)
+            .MaxBy(x => x.PublishedAt ?? "") is { } g
+            ? (ToolUpdates.VersionOf(g), g.Assets!.First(a => asset.IsMatch(a.Name) && a.BrowserDownloadUrl is not null).BrowserDownloadUrl)
             : null;
     }
 

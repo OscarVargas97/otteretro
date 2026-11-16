@@ -123,6 +123,51 @@ public class RepoInstallTests
         Assert.Empty(Directory.GetDirectories(Path.GetDirectoryName(installed.Path)!, "*.parcial"));
     }
 
+    /// <summary>#467: un port cuya receta publica en Forgejo (SkyRecomp, en codefloe) se instala con un clic, como uno de GitHub.</summary>
+    [Fact]
+    public async Task APortWithItsReleasesInForgejoIsOneClick()
+    {
+        if (!OperatingSystem.IsWindows()) return; // el asset de la receta es el de Windows
+        await using var f = new Fixture();
+        Disk.Create(f.Db, f.Tmp["E"], "E:");
+        Directory.CreateDirectory(Recipes.LocalFolder!);
+        File.WriteAllText(Path.Combine(Recipes.LocalFolder!, "cielo.json"), """
+            { "id": "cielo", "name": "Cielo", "kind": "port", "folder": "Switch", "port": "https://forja.example.org/a/Cielo",
+              "detect": "cielo.exe", "updates": { "source": "forgejo", "repo": "a/Cielo", "host": "forja.example.org" },
+              "asset": "^Cielo-v[0-9.]+-Windows[.]zip$" }
+            """);
+        Recipes.Reload();
+        using (var c = f.Db.Open())
+            c.Execute("""
+                INSERT INTO game (id, name_es) VALUES (10, 'Cielo');
+                INSERT INTO port (id, console, game, project, kind, status, delisted, link, source, added, game_id)
+                  VALUES (1, 'switch', 'Cielo', 'Cielo', 'recomp', 'experimental', 0, 'https://forja.example.org/a/Cielo', 'extra', date('now'), 10);
+                """);
+        Installs.Handler = new Releases("""
+            [{ "tag_name": "v1.1.0", "name": "1.1.0", "draft": false, "prerelease": false, "published_at": "2026-11-01T00:00:00Z",
+               "assets": [{ "name": "Cielo-v1.1.0-linux.AppImage", "browser_download_url": "https://forja.example.org/l" },
+                          { "name": "Cielo-v1.1.0-Windows.zip", "browser_download_url": "https://forja.example.org/w.zip" }] }]
+            """);
+        try
+        {
+            var (task, error) = await Ports.Install(f.Db, 1, new());
+            Assert.Null(error);
+            using var c = f.Db.Open();
+            var job = System.Text.Json.JsonSerializer.Deserialize<InstallJob>(c.ExecuteScalar<string>("SELECT data FROM task WHERE id = @task", new { task })!, System.Text.Json.JsonSerializerOptions.Web)!;
+            Assert.Equal(("1.1.0", "https://forja.example.org/w.zip"), (job.Version, job.Url));
+        }
+        finally { Installs.Handler = null; }
+    }
+
+    /// <summary>Responde las releases solo a la API de Forgejo de ese servidor.</summary>
+    sealed class Releases(string json) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) =>
+            Task.FromResult(request.RequestUri!.ToString() == "https://forja.example.org/api/v1/repos/a/Cielo/releases?limit=30"
+                ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json) }
+                : new HttpResponseMessage(HttpStatusCode.NotFound));
+    }
+
     static async Task<TaskInfo> Run(Fixture f, InstallJob job)
     {
         var (task, error) = Installs.Enqueue(f.Db, job);
