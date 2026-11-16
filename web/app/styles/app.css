@@ -203,9 +203,9 @@ table.t .num { text-align: right; white-space: nowrap; }
 
 /* El héroe de la saga o del juego detrás de la cabecera (#112). Va de fondo: el alto lo da el texto, así nada salta. */
 .accented { display: contents; }
-.hero { position: relative; isolation: isolate; min-height: 240px; overflow: hidden; }
+.hero { position: relative; isolation: isolate; min-height: 240px; z-index: 1; }
 .hero > :not(.hero-art) { position: relative; }
-.hero-art { position: absolute; inset: 0; z-index: -1; }
+.hero-art { position: absolute; inset: 0; z-index: -1; overflow: hidden; } /* recorta la imagen aquí: en .hero también recortaría el menú «Más» */
 .hero-art img { width: 100%; height: 100%; object-fit: cover; object-position: center 30%; opacity: 0; transition: opacity 200ms ease-out; }
 .hero-art img.shown { opacity: 1; }
 /* El texto se lee sobre cualquier imagen: el color de la cabecera tapa la izquierda y el pie, y se abre hacia la derecha. */
