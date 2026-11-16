@@ -248,7 +248,15 @@ public static class Installs
         return null;
     }
 
-    public static Task Run(TaskRun run, CancellationToken ct) => Install(run, JsonSerializer.Deserialize<InstallJob>(run.Data!, Json)!, ct);
+    public static async Task Run(TaskRun run, CancellationToken ct)
+    {
+        var job = JsonSerializer.Deserialize<InstallJob>(run.Data!, Json)!;
+        await Install(run, job, ct);
+        // Un core se juega con el programa de su receta host (#471, melonDS DS con RetroArch): si falta, se instala también.
+        if (Recipes.Find(job.Emulator)?.Host is { } id && Recipes.Find(id) is { } host && Profiles.InstallOf(run.Db, id, null) is null
+            && (await ToolUpdates.Installable(host, ct, GithubApi.Token(run.Credentials))).FirstOrDefault() is { } latest)
+            Enqueue(run.Db, new InstallJob(id, latest.Version, Url: latest.Download));
+    }
 
     /// <summary>Ya ocupada: registrada o con su carpeta en el disco ★ (un port se reemplaza: solo si está registrada).</summary>
     internal static bool Taken(Database db, InstallJob job) =>

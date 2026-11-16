@@ -286,4 +286,25 @@ public class ToolUpdatesTests
         }
         finally { ToolUpdates.Handler = null; }
     }
+
+    [Fact]
+    public async Task InstallingMelonDsDsQueuesRetroArchWhenItIsMissing()
+    {
+        await using var f = new Fixture();
+        Disk.Create(f.Db, f.Tmp["E"], "E:");
+        var core = f.Tmp["core"];
+        Directory.CreateDirectory(Path.Combine(core, "melondsds", "cores")); // como el zip: una carpeta que se aplana
+        File.WriteAllText(Path.Combine(core, "melondsds", "cores", "melondsds_libretro.dll"), "core");
+        ToolUpdates.Handler = new Fake(new() { ["repos/libretro/RetroArch/releases"] = """[{"tag_name":"v1.22.2","draft":false,"prerelease":false,"published_at":"2026-10-01T00:00:00Z","assets":[]}]""" });
+        try
+        {
+            var (task, error) = Installs.Enqueue(f.Db, new InstallJob("melonds-ds", "1.4.0", Path: core));
+            Assert.Null(error);
+            var run = await f.Run(task!.Value); Assert.True(run.Status == "done", System.Text.Json.JsonSerializer.Serialize(run.Detail));
+        }
+        finally { ToolUpdates.Handler = null; }
+        using var c = f.Db.Open();
+        var queued = c.QuerySingle<string>("SELECT data FROM task WHERE kind = @Kind AND data LIKE '%retroarch%'", new { Installs.Kind });
+        Assert.Contains("https://buildbot.libretro.com/stable/1.22.2/windows/x86_64/RetroArch.7z", queued);
+    }
 }
