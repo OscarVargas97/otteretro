@@ -275,6 +275,7 @@ a.ot-btn, a.chip { text-decoration: none; }
 .ot-btn-icon { min-width: 36px; padding: 0 var(--space-2); font-size: 20px; }
 .hero-actions .tabs-more { display: flex; align-items: center; gap: var(--space-2); }
 .hero-actions .tabs-more-menu { left: 0; right: auto; }
+.hero-actions .ot-menu-text .ot-menu-list { left: auto; right: 0; } /* «Más» va al final de la fila: el menú se abre hacia la izquierda para no salirse */
 .tabs-more-item[disabled] { opacity: .45; cursor: not-allowed; }
 .hero-actions .tabs-more-menu { top: auto; bottom: calc(100% + 4px); }
 
