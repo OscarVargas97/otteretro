@@ -75,6 +75,20 @@ public static partial class GameIds
 
     // —— Cartuchos ——
 
+    /// <summary>
+    /// Un DSiWare (#471): la DSi lo instala en su NAND y melonDS no lo arranca como ROM. Como lo reconoce melonDS: unit code con DSi
+    /// (0x12, bit 1) y title id alto 0x00030004 (0x234).
+    /// </summary>
+    public static bool IsDsiWare(string path)
+    {
+        try
+        {
+            var h = Head(path, 0x238);
+            return h.Length == 0x238 && (h[0x12] & 2) != 0 && BinaryPrimitives.ReadUInt32LittleEndian(h.AsSpan(0x234)) == 0x00030004;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return false; }
+    }
+
     /// <summary>DS y GBA: el código de juego de 4 letras de la cabecera, como lo lleva el DAT («BKAJ»).</summary>
     static GameId? Cartridge(string path, string console, int at)
     {

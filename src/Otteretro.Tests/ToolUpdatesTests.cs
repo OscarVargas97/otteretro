@@ -272,4 +272,18 @@ public class ToolUpdatesTests
         Assert.Equal(("2026.11.06", "https://x/win.zip"), (latest.Version, latest.Download));
         Assert.Null(await ToolUpdates.Latest(http, eglantine.Updates!, "stable", default, eglantine.Asset));
     }
+
+    /// <summary>#471: RetroArch no sube el de Windows a GitHub; se baja del buildbot con la versión de su tag.</summary>
+    [Fact]
+    public async Task RetroArchDownloadsFromTheBuildbotWithTheTagVersion()
+    {
+        var fake = new Fake(new() { ["repos/libretro/RetroArch/releases"] = """[{"tag_name":"v1.22.2","draft":false,"prerelease":false,"published_at":"2026-10-01T00:00:00Z","assets":[{"name":"retroarch-sourceonly-1.22.2.tar.xz","browser_download_url":"https://x/src.tar.xz"}]}]""" });
+        ToolUpdates.Handler = fake;
+        try
+        {
+            var release = Assert.Single(await ToolUpdates.Installable(Recipes.Find("retroarch")!, default));
+            Assert.Equal(("1.22.2", "https://buildbot.libretro.com/stable/1.22.2/windows/x86_64/RetroArch.7z"), (release.Version, release.Download));
+        }
+        finally { ToolUpdates.Handler = null; }
+    }
 }

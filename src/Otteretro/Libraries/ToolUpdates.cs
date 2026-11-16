@@ -170,7 +170,10 @@ public static class ToolUpdates
                 .ToList();
         }
         var url = u.Source == "forgejo" ? $"https://{u.Host}/api/v1/repos/{repo}/releases?limit=30" : $"https://api.github.com/repos/{repo}/releases?per_page=30";
-        return JsonSerializer.Deserialize<List<GitRelease>>(await GithubApi.GetString(http, url, token, ct), Snake)!;
+        var list = JsonSerializer.Deserialize<List<GitRelease>>(await GithubApi.GetString(http, url, token, ct), Snake)!;
+        // RetroArch no sube el de Windows a GitHub: está en su buildbot, con la versión del tag (#471).
+        return u.Source != "libretro" ? list
+            : list.Select(g => g with { Assets = [new("RetroArch.7z", $"https://buildbot.libretro.com/stable/{VersionOf(g)}/windows/x86_64/RetroArch.7z")] }).ToList();
     }
 
     /// <summary>
